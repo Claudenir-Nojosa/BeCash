@@ -15,7 +15,7 @@ import {
   Settings,
   LogOut,
   CreditCard,
-  User,
+  Wand,
   Menu,
   Plane,
   ChevronDown,
@@ -31,6 +31,7 @@ import {
   EqualApproximately,
   ChartNoAxesColumnIncreasing,
   Goal,
+  WandSparkles,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSession, signOut } from "next-auth/react";
@@ -226,6 +227,17 @@ export default function Sidebar() {
             >
               <Goal className="h-5 w-5" />
               {!isCollapsed && <span className="ml-2">Metas</span>}
+            </Link>
+          </li>
+            <li>
+            <Link
+              href="/dashboard/bicla"
+              className={`flex items-center p-2 rounded-lg hover:bg-blue-900/20 text-blue-100 hover:text-blue-100 ${
+                isCollapsed ? "justify-center" : ""
+              }`}
+            >
+              <WandSparkles className="h-5 w-5" />
+              {!isCollapsed && <span className="ml-2">Bicla</span>}
             </Link>
           </li>
         </ul>
