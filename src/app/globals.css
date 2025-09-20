@@ -9,50 +9,50 @@ body {
 
 @layer base {
   :root {
-    /* Light Mode - Futuristic Emerald */
+    /* Light Mode - Futuristic Blue */
     --background: 0 0% 100%;
-    --foreground: 160 84% 10%;
+    --foreground: 210 64% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 160 84% 10%;
+    --card-foreground: 210 64% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 160 84% 10%;
-    --primary: 160 84% 40%;
-    --primary-foreground: 355 100% 97%;
-    --secondary: 150 50% 96%;
-    --secondary-foreground: 160 84% 20%;
-    --muted: 150 20% 95%;
-    --muted-foreground: 160 20% 40%;
-    --accent: 155 70% 95%;
-    --accent-foreground: 160 84% 20%;
+    --popover-foreground: 210 64% 10%;
+    --primary: 210 64% 40%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 50% 96%;
+    --secondary-foreground: 210 64% 20%;
+    --muted: 210 20% 95%;
+    --muted-foreground: 210 20% 40%;
+    --accent: 210 70% 95%;
+    --accent-foreground: 210 64% 20%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 355 100% 97%;
-    --border: 150 30% 85%;
-    --input: 150 30% 85%;
-    --ring: 160 84% 40%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 210 30% 85%;
+    --input: 210 30% 85%;
+    --ring: 210 64% 40%;
     --radius: 0.5rem;
   }
 
   .dark {
-    /* Dark Mode - Emerald Futuristic */
-    --background: 160 84% 3%;
-    --foreground: 150 100% 95%;
-    --card: 160 84% 5%;
-    --card-foreground: 150 100% 95%;
-    --popover: 160 84% 5%;
-    --popover-foreground: 150 100% 95%;
-    --primary: 160 84% 45%;
-    --primary-foreground: 150 100% 95%;
-    --secondary: 160 50% 15%;
-    --secondary-foreground: 150 100% 95%;
-    --muted: 160 30% 20%;
-    --muted-foreground: 150 20% 70%;
-    --accent: 155 60% 25%;
-    --accent-foreground: 150 100% 95%;
+    /* Dark Mode - Blue Futuristic */
+    --background: 210 64% 3%;
+    --foreground: 210 100% 95%;
+    --card: 210 64% 5%;
+    --card-foreground: 210 100% 95%;
+    --popover: 210 64% 5%;
+    --popover-foreground: 210 100% 95%;
+    --primary: 210 64% 45%;
+    --primary-foreground: 210 100% 95%;
+    --secondary: 210 50% 15%;
+    --secondary-foreground: 210 100% 95%;
+    --muted: 210 30% 20%;
+    --muted-foreground: 210 20% 70%;
+    --accent: 210 60% 25%;
+    --accent-foreground: 210 100% 95%;
     --destructive: 0 62% 40%;
-    --destructive-foreground: 150 100% 95%;
-    --border: 160 30% 25%;
-    --input: 160 30% 25%;
-    --ring: 160 84% 45%;
+    --destructive-foreground: 210 100% 95%;
+    --border: 210 30% 25%;
+    --input: 210 30% 25%;
+    --ring: 210 64% 45%;
   }
 }
 
@@ -69,30 +69,30 @@ body {
 @keyframes neon-pulse {
   0%,
   100% {
-    box-shadow: 0 0 5px 0px theme("colors.emerald.500");
+    box-shadow: 0 0 5px 0px theme("colors.blue.500");
   }
   50% {
-    box-shadow: 0 0 20px 5px theme("colors.green.500");
+    box-shadow: 0 0 20px 5px theme("colors.cyan.500");
   }
 }
 
 @keyframes pulse-glow {
   0%,
   100% {
-    box-shadow: 0 0 6px 0 rgba(110, 231, 183, 0.7);
+    box-shadow: 0 0 6px 0 rgba(59, 130, 246, 0.7);
   }
   50% {
-    box-shadow: 0 0 10px 2px rgba(110, 231, 183, 0.9);
+    box-shadow: 0 0 10px 2px rgba(59, 130, 246, 0.9);
   }
 }
 
 @keyframes text-glow {
   0%,
   100% {
-    text-shadow: 0 0 5px theme("colors.emerald.400");
+    text-shadow: 0 0 5px theme("colors.blue.400");
   }
   50% {
-    text-shadow: 0 0 15px theme("colors.green.400");
+    text-shadow: 0 0 15px theme("colors.cyan.400");
   }
 }
 
@@ -127,7 +127,7 @@ body {
     @apply bg-background;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-emerald-500/30 rounded-full hover:bg-emerald-500/50;
+    @apply bg-blue-500/30 rounded-full hover:bg-blue-500/50;
   }
 }
 
@@ -230,48 +230,48 @@ body {
 
 /* Special gradient text class */
 .gradient-text {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-green-500;
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-cyan-500;
 }
 
 /* Special border glow effect */
 .border-glow {
-  box-shadow: 0 0 10px theme("colors.emerald.500");
+  box-shadow: 0 0 10px theme("colors.blue.500");
   transition: box-shadow 0.3s ease;
 }
 
 .border-glow:hover {
-  box-shadow: 0 0 20px theme("colors.green.500");
+  box-shadow: 0 0 20px theme("colors.cyan.500");
 }
 
 /* Custom button styles */
-.btn-emerald {
-  @apply bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+.btn-blue {
+  @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
 }
 
-.btn-emerald-outline {
-  @apply border border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+.btn-blue-outline {
+  @apply border border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
 }
 
 /* Card styles */
-.card-emerald {
-  @apply bg-white dark:bg-gray-900 border border-emerald-200 dark:border-emerald-800 rounded-lg shadow-sm;
+.card-blue {
+  @apply bg-white dark:bg-gray-900 border border-blue-200 dark:border-blue-800 rounded-lg shadow-sm;
 }
 
 /* Table styles */
-.table-emerald {
+.table-blue {
   @apply w-full border-collapse;
 }
 
-.table-emerald th {
-  @apply bg-emerald-50 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200 font-medium py-3 px-4 text-left;
+.table-blue th {
+  @apply bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 font-medium py-3 px-4 text-left;
 }
 
-.table-emerald td {
-  @apply py-3 px-4 border-t border-emerald-100 dark:border-emerald-800/50;
+.table-blue td {
+  @apply py-3 px-4 border-t border-blue-100 dark:border-blue-800/50;
 }
 
-.table-emerald tr {
-  @apply hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10 transition-colors;
+.table-blue tr {
+  @apply hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors;
 }
 
 .day-cell {
@@ -322,7 +322,8 @@ body {
   color: #f7f7f7 !important;
 }
 
-.editor-rich-text ul, .editor-rich-text ol {
+.editor-rich-text ul,
+.editor-rich-text ol {
   margin-top: 0.5rem !important;
   margin-bottom: 0.5rem !important;
   padding-left: 1.5rem !important;

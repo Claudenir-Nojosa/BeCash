@@ -51,7 +51,7 @@ export default function LoginForm() {
           <Input type="password" name="password" placeholder="********" />
         </div>
         <div>
-          <Button className="w-full mt-6 bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-300 hover:to-green-400 text-white font-medium rounded-md transition-all duration-300 shadow-[0_0_15px_-3px_rgba(217,70,239,0.4)] hover:shadow-[0_0_20px_-3px_rgba(217,70,239,0.6)]" type="submit">
+          <Button className="w-full mt-6 bg-gradient-to-r from-blue-400 to-indigo-500 hover:from-blue-300 hover:to-indigo-400 text-white font-medium rounded-md transition-all duration-300 shadow-[0_0_15px_-3px_rgba(217,70,239,0.4)] hover:shadow-[0_0_20px_-3px_rgba(217,70,239,0.6)]" type="submit">
             {isPending ? (
               <Icons.spinner className="h-4 w-4 animate-spin" />
             ) : (
