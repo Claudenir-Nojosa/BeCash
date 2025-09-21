@@ -5,7 +5,7 @@ import { auth } from "../../../../../auth";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -16,7 +16,7 @@ export async function PATCH(
       );
     }
 
-    const { id } = params;
+    const { id } = await params; // Adicione await aqui
     const body = await request.json();
     const { pago } = body;
 
@@ -54,7 +54,7 @@ export async function PATCH(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -65,7 +65,7 @@ export async function GET(
       );
     }
 
-    const { id } = params;
+    const { id } = await params; // Adicione await aqui
 
     const lancamento = await db.lancamento.findUnique({
       where: { id },
@@ -102,7 +102,7 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -113,7 +113,7 @@ export async function DELETE(
       );
     }
 
-    const { id } = params;
+    const { id } = await params; // Adicione await aqui
 
     // Verificar se o lançamento existe e pertence ao usuário
     const lancamentoExistente = await db.lancamento.findUnique({
