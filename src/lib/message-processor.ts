@@ -25,7 +25,7 @@ export async function processMessage(from: string, message: string, type: string
     - valor: number (valor em reais)
     - categoria: [alimentacao, transporte, casa, pessoal, lazer, receita, outros]
     - tipo: [individual, compartilhado]
-    - responsavel: [Claudenir, Esposa]
+    - responsavel: [Claudenir, Beatriz]
     - data: YYYY-MM-DD (use hoje se não especificado)
     
     Retorne apenas JSON. Exemplo: 
@@ -124,7 +124,7 @@ async function determinarUsuario(from: string) {
     data: {
       telefone: numero,
       usuarioId: usuario.id,
-      nome: from.includes('5511') ? "Claudenir" : "Esposa"
+      nome: from.includes('5511') ? "Claudenir" : "Beatriz"
     }
   });
   

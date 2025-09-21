@@ -1,4 +1,4 @@
-// app/dashboard/gastos/page.tsx
+// app/dashboard/lancamentos/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -19,54 +19,47 @@ import {
   TrendingUp,
   TrendingDown,
   Wallet,
-  CreditCard,
-  Target,
+  Handshake,
   PieChart,
   BarChart3,
-  Calendar,
-  Handshake,
+  Target,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
-// Dados dummy para demonstração
-const dummyGastos = [
-  { id: 1, categoria: "alimentacao", valor: 850, tipo: "compartilhado" },
-  {
-    id: 2,
-    categoria: "transporte",
-    valor: 420,
-    tipo: "individual",
-    responsavel: "Claudenir",
-  },
-  { id: 3, categoria: "casa", valor: 1200, tipo: "compartilhado" },
-  {
-    id: 4,
-    categoria: "lazer",
-    valor: 300,
-    tipo: "individual",
-    responsavel: "Esposa",
-  },
-  {
-    id: 5,
-    categoria: "receita",
-    valor: 5000,
-    tipo: "individual",
-    responsavel: "Claudenir",
-  },
-  {
-    id: 6,
-    categoria: "receita",
-    valor: 3500,
-    tipo: "individual",
-    responsavel: "Esposa",
-  },
-];
+// Tipos para os lançamentos
+interface Lancamento {
+  id: string;
+  descricao: string;
+  valor: number;
+  tipo: "receita" | "despesa";
+  categoria: string;
+  tipoLancamento: "individual" | "compartilhado";
+  responsavel: string;
+  data: Date;
+  pago: boolean;
+  origem?: string;
+  mensagemOriginal?: string;
+  recorrente: boolean;
+  frequencia?: string;
+  observacoes?: string;
+}
 
-const dummyObjetivos = [
-  { id: 1, nome: "Viagem de Férias", meta: 5000, atual: 3200 },
-  { id: 2, nome: "Notebook Novo", meta: 3000, atual: 1500 },
-  { id: 3, nome: "Reserva de Emergência", meta: 10000, atual: 7500 },
-];
+interface ResumoMensal {
+  receitas: number;
+  despesas: number;
+  saldo: number;
+  compartilhado: number;
+  individualEle: number;
+  individualEla: number;
+}
+
+interface Objetivo {
+  id: number;
+  nome: string;
+  meta: number;
+  atual: number;
+}
 
 const meses = [
   "Janeiro",
@@ -83,11 +76,104 @@ const meses = [
   "Dezembro",
 ];
 
-export default function DashboardGastosPage() {
+// Dados dummy para demonstração
+const dummyLancamentos: Lancamento[] = [
+  {
+    id: "1",
+    descricao: "Salário",
+    valor: 5000,
+    tipo: "receita",
+    categoria: "salario",
+    tipoLancamento: "individual",
+    responsavel: "Claudenir",
+    data: new Date(),
+    pago: true,
+    origem: "manual",
+    recorrente: true,
+    frequencia: "mensal",
+  },
+  {
+    id: "2",
+    descricao: "Freelance",
+    valor: 1500,
+    tipo: "receita",
+    categoria: "freela",
+    tipoLancamento: "individual",
+    responsavel: "Claudenir",
+    data: new Date(),
+    pago: true,
+    origem: "manual",
+    recorrente: false,
+  },
+  {
+    id: "3",
+    descricao: "Mercado",
+    valor: 850,
+    tipo: "despesa",
+    categoria: "alimentacao",
+    tipoLancamento: "compartilhado",
+    responsavel: "Compartilhado",
+    data: new Date(),
+    pago: true,
+    origem: "manual",
+    recorrente: false,
+  },
+  {
+    id: "4",
+    descricao: "Transporte",
+    valor: 420,
+    tipo: "despesa",
+    categoria: "transporte",
+    tipoLancamento: "individual",
+    responsavel: "Claudenir",
+    data: new Date(),
+    pago: true,
+    origem: "manual",
+    recorrente: false,
+  },
+  {
+    id: "5",
+    descricao: "Aluguel",
+    valor: 1200,
+    tipo: "despesa",
+    categoria: "casa",
+    tipoLancamento: "compartilhado",
+    responsavel: "Compartilhado",
+    data: new Date(),
+    pago: true,
+    origem: "manual",
+    recorrente: true,
+    frequencia: "mensal",
+  },
+  {
+    id: "6",
+    descricao: "Salário Beatriz",
+    valor: 3500,
+    tipo: "receita",
+    categoria: "salario",
+    tipoLancamento: "individual",
+    responsavel: "Beatriz",
+    data: new Date(),
+    pago: true,
+    origem: "manual",
+    recorrente: true,
+    frequencia: "mensal",
+  },
+];
+
+const dummyObjetivos: Objetivo[] = [
+  { id: 1, nome: "Viagem de Férias", meta: 5000, atual: 3200 },
+  { id: 2, nome: "Notebook Novo", meta: 3000, atual: 1500 },
+  { id: 3, nome: "Reserva de Emergência", meta: 10000, atual: 7500 },
+];
+
+export default function DashboardLancamentosPage() {
+  const router = useRouter();
   const [mesAtual, setMesAtual] = useState(new Date().getMonth());
   const [anoAtual, setAnoAtual] = useState(new Date().getFullYear());
   const [carregando, setCarregando] = useState(false);
-  const [resumoMensal, setResumoMensal] = useState({
+  const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
+  const [resumoMensal, setResumoMensal] = useState<ResumoMensal>({
     receitas: 0,
     despesas: 0,
     saldo: 0,
@@ -103,51 +189,57 @@ export default function DashboardGastosPage() {
   const carregarDados = async () => {
     setCarregando(true);
     try {
-      // Simulação de carregamento de dados
+      // Simulação de carregamento de dados da API
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // Cálculos com dados dummy
-      const receitas = dummyGastos
-        .filter((g) => g.categoria === "receita")
-        .reduce((sum, g) => sum + g.valor, 0);
+      // Em produção, substituir por:
+      // const response = await fetch(`/api/lancamentos?mes=${mesAtual + 1}&ano=${anoAtual}`);
+      // const data = await response.json();
+      // setLancamentos(data.lancamentos);
 
-      const despesas = dummyGastos
-        .filter((g) => g.categoria !== "receita")
-        .reduce((sum, g) => sum + g.valor, 0);
-
-      const compartilhado = dummyGastos
-        .filter((g) => g.tipo === "compartilhado" && g.categoria !== "receita")
-        .reduce((sum, g) => sum + g.valor, 0);
-
-      const individualEle = dummyGastos
-        .filter((g) => g.responsavel === "Claudenir")
-        .reduce(
-          (sum, g) => sum + (g.categoria === "receita" ? g.valor : -g.valor),
-          0
-        );
-
-      const individualEla = dummyGastos
-        .filter((g) => g.responsavel === "Esposa")
-        .reduce(
-          (sum, g) => sum + (g.categoria === "receita" ? g.valor : -g.valor),
-          0
-        );
-
-      setResumoMensal({
-        receitas,
-        despesas,
-        saldo: receitas - despesas,
-        compartilhado,
-        individualEle,
-        individualEla,
-      });
+      setLancamentos(dummyLancamentos);
+      calcularResumo(dummyLancamentos);
 
       toast.success(`Dados de ${meses[mesAtual]} carregados!`);
     } catch (error) {
       toast.error("Erro ao carregar dados");
+      console.error(error);
     } finally {
       setCarregando(false);
     }
+  };
+
+  const calcularResumo = (lancamentos: Lancamento[]) => {
+    const receitas = lancamentos
+      .filter((l) => l.tipo === "receita")
+      .reduce((sum, l) => sum + l.valor, 0);
+
+    const despesas = lancamentos
+      .filter((l) => l.tipo === "despesa")
+      .reduce((sum, l) => sum + l.valor, 0);
+
+    const compartilhado = lancamentos
+      .filter(
+        (l) => l.tipoLancamento === "compartilhado" && l.tipo === "despesa"
+      )
+      .reduce((sum, l) => sum + l.valor, 0);
+
+    const individualEle = lancamentos
+      .filter((l) => l.responsavel === "Claudenir")
+      .reduce((sum, l) => sum + (l.tipo === "receita" ? l.valor : -l.valor), 0);
+
+    const individualEla = lancamentos
+      .filter((l) => l.responsavel === "Beatriz")
+      .reduce((sum, l) => sum + (l.tipo === "receita" ? l.valor : -l.valor), 0);
+
+    setResumoMensal({
+      receitas,
+      despesas,
+      saldo: receitas - despesas,
+      compartilhado,
+      individualEle,
+      individualEla,
+    });
   };
 
   const formatarMoeda = (valor: number) => {
@@ -175,14 +267,30 @@ export default function DashboardGastosPage() {
     }
   };
 
-  // Dados para gráficos
-  const dadosPizza = [
-    { name: "Alimentação", value: 850, color: "#FF6B6B" },
-    { name: "Transporte", value: 420, color: "#4ECDC4" },
-    { name: "Casa", value: 1200, color: "#45B7D1" },
-    { name: "Lazer", value: 300, color: "#F9C80E" },
-    { name: "Outros", value: 200, color: "#FF8E53" },
-  ];
+  const handleNovoLancamento = () => {
+    router.push("/dashboard/lancamentos/novo");
+  };
+
+  // Dados para gráficos baseados nos lançamentos reais
+  const categoriasDespesas = lancamentos
+    .filter((l) => l.tipo === "despesa")
+    .reduce(
+      (acc, l) => {
+        acc[l.categoria] = (acc[l.categoria] || 0) + l.valor;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
+
+  const dadosPizza = Object.entries(categoriasDespesas).map(
+    ([name, value], index) => ({
+      name: name.charAt(0).toUpperCase() + name.slice(1),
+      value,
+      color: ["#FF6B6B", "#4ECDC4", "#45B7D1", "#F9C80E", "#FF8E53", "#96CEB4"][
+        index % 6
+      ],
+    })
+  );
 
   const dadosBarras = [
     { mes: "Jan", receitas: 8000, despesas: 6000 },
@@ -226,22 +334,20 @@ export default function DashboardGastosPage() {
           </Button>
         </div>
         <div className="flex flex-col items-end gap-3">
-          {/* Seletor de Mês Compacto */}
-
           <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={carregarDados}
               disabled={carregando}
-              className="w-32" // Largura fixa de 128px
+              className="w-32"
             >
               <RefreshCw
                 className={`h-4 w-4 mr-2 ${carregando ? "animate-spin" : ""}`}
               />
               {carregando ? "Atualizando..." : "Atualizar"}
             </Button>
-            <Button size="sm">
+            <Button size="sm" onClick={handleNovoLancamento}>
               <Plus className="h-4 w-4 mr-2" />
               Novo Lançamento
             </Button>
@@ -315,26 +421,43 @@ export default function DashboardGastosPage() {
           </CardHeader>
           <CardContent>
             <div className="h-64 flex items-center justify-center">
-              <div className="relative w-48 h-48">
-                {dadosPizza.map((item, index) => {
-                  const total = dadosPizza.reduce((sum, d) => sum + d.value, 0);
-                  const percentage = (item.value / total) * 100;
-                  const angle = (percentage / 100) * 360;
+              {dadosPizza.length > 0 ? (
+                <div className="relative w-48 h-48">
+                  {dadosPizza.map((item, index) => {
+                    const total = dadosPizza.reduce(
+                      (sum, d) => sum + d.value,
+                      0
+                    );
+                    const percentage = (item.value / total) * 100;
+                    const startAngle =
+                      index === 0
+                        ? 0
+                        : dadosPizza
+                            .slice(0, index)
+                            .reduce(
+                              (sum, d) => sum + (d.value / total) * 360,
+                              0
+                            );
 
-                  return (
-                    <div
-                      key={item.name}
-                      className="absolute w-full h-full"
-                      style={{
-                        clipPath: `conic-gradient(from ${index * 72}deg, ${item.color} 0deg ${angle}deg, transparent ${angle}deg)`,
-                      }}
-                    />
-                  );
-                })}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-32 h-32 bg-white rounded-full"></div>
+                    return (
+                      <div
+                        key={item.name}
+                        className="absolute w-full h-full"
+                        style={{
+                          clipPath: `conic-gradient(from ${startAngle}deg, ${item.color} 0deg ${startAngle + percentage * 3.6}deg, transparent ${startAngle + percentage * 3.6}deg)`,
+                        }}
+                      />
+                    );
+                  })}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-32 h-32 bg-white rounded-full"></div>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="text-muted-foreground">
+                  Nenhuma despesa este mês
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-2 mt-4">
               {dadosPizza.map((item) => (

@@ -155,7 +155,7 @@ export default function Sidebar() {
           <li>
             <div className="flex items-center">
               <Link
-                href="/dashboard/empresas"
+                href="/dashboard/lancamentos"
                 className="flex items-center p-2 rounded-lg hover:bg-blue-900/20 text-blue-100 hover:text-blue-100 w-full"
               >
                 <HandCoins className="h-5 w-5" />
@@ -178,7 +178,7 @@ export default function Sidebar() {
               <ul className="ml-8 mt-1 space-y-1">
                 <li>
                   <Link
-                    href="/dashboard/empresas/adicionar"
+                    href="/dashboard/lancamentos/receitas"
                     className="flex items-center p-2 rounded-lg hover:bg-blue-900/20 text-sm text-blue-300/70 hover:text-blue-200"
                   >
                     <span className="ml-2">Receitas</span>
@@ -186,7 +186,7 @@ export default function Sidebar() {
                 </li>
                 <li>
                   <Link
-                    href="/dashboard/empresas/claudenir"
+                    href="/dashboard/lancamentos/despesas"
                     className="flex items-center p-2 rounded-lg hover:bg-blue-900/20 text-sm text-blue-300/70 hover:text-blue-200"
                   >
                     <span className="ml-2">Despesas</span>
@@ -220,7 +220,7 @@ export default function Sidebar() {
           </li>
           <li>
             <Link
-              href="/dashboard/organograma"
+              href="/dashboard/metas"
               className={`flex items-center p-2 rounded-lg hover:bg-blue-900/20 text-blue-100 hover:text-blue-100 ${
                 isCollapsed ? "justify-center" : ""
               }`}

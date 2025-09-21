@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     - valor: valor numérico
     - categoria: uma das [alimentacao, transporte, casa, pessoal, lazer, receita, outros]
     - tipo: [individual, compartilhado]
-    - responsavel: [Claudenir, Esposa]
+    - responsavel: [Claudenir, Beatriz]
     - data: data no formato YYYY-MM-DD (use hoje se não especificado)
     
     Se não conseguir identificar claramente, retorne null para os campos.
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       tipo: dadosGasto.tipo || "individual",
       responsavel:
         dadosGasto.responsavel ||
-        (from.includes("claudenir") ? "Claudenir" : "Esposa"),
+        (from.includes("claudenir") ? "Claudenir" : "Beatriz"),
       data: dataGasto,
       pago: false,
       origem: "whatsapp",
