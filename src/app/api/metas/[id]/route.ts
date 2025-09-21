@@ -4,7 +4,7 @@ import { auth } from "../../../../../auth";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } // Corrigido aqui
 ) {
   try {
     const session = await auth();
@@ -15,23 +15,23 @@ export async function GET(
       );
     }
 
-    const { id } = params;
+    const { id } = await params; // Adicione await aqui
 
     const meta = await db.meta.findUnique({
       where: { id },
       include: {
         contribuicoes: {
           orderBy: {
-            data: "desc"
-          }
+            data: "desc",
+          },
         },
         usuario: {
           select: {
             name: true,
-            email: true
-          }
-        }
-      }
+            email: true,
+          },
+        },
+      },
     });
 
     if (!meta) {
@@ -42,10 +42,7 @@ export async function GET(
     }
 
     if (meta.usuarioId !== session.user.id) {
-      return NextResponse.json(
-        { error: "Não autorizado" },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Não autorizado" }, { status: 403 });
     }
 
     return NextResponse.json(meta);
@@ -60,7 +57,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } // Corrigido aqui
 ) {
   try {
     const session = await auth();
@@ -71,12 +68,12 @@ export async function PATCH(
       );
     }
 
-    const { id } = params;
+    const { id } = await params; // Adicione await aqui
     const body = await request.json();
 
     // Verificar se a meta existe e pertence ao usuário
     const metaExistente = await db.meta.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!metaExistente) {
@@ -87,15 +84,12 @@ export async function PATCH(
     }
 
     if (metaExistente.usuarioId !== session.user.id) {
-      return NextResponse.json(
-        { error: "Não autorizado" },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Não autorizado" }, { status: 403 });
     }
 
     const meta = await db.meta.update({
       where: { id },
-      data: body
+      data: body,
     });
 
     return NextResponse.json(meta);
@@ -110,7 +104,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } // Corrigido aqui
 ) {
   try {
     const session = await auth();
@@ -121,11 +115,11 @@ export async function DELETE(
       );
     }
 
-    const { id } = params;
+    const { id } = await params; // Adicione await aqui
 
     // Verificar se a meta existe e pertence ao usuário
     const metaExistente = await db.meta.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!metaExistente) {
@@ -136,20 +130,17 @@ export async function DELETE(
     }
 
     if (metaExistente.usuarioId !== session.user.id) {
-      return NextResponse.json(
-        { error: "Não autorizado" },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Não autorizado" }, { status: 403 });
     }
 
     // Excluir contribuições primeiro (por causa da foreign key)
     await db.contribuicaoMeta.deleteMany({
-      where: { metaId: id }
+      where: { metaId: id },
     });
 
     // Excluir a meta
     await db.meta.delete({
-      where: { id }
+      where: { id },
     });
 
     return NextResponse.json({ message: "Meta excluída com sucesso" });
