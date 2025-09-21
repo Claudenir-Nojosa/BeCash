@@ -198,7 +198,7 @@ export default function Sidebar() {
 
           <li>
             <Link
-              href="/dashboard/calendario"
+              href="/dashboard/relatorios"
               className={`flex items-center p-2 rounded-lg hover:bg-blue-900/20 text-blue-100 hover:text-blue-100 ${
                 isCollapsed ? "justify-center" : ""
               }`}

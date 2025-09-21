@@ -1,7 +1,35 @@
 // app/api/whatsapp/twilio/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
-import { callClaudeApi } from "@/lib/claude-api";
+import { auth } from "../../../../../auth";
+
+// Função para chamar a API da Anthropic Claude
+async function callClaudeApi(prompt: string) {
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.ANTHROPIC_API_KEY!,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-3-sonnet-20240229",
+        max_tokens: 1000,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erro na API Claude: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Erro ao chamar Claude API:", error);
+    throw error;
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,9 +48,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Dados incompletos" }, { status: 400 });
     }
 
-    // Ignorar mensagens de sistema
-    const messageText = message.toString().toLowerCase();
-    if (messageText.includes("join") || messageText.trim().length < 3) {
+    const messageText = message.toString();
+
+    // Ignorar mensagens de sistema ou muito curtas
+    if (
+      messageText.toLowerCase().includes("join") ||
+      messageText.trim().length < 3
+    ) {
       console.log("⚙️ Mensagem de sistema ignorada");
       return new Response(null, { status: 200 });
     }
@@ -30,34 +62,48 @@ export async function POST(request: NextRequest) {
     // Processar a mensagem com Claude
     const prompt = `Você é um assistente especializado em extrair informações financeiras de mensagens do WhatsApp.
 
-ANÁLISE A MENSAGEM E EXTRAIA AS INFORMAÇÕES EM JSON:
+ANALISE A MENSAGEM E EXTRAIA AS INFORMAÇÕES EM JSON STRICT:
 
-MENSAGEM: "${message.toString()}"
+MENSAGEM: "${messageText}"
 
-REGAS:
-1. Se for um SALÁRIO ou RECEITA, use categoria "receita" e tipo "individual"
-2. Se for um GASTO, identifique a categoria correta
-3. VALOR: sempre extraia o valor numérico (ex: "4200" de "salario 4200")
-4. DESCRIÇÃO: extraia uma descrição clara (ex: "Salário" para "salario 4200")
-5. TIPO: "compartilhado" para gastos conjuntos, "individual" para pessoais
-6. RESPONSÁVEL: "Claudenir" ou "Beatriz" baseado no contexto
-7. DATA: use hoje se não especificado
+REGAS IMPORTANTES:
+1. IDENTIFIQUE se é RECEITA ou DESPESA
+2. EXTRAIA o VALOR numérico (ex: "120" de "almoço 120 reais")
+3. DETERMINE a CATEGORIA correta baseada na mensagem
+4. IDENTIFIQUE se é INDIVIDUAL ou COMPARTILHADO
+5. DETERMINE o RESPONSÁVEL (Claudenir ou Beatriz)
+6. USE a DATA de hoje se não especificado
+7. VERIFIQUE se é PARCELADO e extraia informações se mencionado
 
-CATEGORIAS PERMITIDAS: 
-["alimentacao", "transporte", "casa", "pessoal", "lazer", "receita", "outros"]
+CATEGORIAS PARA DESPESAS:
+- "alimentacao" (comida, restaurante, mercado, lanche, almoço, jantar)
+- "transporte" (uber, taxi, gasolina, ônibus, combustível)
+- "casa" (aluguel, luz, água, internet, condomínio)
+- "pessoal" (roupa, cosméticos, cuidados pessoais)
+- "lazer" (cinema, viagem, entretenimento, hobbies)
+- "outros" (qualquer outra despesa)
 
-EXEMPLOS:
-- "salario 4200" → {"descricao": "Salário", "valor": 4200, "categoria": "receita", "tipo": "individual", "responsavel": "Claudenir"}
-- "salário 4200 receita" → {"descricao": "Salário", "valor": 4200, "categoria": "receita", "tipo": "individual", "responsavel": "Claudenir"}
-- "gastei 50 no almoço" → {"descricao": "Almoço", "valor": 50, "categoria": "alimentacao", "tipo": "individual", "responsavel": "Claudenir"}
-- "jantar 120 compartilhado" → {"descricao": "Jantar", "valor": 120, "categoria": "alimentacao", "tipo": "compartilhado", "responsavel": "Ambos"}
+CATEGORIAS PARA RECEITAS:
+- "salario" (salário, renda fixa)
+- "freela" (freelance, trabalho extra)
+- "investimentos" (rendimentos, dividendos, aplicações)
+- "outros" (outras receitas)
 
-// RETORNE APENAS JSON, SEM TEXTOS ADICIONAIS.`;
+RESPONSÁVEIS PERMITIDOS: "Claudenir" ou "Beatriz"
+TIPOS DE LANÇAMENTO: "individual" ou "compartilhado"
 
-    let dadosGasto;
+EXEMPLOS CORRETOS:
+- "despesa claudenir uber 50 reais" → {"tipo": "despesa", "descricao": "Uber", "valor": 50, "categoria": "transporte", "tipoLancamento": "individual", "responsavel": "Claudenir", "data": "2024-01-15", "pago": true}
+- "salario beatriz 3200" → {"tipo": "receita", "descricao": "Salário", "valor": 3200, "categoria": "salario", "tipoLancamento": "individual", "responsavel": "Beatriz", "data": "2024-01-15", "pago": true}
+- "almoço compartilhado 120" → {"tipo": "despesa", "descricao": "Almoço", "valor": 120, "categoria": "alimentacao", "tipoLancamento": "compartilhado", "responsavel": "Claudenir", "data": "2024-01-15", "pago": true}
+- "conta de luz 180 parcelada 3x" → {"tipo": "despesa", "descricao": "Conta de Luz", "valor": 180, "categoria": "casa", "tipoLancamento": "compartilhado", "responsavel": "Claudenir", "data": "2024-01-15", "pago": false, "parcelas": 3, "parcelaAtual": 1}
+
+RETORNE APENAS JSON VÁLIDO SEM TEXTOS ADICIONAIS.`;
+
+    let dadosExtraidos;
     try {
-      const claudeData = await callClaudeApi(prompt);
-      const resposta = claudeData.content[0].text;
+      const claudeResponse = await callClaudeApi(prompt);
+      const resposta = claudeResponse.content[0].text;
 
       // Extrair JSON da resposta
       const jsonMatch = resposta.match(/\{[\s\S]*\}/);
@@ -65,43 +111,61 @@ EXEMPLOS:
         throw new Error("JSON não encontrado na resposta do Claude");
       }
 
-      dadosGasto = JSON.parse(jsonMatch[0]);
-      console.log("✅ Dados extraídos pelo Claude:", dadosGasto);
+      dadosExtraidos = JSON.parse(jsonMatch[0]);
+      console.log("✅ Dados extraídos pelo Claude:", dadosExtraidos);
     } catch (error) {
       console.error("❌ Erro ao processar com Claude:", error);
-      // Fallback: tentar extrair valor manualmente
-      dadosGasto = extrairDadosManualmente(message.toString());
+      // Fallback para extração manual
+      dadosExtraidos = extrairDadosManualmente(messageText);
     }
 
-    // Determinar usuário baseado no número
-    const usuario = await determinarUsuario(from.toString());
+    // Validar e completar os dados
+    const dadosValidados = validarECompletarDados(dadosExtraidos, messageText);
 
-    // Salvar no Supabase
-    const gastoCompleto = {
-      descricao: dadosGasto.descricao || "Gasto não identificado",
-      valor: dadosGasto.valor > 0 ? dadosGasto.valor : 0,
-      categoria: dadosGasto.categoria || "outros",
-      tipo: dadosGasto.tipo || "individual",
-      responsavel: dadosGasto.responsavel || "Claudenir",
-      data: dadosGasto.data ? new Date(dadosGasto.data) : new Date(),
-      pago: false,
+    // Buscar usuário autenticado (Claudenir)
+    const session = await auth();
+    if (!session?.user?.id) {
+      throw new Error("Usuário não autenticado");
+    }
+
+    // Preparar dados para o model Lancamento
+    const lancamentoData = {
+      descricao: dadosValidados.descricao,
+      valor: Math.abs(dadosValidados.valor), // Sempre valor absoluto no banco
+      tipo: dadosValidados.tipo,
+      categoria: dadosValidados.categoria,
+      tipoLancamento: dadosValidados.tipoLancamento,
+      responsavel: dadosValidados.responsavel,
+      data: new Date(dadosValidados.data),
+      pago: dadosValidados.pago,
       origem: "whatsapp",
-      mensagemOriginal: message.toString(),
-      usuarioId: usuario.id,
+      mensagemOriginal: messageText,
+      usuarioId: session.user.id,
+      recorrente: dadosValidados.parcelas > 1,
+      parcelas: dadosValidados.parcelas > 1 ? dadosValidados.parcelas : null,
+      parcelaAtual: dadosValidados.parcelas > 1 ? 1 : null,
+      dataVencimento:
+        dadosValidados.parcelas > 1 ? new Date(dadosValidados.data) : null,
     };
 
-    console.log("💾 Salvando no Supabase:", gastoCompleto);
+    console.log("💾 Salvando no model Lancamento:", lancamentoData);
 
-    await db.gasto.create({
-      data: gastoCompleto,
+    // Salvar no model Lancamento (não no Gasto)
+    const lancamento = await db.lancamento.create({
+      data: lancamentoData,
     });
 
-    console.log("✅ Gasto salvo no Supabase com sucesso!");
+    console.log("✅ Lançamento salvo com sucesso no model Lancamento!");
 
-    // Enviar confirmação
+    // Enviar confirmação via Twilio
     await enviarRespostaTwilio(
       from.toString(),
-      `✅ Gasto registrado!\n• ${gastoCompleto.descricao}\n• Valor: R$ ${gastoCompleto.valor.toFixed(2)}\n• Categoria: ${gastoCompleto.categoria}`
+      `✅ ${dadosValidados.tipo === "receita" ? "Receita" : "Despesa"} registrada!\n` +
+        `• ${dadosValidados.descricao}\n` +
+        `• Valor: R$ ${Math.abs(dadosValidados.valor).toFixed(2)}\n` +
+        `• Categoria: ${formatarCategoria(dadosValidados.categoria)}\n` +
+        `• Tipo: ${dadosValidados.tipoLancamento === "individual" ? "Individual" : "Compartilhado"}\n` +
+        `• Responsável: ${dadosValidados.responsavel}`
     );
 
     return new Response(null, { status: 200 });
@@ -111,249 +175,246 @@ EXEMPLOS:
   }
 }
 
+// Função para validar e completar dados extraídos
+function validarECompletarDados(dados: any, mensagemOriginal: string) {
+  const hoje = new Date().toISOString().split("T")[0];
+
+  // Valores padrão
+  const dadosPadrao = {
+    tipo: "despesa",
+    descricao: "Transação",
+    valor: 0,
+    categoria: "outros",
+    tipoLancamento: "individual",
+    responsavel: "Claudenir",
+    data: hoje,
+    pago: true,
+    parcelas: 1,
+    parcelaAtual: 1,
+  };
+
+  // Mesclar com dados extraídos
+  const dadosCompletos = { ...dadosPadrao, ...dados };
+
+  // Extrair valor da mensagem se necessário
+  if (dadosCompletos.valor <= 0) {
+    const valorMatch = mensagemOriginal.match(/(\d+[,.]?\d*)/);
+    if (valorMatch) {
+      dadosCompletos.valor = parseFloat(valorMatch[1].replace(",", "."));
+    }
+  }
+
+  // Corrigir responsável para "Ambos" se for compartilhado
+  if (dadosCompletos.tipoLancamento === "compartilhado") {
+    dadosCompletos.responsavel = "Ambos";
+  } else {
+    // Se for individual, garantir que seja Claudenir ou Beatriz
+    if (!["Claudenir", "Beatriz"].includes(dadosCompletos.responsavel)) {
+      dadosCompletos.responsavel = "Claudenir";
+    }
+  }
+  // Validar categorias
+  const categoriasReceitas = ["salario", "freela", "investimentos", "outros"];
+  const categoriasDespesas = [
+    "alimentacao",
+    "transporte",
+    "casa",
+    "pessoal",
+    "lazer",
+    "outros",
+  ];
+
+  if (
+    dadosCompletos.tipo === "receita" &&
+    !categoriasReceitas.includes(dadosCompletos.categoria)
+  ) {
+    dadosCompletos.categoria = "outros";
+  }
+
+  if (
+    dadosCompletos.tipo === "despesa" &&
+    !categoriasDespesas.includes(dadosCompletos.categoria)
+  ) {
+    dadosCompletos.categoria = "outros";
+  }
+
+  // Validar responsáveis
+  if (!["Claudenir", "Beatriz"].includes(dadosCompletos.responsavel)) {
+    dadosCompletos.responsavel = "Claudenir";
+  }
+
+  return dadosCompletos;
+}
+
 // Função fallback para extrair dados manualmente
 function extrairDadosManualmente(mensagem: string) {
   console.log("🔄 Usando fallback manual para:", mensagem);
 
   const mensagemLower = mensagem.toLowerCase();
+  const hoje = new Date().toISOString().split("T")[0];
 
-  // Extrair valor (ex: "salario 4200" → 4200)
+  // Detectar tipo (receita ou despesa)
+  let tipo = "despesa";
+  if (
+    mensagemLower.includes("salário") ||
+    mensagemLower.includes("salario") ||
+    mensagemLower.includes("receita") ||
+    mensagemLower.includes("renda")
+  ) {
+    tipo = "receita";
+  }
+
+  // Extrair valor
   const valorMatch = mensagemLower.match(/(\d+[,.]?\d*)/);
   const valor = valorMatch ? parseFloat(valorMatch[1].replace(",", ".")) : 0;
 
-  // Detectar se é receita
-  const isReceita =
-    mensagemLower.includes("salario") ||
-    mensagemLower.includes("salário") ||
-    mensagemLower.includes("receita") ||
-    mensagemLower.includes("renda") ||
-    mensagemLower.includes("pagamento");
-
-  // Detectar descrição
-  let descricao = "Transação não especificada";
-  if (isReceita) descricao = "Salário";
-  else if (mensagemLower.includes("almoço") || mensagemLower.includes("almoco"))
-    descricao = "Almoço";
-  else if (mensagemLower.includes("jantar")) descricao = "Jantar";
-  else if (mensagemLower.includes("mercado")) descricao = "Mercado";
-  else if (
-    mensagemLower.includes("combustível") ||
-    mensagemLower.includes("combustivel")
-  )
-    descricao = "Combustível";
-  else if (mensagemLower.includes("luz")) descricao = "Conta de Luz";
-  else if (mensagemLower.includes("água") || mensagemLower.includes("agua"))
-    descricao = "Conta de Água";
-  else if (mensagemLower.includes("internet")) descricao = "Internet";
-  else if (mensagemLower.includes("telefone")) descricao = "Telefone";
-  else if (mensagemLower.includes("cinema") || mensagemLower.includes("filme"))
-    descricao = "Cinema";
-  else if (mensagemLower.includes("restaurante")) descricao = "Restaurante";
-
   // Detectar categoria
-  let categoria = "outros";
-  if (isReceita) categoria = "receita";
-  else if (
+  let categoria = tipo === "receita" ? "salario" : "outros";
+
+  if (
+    mensagemLower.includes("comida") ||
     mensagemLower.includes("almoço") ||
     mensagemLower.includes("almoco") ||
     mensagemLower.includes("jantar") ||
-    mensagemLower.includes("comida") ||
-    mensagemLower.includes("restaurante")
-  )
+    mensagemLower.includes("restaurante") ||
+    mensagemLower.includes("mercado") ||
+    mensagemLower.includes("lanche")
+  ) {
     categoria = "alimentacao";
-  else if (
+  } else if (
+    mensagemLower.includes("uber") ||
+    mensagemLower.includes("taxi") ||
     mensagemLower.includes("gasolina") ||
     mensagemLower.includes("combustível") ||
     mensagemLower.includes("combustivel") ||
-    mensagemLower.includes("uber") ||
-    mensagemLower.includes("transporte") ||
     mensagemLower.includes("ônibus") ||
-    mensagemLower.includes("onibus")
-  )
+    mensagemLower.includes("onibus") ||
+    mensagemLower.includes("transporte")
+  ) {
     categoria = "transporte";
-  else if (
+  } else if (
     mensagemLower.includes("luz") ||
     mensagemLower.includes("água") ||
     mensagemLower.includes("agua") ||
     mensagemLower.includes("aluguel") ||
     mensagemLower.includes("internet") ||
-    mensagemLower.includes("telefone") ||
     mensagemLower.includes("condomínio") ||
     mensagemLower.includes("condominio")
-  )
+  ) {
     categoria = "casa";
-  else if (
+  } else if (
     mensagemLower.includes("roupa") ||
     mensagemLower.includes("cosmético") ||
     mensagemLower.includes("cosmetico") ||
     mensagemLower.includes("sapato") ||
-    mensagemLower.includes("perfume")
-  )
+    mensagemLower.includes("perfume") ||
+    mensagemLower.includes("maquiagem")
+  ) {
     categoria = "pessoal";
-  else if (
+  } else if (
     mensagemLower.includes("cinema") ||
     mensagemLower.includes("filme") ||
     mensagemLower.includes("shopping") ||
     mensagemLower.includes("viagem") ||
-    mensagemLower.includes("parque")
-  )
-    categoria = "lazer";
-
-  // Detectar tipo e responsável
-  let tipo = "individual";
-  let responsavel = "Claudenir";
-
-  if (
-    mensagemLower.includes("compartilhado") ||
-    mensagemLower.includes("compartilhada") ||
-    mensagemLower.includes("conjunto") ||
-    mensagemLower.includes("nos dois")
+    mensagemLower.includes("parque") ||
+    mensagemLower.includes("festival")
   ) {
-    tipo = "compartilhado";
-    responsavel = "Ambos";
+    categoria = "lazer";
   }
 
+  // Detectar responsável e tipo de lançamento
+  let responsavel = "Claudenir";
+  let tipoLancamento = "individual";
+
   if (
+    mensagemLower.includes("beatriz") ||
     mensagemLower.includes("esposa") ||
-    mensagemLower.includes("mulher") ||
     mensagemLower.includes("dela") ||
-    mensagemLower.includes("beatriz")
+    mensagemLower.includes("mulher")
   ) {
     responsavel = "Beatriz";
   }
 
+  if (
+    mensagemLower.includes("compartilhado") ||
+    mensagemLower.includes("conjunto") ||
+    mensagemLower.includes("ambos") ||
+    mensagemLower.includes("nós") ||
+    mensagemLower.includes("nos")
+  ) {
+    tipoLancamento = "compartilhado";
+  }
+
+  // Descrição baseada no conteúdo
+  let descricao = "Transação";
+  if (mensagemLower.includes("uber") || mensagemLower.includes("taxi"))
+    descricao = "Transporte";
+  else if (mensagemLower.includes("almoço") || mensagemLower.includes("almoco"))
+    descricao = "Almoço";
+  else if (mensagemLower.includes("jantar")) descricao = "Jantar";
+  else if (mensagemLower.includes("mercado")) descricao = "Mercado";
+  else if (
+    mensagemLower.includes("salário") ||
+    mensagemLower.includes("salario")
+  )
+    descricao = "Salário";
+  else if (mensagemLower.includes("luz")) descricao = "Conta de Luz";
+  else if (mensagemLower.includes("água") || mensagemLower.includes("agua"))
+    descricao = "Conta de Água";
+  else if (mensagemLower.includes("internet")) descricao = "Internet";
+
   return {
-    descricao,
-    valor: isReceita ? Math.abs(valor) : Math.abs(valor) * -1,
-    categoria,
     tipo,
+    descricao,
+    valor,
+    categoria,
+    tipoLancamento,
     responsavel,
-    data: new Date().toISOString().split("T")[0],
+    data: hoje,
+    pago: true,
+    parcelas: 1,
   };
 }
 
-function detectarCategoria(descricao: string) {
-  const descLower = descricao.toLowerCase();
+// Função para formatar categoria para exibição
+function formatarCategoria(categoria: string) {
+  const categorias: { [key: string]: string } = {
+    alimentacao: "Alimentação",
+    transporte: "Transporte",
+    casa: "Casa",
+    pessoal: "Pessoal",
+    lazer: "Lazer",
+    salario: "Salário",
+    freela: "Freelance",
+    investimentos: "Investimentos",
+    outros: "Outros",
+  };
 
-  if (
-    descLower.includes("salário") ||
-    descLower.includes("salario") ||
-    descLower.includes("receita") ||
-    descLower.includes("renda")
-  )
-    return "receita";
-  if (
-    descLower.includes("almoço") ||
-    descLower.includes("almoco") ||
-    descLower.includes("jantar") ||
-    descLower.includes("comida") ||
-    descLower.includes("restaurante") ||
-    descLower.includes("lanche")
-  )
-    return "alimentacao";
-  if (
-    descLower.includes("gasolina") ||
-    descLower.includes("combustível") ||
-    descLower.includes("combustivel") ||
-    descLower.includes("uber") ||
-    descLower.includes("ônibus") ||
-    descLower.includes("onibus") ||
-    descLower.includes("transporte") ||
-    descLower.includes("taxi")
-  )
-    return "transporte";
-  if (
-    descLower.includes("luz") ||
-    descLower.includes("água") ||
-    descLower.includes("agua") ||
-    descLower.includes("aluguel") ||
-    descLower.includes("internet") ||
-    descLower.includes("telefone") ||
-    descLower.includes("condomínio") ||
-    descLower.includes("condominio")
-  )
-    return "casa";
-  if (
-    descLower.includes("roupa") ||
-    descLower.includes("cosmético") ||
-    descLower.includes("cosmetico") ||
-    descLower.includes("sapato") ||
-    descLower.includes("perfume") ||
-    descLower.includes("maquiagem")
-  )
-    return "pessoal";
-  if (
-    descLower.includes("cinema") ||
-    descLower.includes("filme") ||
-    descLower.includes("shopping") ||
-    descLower.includes("viagem") ||
-    descLower.includes("parque") ||
-    descLower.includes("festival")
-  )
-    return "lazer";
-
-  return "outros";
+  return categorias[categoria] || categoria;
 }
 
-async function determinarUsuario(from: string) {
-  try {
-    // Buscar usuário padrão
-    let usuario = await db.usuario.findFirst({
-      where: { email: "clau.nojosaf@gmail.com" },
-    });
-
-    if (!usuario) {
-      // Usar primeiro usuário disponível
-      usuario = await db.usuario.findFirst();
-      if (!usuario) throw new Error("Nenhum usuário encontrado");
-    }
-
-    return usuario;
-  } catch (error) {
-    console.error("Erro ao determinar usuário:", error);
-    throw error;
-  }
-}
-
+// Função para enviar resposta via Twilio
 async function enviarRespostaTwilio(to: string, message: string) {
   try {
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+
+    if (!accountSid || !authToken) {
+      console.warn("⚠️ Credenciais do Twilio não configuradas");
+      return;
+    }
+
     const twilio = require("twilio");
-    const twilioClient = twilio(
-      process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_AUTH_TOKEN
-    );
+    const client = twilio(accountSid, authToken);
 
-    await twilioClient.messages.create({
+    await client.messages.create({
       body: message,
-      from: process.env.TWILIO_WHATSAPP_NUMBER!,
-      to: to,
+      from: process.env.TWILIO_WHATSAPP_NUMBER,
+      to: `whatsapp:${to}`,
     });
-  } catch (error) {
-    console.error("Erro ao enviar resposta:", error);
-  }
-}
 
-function validarDadosGasto(dados: any) {
-  // Garantir que valor é número
-  if (typeof dados.valor !== 'number') {
-    dados.valor = parseFloat(dados.valor) || 0;
+    console.log("✅ Resposta enviada via Twilio");
+  } catch (error) {
+    console.error("❌ Erro ao enviar resposta Twilio:", error);
   }
-  
-  // Garantir categorias válidas
-  const categoriasValidas = ["alimentacao", "transporte", "casa", "pessoal", "lazer", "receita", "outros"];
-  if (!categoriasValidas.includes(dados.categoria)) {
-    dados.categoria = "outros";
-  }
-  
-  // Garantir tipos válidos
-  if (!["individual", "compartilhado"].includes(dados.tipo)) {
-    dados.tipo = "individual";
-  }
-  
-  // Garantir responsáveis válidos
-  if (!["Claudenir", "Beatriz", "Ambos"].includes(dados.responsavel)) {
-    dados.responsavel = "Claudenir";
-  }
-  
-  return dados;
 }

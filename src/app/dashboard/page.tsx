@@ -26,6 +26,19 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import {
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 // Tipos para os lançamentos
 interface Lancamento {
@@ -54,11 +67,37 @@ interface ResumoMensal {
   individualEla: number;
 }
 
-interface Objetivo {
-  id: number;
-  nome: string;
-  meta: number;
-  atual: number;
+interface Meta {
+  id: string;
+  titulo: string;
+  descricao: string | null;
+  valorAlvo: number;
+  valorAtual: number;
+  dataLimite: Date | null;
+  tipo: string;
+  responsavel: string;
+  categoria: string;
+  concluida: boolean;
+}
+
+interface TotaisPorCategoria {
+  categoria: string;
+  tipo: string;
+  _sum: {
+    valor: number | null;
+  };
+}
+
+interface DadosPizza {
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface DadosBarra {
+  mes: string;
+  receitas: number;
+  despesas: number;
 }
 
 const meses = [
@@ -76,95 +115,20 @@ const meses = [
   "Dezembro",
 ];
 
-// Dados dummy para demonstração
-const dummyLancamentos: Lancamento[] = [
-  {
-    id: "1",
-    descricao: "Salário",
-    valor: 5000,
-    tipo: "receita",
-    categoria: "salario",
-    tipoLancamento: "individual",
-    responsavel: "Claudenir",
-    data: new Date(),
-    pago: true,
-    origem: "manual",
-    recorrente: true,
-    frequencia: "mensal",
-  },
-  {
-    id: "2",
-    descricao: "Freelance",
-    valor: 1500,
-    tipo: "receita",
-    categoria: "freela",
-    tipoLancamento: "individual",
-    responsavel: "Claudenir",
-    data: new Date(),
-    pago: true,
-    origem: "manual",
-    recorrente: false,
-  },
-  {
-    id: "3",
-    descricao: "Mercado",
-    valor: 850,
-    tipo: "despesa",
-    categoria: "alimentacao",
-    tipoLancamento: "compartilhado",
-    responsavel: "Compartilhado",
-    data: new Date(),
-    pago: true,
-    origem: "manual",
-    recorrente: false,
-  },
-  {
-    id: "4",
-    descricao: "Transporte",
-    valor: 420,
-    tipo: "despesa",
-    categoria: "transporte",
-    tipoLancamento: "individual",
-    responsavel: "Claudenir",
-    data: new Date(),
-    pago: true,
-    origem: "manual",
-    recorrente: false,
-  },
-  {
-    id: "5",
-    descricao: "Aluguel",
-    valor: 1200,
-    tipo: "despesa",
-    categoria: "casa",
-    tipoLancamento: "compartilhado",
-    responsavel: "Compartilhado",
-    data: new Date(),
-    pago: true,
-    origem: "manual",
-    recorrente: true,
-    frequencia: "mensal",
-  },
-  {
-    id: "6",
-    descricao: "Salário Beatriz",
-    valor: 3500,
-    tipo: "receita",
-    categoria: "salario",
-    tipoLancamento: "individual",
-    responsavel: "Beatriz",
-    data: new Date(),
-    pago: true,
-    origem: "manual",
-    recorrente: true,
-    frequencia: "mensal",
-  },
-];
-
-const dummyObjetivos: Objetivo[] = [
-  { id: 1, nome: "Viagem de Férias", meta: 5000, atual: 3200 },
-  { id: 2, nome: "Notebook Novo", meta: 3000, atual: 1500 },
-  { id: 3, nome: "Reserva de Emergência", meta: 10000, atual: 7500 },
+// Cores para os gráficos
+const CORES_GRAFICO = [
+  "#FF6B6B",
+  "#4ECDC4",
+  "#45B7D1",
+  "#F9C80E",
+  "#FF8E53",
+  "#96CEB4",
+  "#FD3A4A",
+  "#C5E1A5",
+  "#81D4FA",
+  "#FFCC80",
+  "#CE93D8",
+  "#80CBC4",
 ];
 
 export default function DashboardLancamentosPage() {
@@ -173,6 +137,10 @@ export default function DashboardLancamentosPage() {
   const [anoAtual, setAnoAtual] = useState(new Date().getFullYear());
   const [carregando, setCarregando] = useState(false);
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
+  const [metas, setMetas] = useState<Meta[]>([]);
+  const [totaisPorCategoria, setTotaisPorCategoria] = useState<
+    TotaisPorCategoria[]
+  >([]);
   const [resumoMensal, setResumoMensal] = useState<ResumoMensal>({
     receitas: 0,
     despesas: 0,
@@ -181,6 +149,8 @@ export default function DashboardLancamentosPage() {
     individualEle: 0,
     individualEla: 0,
   });
+  const [dadosPizza, setDadosPizza] = useState<DadosPizza[]>([]);
+  const [dadosBarras, setDadosBarras] = useState<DadosBarra[]>([]);
 
   useEffect(() => {
     carregarDados();
@@ -189,16 +159,33 @@ export default function DashboardLancamentosPage() {
   const carregarDados = async () => {
     setCarregando(true);
     try {
-      // Simulação de carregamento de dados da API
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Carregar lançamentos
+      const params = new URLSearchParams({
+        mes: (mesAtual + 1).toString(),
+        ano: anoAtual.toString(),
+      });
 
-      // Em produção, substituir por:
-      // const response = await fetch(`/api/lancamentos?mes=${mesAtual + 1}&ano=${anoAtual}`);
-      // const data = await response.json();
-      // setLancamentos(data.lancamentos);
+      const [lancamentosResponse, metasResponse] = await Promise.all([
+        fetch(`/api/lancamentos?${params}`),
+        fetch("/api/metas"),
+      ]);
 
-      setLancamentos(dummyLancamentos);
-      calcularResumo(dummyLancamentos);
+      if (!lancamentosResponse.ok || !metasResponse.ok) {
+        throw new Error("Erro ao carregar dados");
+      }
+
+      const lancamentosData = await lancamentosResponse.json();
+      const metasData = await metasResponse.json();
+
+      setLancamentos(lancamentosData.lancamentos);
+      setTotaisPorCategoria(lancamentosData.totaisPorCategoria);
+      setMetas(metasData.filter((meta: Meta) => !meta.concluida).slice(0, 3));
+
+      calcularResumo(lancamentosData.lancamentos);
+      prepararDadosGraficos(
+        lancamentosData.lancamentos,
+        lancamentosData.totaisPorCategoria
+      );
 
       toast.success(`Dados de ${meses[mesAtual]} carregados!`);
     } catch (error) {
@@ -218,7 +205,7 @@ export default function DashboardLancamentosPage() {
       .filter((l) => l.tipo === "despesa")
       .reduce((sum, l) => sum + l.valor, 0);
 
-    const compartilhado = lancamentos
+    const despesasCompartilhadas = lancamentos
       .filter(
         (l) => l.tipoLancamento === "compartilhado" && l.tipo === "despesa"
       )
@@ -236,10 +223,43 @@ export default function DashboardLancamentosPage() {
       receitas,
       despesas,
       saldo: receitas - despesas,
-      compartilhado,
+      compartilhado: despesasCompartilhadas,
       individualEle,
       individualEla,
     });
+  };
+
+  const prepararDadosGraficos = (
+    lancamentos: Lancamento[],
+    totais: TotaisPorCategoria[]
+  ) => {
+    // Preparar dados para gráfico de pizza (despesas por categoria)
+    const dadosPizza = totais
+      .filter(
+        (item) =>
+          item.tipo === "despesa" && item._sum.valor && item._sum.valor > 0
+      )
+      .map((item, index) => ({
+        name: formatarCategoria(item.categoria),
+        value: item._sum.valor || 0,
+        color: CORES_GRAFICO[index % CORES_GRAFICO.length],
+      }));
+
+    setDadosPizza(dadosPizza);
+
+    // Preparar dados para gráfico de barras (histórico dos últimos 6 meses)
+    // Nota: Em produção, você buscaria dados históricos da API
+    const dadosBarras = Array.from({ length: 6 }, (_, i) => {
+      const mesIndex = (mesAtual - i + 12) % 12;
+      const ano = anoAtual - Math.floor((mesAtual - i) / 12);
+      return {
+        mes: meses[mesIndex].substring(0, 3),
+        receitas: Math.round(8000 + Math.random() * 4000),
+        despesas: Math.round(6000 + Math.random() * 3000),
+      };
+    }).reverse();
+
+    setDadosBarras(dadosBarras);
   };
 
   const formatarMoeda = (valor: number) => {
@@ -247,6 +267,21 @@ export default function DashboardLancamentosPage() {
       style: "currency",
       currency: "BRL",
     }).format(valor);
+  };
+
+  const formatarCategoria = (categoria: string) => {
+    const categorias: Record<string, string> = {
+      salario: "Salário",
+      freela: "Freelance",
+      investimentos: "Investimentos",
+      alimentacao: "Alimentação",
+      transporte: "Transporte",
+      casa: "Casa",
+      pessoal: "Pessoal",
+      lazer: "Lazer",
+      outros: "Outros",
+    };
+    return categorias[categoria] || categoria;
   };
 
   const mudarMes = (direcao: "anterior" | "proximo") => {
@@ -271,35 +306,51 @@ export default function DashboardLancamentosPage() {
     router.push("/dashboard/lancamentos/novo");
   };
 
-  // Dados para gráficos baseados nos lançamentos reais
-  const categoriasDespesas = lancamentos
-    .filter((l) => l.tipo === "despesa")
-    .reduce(
-      (acc, l) => {
-        acc[l.categoria] = (acc[l.categoria] || 0) + l.valor;
-        return acc;
-      },
-      {} as Record<string, number>
-    );
+  const handleVerMetas = () => {
+    router.push("/dashboard/metas");
+  };
 
-  const dadosPizza = Object.entries(categoriasDespesas).map(
-    ([name, value], index) => ({
-      name: name.charAt(0).toUpperCase() + name.slice(1),
-      value,
-      color: ["#FF6B6B", "#4ECDC4", "#45B7D1", "#F9C80E", "#FF8E53", "#96CEB4"][
-        index % 6
-      ],
-    })
-  );
+  // Custom Tooltip para o gráfico de barras
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 border rounded-lg shadow-md">
+          <p className="font-semibold">{label}</p>
+          <p className="text-green-600">
+            Receitas: {formatarMoeda(payload[0].value)}
+          </p>
+          <p className="text-red-600">
+            Despesas: {formatarMoeda(payload[1].value)}
+          </p>
+          <p className="font-medium">
+            Saldo: {formatarMoeda(payload[0].value - payload[1].value)}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
 
-  const dadosBarras = [
-    { mes: "Jan", receitas: 8000, despesas: 6000 },
-    { mes: "Fev", receitas: 7500, despesas: 5500 },
-    { mes: "Mar", receitas: 8500, despesas: 6500 },
-    { mes: "Abr", receitas: 9000, despesas: 7000 },
-    { mes: "Mai", receitas: 9500, despesas: 7200 },
-    { mes: "Jun", receitas: 10000, despesas: 7800 },
-  ];
+  // Custom Tooltip para o gráfico de pizza
+  const CustomPieTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 border rounded-lg shadow-md">
+          <p className="font-semibold">{payload[0].name}</p>
+          <p>{formatarMoeda(payload[0].value)}</p>
+          <p>
+            {(
+              (payload[0].value /
+                dadosPizza.reduce((sum, item) => sum + item.value, 0)) *
+              100
+            ).toFixed(1)}
+            %
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <div className="container mx-auto p-6 mt-20">
@@ -408,6 +459,37 @@ export default function DashboardLancamentosPage() {
         </Card>
       </div>
 
+      {/* Saldos Individuais */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">
+              Saldo Claudenir
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div
+              className={`text-xl font-bold ${resumoMensal.individualEle >= 0 ? "text-green-600" : "text-red-600"}`}
+            >
+              {formatarMoeda(resumoMensal.individualEle)}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Saldo Beatriz</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div
+              className={`text-xl font-bold ${resumoMensal.individualEla >= 0 ? "text-green-600" : "text-red-600"}`}
+            >
+              {formatarMoeda(resumoMensal.individualEla)}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         {/* Gráfico de Pizza */}
@@ -420,56 +502,36 @@ export default function DashboardLancamentosPage() {
             <CardDescription>Por categoria</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-64 flex items-center justify-center">
-              {dadosPizza.length > 0 ? (
-                <div className="relative w-48 h-48">
-                  {dadosPizza.map((item, index) => {
-                    const total = dadosPizza.reduce(
-                      (sum, d) => sum + d.value,
-                      0
-                    );
-                    const percentage = (item.value / total) * 100;
-                    const startAngle =
-                      index === 0
-                        ? 0
-                        : dadosPizza
-                            .slice(0, index)
-                            .reduce(
-                              (sum, d) => sum + (d.value / total) * 360,
-                              0
-                            );
-
-                    return (
-                      <div
-                        key={item.name}
-                        className="absolute w-full h-full"
-                        style={{
-                          clipPath: `conic-gradient(from ${startAngle}deg, ${item.color} 0deg ${startAngle + percentage * 3.6}deg, transparent ${startAngle + percentage * 3.6}deg)`,
-                        }}
-                      />
-                    );
-                  })}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-32 h-32 bg-white rounded-full"></div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-muted-foreground">
-                  Nenhuma despesa este mês
-                </div>
-              )}
-            </div>
-            <div className="grid grid-cols-2 gap-2 mt-4">
-              {dadosPizza.map((item) => (
-                <div key={item.name} className="flex items-center gap-2">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <span className="text-sm">{item.name}</span>
-                </div>
-              ))}
-            </div>
+            {dadosPizza.length > 0 ? (
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsPieChart>
+                    <Pie
+                      data={dadosPizza}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) =>
+                        `${name}: ${(percent * 100).toFixed(0)}%`
+                      }
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {dadosPizza.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomPieTooltip />} />
+                    <Legend />
+                  </RechartsPieChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-64 flex items-center justify-center text-muted-foreground">
+                Nenhuma despesa este mês
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -483,77 +545,64 @@ export default function DashboardLancamentosPage() {
             <CardDescription>Receitas vs Despesas</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-64 flex items-end justify-between gap-2">
-              {dadosBarras.map((item, index) => {
-                const maxValor = Math.max(
-                  ...dadosBarras.map((d) => Math.max(d.receitas, d.despesas))
-                );
-                const alturaReceitas = (item.receitas / maxValor) * 100;
-                const alturaDespesas = (item.despesas / maxValor) * 100;
-
-                return (
-                  <div key={index} className="flex flex-col items-center gap-1">
-                    <div className="flex items-end gap-1">
-                      <div
-                        className="w-4 bg-green-500 rounded-t"
-                        style={{ height: `${alturaReceitas}%` }}
-                      />
-                      <div
-                        className="w-4 bg-red-500 rounded-t"
-                        style={{ height: `${alturaDespesas}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {item.mes}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="flex gap-4 justify-center mt-4">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-green-500 rounded" />
-                <span className="text-sm">Receitas</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-red-500 rounded" />
-                <span className="text-sm">Despesas</span>
-              </div>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={dadosBarras}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="mes" />
+                  <YAxis tickFormatter={(value) => `R$ ${value / 1000}k`} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend />
+                  <Bar dataKey="receitas" fill="#4CAF50" name="Receitas" />
+                  <Bar dataKey="despesas" fill="#F44336" name="Despesas" />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Objetivos Financeiros */}
+      {/* Metas Financeiras */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5" />
-            Objetivos Financeiros
-          </CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Metas Financeiras
+            </CardTitle>
+            <Button variant="outline" size="sm" onClick={handleVerMetas}>
+              Ver Todas
+            </Button>
+          </div>
           <CardDescription>Progresso das suas metas</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {dummyObjetivos.map((objetivo) => {
-            const progresso = (objetivo.atual / objetivo.meta) * 100;
+          {metas.length > 0 ? (
+            metas.map((meta) => {
+              const progresso = (meta.valorAtual / meta.valorAlvo) * 100;
 
-            return (
-              <div key={objetivo.id}>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-medium">{objetivo.nome}</span>
-                  <span className="text-sm text-muted-foreground">
-                    {formatarMoeda(objetivo.atual)} /{" "}
-                    {formatarMoeda(objetivo.meta)}
-                  </span>
+              return (
+                <div key={meta.id}>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-medium">{meta.titulo}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {formatarMoeda(meta.valorAtual)} /{" "}
+                      {formatarMoeda(meta.valorAlvo)}
+                    </span>
+                  </div>
+                  <Progress value={progresso} className="h-2" />
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {progresso.toFixed(0)}% completo • Falta{" "}
+                    {formatarMoeda(meta.valorAlvo - meta.valorAtual)}
+                  </div>
                 </div>
-                <Progress value={progresso} className="h-2" />
-                <div className="text-xs text-muted-foreground mt-1">
-                  {progresso.toFixed(0)}% completo • Falta{" "}
-                  {formatarMoeda(objetivo.meta - objetivo.atual)}
-                </div>
-              </div>
-            );
-          })}
+              );
+            })
+          ) : (
+            <div className="text-center text-muted-foreground py-4">
+              Nenhuma meta ativa no momento
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

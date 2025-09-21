@@ -33,8 +33,6 @@ model Usuario {
 
   AnaliseTributaria AnaliseTributaria[]
 
-  Gasto Gasto[]
-
   MapeamentoTelefone MapeamentoTelefone[]
 
   Lancamento Lancamento[]
@@ -303,24 +301,6 @@ model AnaliseTributaria {
   usuario Usuario @relation(fields: [usuarioId], references: [id])
 
   @@unique([empresaId, mesReferencia])
-}
-
-model Gasto {
-  id              String   @id @default(cuid())
-  descricao       String
-  valor           Float
-  categoria       String   // alimentacao, transporte, casa, pessoal, lazer, receita, outros
-  tipo            String   // individual, compartilhado
-  responsavel     String   // Claudenir, Beatriz
-  data            DateTime
-  pago            Boolean  @default(false)
-  origem          String?  // whatsapp, manual, etc.
-  mensagemOriginal String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  usuarioId       String
-
-  usuario Usuario @relation(fields: [usuarioId], references: [id])
 }
 
 model MapeamentoTelefone {
