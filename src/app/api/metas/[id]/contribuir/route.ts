@@ -4,7 +4,7 @@ import { auth } from "../../../../../../auth";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } // Corrigido aqui
 ) {
   try {
     const session = await auth();
@@ -15,7 +15,7 @@ export async function POST(
       );
     }
 
-    const { id } = params;
+    const { id } = await params; // Adicione await aqui
     const body = await request.json();
     const { valor, observacoes } = body;
 
