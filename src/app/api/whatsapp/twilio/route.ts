@@ -4,9 +4,18 @@ import db from "@/lib/db";
 import { auth } from "../../../../../auth";
 
 console.log("🔧 API Twilio carregada - Verificando variáveis de ambiente:");
-console.log("ANTHROPIC_API_KEY:", process.env.ANTHROPIC_API_KEY ? "✅ Configurada" : "❌ Faltando");
-console.log("TWILIO_ACCOUNT_SID:", process.env.TWILIO_ACCOUNT_SID ? "✅ Configurada" : "❌ Faltando");
-console.log("TWILIO_AUTH_TOKEN:", process.env.TWILIO_AUTH_TOKEN ? "✅ Configurada" : "❌ Faltando");
+console.log(
+  "ANTHROPIC_API_KEY:",
+  process.env.ANTHROPIC_API_KEY ? "✅ Configurada" : "❌ Faltando"
+);
+console.log(
+  "TWILIO_ACCOUNT_SID:",
+  process.env.TWILIO_ACCOUNT_SID ? "✅ Configurada" : "❌ Faltando"
+);
+console.log(
+  "TWILIO_AUTH_TOKEN:",
+  process.env.TWILIO_AUTH_TOKEN ? "✅ Configurada" : "❌ Faltando"
+);
 
 async function callClaudeApi(prompt: string) {
   console.log("🤖 Chamando Claude API...");
@@ -19,14 +28,14 @@ async function callClaudeApi(prompt: string) {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-3-sonnet-20240229",
-        max_tokens: 1000,
+        model: "claude-sonnet-4-20250514", // Modelo mais recente e disponível
+        max_tokens: 2000,
         messages: [{ role: "user", content: prompt }],
       }),
     });
 
     console.log("📊 Status Claude:", response.status);
-    
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error("❌ Erro Claude:", response.status, errorText);
@@ -44,7 +53,7 @@ async function callClaudeApi(prompt: string) {
 
 export async function POST(request: NextRequest) {
   console.log("📨 Incoming Twilio webhook request");
-  
+
   try {
     const formData = await request.formData();
     const formDataObj = Object.fromEntries(formData.entries());
@@ -61,7 +70,10 @@ export async function POST(request: NextRequest) {
     console.log("💬 Mensagem processada:", messageText);
 
     // Ignorar mensagens de sistema
-    if (messageText.toLowerCase().includes("join") || messageText.trim().length < 3) {
+    if (
+      messageText.toLowerCase().includes("join") ||
+      messageText.trim().length < 3
+    ) {
       console.log("⚙️ Mensagem de sistema ignorada");
       return new Response(null, { status: 200 });
     }
@@ -73,11 +85,48 @@ export async function POST(request: NextRequest) {
     let dadosExtraidos;
     try {
       console.log("🧠 Processando com Claude...");
-      
-      // Prompt simplificado para teste
-      const prompt = `Extraia informações financeiras desta mensagem: "${messageText}". 
-      Retorne APENAS JSON com: tipo, descricao, valor, categoria, responsavel.`;
-      
+
+      // PROMPT COMPLETO E PODEROSO
+      const prompt = `Você é um assistente especializado em extrair informações financeiras de mensagens do WhatsApp.
+
+ANALISE A MENSAGEM E EXTRAIA AS INFORMAÇÕES EM JSON STRICT:
+
+MENSAGEM: "${messageText}"
+
+REGAS IMPORTANTES:
+1. IDENTIFIQUE se é RECEITA ou DESPESA
+2. EXTRAIA o VALOR numérico (ex: "120" de "almoço 120 reais")
+3. DETERMINE a CATEGORIA correta baseada na mensagem
+4. IDENTIFIQUE se é INDIVIDUAL ou COMPARTILHADO
+5. DETERMINE o RESPONSÁVEL (Claudenir ou Beatriz)
+6. USE a DATA de hoje se não especificado
+7. VERIFIQUE se é PARCELADO e extraia informações se mencionado
+
+CATEGORIAS PARA DESPESAS:
+- "alimentacao" (comida, restaurante, mercado, lanche, almoço, jantar)
+- "transporte" (uber, taxi, gasolina, ônibus, combustível)
+- "casa" (aluguel, luz, água, internet, condomínio)
+- "pessoal" (roupa, cosméticos, cuidados pessoais)
+- "lazer" (cinema, viagem, entretenimento, hobbies)
+- "outros" (qualquer outra despesa)
+
+CATEGORIAS PARA RECEITAS:
+- "salario" (salário, renda fixa)
+- "freela" (freelance, trabalho extra)
+- "investimentos" (rendimentos, dividendos, aplicações)
+- "outros" (outras receitas)
+
+RESPONSÁVEIS PERMITIDOS: "Claudenir" ou "Beatriz"
+TIPOS DE LANÇAMENTO: "individual" ou "compartilhado"
+
+EXEMPLOS CORRETOS:
+- "despesa claudenir uber 50 reais" → {"tipo": "despesa", "descricao": "Uber", "valor": 50, "categoria": "transporte", "tipoLancamento": "individual", "responsavel": "Claudenir", "data": "2024-01-15", "pago": true}
+- "salario beatriz 3200" → {"tipo": "receita", "descricao": "Salário", "valor": 3200, "categoria": "salario", "tipoLancamento": "individual", "responsavel": "Beatriz", "data": "2024-01-15", "pago": true}
+- "almoço compartilhado 120" → {"tipo": "despesa", "descricao": "Almoço", "valor": 120, "categoria": "alimentacao", "tipoLancamento": "compartilhado", "responsavel": "Claudenir", "data": "2024-01-15", "pago": true}
+- "conta de luz 180 parcelada 3x" → {"tipo": "despesa", "descricao": "Conta de Luz", "valor": 180, "categoria": "casa", "tipoLancamento": "compartilhado", "responsavel": "Claudenir", "data": "2024-01-15", "pago": false, "parcelas": 3, "parcelaAtual": 1}
+
+RETORNE APENAS JSON VÁLIDO SEM TEXTOS ADICIONAIS.`;
+
       const claudeResponse = await callClaudeApi(prompt);
       const resposta = claudeResponse.content[0].text;
       console.log("📝 Resposta Claude:", resposta);
@@ -91,7 +140,6 @@ export async function POST(request: NextRequest) {
       }
     } catch (error) {
       console.error("❌ Erro Claude, usando fallback manual:", error);
-      // Fallback manual melhorado
       dadosExtraidos = extrairDadosManualmente(messageText);
     }
 
@@ -117,31 +165,30 @@ export async function POST(request: NextRequest) {
 
       // Salvar no banco
       const resultado = await db.lancamento.create({
-        data: dadosParaSalvar
+        data: dadosParaSalvar,
       });
 
       console.log("✅ Salvo com sucesso! ID:", resultado.id);
 
       // CORRIGIR: Formatar número para o Twilio
-      const numeroFormatado = from.toString().replace('whatsapp:', '');
-      
+      const numeroFormatado = from.toString().replace("whatsapp:", "");
+
       // Enviar resposta
       await enviarRespostaTwilio(
         numeroFormatado,
         `✅ ${dadosParaSalvar.tipo === "receita" ? "Receita" : "Despesa"} registrada!\n` +
-        `• ${dadosParaSalvar.descricao}\n` +
-        `• Valor: R$ ${dadosParaSalvar.valor.toFixed(2)}\n` +
-        `• Categoria: ${formatarCategoria(dadosParaSalvar.categoria)}`
+          `• ${dadosParaSalvar.descricao}\n` +
+          `• Valor: R$ ${dadosParaSalvar.valor.toFixed(2)}\n` +
+          `• Categoria: ${formatarCategoria(dadosParaSalvar.categoria)}`
       );
 
       return new Response(null, { status: 200 });
-
     } catch (dbError) {
       console.error("💥 ERRO NO BANCO:", dbError);
-      
+
       // Tentar enviar mensagem de erro
       try {
-        const numeroFormatado = from.toString().replace('whatsapp:', '');
+        const numeroFormatado = from.toString().replace("whatsapp:", "");
         await enviarRespostaTwilio(
           numeroFormatado,
           "⚠️ Erro ao salvar. Mensagem recebida, mas não processada."
@@ -152,7 +199,6 @@ export async function POST(request: NextRequest) {
 
       return new Response("Erro interno", { status: 500 });
     }
-
   } catch (error) {
     console.error("💣 ERRO GRAVE:", error);
     return new Response("Erro interno", { status: 500 });
@@ -174,7 +220,7 @@ async function enviarRespostaTwilio(to: string, message: string) {
     const client = twilio(accountSid, authToken);
 
     // FORMATAR CORRETAMENTE O NÚMERO
-    const numeroFormatado = to.startsWith('whatsapp:') ? to : `whatsapp:${to}`;
+    const numeroFormatado = to.startsWith("whatsapp:") ? to : `whatsapp:${to}`;
 
     await client.messages.create({
       body: message,
@@ -192,17 +238,20 @@ async function enviarRespostaTwilio(to: string, message: string) {
 // Melhorar a extração manual
 function extrairDadosManualmente(mensagem: string) {
   console.log("🔄 Usando fallback manual para:", mensagem);
-  
+
   const mensagemLower = mensagem.toLowerCase();
-  
+
   return {
-    tipo: mensagemLower.includes("receita") || mensagemLower.includes("salário") ? "receita" : "despesa",
+    tipo:
+      mensagemLower.includes("receita") || mensagemLower.includes("salário")
+        ? "receita"
+        : "despesa",
     descricao: mensagem.substring(0, 30),
     valor: extrairValor(mensagem),
     categoria: determinarCategoria(mensagemLower),
     responsavel: determinarResponsavel(mensagemLower),
     tipoLancamento: "individual",
-    pago: true
+    pago: true,
   };
 }
 
@@ -212,9 +261,24 @@ function extrairValor(mensagem: string): number {
 }
 
 function determinarCategoria(mensagemLower: string): string {
-  if (mensagemLower.includes("uber") || mensagemLower.includes("taxi") || mensagemLower.includes("transporte")) return "transporte";
-  if (mensagemLower.includes("comida") || mensagemLower.includes("almoço") || mensagemLower.includes("restaurante")) return "alimentacao";
-  if (mensagemLower.includes("luz") || mensagemLower.includes("água") || mensagemLower.includes("casa")) return "casa";
+  if (
+    mensagemLower.includes("uber") ||
+    mensagemLower.includes("taxi") ||
+    mensagemLower.includes("transporte")
+  )
+    return "transporte";
+  if (
+    mensagemLower.includes("comida") ||
+    mensagemLower.includes("almoço") ||
+    mensagemLower.includes("restaurante")
+  )
+    return "alimentacao";
+  if (
+    mensagemLower.includes("luz") ||
+    mensagemLower.includes("água") ||
+    mensagemLower.includes("casa")
+  )
+    return "casa";
   return "outros";
 }
 
@@ -308,8 +372,6 @@ function validarECompletarDados(dados: any, mensagemOriginal: string) {
 
   return dadosCompletos;
 }
-
-
 
 // Função para formatar categoria para exibição
 function formatarCategoria(categoria: string) {
