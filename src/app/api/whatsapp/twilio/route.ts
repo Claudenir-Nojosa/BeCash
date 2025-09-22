@@ -87,6 +87,8 @@ export async function POST(request: NextRequest) {
       console.log("🧠 Processando com Claude...");
 
       // PROMPT COMPLETO E PODEROSO
+      const hojeReal = new Date().toISOString().split("T")[0]; // Data atual real
+
       const prompt = `Você é um assistente especializado em extrair informações financeiras de mensagens do WhatsApp.
 
 ANALISE A MENSAGEM E EXTRAIA AS INFORMAÇÕES EM JSON STRICT:
@@ -99,7 +101,7 @@ REGAS IMPORTANTES:
 3. DETERMINE a CATEGORIA correta baseada na mensagem
 4. IDENTIFIQUE se é INDIVIDUAL ou COMPARTILHADO
 5. DETERMINE o RESPONSÁVEL (Claudenir ou Beatriz)
-6. USE a DATA de hoje se não especificado
+6. USE a DATA DE HOJE REAL: ${hojeReal} (NÃO USE 2024)
 7. VERIFIQUE se é PARCELADO e extraia informações se mencionado
 
 CATEGORIAS PARA DESPESAS:
@@ -119,11 +121,9 @@ CATEGORIAS PARA RECEITAS:
 RESPONSÁVEIS PERMITIDOS: "Claudenir" ou "Beatriz"
 TIPOS DE LANÇAMENTO: "individual" ou "compartilhado"
 
-EXEMPLOS CORRETOS:
-- "despesa claudenir uber 50 reais" → {"tipo": "despesa", "descricao": "Uber", "valor": 50, "categoria": "transporte", "tipoLancamento": "individual", "responsavel": "Claudenir", "data": "2024-01-15", "pago": true}
-- "salario beatriz 3200" → {"tipo": "receita", "descricao": "Salário", "valor": 3200, "categoria": "salario", "tipoLancamento": "individual", "responsavel": "Beatriz", "data": "2024-01-15", "pago": true}
-- "almoço compartilhado 120" → {"tipo": "despesa", "descricao": "Almoço", "valor": 120, "categoria": "alimentacao", "tipoLancamento": "compartilhado", "responsavel": "Claudenir", "data": "2024-01-15", "pago": true}
-- "conta de luz 180 parcelada 3x" → {"tipo": "despesa", "descricao": "Conta de Luz", "valor": 180, "categoria": "casa", "tipoLancamento": "compartilhado", "responsavel": "Claudenir", "data": "2024-01-15", "pago": false, "parcelas": 3, "parcelaAtual": 1}
+EXEMPLOS CORRETOS (USE A DATA ${hojeReal}):
+- "despesa claudenir uber 50 reais" → {"tipo": "despesa", "descricao": "Uber", "valor": 50, "categoria": "transporte", "tipoLancamento": "individual", "responsavel": "Claudenir", "data": "${hojeReal}", "pago": true}
+- "salario beatriz 3200" → {"tipo": "receita", "descricao": "Salário", "valor": 3200, "categoria": "salario", "tipoLancamento": "individual", "responsavel": "Beatriz", "data": "${hojeReal}", "pago": true}
 
 RETORNE APENAS JSON VÁLIDO SEM TEXTOS ADICIONAIS.`;
 
