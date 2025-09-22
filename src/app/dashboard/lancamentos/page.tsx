@@ -42,6 +42,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { formatarDataParaExibição } from "@/lib/utils";
 
 interface Lancamento {
   id: string;
@@ -589,9 +590,7 @@ export default function LancamentosPage() {
                   {lancamentosFiltrados.map((lancamento) => (
                     <TableRow key={lancamento.id}>
                       <TableCell className="text-center">
-                        {format(new Date(lancamento.data), "dd/MM/yyyy", {
-                          locale: ptBR,
-                        })}
+                        {formatarDataParaExibição(lancamento.data)}
                       </TableCell>
                       <TableCell className="text-center font-medium">
                         {lancamento.descricao}

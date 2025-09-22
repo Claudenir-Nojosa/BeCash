@@ -51,6 +51,44 @@ async function callClaudeApi(prompt: string) {
   }
 }
 
+async function enviarRespostaTwilio(to: string, message: string) {
+  try {
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+
+    if (!accountSid || !authToken) {
+      throw new Error("Credenciais Twilio não configuradas");
+    }
+
+    // Usar fetch diretamente (mais simples que a biblioteca twilio)
+    const response = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
+        },
+        body: new URLSearchParams({
+          To: `whatsapp:${to}`,
+          From: "whatsapp:+15558382453",
+          Body: message,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Twilio error: ${response.status} - ${errorText}`);
+    }
+
+    console.log("✅ Mensagem Twilio enviada");
+  } catch (error) {
+    console.error("❌ Erro ao enviar resposta Twilio:", error);
+    throw error;
+  }
+}
+
 export async function POST(request: NextRequest) {
   console.log("📨 Incoming Twilio webhook request");
 
@@ -59,73 +97,54 @@ export async function POST(request: NextRequest) {
     const formDataObj = Object.fromEntries(formData.entries());
     console.log("📋 FormData recebido:", formDataObj);
 
-    const { From: from, Body: message } = formDataObj;
+    const {
+      From: from,
+      Body: message,
+      MessageStatus: messageStatus,
+    } = formDataObj;
+
+    // ✅ IGNORAR STATUS CALLBACKS
+    if (messageStatus) {
+      console.log("⚙️ Status callback ignorado");
+      return new Response(null, { status: 200 });
+    }
 
     if (!from || !message) {
       console.log("❌ Dados incompletos");
-      return NextResponse.json({ error: "Dados incompletos" }, { status: 400 });
+      return new Response(null, { status: 200 }); // ✅ Retornar 200 para callbacks
     }
 
-    const messageText = message.toString();
+    const messageText = message.toString().trim();
     console.log("💬 Mensagem processada:", messageText);
 
     // Ignorar mensagens de sistema
-    if (
-      messageText.toLowerCase().includes("join") ||
-      messageText.trim().length < 3
-    ) {
+    if (messageText.toLowerCase().includes("join") || messageText.length < 2) {
       console.log("⚙️ Mensagem de sistema ignorada");
       return new Response(null, { status: 200 });
     }
 
-    // SOLUÇÃO: Usar um usuário fixo para WhatsApp
-    // No seu caso, vamos usar o ID do Claudenir
-    const USER_ID_WHATSAPP = "cma37wgm30004uf7836dzx3ag"; // Substitua pelo ID real do usuário
+    // Usuário fixo para WhatsApp
+    const USER_ID_WHATSAPP = "cma37wgm30004uf7836dzx3ag";
 
     let dadosExtraidos;
     try {
       console.log("🧠 Processando com Claude...");
 
-      // PROMPT COMPLETO E PODEROSO
-      const hojeReal = new Date().toISOString().split("T")[0]; // Data atual real
+      const hojeReal = new Date().toISOString().split("T")[0];
 
-      const prompt = `Você é um assistente especializado em extrair informações financeiras de mensagens do WhatsApp.
+      const prompt = `Extraia informações financeiras desta mensagem em JSON STRICT: "${messageText}"
 
-ANALISE A MENSAGEM E EXTRAIA AS INFORMAÇÕES EM JSON STRICT:
+Regras:
+- Tipo: "receita" ou "despesa" 
+- Descrição: breve descrição baseada na mensagem
+- Valor: apenas números
+- Categoria: alimentacao, transporte, casa, pessoal, lazer, salario, freela, investimentos, outros
+- Responsavel: "Claudenir" ou "Beatriz"
+- Data: use ${hojeReal}
+- pago: true
 
-MENSAGEM: "${messageText}"
-
-REGAS IMPORTANTES:
-1. IDENTIFIQUE se é RECEITA ou DESPESA
-2. EXTRAIA o VALOR numérico (ex: "120" de "almoço 120 reais")
-3. DETERMINE a CATEGORIA correta baseada na mensagem
-4. IDENTIFIQUE se é INDIVIDUAL ou COMPARTILHADO
-5. DETERMINE o RESPONSÁVEL (Claudenir ou Beatriz)
-6. USE a DATA DE HOJE REAL: ${hojeReal} (NÃO USE 2024)
-7. VERIFIQUE se é PARCELADO e extraia informações se mencionado
-
-CATEGORIAS PARA DESPESAS:
-- "alimentacao" (comida, restaurante, mercado, lanche, almoço, jantar)
-- "transporte" (uber, taxi, gasolina, ônibus, combustível)
-- "casa" (aluguel, luz, água, internet, condomínio)
-- "pessoal" (roupa, cosméticos, cuidados pessoais)
-- "lazer" (cinema, viagem, entretenimento, hobbies)
-- "outros" (qualquer outra despesa)
-
-CATEGORIAS PARA RECEITAS:
-- "salario" (salário, renda fixa)
-- "freela" (freelance, trabalho extra)
-- "investimentos" (rendimentos, dividendos, aplicações)
-- "outros" (outras receitas)
-
-RESPONSÁVEIS PERMITIDOS: "Claudenir" ou "Beatriz"
-TIPOS DE LANÇAMENTO: "individual" ou "compartilhado"
-
-EXEMPLOS CORRETOS (USE A DATA ${hojeReal}):
-- "despesa claudenir uber 50 reais" → {"tipo": "despesa", "descricao": "Uber", "valor": 50, "categoria": "transporte", "tipoLancamento": "individual", "responsavel": "Claudenir", "data": "${hojeReal}", "pago": true}
-- "salario beatriz 3200" → {"tipo": "receita", "descricao": "Salário", "valor": 3200, "categoria": "salario", "tipoLancamento": "individual", "responsavel": "Beatriz", "data": "${hojeReal}", "pago": true}
-
-RETORNE APENAS JSON VÁLIDO SEM TEXTOS ADICIONAIS.`;
+Retorne APENAS JSON sem textos adicionais. Exemplo: 
+{"tipo":"despesa","descricao":"Almoço","valor":45,"categoria":"alimentacao","responsavel":"Claudenir","data":"${hojeReal}","pago":true}`;
 
       const claudeResponse = await callClaudeApi(prompt);
       const resposta = claudeResponse.content[0].text;
@@ -143,95 +162,62 @@ RETORNE APENAS JSON VÁLIDO SEM TEXTOS ADICIONAIS.`;
       dadosExtraidos = extrairDadosManualmente(messageText);
     }
 
-    console.log("🔍 Dados para salvar:", dadosExtraidos);
+    // Dados para salvar
+    const dadosParaSalvar = {
+      descricao: dadosExtraidos.descricao || messageText.substring(0, 50),
+      valor: Math.abs(dadosExtraidos.valor || 0),
+      tipo: dadosExtraidos.tipo || "despesa",
+      categoria: dadosExtraidos.categoria || "outros",
+      tipoLancamento: "individual",
+      responsavel: dadosExtraidos.responsavel || "Claudenir",
+      data: new Date(dadosExtraidos.data || new Date()),
+      pago: true,
+      origem: "whatsapp",
+      mensagemOriginal: messageText.substring(0, 500),
+      usuarioId: USER_ID_WHATSAPP,
+    };
 
+    console.log("📦 Dados para salvar:", dadosParaSalvar);
+
+    // Salvar no banco
+    const resultado = await db.lancamento.create({
+      data: dadosParaSalvar,
+    });
+
+    console.log("✅ Salvo com sucesso! ID:", resultado.id);
+
+    // Enviar confirmação via Twilio
+    const numeroFormatado = from.toString().replace("whatsapp:", "");
+
+    await enviarRespostaTwilio(
+      numeroFormatado,
+      "✅ Lançamento registrado com sucesso!"
+    );
+
+    console.log("✅ Resposta enviada via Twilio para:", numeroFormatado);
+
+    return new Response(null, { status: 200 });
+  } catch (error) {
+    console.error("💣 ERRO GRAVE:", error);
+
+    // Tentar enviar mensagem de erro
     try {
-      // Dados para salvar
-      const dadosParaSalvar = {
-        descricao: dadosExtraidos.descricao || messageText.substring(0, 50),
-        valor: Math.abs(dadosExtraidos.valor || 0),
-        tipo: dadosExtraidos.tipo || "despesa",
-        categoria: dadosExtraidos.categoria || "outros",
-        tipoLancamento: dadosExtraidos.tipoLancamento || "individual",
-        responsavel: dadosExtraidos.responsavel || "Claudenir",
-        data: new Date(dadosExtraidos.data || new Date()),
-        pago: dadosExtraidos.pago !== undefined ? dadosExtraidos.pago : true,
-        origem: "whatsapp",
-        mensagemOriginal: messageText.substring(0, 500),
-        usuarioId: USER_ID_WHATSAPP, // USUÁRIO FIXO PARA WHATSAPP
-      };
+      const formData = await request.formData();
+      const formDataObj = Object.fromEntries(formData.entries());
+      const { From: from } = formDataObj;
 
-      console.log("📦 Dados para salvar:", dadosParaSalvar);
-
-      // Salvar no banco
-      const resultado = await db.lancamento.create({
-        data: dadosParaSalvar,
-      });
-
-      console.log("✅ Salvo com sucesso! ID:", resultado.id);
-
-      // CORRIGIR: Formatar número para o Twilio
-      const numeroFormatado = from.toString().replace("whatsapp:", "");
-
-      // Enviar resposta
-      await enviarRespostaTwilio(
-        numeroFormatado,
-        `✅ ${dadosParaSalvar.tipo === "receita" ? "Receita" : "Despesa"} registrada!\n` +
-          `• ${dadosParaSalvar.descricao}\n` +
-          `• Valor: R$ ${dadosParaSalvar.valor.toFixed(2)}\n` +
-          `• Categoria: ${formatarCategoria(dadosParaSalvar.categoria)}`
-      );
-
-      return new Response(null, { status: 200 });
-    } catch (dbError) {
-      console.error("💥 ERRO NO BANCO:", dbError);
-
-      // Tentar enviar mensagem de erro
-      try {
+      if (from) {
         const numeroFormatado = from.toString().replace("whatsapp:", "");
         await enviarRespostaTwilio(
           numeroFormatado,
-          "⚠️ Erro ao salvar. Mensagem recebida, mas não processada."
+          "❌ Erro ao processar mensagem. Tente novamente."
         );
-      } catch (twilioError) {
-        console.error("❌ Erro ao enviar resposta de erro:", twilioError);
       }
-
-      return new Response("Erro interno", { status: 500 });
-    }
-  } catch (error) {
-    console.error("💣 ERRO GRAVE:", error);
-    return new Response("Erro interno", { status: 500 });
-  }
-}
-
-// Corrigir a função enviarRespostaTwilio
-async function enviarRespostaTwilio(to: string, message: string) {
-  try {
-    const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
-
-    if (!accountSid || !authToken) {
-      console.warn("⚠️ Credenciais do Twilio não configuradas");
-      return;
+    } catch (twilioError) {
+      console.error("❌ Erro ao enviar mensagem de erro:", twilioError);
     }
 
-    const twilio = require("twilio");
-    const client = twilio(accountSid, authToken);
-
-    // FORMATAR CORRETAMENTE O NÚMERO
-    const numeroFormatado = to.startsWith("whatsapp:") ? to : `whatsapp:${to}`;
-
-    await client.messages.create({
-      body: message,
-      from: process.env.TWILIO_WHATSAPP_NUMBER!, // ex: "whatsapp:+15558382453"
-      to: numeroFormatado,
-    });
-
-    console.log("✅ Resposta enviada via Twilio para:", numeroFormatado);
-  } catch (error) {
-    console.error("❌ Erro ao enviar resposta Twilio:", error);
-    throw error; // Re-lançar o erro para tratamento superior
+    return new Response(null, { status: 200 }); // ✅ SEMPRE retornar 200 para o Twilio
   }
 }
 
@@ -286,94 +272,7 @@ function determinarResponsavel(mensagemLower: string): string {
   if (mensagemLower.includes("beatriz")) return "Beatriz";
   return "Claudenir";
 }
-// Função auxiliar para tipos seguros
-interface UserSafe {
-  id: string;
-  name: string;
-  email: string;
-}
-// Função para validar e completar dados extraídos
-function validarECompletarDados(dados: any, mensagemOriginal: string) {
-  const hoje = new Date().toISOString().split("T")[0];
 
-  // Valores padrão
-  const dadosPadrao = {
-    tipo: "despesa",
-    descricao: "Transação",
-    valor: 0,
-    categoria: "outros",
-    tipoLancamento: "individual",
-    responsavel: "Claudenir",
-    data: hoje,
-    pago: true,
-    parcelas: 1,
-    parcelaAtual: 1,
-  };
-
-  // Mesclar com dados extraídos
-  const dadosCompletos = { ...dadosPadrao, ...dados };
-
-  // Garantir que todos os campos tenham valores válidos
-  if (!dadosCompletos.descricao || dadosCompletos.descricao.trim() === "") {
-    dadosCompletos.descricao = "Transação";
-  }
-
-  // Extrair valor da mensagem se necessário
-  if (dadosCompletos.valor <= 0) {
-    const valorMatch = mensagemOriginal.match(/(\d+[,.]?\d*)/);
-    if (valorMatch) {
-      dadosCompletos.valor = parseFloat(valorMatch[1].replace(",", "."));
-    }
-  }
-
-  // Corrigir responsável para "Ambos" se for compartilhado
-  if (dadosCompletos.tipoLancamento === "compartilhado") {
-    dadosCompletos.responsavel = "Ambos";
-  } else {
-    // Se for individual, garantir que seja Claudenir ou Beatriz
-    if (!["Claudenir", "Beatriz"].includes(dadosCompletos.responsavel)) {
-      dadosCompletos.responsavel = "Claudenir";
-    }
-  }
-
-  // Validar categorias
-  const categoriasReceitas = ["salario", "freela", "investimentos", "outros"];
-  const categoriasDespesas = [
-    "alimentacao",
-    "transporte",
-    "casa",
-    "pessoal",
-    "lazer",
-    "outros",
-  ];
-
-  if (
-    dadosCompletos.tipo === "receita" &&
-    !categoriasReceitas.includes(dadosCompletos.categoria)
-  ) {
-    dadosCompletos.categoria = "outros";
-  }
-
-  if (
-    dadosCompletos.tipo === "despesa" &&
-    !categoriasDespesas.includes(dadosCompletos.categoria)
-  ) {
-    dadosCompletos.categoria = "outros";
-  }
-
-  // Validar responsáveis
-  if (!["Claudenir", "Beatriz", "Ambos"].includes(dadosCompletos.responsavel)) {
-    dadosCompletos.responsavel = "Claudenir";
-  }
-
-  // Garantir que parcelas seja um número
-  dadosCompletos.parcelas = parseInt(dadosCompletos.parcelas) || 1;
-  dadosCompletos.parcelaAtual = parseInt(dadosCompletos.parcelaAtual) || 1;
-
-  return dadosCompletos;
-}
-
-// Função para formatar categoria para exibição
 function formatarCategoria(categoria: string) {
   const categorias: { [key: string]: string } = {
     alimentacao: "Alimentação",

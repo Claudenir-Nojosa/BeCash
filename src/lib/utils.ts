@@ -1,8 +1,10 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 export function formatCNPJ(cnpj: string) {
@@ -29,8 +31,36 @@ export function createSlug(text: string): string {
 
 export function formatResponsavel(responsavel: string): string {
   const formatMap: Record<string, string> = {
-    'CLAUDENIR': 'Claudenir',
+    CLAUDENIR: "Claudenir",
   };
-  
+
   return formatMap[responsavel] || responsavel;
+}
+
+export function formatarDataParaExibição(data: Date | string | null): string {
+  if (!data) return "-";
+  
+  try {
+    const dataObj = new Date(data);
+    
+    if (isNaN(dataObj.getTime())) {
+      return "-";
+    }
+    
+    // Ajustar para fuso horário local
+    const dataAjustada = new Date(dataObj.getTime() + dataObj.getTimezoneOffset() * 60000);
+    
+    return format(dataAjustada, "dd/MM/yyyy", {
+      locale: ptBR,
+    });
+  } catch {
+    return "-";
+  }
+}
+
+export function formatarDataParaBanco(data: Date): string {
+  if (!data || isNaN(data.getTime())) {
+    throw new Error("Data inválida para salvar no banco");
+  }
+  return format(data, "yyyy-MM-dd");
 }
