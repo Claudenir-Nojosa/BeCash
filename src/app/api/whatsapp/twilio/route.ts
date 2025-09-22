@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     const formDataObj = Object.fromEntries(formData.entries());
     console.log("📋 FormData recebido:", formDataObj);
 
-    const { From: from, Body: message, ProfileName: profileName } = formDataObj;
+    const { From: from, Body: message } = formDataObj;
 
     if (!from || !message) {
       console.log("❌ Dados incompletos");
@@ -66,92 +66,88 @@ export async function POST(request: NextRequest) {
       return new Response(null, { status: 200 });
     }
 
+    // SOLUÇÃO: Usar um usuário fixo para WhatsApp
+    // No seu caso, vamos usar o ID do Claudenir
+    const USER_ID_WHATSAPP = "cma37wgm30004uf7836dzx3ag"; // Substitua pelo ID real do usuário
+
     let dadosExtraidos;
     try {
       console.log("🧠 Processando com Claude...");
-      // ... (código do Claude)
+      
+      // Prompt simplificado para teste
+      const prompt = `Extraia informações financeiras desta mensagem: "${messageText}". 
+      Retorne APENAS JSON com: tipo, descricao, valor, categoria, responsavel.`;
+      
+      const claudeResponse = await callClaudeApi(prompt);
+      const resposta = claudeResponse.content[0].text;
+      console.log("📝 Resposta Claude:", resposta);
+
+      const jsonMatch = resposta.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        dadosExtraidos = JSON.parse(jsonMatch[0]);
+        console.log("✅ Dados extraídos:", dadosExtraidos);
+      } else {
+        throw new Error("JSON não encontrado");
+      }
     } catch (error) {
       console.error("❌ Erro Claude, usando fallback manual:", error);
-      dadosExtraidos = {
-        tipo: messageText.toLowerCase().includes("salário") || messageText.toLowerCase().includes("receita") ? "receita" : "despesa",
-        descricao: messageText.substring(0, 50),
-        valor: parseFloat(messageText.match(/(\d+)/)?.[1] || "0"),
-        categoria: "outros",
-        tipoLancamento: "individual",
-        responsavel: "Claudenir",
-        data: new Date().toISOString().split('T')[0],
-        pago: true
-      };
+      // Fallback manual melhorado
+      dadosExtraidos = extrairDadosManualmente(messageText);
     }
 
     console.log("🔍 Dados para salvar:", dadosExtraidos);
 
-    // SIMPLIFICAR - Salvar apenas o básico primeiro
     try {
-      console.log("💾 Tentando salvar no banco...");
-      
-      const session = await auth();
-      console.log("👤 Session:", session ? "✅ Autenticado" : "❌ Não autenticado");
+      // Dados para salvar
+      const dadosParaSalvar = {
+        descricao: dadosExtraidos.descricao || messageText.substring(0, 50),
+        valor: Math.abs(dadosExtraidos.valor || 0),
+        tipo: dadosExtraidos.tipo || "despesa",
+        categoria: dadosExtraidos.categoria || "outros",
+        tipoLancamento: dadosExtraidos.tipoLancamento || "individual",
+        responsavel: dadosExtraidos.responsavel || "Claudenir",
+        data: new Date(dadosExtraidos.data || new Date()),
+        pago: dadosExtraidos.pago !== undefined ? dadosExtraidos.pago : true,
+        origem: "whatsapp",
+        mensagemOriginal: messageText.substring(0, 500),
+        usuarioId: USER_ID_WHATSAPP, // USUÁRIO FIXO PARA WHATSAPP
+      };
 
-      // CORREÇÃO: Verificar se session existe e tem user
-      if (!session || !session.user) {
-        console.log("❌ Usuário não autenticado - session ou user é null");
-        
-        // Enviar mensagem de erro para o usuário
-        await enviarRespostaTwilio(
-          from.toString(),
-          "❌ Erro: Usuário não autenticado. Faça login no sistema primeiro."
-        );
-        
-        return new Response("Usuário não autenticado", { status: 401 });
-      }
+      console.log("📦 Dados para salvar:", dadosParaSalvar);
 
-      // Dados MÍNIMOS para teste
-  const dadosMinimos = {
-  descricao: dadosExtraidos?.descricao || "Transação WhatsApp",
-  valor: Math.abs(dadosExtraidos?.valor || 0),
-  tipo: dadosExtraidos?.tipo || "despesa",
-  categoria: dadosExtraidos?.categoria || "outros",
-  tipoLancamento: dadosExtraidos?.tipoLancamento || "individual",
-  responsavel: dadosExtraidos?.responsavel || "Claudenir",
-  data: new Date(dadosExtraidos?.data || new Date()),
-  pago: true,
-  origem: "whatsapp",
-  mensagemOriginal: messageText.substring(0, 200),
-  usuarioId: session.user.id,
-};
-      console.log("📦 Dados mínimos:", dadosMinimos);
-
-      // Tentar salvar
+      // Salvar no banco
       const resultado = await db.lancamento.create({
-        data: dadosMinimos
+        data: dadosParaSalvar
       });
 
-      console.log("✅ Salvo com sucesso!", resultado.id);
+      console.log("✅ Salvo com sucesso! ID:", resultado.id);
 
-      // Responder ao Twilio
-      try {
-        await enviarRespostaTwilio(
-          from.toString(),
-          `✅ Registrado: ${dadosMinimos.descricao} - R$ ${dadosMinimos.valor}`
-        );
-      } catch (twilioError) {
-        console.error("❌ Erro Twilio resposta:", twilioError);
-      }
+      // CORRIGIR: Formatar número para o Twilio
+      const numeroFormatado = from.toString().replace('whatsapp:', '');
+      
+      // Enviar resposta
+      await enviarRespostaTwilio(
+        numeroFormatado,
+        `✅ ${dadosParaSalvar.tipo === "receita" ? "Receita" : "Despesa"} registrada!\n` +
+        `• ${dadosParaSalvar.descricao}\n` +
+        `• Valor: R$ ${dadosParaSalvar.valor.toFixed(2)}\n` +
+        `• Categoria: ${formatarCategoria(dadosParaSalvar.categoria)}`
+      );
 
       return new Response(null, { status: 200 });
 
     } catch (dbError) {
       console.error("💥 ERRO NO BANCO:", dbError);
       
-      // Tentar resposta mesmo com erro no banco
+      // Tentar enviar mensagem de erro
       try {
+        const numeroFormatado = from.toString().replace('whatsapp:', '');
         await enviarRespostaTwilio(
-          from.toString(),
-          "⚠️ Recebido, mas erro interno. Contate suporte."
+          numeroFormatado,
+          "⚠️ Erro ao salvar. Mensagem recebida, mas não processada."
         );
       } catch (twilioError) {
-        console.error("❌ Erro Twilio resposta (fallback):", twilioError);
+        console.error("❌ Erro ao enviar resposta de erro:", twilioError);
       }
 
       return new Response("Erro interno", { status: 500 });
@@ -163,6 +159,69 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// Corrigir a função enviarRespostaTwilio
+async function enviarRespostaTwilio(to: string, message: string) {
+  try {
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+
+    if (!accountSid || !authToken) {
+      console.warn("⚠️ Credenciais do Twilio não configuradas");
+      return;
+    }
+
+    const twilio = require("twilio");
+    const client = twilio(accountSid, authToken);
+
+    // FORMATAR CORRETAMENTE O NÚMERO
+    const numeroFormatado = to.startsWith('whatsapp:') ? to : `whatsapp:${to}`;
+
+    await client.messages.create({
+      body: message,
+      from: process.env.TWILIO_WHATSAPP_NUMBER!, // ex: "whatsapp:+15558382453"
+      to: numeroFormatado,
+    });
+
+    console.log("✅ Resposta enviada via Twilio para:", numeroFormatado);
+  } catch (error) {
+    console.error("❌ Erro ao enviar resposta Twilio:", error);
+    throw error; // Re-lançar o erro para tratamento superior
+  }
+}
+
+// Melhorar a extração manual
+function extrairDadosManualmente(mensagem: string) {
+  console.log("🔄 Usando fallback manual para:", mensagem);
+  
+  const mensagemLower = mensagem.toLowerCase();
+  
+  return {
+    tipo: mensagemLower.includes("receita") || mensagemLower.includes("salário") ? "receita" : "despesa",
+    descricao: mensagem.substring(0, 30),
+    valor: extrairValor(mensagem),
+    categoria: determinarCategoria(mensagemLower),
+    responsavel: determinarResponsavel(mensagemLower),
+    tipoLancamento: "individual",
+    pago: true
+  };
+}
+
+function extrairValor(mensagem: string): number {
+  const match = mensagem.match(/(\d+[,.]?\d*)/);
+  return match ? parseFloat(match[1].replace(",", ".")) : 0;
+}
+
+function determinarCategoria(mensagemLower: string): string {
+  if (mensagemLower.includes("uber") || mensagemLower.includes("taxi") || mensagemLower.includes("transporte")) return "transporte";
+  if (mensagemLower.includes("comida") || mensagemLower.includes("almoço") || mensagemLower.includes("restaurante")) return "alimentacao";
+  if (mensagemLower.includes("luz") || mensagemLower.includes("água") || mensagemLower.includes("casa")) return "casa";
+  return "outros";
+}
+
+function determinarResponsavel(mensagemLower: string): string {
+  if (mensagemLower.includes("beatriz")) return "Beatriz";
+  return "Claudenir";
+}
 // Função auxiliar para tipos seguros
 interface UserSafe {
   id: string;
@@ -250,135 +309,7 @@ function validarECompletarDados(dados: any, mensagemOriginal: string) {
   return dadosCompletos;
 }
 
-// Função fallback para extrair dados ma  nualmente
-function extrairDadosManualmente(mensagem: string) {
-  console.log("🔄 Usando fallback manual para:", mensagem);
 
-  const mensagemLower = mensagem.toLowerCase();
-  const hoje = new Date().toISOString().split("T")[0];
-
-  // Detectar tipo (receita ou despesa)
-  let tipo = "despesa";
-  if (
-    mensagemLower.includes("salário") ||
-    mensagemLower.includes("salario") ||
-    mensagemLower.includes("receita") ||
-    mensagemLower.includes("renda")
-  ) {
-    tipo = "receita";
-  }
-
-  // Extrair valor
-  const valorMatch = mensagemLower.match(/(\d+[,.]?\d*)/);
-  const valor = valorMatch ? parseFloat(valorMatch[1].replace(",", ".")) : 0;
-
-  // Detectar categoria
-  let categoria = tipo === "receita" ? "salario" : "outros";
-
-  if (
-    mensagemLower.includes("comida") ||
-    mensagemLower.includes("almoço") ||
-    mensagemLower.includes("almoco") ||
-    mensagemLower.includes("jantar") ||
-    mensagemLower.includes("restaurante") ||
-    mensagemLower.includes("mercado") ||
-    mensagemLower.includes("lanche")
-  ) {
-    categoria = "alimentacao";
-  } else if (
-    mensagemLower.includes("uber") ||
-    mensagemLower.includes("taxi") ||
-    mensagemLower.includes("gasolina") ||
-    mensagemLower.includes("combustível") ||
-    mensagemLower.includes("combustivel") ||
-    mensagemLower.includes("ônibus") ||
-    mensagemLower.includes("onibus") ||
-    mensagemLower.includes("transporte")
-  ) {
-    categoria = "transporte";
-  } else if (
-    mensagemLower.includes("luz") ||
-    mensagemLower.includes("água") ||
-    mensagemLower.includes("agua") ||
-    mensagemLower.includes("aluguel") ||
-    mensagemLower.includes("internet") ||
-    mensagemLower.includes("condomínio") ||
-    mensagemLower.includes("condominio")
-  ) {
-    categoria = "casa";
-  } else if (
-    mensagemLower.includes("roupa") ||
-    mensagemLower.includes("cosmético") ||
-    mensagemLower.includes("cosmetico") ||
-    mensagemLower.includes("sapato") ||
-    mensagemLower.includes("perfume") ||
-    mensagemLower.includes("maquiagem")
-  ) {
-    categoria = "pessoal";
-  } else if (
-    mensagemLower.includes("cinema") ||
-    mensagemLower.includes("filme") ||
-    mensagemLower.includes("shopping") ||
-    mensagemLower.includes("viagem") ||
-    mensagemLower.includes("parque") ||
-    mensagemLower.includes("festival")
-  ) {
-    categoria = "lazer";
-  }
-
-  // Detectar responsável e tipo de lançamento
-  let responsavel = "Claudenir";
-  let tipoLancamento = "individual";
-
-  if (
-    mensagemLower.includes("beatriz") ||
-    mensagemLower.includes("esposa") ||
-    mensagemLower.includes("dela") ||
-    mensagemLower.includes("mulher")
-  ) {
-    responsavel = "Beatriz";
-  }
-
-  if (
-    mensagemLower.includes("compartilhado") ||
-    mensagemLower.includes("conjunto") ||
-    mensagemLower.includes("ambos") ||
-    mensagemLower.includes("nós") ||
-    mensagemLower.includes("nos")
-  ) {
-    tipoLancamento = "compartilhado";
-  }
-
-  // Descrição baseada no conteúdo
-  let descricao = "Transação";
-  if (mensagemLower.includes("uber") || mensagemLower.includes("taxi"))
-    descricao = "Transporte";
-  else if (mensagemLower.includes("almoço") || mensagemLower.includes("almoco"))
-    descricao = "Almoço";
-  else if (mensagemLower.includes("jantar")) descricao = "Jantar";
-  else if (mensagemLower.includes("mercado")) descricao = "Mercado";
-  else if (
-    mensagemLower.includes("salário") ||
-    mensagemLower.includes("salario")
-  )
-    descricao = "Salário";
-  else if (mensagemLower.includes("luz")) descricao = "Conta de Luz";
-  else if (mensagemLower.includes("água") || mensagemLower.includes("agua"))
-    descricao = "Conta de Água";
-  else if (mensagemLower.includes("internet")) descricao = "Internet";
-
-  return {
-    tipo,
-    descricao,
-    valor,
-    categoria,
-    tipoLancamento,
-    responsavel,
-    data: hoje,
-    pago: true,
-    parcelas: 1,
-  };
-}
 
 // Função para formatar categoria para exibição
 function formatarCategoria(categoria: string) {
@@ -395,30 +326,4 @@ function formatarCategoria(categoria: string) {
   };
 
   return categorias[categoria] || categoria;
-}
-
-// Função para enviar resposta via Twilio
-async function enviarRespostaTwilio(to: string, message: string) {
-  try {
-    const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
-
-    if (!accountSid || !authToken) {
-      console.warn("⚠️ Credenciais do Twilio não configuradas");
-      return;
-    }
-
-    const twilio = require("twilio");
-    const client = twilio(accountSid, authToken);
-
-    await client.messages.create({
-      body: message,
-      from: process.env.TWILIO_WHATSAPP_NUMBER,
-      to: `whatsapp:${to}`,
-    });
-
-    console.log("✅ Resposta enviada via Twilio");
-  } catch (error) {
-    console.error("❌ Erro ao enviar resposta Twilio:", error);
-  }
 }
