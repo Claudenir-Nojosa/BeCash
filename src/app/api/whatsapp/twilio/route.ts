@@ -3,8 +3,13 @@ import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { auth } from "../../../../../auth";
 
-// Função para chamar a API da Anthropic Claude
+console.log("🔧 API Twilio carregada - Verificando variáveis de ambiente:");
+console.log("ANTHROPIC_API_KEY:", process.env.ANTHROPIC_API_KEY ? "✅ Configurada" : "❌ Faltando");
+console.log("TWILIO_ACCOUNT_SID:", process.env.TWILIO_ACCOUNT_SID ? "✅ Configurada" : "❌ Faltando");
+console.log("TWILIO_AUTH_TOKEN:", process.env.TWILIO_AUTH_TOKEN ? "✅ Configurada" : "❌ Faltando");
+
 async function callClaudeApi(prompt: string) {
+  console.log("🤖 Chamando Claude API...");
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -20,163 +25,159 @@ async function callClaudeApi(prompt: string) {
       }),
     });
 
+    console.log("📊 Status Claude:", response.status);
+    
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error("❌ Erro Claude:", response.status, errorText);
       throw new Error(`Erro na API Claude: ${response.status}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    console.log("✅ Resposta Claude recebida");
+    return data;
   } catch (error) {
-    console.error("Erro ao chamar Claude API:", error);
+    console.error("❌ Erro ao chamar Claude API:", error);
     throw error;
   }
 }
 
 export async function POST(request: NextRequest) {
+  console.log("📨 Incoming Twilio webhook request");
+  
   try {
     const formData = await request.formData();
     const formDataObj = Object.fromEntries(formData.entries());
+    console.log("📋 FormData recebido:", formDataObj);
 
     const { From: from, Body: message, ProfileName: profileName } = formDataObj;
 
-    console.log("📨 Mensagem recebida via Twilio:", {
-      from: from?.toString(),
-      profileName: profileName?.toString(),
-      message: message?.toString(),
-    });
-
     if (!from || !message) {
+      console.log("❌ Dados incompletos");
       return NextResponse.json({ error: "Dados incompletos" }, { status: 400 });
     }
 
     const messageText = message.toString();
+    console.log("💬 Mensagem processada:", messageText);
 
-    // Ignorar mensagens de sistema ou muito curtas
-    if (
-      messageText.toLowerCase().includes("join") ||
-      messageText.trim().length < 3
-    ) {
+    // Ignorar mensagens de sistema
+    if (messageText.toLowerCase().includes("join") || messageText.trim().length < 3) {
       console.log("⚙️ Mensagem de sistema ignorada");
       return new Response(null, { status: 200 });
     }
 
-    // Processar a mensagem com Claude
-    const prompt = `Você é um assistente especializado em extrair informações financeiras de mensagens do WhatsApp.
-
-ANALISE A MENSAGEM E EXTRAIA AS INFORMAÇÕES EM JSON STRICT:
-
-MENSAGEM: "${messageText}"
-
-REGAS IMPORTANTES:
-1. IDENTIFIQUE se é RECEITA ou DESPESA
-2. EXTRAIA o VALOR numérico (ex: "120" de "almoço 120 reais")
-3. DETERMINE a CATEGORIA correta baseada na mensagem
-4. IDENTIFIQUE se é INDIVIDUAL ou COMPARTILHADO
-5. DETERMINE o RESPONSÁVEL (Claudenir ou Beatriz)
-6. USE a DATA de hoje se não especificado
-7. VERIFIQUE se é PARCELADO e extraia informações se mencionado
-
-CATEGORIAS PARA DESPESAS:
-- "alimentacao" (comida, restaurante, mercado, lanche, almoço, jantar)
-- "transporte" (uber, taxi, gasolina, ônibus, combustível)
-- "casa" (aluguel, luz, água, internet, condomínio)
-- "pessoal" (roupa, cosméticos, cuidados pessoais)
-- "lazer" (cinema, viagem, entretenimento, hobbies)
-- "outros" (qualquer outra despesa)
-
-CATEGORIAS PARA RECEITAS:
-- "salario" (salário, renda fixa)
-- "freela" (freelance, trabalho extra)
-- "investimentos" (rendimentos, dividendos, aplicações)
-- "outros" (outras receitas)
-
-RESPONSÁVEIS PERMITIDOS: "Claudenir" ou "Beatriz"
-TIPOS DE LANÇAMENTO: "individual" ou "compartilhado"
-
-EXEMPLOS CORRETOS:
-- "despesa claudenir uber 50 reais" → {"tipo": "despesa", "descricao": "Uber", "valor": 50, "categoria": "transporte", "tipoLancamento": "individual", "responsavel": "Claudenir", "data": "2024-01-15", "pago": true}
-- "salario beatriz 3200" → {"tipo": "receita", "descricao": "Salário", "valor": 3200, "categoria": "salario", "tipoLancamento": "individual", "responsavel": "Beatriz", "data": "2024-01-15", "pago": true}
-- "almoço compartilhado 120" → {"tipo": "despesa", "descricao": "Almoço", "valor": 120, "categoria": "alimentacao", "tipoLancamento": "compartilhado", "responsavel": "Claudenir", "data": "2024-01-15", "pago": true}
-- "conta de luz 180 parcelada 3x" → {"tipo": "despesa", "descricao": "Conta de Luz", "valor": 180, "categoria": "casa", "tipoLancamento": "compartilhado", "responsavel": "Claudenir", "data": "2024-01-15", "pago": false, "parcelas": 3, "parcelaAtual": 1}
-
-RETORNE APENAS JSON VÁLIDO SEM TEXTOS ADICIONAIS.`;
-
     let dadosExtraidos;
     try {
-      const claudeResponse = await callClaudeApi(prompt);
-      const resposta = claudeResponse.content[0].text;
+      console.log("🧠 Processando com Claude...");
+      // ... (código do Claude)
+    } catch (error) {
+      console.error("❌ Erro Claude, usando fallback manual:", error);
+      dadosExtraidos = {
+        tipo: messageText.toLowerCase().includes("salário") || messageText.toLowerCase().includes("receita") ? "receita" : "despesa",
+        descricao: messageText.substring(0, 50),
+        valor: parseFloat(messageText.match(/(\d+)/)?.[1] || "0"),
+        categoria: "outros",
+        tipoLancamento: "individual",
+        responsavel: "Claudenir",
+        data: new Date().toISOString().split('T')[0],
+        pago: true
+      };
+    }
 
-      // Extrair JSON da resposta
-      const jsonMatch = resposta.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error("JSON não encontrado na resposta do Claude");
+    console.log("🔍 Dados para salvar:", dadosExtraidos);
+
+    // SIMPLIFICAR - Salvar apenas o básico primeiro
+    try {
+      console.log("💾 Tentando salvar no banco...");
+      
+      const session = await auth();
+      console.log("👤 Session:", session ? "✅ Autenticado" : "❌ Não autenticado");
+
+      // CORREÇÃO: Verificar se session existe e tem user
+      if (!session || !session.user) {
+        console.log("❌ Usuário não autenticado - session ou user é null");
+        
+        // Enviar mensagem de erro para o usuário
+        await enviarRespostaTwilio(
+          from.toString(),
+          "❌ Erro: Usuário não autenticado. Faça login no sistema primeiro."
+        );
+        
+        return new Response("Usuário não autenticado", { status: 401 });
       }
 
-      dadosExtraidos = JSON.parse(jsonMatch[0]);
-      console.log("✅ Dados extraídos pelo Claude:", dadosExtraidos);
-    } catch (error) {
-      console.error("❌ Erro ao processar com Claude:", error);
-      // Fallback para extração manual
-      dadosExtraidos = extrairDadosManualmente(messageText);
+      // CORREÇÃO: Criar objeto user seguro
+      const userSafe = {
+        id: session.user.id,
+        name: session.user.name || "Usuário",
+        email: session.user.email || "sem-email@exemplo.com"
+      };
+
+      console.log("👤 Usuário:", userSafe);
+
+      // Dados MÍNIMOS para teste
+  const dadosMinimos = {
+  descricao: dadosExtraidos?.descricao || "Transação WhatsApp",
+  valor: Math.abs(dadosExtraidos?.valor || 0),
+  tipo: dadosExtraidos?.tipo || "despesa",
+  categoria: dadosExtraidos?.categoria || "outros",
+  tipoLancamento: dadosExtraidos?.tipoLancamento || "individual",
+  responsavel: dadosExtraidos?.responsavel || "Claudenir",
+  data: new Date(dadosExtraidos?.data || new Date()),
+  pago: true,
+  origem: "whatsapp",
+  mensagemOriginal: messageText.substring(0, 200),
+  usuarioId: userSafe.id,
+};
+      console.log("📦 Dados mínimos:", dadosMinimos);
+
+      // Tentar salvar
+      const resultado = await db.lancamento.create({
+        data: dadosMinimos
+      });
+
+      console.log("✅ Salvo com sucesso!", resultado.id);
+
+      // Responder ao Twilio
+      try {
+        await enviarRespostaTwilio(
+          from.toString(),
+          `✅ Registrado: ${dadosMinimos.descricao} - R$ ${dadosMinimos.valor}`
+        );
+      } catch (twilioError) {
+        console.error("❌ Erro Twilio resposta:", twilioError);
+      }
+
+      return new Response(null, { status: 200 });
+
+    } catch (dbError) {
+      console.error("💥 ERRO NO BANCO:", dbError);
+      
+      // Tentar resposta mesmo com erro no banco
+      try {
+        await enviarRespostaTwilio(
+          from.toString(),
+          "⚠️ Recebido, mas erro interno. Contate suporte."
+        );
+      } catch (twilioError) {
+        console.error("❌ Erro Twilio resposta (fallback):", twilioError);
+      }
+
+      return new Response("Erro interno", { status: 500 });
     }
 
-    // Validar e completar os dados
-    const dadosValidados = validarECompletarDados(dadosExtraidos, messageText);
-
-    // Buscar usuário autenticado (Claudenir)
-    const session = await auth();
-    if (!session?.user?.id) {
-      throw new Error("Usuário não autenticado");
-    }
-
-    // Preparar dados para o model Lancamento
-    const lancamentoData = {
-      descricao: dadosValidados.descricao || "Transação",
-      valor: Math.abs(dadosValidados.valor || 0),
-      tipo: dadosValidados.tipo || "despesa",
-      categoria: dadosValidados.categoria || "outros",
-      tipoLancamento: dadosValidados.tipoLancamento || "individual",
-      responsavel: dadosValidados.responsavel || "Claudenir",
-      data: new Date(dadosValidados.data || new Date()),
-      dataVencimento:
-        dadosValidados.parcelas > 1 ? new Date(dadosValidados.data) : null,
-      pago: dadosValidados.pago !== undefined ? dadosValidados.pago : true,
-      origem: "whatsapp",
-      mensagemOriginal: messageText.substring(0, 500), // Limitar tamanho
-      recorrente: dadosValidados.parcelas > 1,
-      frequencia: dadosValidados.parcelas > 1 ? "mensal" : null,
-      parcelas: dadosValidados.parcelas > 1 ? dadosValidados.parcelas : null,
-      parcelaAtual: dadosValidados.parcelas > 1 ? 1 : null,
-      observacoes: `Registrado via WhatsApp: ${messageText.substring(0, 100)}...`,
-      usuarioId: session.user.id,
-    };
-
-    console.log("💾 Salvando no model Lancamento:", lancamentoData);
-
-    // Salvar no model Lancamento
-    const lancamento = await db.lancamento.create({
-      data: lancamentoData,
-    });
-
-    console.log("✅ Lançamento salvo com sucesso no model Lancamento!");
-
-    // Enviar confirmação via Twilio
-    await enviarRespostaTwilio(
-      from.toString(),
-      `✅ ${dadosValidados.tipo === "receita" ? "Receita" : "Despesa"} registrada!\n` +
-        `• ${dadosValidados.descricao}\n` +
-        `• Valor: R$ ${Math.abs(dadosValidados.valor).toFixed(2)}\n` +
-        `• Categoria: ${formatarCategoria(dadosValidados.categoria)}\n` +
-        `• Tipo: ${dadosValidados.tipoLancamento === "individual" ? "Individual" : "Compartilhado"}\n` +
-        `• Responsável: ${dadosValidados.responsavel}`
-    );
-
-    return new Response(null, { status: 200 });
   } catch (error) {
-    console.error("❌ Erro no webhook Twilio:", error);
+    console.error("💣 ERRO GRAVE:", error);
     return new Response("Erro interno", { status: 500 });
   }
 }
 
+// Função auxiliar para tipos seguros
+interface UserSafe {
+  id: string;
+  name: string;
+  email: string;
+}
 // Função para validar e completar dados extraídos
 function validarECompletarDados(dados: any, mensagemOriginal: string) {
   const hoje = new Date().toISOString().split("T")[0];
