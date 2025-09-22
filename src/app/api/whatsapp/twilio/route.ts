@@ -130,31 +130,33 @@ RETORNE APENAS JSON VÁLIDO SEM TEXTOS ADICIONAIS.`;
 
     // Preparar dados para o model Lancamento
     const lancamentoData = {
-      descricao: dadosValidados.descricao,
-      valor: Math.abs(dadosValidados.valor), // Sempre valor absoluto no banco
-      tipo: dadosValidados.tipo,
-      categoria: dadosValidados.categoria,
-      tipoLancamento: dadosValidados.tipoLancamento,
-      responsavel: dadosValidados.responsavel,
-      data: new Date(dadosValidados.data),
-      pago: dadosValidados.pago,
-      origem: "whatsapp",
-      mensagemOriginal: messageText,
-      usuarioId: session.user.id,
-      recorrente: dadosValidados.parcelas > 1,
-      parcelas: dadosValidados.parcelas > 1 ? dadosValidados.parcelas : null,
-      parcelaAtual: dadosValidados.parcelas > 1 ? 1 : null,
+      descricao: dadosValidados.descricao || "Transação",
+      valor: Math.abs(dadosValidados.valor || 0),
+      tipo: dadosValidados.tipo || "despesa",
+      categoria: dadosValidados.categoria || "outros",
+      tipoLancamento: dadosValidados.tipoLancamento || "individual",
+      responsavel: dadosValidados.responsavel || "Claudenir",
+      data: new Date(dadosValidados.data || new Date()),
       dataVencimento:
         dadosValidados.parcelas > 1 ? new Date(dadosValidados.data) : null,
+      pago: dadosValidados.pago !== undefined ? dadosValidados.pago : true,
+      origem: "whatsapp",
+      mensagemOriginal: messageText.substring(0, 500), // Limitar tamanho
+      recorrente: dadosValidados.parcelas > 1,
+      frequencia: dadosValidados.parcelas > 1 ? "mensal" : null,
+      parcelas: dadosValidados.parcelas > 1 ? dadosValidados.parcelas : null,
+      parcelaAtual: dadosValidados.parcelas > 1 ? 1 : null,
+      observacoes: `Registrado via WhatsApp: ${messageText.substring(0, 100)}...`,
+      usuarioId: session.user.id,
     };
 
     console.log("💾 Salvando no model Lancamento:", lancamentoData);
 
-    // Salvar no model Lancamento (não no Gasto)
+    // Salvar no model Lancamento
     const lancamento = await db.lancamento.create({
       data: lancamentoData,
     });
-
+    
     console.log("✅ Lançamento salvo com sucesso no model Lancamento!");
 
     // Enviar confirmação via Twilio

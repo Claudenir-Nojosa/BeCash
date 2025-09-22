@@ -322,7 +322,7 @@ model Lancamento {
   valor           Float
   tipo            String   // receita, despesa
   categoria       String   // Para receitas: salario, freela, investimentos, outros
-                   // Para despesas: alimentacao, transporte, casa, pessoal, lazer, outros
+                           // Para despesas: alimentacao, transporte, casa, pessoal, lazer, outros
   tipoLancamento  String   // individual, compartilhado
   responsavel     String   // Claudenir, Beatriz
   data            DateTime
@@ -340,9 +340,9 @@ model Lancamento {
   usuarioId       String
 
   usuario Usuario @relation(fields: [usuarioId], references: [id])
+  ContribuicaoMeta ContribuicaoMeta[] // Esta linha deve estar dentro do model
 
   @@map("lancamentos")
-  ContribuicaoMeta ContribuicaoMeta[]
 }
 
 model Meta {
