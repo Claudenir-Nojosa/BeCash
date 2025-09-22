@@ -106,15 +106,6 @@ export async function POST(request: NextRequest) {
         return new Response("Usuário não autenticado", { status: 401 });
       }
 
-      // CORREÇÃO: Criar objeto user seguro
-      const userSafe = {
-        id: session.user.id,
-        name: session.user.name || "Usuário",
-        email: session.user.email || "sem-email@exemplo.com"
-      };
-
-      console.log("👤 Usuário:", userSafe);
-
       // Dados MÍNIMOS para teste
   const dadosMinimos = {
   descricao: dadosExtraidos?.descricao || "Transação WhatsApp",
@@ -127,7 +118,7 @@ export async function POST(request: NextRequest) {
   pago: true,
   origem: "whatsapp",
   mensagemOriginal: messageText.substring(0, 200),
-  usuarioId: userSafe.id,
+  usuarioId: session.user.id,
 };
       console.log("📦 Dados mínimos:", dadosMinimos);
 
