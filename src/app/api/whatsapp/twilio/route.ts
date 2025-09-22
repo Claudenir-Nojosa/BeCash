@@ -102,18 +102,18 @@ export async function POST(request: NextRequest) {
       Body: message,
       MessageStatus: messageStatus,
     } = formDataObj;
-
-    // ✅ IGNORAR STATUS CALLBACKS
-    if (messageStatus) {
-      console.log("⚙️ Status callback ignorado");
+    // ✅ VERIFICAR SE É STATUS CALLBACK (SEM BODY)
+    if (!message && messageStatus) {
+      console.log("⚙️ Delivery status callback ignorado:", messageStatus);
       return new Response(null, { status: 200 });
     }
 
-    if (!from || !message) {
-      console.log("❌ Dados incompletos");
-      return new Response(null, { status: 200 }); // ✅ Retornar 200 para callbacks
+    // ✅ VERIFICAR SE É STATUS CALLBACK DE MENSAGEM ENVIADA
+    if (messageStatus === "sent" || messageStatus === "delivered") {
+      console.log("⚙️ Status de mensagem enviada ignorado:", messageStatus);
+      return new Response(null, { status: 200 });
     }
-
+    
     const messageText = message.toString().trim();
     console.log("💬 Mensagem processada:", messageText);
 
