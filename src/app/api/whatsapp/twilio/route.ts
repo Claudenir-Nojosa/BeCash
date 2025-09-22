@@ -156,7 +156,7 @@ RETORNE APENAS JSON VÁLIDO SEM TEXTOS ADICIONAIS.`;
     const lancamento = await db.lancamento.create({
       data: lancamentoData,
     });
-    
+
     console.log("✅ Lançamento salvo com sucesso no model Lancamento!");
 
     // Enviar confirmação via Twilio
@@ -198,6 +198,11 @@ function validarECompletarDados(dados: any, mensagemOriginal: string) {
   // Mesclar com dados extraídos
   const dadosCompletos = { ...dadosPadrao, ...dados };
 
+  // Garantir que todos os campos tenham valores válidos
+  if (!dadosCompletos.descricao || dadosCompletos.descricao.trim() === "") {
+    dadosCompletos.descricao = "Transação";
+  }
+
   // Extrair valor da mensagem se necessário
   if (dadosCompletos.valor <= 0) {
     const valorMatch = mensagemOriginal.match(/(\d+[,.]?\d*)/);
@@ -215,6 +220,7 @@ function validarECompletarDados(dados: any, mensagemOriginal: string) {
       dadosCompletos.responsavel = "Claudenir";
     }
   }
+
   // Validar categorias
   const categoriasReceitas = ["salario", "freela", "investimentos", "outros"];
   const categoriasDespesas = [
@@ -241,14 +247,18 @@ function validarECompletarDados(dados: any, mensagemOriginal: string) {
   }
 
   // Validar responsáveis
-  if (!["Claudenir", "Beatriz"].includes(dadosCompletos.responsavel)) {
+  if (!["Claudenir", "Beatriz", "Ambos"].includes(dadosCompletos.responsavel)) {
     dadosCompletos.responsavel = "Claudenir";
   }
+
+  // Garantir que parcelas seja um número
+  dadosCompletos.parcelas = parseInt(dadosCompletos.parcelas) || 1;
+  dadosCompletos.parcelaAtual = parseInt(dadosCompletos.parcelaAtual) || 1;
 
   return dadosCompletos;
 }
 
-// Função fallback para extrair dados manualmente
+// Função fallback para extrair dados ma  nualmente
 function extrairDadosManualmente(mensagem: string) {
   console.log("🔄 Usando fallback manual para:", mensagem);
 
