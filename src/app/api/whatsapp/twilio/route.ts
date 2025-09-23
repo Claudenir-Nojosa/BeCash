@@ -71,7 +71,7 @@ async function enviarRespostaTwilio(to: string, message: string) {
         },
         body: new URLSearchParams({
           To: `whatsapp:${to}`,
-          From: "whatsapp:+15558382453",
+          From: "whatsapp:+4783756654",
           Body: message,
         }),
       }
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
       console.log("⚙️ Status de mensagem enviada ignorado:", messageStatus);
       return new Response(null, { status: 200 });
     }
-    
+
     const messageText = message.toString().trim();
     console.log("💬 Mensagem processada:", messageText);
 
