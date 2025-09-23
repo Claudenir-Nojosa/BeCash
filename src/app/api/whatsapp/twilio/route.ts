@@ -71,7 +71,7 @@ async function enviarRespostaTwilio(to: string, message: string) {
         },
         body: new URLSearchParams({
           To: `whatsapp:${to}`,
-          From: "whatsapp:+4783756654",
+          From: "whatsapp:+14783756654",
           Body: message,
         }),
       }
