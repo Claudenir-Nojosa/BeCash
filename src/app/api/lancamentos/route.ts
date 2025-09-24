@@ -93,7 +93,6 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
- 
   try {
     const body = await request.json();
     const {
@@ -109,7 +108,38 @@ export async function POST(request: NextRequest) {
       frequencia,
       observacoes,
       origem = "manual",
+      apiKey, // Recebe a API key do body
+      usuarioId: usuarioIdFromBody,
     } = body;
+
+    // Determinar o usuarioId baseado no tipo de autenticação
+    let finalUsuarioId;
+
+    if (apiKey) {
+      // Autenticação via API Key (n8n)
+      if (apiKey !== process.env.N8N_API_KEY) {
+        return NextResponse.json(
+          { error: "API Key inválida" },
+          { status: 401 }
+        );
+      }
+
+      if (!usuarioIdFromBody) {
+        return NextResponse.json(
+          { error: "usuarioId é obrigatório para chamadas via API" },
+          { status: 400 }
+        );
+      }
+
+      finalUsuarioId = usuarioIdFromBody;
+    } else {
+      // Autenticação via sessão (frontend)
+      const session = await auth();
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+      }
+      finalUsuarioId = session.user.id;
+    }
 
     // Validações básicas
     if (
@@ -129,12 +159,10 @@ export async function POST(request: NextRequest) {
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json(
-        { error: "teste" },
-        { status: 200 }
+        { error: "Usuário não autenticado" },
+        { status: 401 }
       );
     }
-
-    const usuarioId = session?.user.id;
 
     // Criar lançamento no banco
     const lancamento = await db.lancamento.create({
@@ -151,7 +179,7 @@ export async function POST(request: NextRequest) {
         frequencia: frequencia || null,
         observacoes: observacoes || null,
         origem,
-        usuarioId,
+        usuarioId: finalUsuarioId,
       },
     });
 
