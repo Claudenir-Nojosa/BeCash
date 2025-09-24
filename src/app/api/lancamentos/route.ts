@@ -156,13 +156,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Usuário não autenticado" },
-        { status: 401 }
-      );
-    }
 
     // Criar lançamento no banco
     const lancamento = await db.lancamento.create({
