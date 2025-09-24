@@ -93,10 +93,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const token = request.headers.get("Authorization");
-  if (token !== `Bearer ${process.env.N8N_SECRET_KEY}`) {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
+ 
   try {
     const body = await request.json();
     const {
