@@ -129,8 +129,8 @@ export async function POST(request: NextRequest) {
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json(
-        { error: "Usuário não autenticado" },
-        { status: 401 }
+        { error: "teste" },
+        { status: 200 }
       );
     }
 
