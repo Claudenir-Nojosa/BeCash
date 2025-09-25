@@ -178,18 +178,26 @@ export default function Sidebar() {
               <ul className="ml-8 mt-1 space-y-1">
                 <li>
                   <Link
-                    href="/dashboard/lancamentos/receitas"
+                    href="/dashboard/lancamentos/claudenir"
                     className="flex items-center p-2 rounded-lg hover:bg-blue-900/20 text-sm text-blue-300/70 hover:text-blue-200"
                   >
-                    <span className="ml-2">Receitas</span>
+                    <span className="ml-2">Claudenir</span>
                   </Link>
                 </li>
                 <li>
                   <Link
-                    href="/dashboard/lancamentos/despesas"
+                    href="/dashboard/lancamentos/beatriz"
                     className="flex items-center p-2 rounded-lg hover:bg-blue-900/20 text-sm text-blue-300/70 hover:text-blue-200"
                   >
-                    <span className="ml-2">Despesas</span>
+                    <span className="ml-2">Beatriz</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/dashboard/lancamentos/compartilhado"
+                    className="flex items-center p-2 rounded-lg hover:bg-blue-900/20 text-sm text-blue-300/70 hover:text-blue-200"
+                  >
+                    <span className="ml-2">Compartilhado</span>
                   </Link>
                 </li>
               </ul>
@@ -229,7 +237,7 @@ export default function Sidebar() {
               {!isCollapsed && <span className="ml-2">Metas</span>}
             </Link>
           </li>
-            <li>
+          <li>
             <Link
               href="/dashboard/bicla"
               className={`flex items-center p-2 rounded-lg hover:bg-blue-900/20 text-blue-100 hover:text-blue-100 ${

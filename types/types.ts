@@ -43,3 +43,4 @@ export interface EmpresaObrigacaoAcessoria {
 export interface EmpresaComObrigacao extends Empresa {
   empresaObrigacaoAcessoria: EmpresaObrigacaoAcessoria;
 }
+

@@ -38,6 +38,8 @@ import {
   Edit,
   Trash2,
   TrendingUp,
+  ArrowDownCircle,
+  Users,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -99,57 +101,79 @@ export default function ReceitasPage() {
     ano: new Date().getFullYear(),
     categoria: "todas",
     busca: "",
+    tipo: "todos", // Novo filtro para tipo (todos, receita, despesa)
   });
   const [atualizandoPagamento, setAtualizandoPagamento] = useState<
     string | null
   >(null);
 
   useEffect(() => {
-    buscarReceitas();
-  }, [filtros.mes, filtros.ano, filtros.categoria]);
+    buscarLancamentosClaudenir();
+  }, [filtros.mes, filtros.ano, filtros.categoria, filtros.tipo]);
 
-  const buscarReceitas = async () => {
+  const buscarLancamentosClaudenir = async () => {
     try {
       setCarregando(true);
-
-      // Toast de carregamento
-      const toastId = toast.loading("Carregando receitas...");
+      const toastId = toast.loading("Carregando lançamentos do Claudenir...");
 
       const params = new URLSearchParams({
         mes: filtros.mes.toString(),
         ano: filtros.ano.toString(),
         categoria: filtros.categoria,
-        tipo: "receita", // Sempre filtrar por receitas
+        responsavel: "Claudenir",
+        tipo: filtros.tipo,
       });
 
       const response = await fetch(`/api/lancamentos?${params}`);
 
-      if (!response.ok) {
-        throw new Error("Erro ao buscar receitas");
-      }
+      if (!response.ok) throw new Error("Erro ao buscar lançamentos");
 
       const data = await response.json();
       setLancamentos(data.lancamentos);
-      setResumo(data.resumo);
+
+      // Usar o resumo calculado localmente considerando compartilhados
+      const resumoCompartilhado = calcularResumoCompartilhado(data.lancamentos);
+      setResumo(resumoCompartilhado);
+
       setTotaisPorCategoria(data.totaisPorCategoria);
 
-      // Toast de sucesso
-      toast.success("Receitas carregadas", {
-        id: toastId,
-        description: `${data.lancamentos.length} receita(s) encontrada(s)`,
-        duration: 3000,
-      });
+      toast.success("Lançamentos carregados", { id: toastId });
     } catch (error) {
-      console.error("Erro ao buscar receitas:", error);
-
-      // Toast de erro
-      toast.error("Erro ao carregar receitas", {
-        description: "Não foi possível carregar as receitas. Tente novamente.",
-        duration: 5000,
-      });
+      console.error("Erro ao buscar lançamentos:", error);
+      toast.error("Erro ao carregar lançamentos");
     } finally {
       setCarregando(false);
     }
+  };
+
+  // Função para calcular o valor considerando se é compartilhado
+  const calcularValorParaClaudenir = (lancamento: Lancamento): number => {
+    if (lancamento.tipoLancamento === "compartilhado") {
+      return lancamento.valor / 2;
+    }
+    return lancamento.valor;
+  };
+
+  // Função para recalcular o resumo considerando valores compartilhados
+  const calcularResumoCompartilhado = (lancamentos: Lancamento[]): Resumo => {
+    let receitas = 0;
+    let despesas = 0;
+
+    lancamentos.forEach((lancamento) => {
+      const valorClaudenir = calcularValorParaClaudenir(lancamento);
+
+      if (lancamento.tipo === "receita") {
+        receitas += valorClaudenir;
+      } else {
+        despesas += valorClaudenir;
+      }
+    });
+
+    return {
+      receitas,
+      despesas,
+      saldo: receitas - despesas,
+    };
   };
 
   const atualizarStatusPagamento = async (id: string, pago: boolean) => {
@@ -158,7 +182,7 @@ export default function ReceitasPage() {
 
       // Toast de carregamento
       const toastId = toast.loading(
-        pago ? "Marcando como recebido..." : "Marcando como pendente..."
+        pago ? "Marcando como recebido/pago..." : "Marcando como pendente..."
       );
 
       const response = await fetch(`/api/lancamentos/${id}`, {
@@ -174,36 +198,31 @@ export default function ReceitasPage() {
       }
 
       // Atualizar a lista localmente
-      setLancamentos((prev) =>
-        prev.map((lancamento) =>
-          lancamento.id === id ? { ...lancamento, pago } : lancamento
-        )
+      const lancamentosAtualizados = lancamentos.map((lancamento) =>
+        lancamento.id === id ? { ...lancamento, pago } : lancamento
       );
 
-      // Recalcular resumo
-      if (pago) {
-        const lancamento = lancamentos.find((l) => l.id === id);
-        if (lancamento) {
-          setResumo((prev) => ({
-            ...prev,
-            receitas: prev.receitas + lancamento.valor,
-            saldo: prev.saldo + lancamento.valor,
-          }));
-        }
-      }
+      setLancamentos(lancamentosAtualizados);
+
+      // Recalcular resumo considerando valores compartilhados
+      const novoResumo = calcularResumoCompartilhado(lancamentosAtualizados);
+      setResumo(novoResumo);
 
       // Toast de sucesso
-      toast.success(`Receita ${pago ? "recebida" : "marcada como pendente"}`, {
-        id: toastId,
-        description: `O status foi atualizado com sucesso`,
-        duration: 3000,
-      });
+      toast.success(
+        `Lançamento ${pago ? "confirmado" : "marcado como pendente"}`,
+        {
+          id: toastId,
+          description: `O status foi atualizado com sucesso`,
+          duration: 3000,
+        }
+      );
     } catch (error) {
       console.error("Erro ao atualizar pagamento:", error);
 
       // Toast de erro
       toast.error("Erro ao atualizar status", {
-        description: "Não foi possível atualizar o status de recebimento",
+        description: "Não foi possível atualizar o status",
         duration: 5000,
       });
     } finally {
@@ -239,8 +258,8 @@ export default function ReceitasPage() {
                 Confirmar exclusão
               </h3>
               <p className="mt-1 text-sm text-gray-600">
-                Tem certeza que deseja excluir esta receita? Esta ação não pode
-                ser desfeita.
+                Tem certeza que deseja excluir este lançamento? Esta ação não
+                pode ser desfeita.
               </p>
             </div>
             <button
@@ -290,33 +309,38 @@ export default function ReceitasPage() {
   const realizarExclusao = async (id: string) => {
     try {
       // Mostrar toast de carregamento
-      const toastId = toast.loading("Excluindo receita...");
+      const toastId = toast.loading("Excluindo lançamento...");
 
       const response = await fetch(`/api/lancamentos/${id}`, {
         method: "DELETE",
       });
 
       if (!response.ok) {
-        throw new Error("Erro ao excluir receita");
+        throw new Error("Erro ao excluir lançamento");
       }
 
       // Remover da lista localmente
-      setLancamentos((prev) =>
-        prev.filter((lancamento) => lancamento.id !== id)
+      const lancamentosAtualizados = lancamentos.filter(
+        (lancamento) => lancamento.id !== id
       );
+      setLancamentos(lancamentosAtualizados);
+
+      // Recalcular resumo
+      const novoResumo = calcularResumoCompartilhado(lancamentosAtualizados);
+      setResumo(novoResumo);
 
       // Atualizar toast para sucesso
-      toast.success("Receita excluída com sucesso", {
+      toast.success("Lançamento excluído com sucesso", {
         id: toastId,
-        description: "A receita foi removida do sistema",
+        description: "O lançamento foi removido do sistema",
         duration: 3000,
       });
     } catch (error) {
-      console.error("Erro ao excluir receita:", error);
+      console.error("Erro ao excluir lançamento:", error);
 
       // Toast de erro
-      toast.error("Erro ao excluir receita", {
-        description: "Não foi possível excluir a receita. Tente novamente.",
+      toast.error("Erro ao excluir lançamento", {
+        description: "Não foi possível excluir o lançamento. Tente novamente.",
         duration: 5000,
       });
     }
@@ -335,6 +359,12 @@ export default function ReceitasPage() {
       freela: "Freelance",
       investimentos: "Investimentos",
       outros: "Outros",
+      alimentacao: "Alimentação",
+      transporte: "Transporte",
+      moradia: "Moradia",
+      saude: "Saúde",
+      educacao: "Educação",
+      lazer: "Lazer",
     };
     return categorias[categoria] || categoria;
   };
@@ -363,28 +393,20 @@ export default function ReceitasPage() {
     (_, i) => new Date().getFullYear() - i
   );
 
-  // Filtrar totais por categoria apenas para receitas
-  const totaisReceitasPorCategoria = totaisPorCategoria.filter(
-    (item) => item.tipo === "receita"
-  );
-
   return (
     <div className="container mx-auto p-6 mt-20">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-green-100 rounded-full">
-            <TrendingUp className="h-8 w-8 text-green-600" />
-          </div>
           <div>
-            <h1 className="text-3xl font-bold">Receitas</h1>
+            <h1 className="text-3xl font-bold">Lançamentos - Claudenir</h1>
             <p className="text-muted-foreground">
-              Gerencie todas as suas receitas em um só lugar
+              Gerencie todos os lançamentos do Claudenir em um só lugar
             </p>
           </div>
         </div>
         <Button onClick={() => router.push("/dashboard/lancamentos/novo")}>
           <Plus className="mr-2 h-4 w-4" />
-          Nova Receita
+          Novo Lançamento
         </Button>
       </div>
 
@@ -396,13 +418,17 @@ export default function ReceitasPage() {
               <Filter className="h-5 w-5" />
               Filtros
             </CardTitle>
-            <Button variant="outline" size="sm" onClick={buscarReceitas}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={buscarLancamentosClaudenir}
+            >
               Aplicar Filtros
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label htmlFor="mes">Mês</Label>
               <Select
@@ -446,6 +472,25 @@ export default function ReceitasPage() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="tipo">Tipo</Label>
+              <Select
+                value={filtros.tipo}
+                onValueChange={(value) =>
+                  setFiltros({ ...filtros, tipo: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos os tipos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="receita">Receitas</SelectItem>
+                  <SelectItem value="despesa">Despesas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="categoria">Categoria</Label>
               <Select
                 value={filtros.categoria}
@@ -461,6 +506,9 @@ export default function ReceitasPage() {
                   <SelectItem value="salario">Salário</SelectItem>
                   <SelectItem value="freela">Freelance</SelectItem>
                   <SelectItem value="investimentos">Investimentos</SelectItem>
+                  <SelectItem value="alimentacao">Alimentação</SelectItem>
+                  <SelectItem value="transporte">Transporte</SelectItem>
+                  <SelectItem value="moradia">Moradia</SelectItem>
                   <SelectItem value="outros">Outros</SelectItem>
                 </SelectContent>
               </Select>
@@ -500,47 +548,44 @@ export default function ReceitasPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-blue-50 border-blue-200">
+        <Card className="bg-red-50 border-red-200">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg text-blue-800">
-              Receitas Recebidas
+            <CardTitle className="text-lg text-red-800">
+              Total Despesas
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-blue-800">
-              {formatarMoeda(
-                lancamentos
-                  .filter((l) => l.pago)
-                  .reduce((sum, l) => sum + l.valor, 0)
-              )}
+            <p className="text-2xl font-bold text-red-800">
+              {formatarMoeda(resumo.despesas)}
             </p>
           </CardContent>
         </Card>
-
-        <Card className="bg-amber-50 border-amber-200">
+        <Card
+          className={`bg-blue-50 border-blue-200 ${
+            resumo.saldo >= 0 ? "text-blue-800" : "text-red-800"
+          }`}
+        >
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg text-amber-800">
-              Receitas Pendentes
-            </CardTitle>
+            <CardTitle className="text-lg">Saldo Final</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-amber-800">
-              {formatarMoeda(
-                lancamentos
-                  .filter((l) => !l.pago)
-                  .reduce((sum, l) => sum + l.valor, 0)
-              )}
+            <p className="text-2xl font-bold">{formatarMoeda(resumo.saldo)}</p>
+            <p className="text-xs text-blue-600 mt-1">
+              *Considerando valores compartilhados
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Tabela de Receitas */}
+      {/* Tabela de Lançamentos */}
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Receitas</CardTitle>
+          <CardTitle>Lançamentos do Claudenir</CardTitle>
           <CardDescription>
-            {lancamentosFiltrados.length} receita(s) encontrada(s)
+            {lancamentosFiltrados.length} lançamento(s) encontrado(s)
+            {lancamentosFiltrados.some(
+              (l) => l.tipoLancamento === "compartilhado"
+            ) && " • Valores compartilhados divididos por 2"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -552,7 +597,7 @@ export default function ReceitasPage() {
             </div>
           ) : lancamentosFiltrados.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              Nenhuma receita encontrada
+              Nenhum lançamento encontrado para o Claudenir
             </div>
           ) : (
             <div className="rounded-md border">
@@ -560,85 +605,145 @@ export default function ReceitasPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="text-center">Data</TableHead>
+                    <TableHead className="text-center">Tipo</TableHead>
                     <TableHead className="text-center">Descrição</TableHead>
                     <TableHead className="text-center">Categoria</TableHead>
-                    <TableHead className="text-center">Responsável</TableHead>
-                    <TableHead className="text-center">Valor</TableHead>
+                    <TableHead className="text-center">
+                      Tipo Lançamento
+                    </TableHead>
+                    <TableHead className="text-center">
+                      Valor (Claudenir)
+                    </TableHead>
                     <TableHead className="text-center">Status</TableHead>
                     <TableHead className="text-center">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {lancamentosFiltrados.map((lancamento) => (
-                    <TableRow key={lancamento.id}>
-                      <TableCell className="text-center">
-                        {format(new Date(lancamento.data), "dd/MM/yyyy", {
-                          locale: ptBR,
-                        })}
-                      </TableCell>
-                      <TableCell className="text-center font-medium">
-                        {lancamento.descricao}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {formatarCategoria(lancamento.categoria)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {lancamento.responsavel}
-                      </TableCell>
-                      <TableCell className="text-center font-medium text-green-600">
-                        + {formatarMoeda(lancamento.valor)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge
-                          variant={lancamento.pago ? "default" : "secondary"}
-                          className={
-                            lancamento.pago
-                              ? "bg-green-100 text-green-800 hover:bg-green-100"
-                              : "bg-yellow-300 text-yellow-800 hover:bg-yellow-200"
-                          }
-                        >
-                          {lancamento.pago ? "Recebido" : "Pendente"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center gap-2 justify-center">
-                          {!lancamento.pago && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                atualizarStatusPagamento(lancamento.id, true)
-                              }
-                              disabled={atualizandoPagamento === lancamento.id}
-                            >
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              {atualizandoPagamento === lancamento.id
-                                ? "Processando..."
-                                : "Receber"}
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() =>
-                              router.push(
-                                `/dashboard/lancamentos/${lancamento.id}`
-                              )
+                  {lancamentosFiltrados.map((lancamento) => {
+                    const valorClaudenir =
+                      lancamento.tipoLancamento === "compartilhado"
+                        ? lancamento.valor / 2
+                        : lancamento.valor;
+                    const ehCompartilhado =
+                      lancamento.tipoLancamento === "compartilhado";
+
+                    return (
+                      <TableRow key={lancamento.id}>
+                        <TableCell className="text-center">
+                          {format(new Date(lancamento.data), "dd/MM/yyyy", {
+                            locale: ptBR,
+                          })}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant={
+                              lancamento.tipo === "receita"
+                                ? "default"
+                                : "destructive"
+                            }
+                            className={
+                              lancamento.tipo === "receita"
+                                ? "bg-green-100 text-green-800 hover:bg-green-100"
+                                : "bg-red-100 text-red-800 hover:bg-red-100"
                             }
                           >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => excluirLancamento(lancamento.id)}
+                            {lancamento.tipo === "receita"
+                              ? "Receita"
+                              : "Despesa"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center font-medium">
+                          {lancamento.descricao}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {formatarCategoria(lancamento.categoria)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            {lancamento.tipoLancamento === "compartilhado"
+                              ? "Compartilhado"
+                              : "Individual"}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div
+                            className={`font-medium ${
+                              lancamento.tipo === "receita"
+                                ? "text-green-600"
+                                : "text-red-600"
+                            }`}
                           >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                            <div>
+                              {lancamento.tipo === "receita" ? "+ " : "- "}
+                              {formatarMoeda(valorClaudenir)}
+                            </div>
+                            {ehCompartilhado && (
+                              <div className="text-xs text-gray-500">
+                                Total: {formatarMoeda(lancamento.valor)}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant={lancamento.pago ? "default" : "secondary"}
+                            className={
+                              lancamento.pago
+                                ? "bg-green-100 text-green-800 hover:bg-green-100"
+                                : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                            }
+                          >
+                            {lancamento.pago
+                              ? lancamento.tipo === "receita"
+                                ? "Recebido"
+                                : "Pago"
+                              : "Pendente"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex items-center gap-2 justify-center">
+                            {!lancamento.pago && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  atualizarStatusPagamento(lancamento.id, true)
+                                }
+                                disabled={
+                                  atualizandoPagamento === lancamento.id
+                                }
+                              >
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                {atualizandoPagamento === lancamento.id
+                                  ? "Processando..."
+                                  : lancamento.tipo === "receita"
+                                    ? "Receber"
+                                    : "Pagar"}
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() =>
+                                router.push(
+                                  `/dashboard/lancamentos/${lancamento.id}`
+                                )
+                              }
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => excluirLancamento(lancamento.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -647,29 +752,44 @@ export default function ReceitasPage() {
       </Card>
 
       {/* Resumo por Categoria */}
-      {totaisReceitasPorCategoria.length > 0 && (
+      {totaisPorCategoria.length > 0 && (
         <Card className="mt-6">
           <CardHeader>
             <CardTitle>Resumo por Categoria</CardTitle>
             <CardDescription>
-              Distribuição das receitas por categoria
+              Distribuição dos lançamentos por categoria (valores já consideram
+              divisão de compartilhados)
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {totaisReceitasPorCategoria.map((item) => (
-                <div
-                  key={item.categoria}
-                  className="bg-muted p-4 rounded-lg text-center"
-                >
-                  <p className="text-sm text-muted-foreground">
-                    {formatarCategoria(item.categoria)}
-                  </p>
-                  <p className="text-lg font-bold text-green-600">
-                    {formatarMoeda(item._sum.valor || 0)}
-                  </p>
-                </div>
-              ))}
+              {totaisPorCategoria.map((item) => {
+                // Calcular o valor considerando compartilhamento
+                const valorAjustado = item._sum.valor ? item._sum.valor / 2 : 0;
+
+                return (
+                  <div
+                    key={`${item.categoria}-${item.tipo}`}
+                    className={`p-4 rounded-lg text-center ${
+                      item.tipo === "receita" ? "bg-green-50" : "bg-red-50"
+                    }`}
+                  >
+                    <p className="text-sm text-muted-foreground">
+                      {formatarCategoria(item.categoria)} (
+                      {item.tipo === "receita" ? "Receita" : "Despesa"})
+                    </p>
+                    <p
+                      className={`text-lg font-bold ${
+                        item.tipo === "receita"
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {formatarMoeda(valorAjustado)}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>

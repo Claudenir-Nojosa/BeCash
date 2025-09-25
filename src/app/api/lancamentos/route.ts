@@ -3,6 +3,99 @@ import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { auth } from "../../../../auth";
 
+// Função para gerar ocorrências de lançamentos recorrentes
+async function gerarOcorrenciasRecorrentes(
+  mes: number,
+  ano: number,
+  usuarioId: string
+) {
+  const inicioMes = new Date(ano, mes - 1, 1);
+  const fimMes = new Date(ano, mes, 1);
+
+  // Buscar todas as recorrências ativas que devem gerar lançamentos neste mês
+  const recorenciasAtivas = await db.lancamentoRecorrente.findMany({
+    where: {
+      usuarioId,
+      ativo: true,
+      dataInicio: {
+        lte: fimMes,
+      },
+    },
+  });
+
+  for (const recorrente of recorenciasAtivas) {
+    // Verificar se já existe lançamento para este mês
+    const existeLancamento = await db.lancamento.findFirst({
+      where: {
+        recorrenteId: recorrente.id,
+        data: {
+          gte: inicioMes,
+          lt: fimMes,
+        },
+      },
+    });
+
+    if (!existeLancamento) {
+      // Calcular data da ocorrência
+      let dataOcorrencia = new Date(recorrente.dataInicio);
+      const mesesDiff =
+        (ano - dataOcorrencia.getFullYear()) * 12 +
+        (mes - dataOcorrencia.getMonth() - 1);
+
+      // Verificar se deve gerar baseado na frequência
+      let deveGerar = false;
+      switch (recorrente.frequencia) {
+        case "mensal":
+          deveGerar = mesesDiff >= 0;
+          break;
+        case "trimestral":
+          deveGerar = mesesDiff >= 0 && mesesDiff % 3 === 0;
+          break;
+        case "anual":
+          deveGerar = mesesDiff >= 0 && mesesDiff % 12 === 0;
+          break;
+      }
+
+      // Verificar limite de parcelas
+      if (
+        deveGerar &&
+        recorrente.parcelas &&
+        mesesDiff >= recorrente.parcelas
+      ) {
+        deveGerar = false;
+        // Desativar recorrência se atingiu o limite
+        await db.lancamentoRecorrente.update({
+          where: { id: recorrente.id },
+          data: { ativo: false },
+        });
+      }
+
+      if (deveGerar) {
+        dataOcorrencia.setMonth(dataOcorrencia.getMonth() + mesesDiff);
+
+        // Criar a ocorrência
+        await db.lancamento.create({
+          data: {
+            descricao: recorrente.descricao,
+            valor: recorrente.valor,
+            tipo: recorrente.tipo,
+            categoria: recorrente.categoria,
+            tipoLancamento: recorrente.tipoLancamento,
+            responsavel: recorrente.responsavel,
+            data: dataOcorrencia,
+            pago: false,
+            parcelaAtual: mesesDiff + 1,
+            observacoes: recorrente.observacoes,
+            usuarioId: recorrente.usuarioId,
+            recorrenteId: recorrente.id,
+            origem: "recorrente",
+          },
+        });
+      }
+    }
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -10,8 +103,27 @@ export async function GET(request: NextRequest) {
     const ano = searchParams.get("ano");
     const categoria = searchParams.get("categoria");
     const tipo = searchParams.get("tipo");
+
+    // Autenticação
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+    const usuarioId = session.user.id;
+
+    // Gerar ocorrências recorrentes para o mês solicitado
+    if (mes && ano) {
+      await gerarOcorrenciasRecorrentes(
+        parseInt(mes),
+        parseInt(ano),
+        usuarioId
+      );
+    }
+
     // Construir filtros
-    const where: any = {};
+    const where: any = {
+      usuarioId,
+    };
 
     if (mes && ano) {
       where.data = {
@@ -41,6 +153,7 @@ export async function GET(request: NextRequest) {
             email: true,
           },
         },
+        recorrente: true,
       },
     });
 
@@ -106,9 +219,10 @@ export async function POST(request: NextRequest) {
       pago,
       recorrente,
       frequencia,
+      parcelas,
       observacoes,
       origem = "manual",
-      apiKey, // Recebe a API key do body
+      apiKey,
       usuarioId: usuarioIdFromBody,
     } = body;
 
@@ -157,26 +271,76 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Criar lançamento no banco
-    const lancamento = await db.lancamento.create({
-      data: {
-        descricao,
-        valor: parseFloat(valor),
-        tipo,
-        categoria,
-        tipoLancamento,
-        responsavel,
-        data: new Date(data),
-        pago: Boolean(pago),
-        recorrente: Boolean(recorrente),
-        frequencia: frequencia || null,
-        observacoes: observacoes || null,
-        origem,
-        usuarioId: finalUsuarioId,
-      },
-    });
+    if (recorrente && !frequencia) {
+      return NextResponse.json(
+        { error: "Frequência é obrigatória para lançamentos recorrentes" },
+        { status: 400 }
+      );
+    }
 
-    return NextResponse.json(lancamento, { status: 201 });
+    let resultado;
+
+    if (recorrente) {
+      // Criar lançamento recorrente
+      const lancamentoRecorrente = await db.lancamentoRecorrente.create({
+        data: {
+          descricao,
+          valor: parseFloat(valor),
+          tipo,
+          categoria,
+          tipoLancamento,
+          responsavel,
+          dataInicio: new Date(data),
+          frequencia,
+          parcelas: parcelas ? parseInt(parcelas) : null,
+          observacoes: observacoes || null,
+          usuarioId: finalUsuarioId,
+        },
+      });
+
+      // Criar primeira ocorrência
+      const primeiraOcorrencia = await db.lancamento.create({
+        data: {
+          descricao,
+          valor: parseFloat(valor),
+          tipo,
+          categoria,
+          tipoLancamento,
+          responsavel,
+          data: new Date(data),
+          pago: Boolean(pago),
+          parcelaAtual: 1,
+          observacoes: observacoes || null,
+          origem,
+          usuarioId: finalUsuarioId,
+          recorrenteId: lancamentoRecorrente.id,
+        },
+      });
+
+      resultado = { ...primeiraOcorrencia, recorrente: lancamentoRecorrente };
+    } else {
+      // Criar lançamento único
+      resultado = await db.lancamento.create({
+        data: {
+          descricao,
+          valor: parseFloat(valor),
+          tipo,
+          categoria,
+          tipoLancamento,
+          responsavel,
+          data: new Date(data),
+          pago: Boolean(pago),
+          observacoes: observacoes || null,
+          origem,
+          usuarioId: finalUsuarioId,
+        },
+        include: {
+          recorrente: true,
+        },
+      });
+    }
+
+    return NextResponse.json(resultado, { status: 201 });
   } catch (error) {
     console.error("Erro ao criar lançamento:", error);
     return NextResponse.json(

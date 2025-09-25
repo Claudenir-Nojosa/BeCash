@@ -374,8 +374,8 @@ export default function LancamentosPage() {
   ];
 
   const anos = Array.from(
-    { length: 5 },
-    (_, i) => new Date().getFullYear() - i
+    { length: 6 }, 
+    (_, i) => new Date().getFullYear() + i
   );
 
   return (

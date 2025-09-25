@@ -9,35 +9,33 @@ datasource db {
 }
 
 model Usuario {
-  id                   String    @id @default(cuid())
+  id                   String   @id @default(cuid())
   name                 String
-  email                String    @unique
+  email                String   @unique
   password             String?
   image                String?
-  subscriptionStatus   String    @default("free")
+  subscriptionStatus   String   @default("free")
   stripeSubscriptionId String?
   stripeCustomerId     String?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
   Account              Account[]
   Empresa              Empresa[]
+  Pendencia            Pendencia[]
+  BaseLegal            BaseLegal[]
+  Anotacao             Anotacao[]
+  Diagnostico          Diagnostico[]
+  BaseLegalFavorito    BaseLegalFavorito[]
+  AnaliseTributaria    AnaliseTributaria[]
+  MapeamentoTelefone   MapeamentoTelefone[]
+  Lancamento           Lancamento[]
+  Meta                 Meta[]
+  LancamentoRecorrente LancamentoRecorrente[]
+  DivisaoLancamento    DivisaoLancamento[]
 
-  Pendencia Pendencia[]
-
-  BaseLegal BaseLegal[]
-
-  Anotacao Anotacao[]
-
-  Diagnostico       Diagnostico[]
-  BaseLegalFavorito BaseLegalFavorito[]
-
-  AnaliseTributaria AnaliseTributaria[]
-
-  MapeamentoTelefone MapeamentoTelefone[]
-
-  Lancamento Lancamento[]
-
-  Meta Meta[]
+  saldosComoDevedor SaldoCompartilhado[] @relation("SaldoDevedor")
+  saldosComoCredor  SaldoCompartilhado[] @relation("SaldoCredor")
 }
 
 model Account {
@@ -287,15 +285,15 @@ model Diagnostico {
 }
 
 model AnaliseTributaria {
-  id               String   @id @default(cuid())
-  empresaId        String
-  usuarioId        String
-  mesReferencia    String   
-  dadosApuracao    Json     
-  analiseTexto     String   @db.Text 
-  indicadores      Json     
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id            String   @id @default(cuid())
+  empresaId     String
+  usuarioId     String
+  mesReferencia String
+  dadosApuracao Json
+  analiseTexto  String   @db.Text
+  indicadores   Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   empresa Empresa @relation(fields: [empresaId], references: [id])
   usuario Usuario @relation(fields: [usuarioId], references: [id])
@@ -316,71 +314,128 @@ model MapeamentoTelefone {
   @@map("mapeamento_telefone")
 }
 
-model Lancamento {
-  id              String   @id @default(cuid())
-  descricao       String
-  valor           Float
-  tipo            String   // receita, despesa
-  categoria       String   // Para receitas: salario, freela, investimentos, outros
-                           // Para despesas: alimentacao, transporte, casa, pessoal, lazer, outros
-  tipoLancamento  String   // individual, compartilhado
-  responsavel     String   // Claudenir, Beatriz
-  data            DateTime
-  dataVencimento  DateTime? // Para despesas parceladas
-  pago            Boolean  @default(false)
-  origem          String?  // whatsapp, manual, email, etc.
-  mensagemOriginal String?
-  recorrente      Boolean  @default(false)
-  frequencia      String?  // mensal, trimestral, anual
-  parcelas        Int?     // Número total de parcelas
-  parcelaAtual    Int?     // Parcela atual
-  observacoes     String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  usuarioId       String
+model LancamentoRecorrente {
+  id             String   @id @default(cuid())
+  descricao      String
+  valor          Float
+  tipo           String
+  categoria      String
+  tipoLancamento String
+  responsavel    String
+  dataInicio     DateTime
+  frequencia     String // mensal, trimestral, anual
+  parcelas       Int? // Número total de parcelas (null = infinito)
+  observacoes    String?
+  usuarioId      String
+  ativo          Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  usuario Usuario @relation(fields: [usuarioId], references: [id])
-  ContribuicaoMeta ContribuicaoMeta[] // Esta linha deve estar dentro do model
+  usuario     Usuario      @relation(fields: [usuarioId], references: [id])
+  ocorrencias Lancamento[]
+
+  @@map("lancamentos_recorrentes")
+}
+
+model Lancamento {
+  id               String              @id @default(cuid())
+  descricao        String
+  valor            Float
+  tipo             String
+  categoria        String
+  tipoLancamento   String
+  responsavel      String
+  data             DateTime
+  dataVencimento   DateTime?
+  pago             Boolean             @default(false)
+  origem           String?
+  mensagemOriginal String?
+  parcelaAtual     Int?
+  observacoes      String?
+  usuarioId        String
+  recorrenteId     String? // Referência ao lançamento recorrente
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  divisao          DivisaoLancamento[]
+
+  usuario          Usuario               @relation(fields: [usuarioId], references: [id])
+  recorrente       LancamentoRecorrente? @relation(fields: [recorrenteId], references: [id])
+  ContribuicaoMeta ContribuicaoMeta[]
 
   @@map("lancamentos")
 }
 
+model DivisaoLancamento {
+  id           String   @id @default(cuid())
+  lancamentoId String
+  usuarioId    String // Quem está participando da divisão
+  valorDivisao Float // Valor que cabe a esta pessoa
+  valorPago    Float // Valor que esta pessoa já pagou
+  pago         Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  lancamento Lancamento @relation(fields: [lancamentoId], references: [id], onDelete: Cascade)
+  usuario    Usuario    @relation(fields: [usuarioId], references: [id])
+
+  @@unique([lancamentoId, usuarioId])
+  @@map("divisao_lancamentos")
+}
+
+model SaldoCompartilhado {
+  id            String   @id @default(cuid())
+  deUsuarioId   String // Quem deve
+  paraUsuarioId String // Para quem deve
+  valor         Float // Valor devido
+  descricao     String? // Descrição opcional
+  pago          Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relações corretas - remova o campo usuarioId e a relação Usuario
+  deUsuario   Usuario @relation("SaldoDevedor", fields: [deUsuarioId], references: [id])
+  paraUsuario Usuario @relation("SaldoCredor", fields: [paraUsuarioId], references: [id])
+
+  @@unique([deUsuarioId, paraUsuarioId])
+  @@map("saldos_compartilhados")
+}
+
 model Meta {
-  id              String    @id @default(cuid())
-  titulo          String
-  descricao       String?
-  valorAlvo       Float
-  valorAtual      Float     @default(0)
-  dataLimite      DateTime?
-  tipo            String    // individual, compartilhado
-  responsavel     String    // Claudenir, Beatriz, Compartilhado
-  categoria       String    // viagem, reserva, investimento, compra, outros
-  icone           String?   // emoji ou nome do ícone
-  cor             String?   // cor personalizada
-  concluida       Boolean   @default(false)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  usuarioId       String
+  id          String    @id @default(cuid())
+  titulo      String
+  descricao   String?
+  valorAlvo   Float
+  valorAtual  Float     @default(0)
+  dataLimite  DateTime?
+  tipo        String // individual, compartilhado
+  responsavel String // Claudenir, Beatriz, Compartilhado
+  categoria   String // viagem, reserva, investimento, compra, outros
+  icone       String? // emoji ou nome do ícone
+  cor         String? // cor personalizada
+  concluida   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  usuarioId   String
 
   // Relacionamentos
-  usuario     Usuario       @relation(fields: [usuarioId], references: [id])
+  usuario       Usuario            @relation(fields: [usuarioId], references: [id])
   contribuicoes ContribuicaoMeta[]
 
   @@map("metas")
 }
 
 model ContribuicaoMeta {
-  id              String    @id @default(cuid())
-  valor           Float
-  data            DateTime  @default(now())
-  observacoes     String?
-  createdAt       DateTime  @default(now())
-  metaId          String
-  lancamentoId    String?   // Referência ao lançamento de despesa criado
+  id           String   @id @default(cuid())
+  valor        Float
+  data         DateTime @default(now())
+  observacoes  String?
+  createdAt    DateTime @default(now())
+  metaId       String
+  lancamentoId String? // Referência ao lançamento de despesa criado
 
   // Relacionamentos
-  meta        Meta          @relation(fields: [metaId], references: [id])
-  lancamento  Lancamento?   @relation(fields: [lancamentoId], references: [id])
+  meta       Meta        @relation(fields: [metaId], references: [id])
+  lancamento Lancamento? @relation(fields: [lancamentoId], references: [id])
 
   @@map("contribuicoes_meta")
 }
