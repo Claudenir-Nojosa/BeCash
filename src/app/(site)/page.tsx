@@ -470,7 +470,7 @@ const TeamLandingPage = () => {
 
             <div className="flex gap-6 mt-6 md:mt-0">
               <a
-                href="#"
+                href="terms-of-service"
                 className="text-indigo-300/70 hover:text-indigo-200 transition-colors duration-200 text-sm"
               >
                 Termos
