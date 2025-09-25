@@ -476,7 +476,7 @@ const TeamLandingPage = () => {
                 Termos
               </a>
               <a
-                href="#"
+              href="/privacy-policy"
                 className="text-indigo-300/70 hover:text-indigo-200 transition-colors duration-200 text-sm"
               >
                 Privacidade
