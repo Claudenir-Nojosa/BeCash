@@ -253,11 +253,15 @@ export default function RelatoriosPage() {
 
   const prepararDadosGraficos = (
     lancamentos: Lancamento[],
-    totaisPorCategoria: ApiResponse["totaisPorCategoria"],
+    totaisPorCategoria: ApiResponse["totaisPorCategoria"] = [], // ✅ Valor padrão
     resumo: ApiResponse["resumo"]
   ) => {
     // Preparar dados para gráfico de pizza (categorias de despesas)
-    const despesasPorCategoria = totaisPorCategoria
+    // ✅ Verificar se totaisPorCategoria existe
+    const totais = totaisPorCategoria || [];
+
+    // Preparar dados para gráfico de pizza (categorias de despesas)
+    const despesasPorCategoria = totais
       .filter(
         (item) =>
           item.tipo === "despesa" && item._sum.valor && item._sum.valor > 0
@@ -399,7 +403,7 @@ export default function RelatoriosPage() {
     return null;
   };
 
-  // Função para aplicar filtros
+  // Função para aplicar filtros - versão corrigida
   const aplicarFiltros = async () => {
     setCarregando(true);
     try {
@@ -408,6 +412,7 @@ export default function RelatoriosPage() {
         ano: ano.toString(),
       });
 
+      // ✅ Adicionar filtros apenas se não forem os valores padrão
       if (filtros.categoria !== "todas") {
         params.append("categoria", filtros.categoria);
       }
@@ -425,9 +430,11 @@ export default function RelatoriosPage() {
 
       setLancamentos(data.lancamentos);
       setResumo(data.resumo);
+
+      // ✅ Preparar dados para gráficos com os dados filtrados
       prepararDadosGraficos(
         data.lancamentos,
-        data.totaisPorCategoria,
+        data.totaisPorCategoria || [], // ✅ Garantir que não seja undefined
         data.resumo
       );
 
@@ -522,14 +529,16 @@ export default function RelatoriosPage() {
           >
             Cancelar
           </Button>
-          <Button className="flex-1 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
+          <Button
+            className="flex-1 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+            onClick={aplicarFiltros} // ✅ CORREÇÃO AQUI
+          >
             Aplicar
           </Button>
         </div>
       </div>
     </div>
   );
-
   // Componente de período
   const PeriodoModal = () => (
     <div className="absolute top-full right-0 mt-2 w-56 border rounded-lg  z-10 p-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-xl dark:shadow-gray-900/30">

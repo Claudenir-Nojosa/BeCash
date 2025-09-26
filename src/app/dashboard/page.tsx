@@ -182,7 +182,8 @@ export default function DashboardLancamentosPage() {
       setMetas(metasData.filter((meta: Meta) => !meta.concluida).slice(0, 3));
 
       calcularResumo(lancamentosData.lancamentos);
-      prepararDadosGraficos(
+      await prepararDadosGraficos(
+        // Agora é async
         lancamentosData.lancamentos,
         lancamentosData.totaisPorCategoria
       );
@@ -229,7 +230,7 @@ export default function DashboardLancamentosPage() {
     });
   };
 
-  const prepararDadosGraficos = (
+  const prepararDadosGraficos = async (
     lancamentos: Lancamento[],
     totais: TotaisPorCategoria[]
   ) => {
@@ -247,19 +248,70 @@ export default function DashboardLancamentosPage() {
 
     setDadosPizza(dadosPizza);
 
-    // Preparar dados para gráfico de barras (histórico dos últimos 6 meses)
-    // Nota: Em produção, você buscaria dados históricos da API
-    const dadosBarras = Array.from({ length: 6 }, (_, i) => {
-      const mesIndex = (mesAtual - i + 12) % 12;
-      const ano = anoAtual - Math.floor((mesAtual - i) / 12);
-      return {
-        mes: meses[mesIndex].substring(0, 3),
-        receitas: Math.round(8000 + Math.random() * 4000),
-        despesas: Math.round(6000 + Math.random() * 3000),
-      };
-    }).reverse();
-
+    // Buscar dados históricos dos últimos 6 meses
+    const dadosBarras = await prepararDadosBarrasHistoricos();
     setDadosBarras(dadosBarras);
+  };
+
+  const prepararDadosBarrasHistoricos = async (): Promise<DadosBarra[]> => {
+    try {
+      const dadosMensais = [];
+
+      // Buscar dados dos últimos 6 meses
+      for (let i = 5; i >= 0; i--) {
+        const data = new Date(anoAtual, mesAtual - i, 1);
+        const mes = data.getMonth();
+        const ano = data.getFullYear();
+
+        const params = new URLSearchParams({
+          mes: (mes + 1).toString(),
+          ano: ano.toString(),
+        });
+
+        const response = await fetch(`/api/lancamentos?${params}`);
+
+        if (response.ok) {
+          const data = await response.json();
+          const lancamentosMes = data.lancamentos || [];
+
+          const receitas = lancamentosMes
+            .filter((l: Lancamento) => l.tipo === "receita")
+            .reduce((sum: number, l: Lancamento) => sum + l.valor, 0);
+
+          const despesas = lancamentosMes
+            .filter((l: Lancamento) => l.tipo === "despesa")
+            .reduce((sum: number, l: Lancamento) => sum + l.valor, 0);
+
+          dadosMensais.push({
+            mes: meses[mes].substring(0, 3) + "/" + ano.toString().slice(-2),
+            receitas,
+            despesas,
+          });
+        } else {
+          // Se não conseguir buscar dados, usar zeros
+          dadosMensais.push({
+            mes: meses[mes].substring(0, 3) + "/" + ano.toString().slice(-2),
+            receitas: 0,
+            despesas: 0,
+          });
+        }
+      }
+
+      return dadosMensais;
+    } catch (error) {
+      console.error("Erro ao buscar dados históricos:", error);
+
+      // Fallback: retornar array vazio
+      return Array.from({ length: 6 }, (_, i) => {
+        const mesIndex = (mesAtual - i + 12) % 12;
+        const ano = anoAtual - Math.floor((mesAtual - i) / 12);
+        return {
+          mes: meses[mesIndex].substring(0, 3) + "/" + ano.toString().slice(-2),
+          receitas: 0,
+          despesas: 0,
+        };
+      }).reverse();
+    }
   };
 
   const formatarMoeda = (valor: number) => {

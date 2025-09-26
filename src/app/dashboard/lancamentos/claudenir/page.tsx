@@ -95,6 +95,9 @@ export default function ReceitasPage() {
   const [totaisPorCategoria, setTotaisPorCategoria] = useState<
     TotaisPorCategoria[]
   >([]);
+  const [statusPagamento, setStatusPagamento] = useState<{
+    [key: string]: boolean;
+  }>({});
   const [carregando, setCarregando] = useState(true);
   const [filtros, setFiltros] = useState({
     mes: new Date().getMonth() + 1,
@@ -110,6 +113,26 @@ export default function ReceitasPage() {
   useEffect(() => {
     buscarLancamentosClaudenir();
   }, [filtros.mes, filtros.ano, filtros.categoria, filtros.tipo]);
+  // Use useEffect para carregar os status de pagamento para lançamentos compartilhados
+  useEffect(() => {
+    const carregarStatusPagamento = async () => {
+      const novosStatus: { [key: string]: boolean } = {};
+
+      for (const lancamento of lancamentos) {
+        if (lancamento.tipoLancamento === "compartilhado") {
+          novosStatus[lancamento.id] = await verificarSeEstaPago(lancamento);
+        } else {
+          novosStatus[lancamento.id] = lancamento.pago;
+        }
+      }
+
+      setStatusPagamento(novosStatus);
+    };
+
+    if (lancamentos.length > 0) {
+      carregarStatusPagamento();
+    }
+  }, [lancamentos]);
 
   const buscarLancamentosClaudenir = async () => {
     try {
@@ -180,35 +203,73 @@ export default function ReceitasPage() {
     try {
       setAtualizandoPagamento(id);
 
-      // Toast de carregamento
       const toastId = toast.loading(
         pago ? "Marcando como recebido/pago..." : "Marcando como pendente..."
       );
 
-      const response = await fetch(`/api/lancamentos/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ pago }),
-      });
+      // Buscar o lançamento completo com divisões
+      const lancamentoCompleto = lancamentos.find((l) => l.id === id);
 
-      if (!response.ok) {
-        throw new Error("Erro ao atualizar status de pagamento");
+      if (!lancamentoCompleto) {
+        throw new Error("Lançamento não encontrado");
       }
 
-      // Atualizar a lista localmente
-      const lancamentosAtualizados = lancamentos.map((lancamento) =>
-        lancamento.id === id ? { ...lancamento, pago } : lancamento
-      );
+      // Se for compartilhado, usar a API de pagamento compartilhado
+      if (lancamentoCompleto.tipoLancamento === "compartilhado") {
+        // Buscar a divisão específica do Claudenir
+        const responseDivisoes = await fetch(
+          `/api/lancamentos/compartilhado/${id}`
+        );
+        if (!responseDivisoes.ok) throw new Error("Erro ao buscar divisões");
 
-      setLancamentos(lancamentosAtualizados);
+        const dataDivisoes = await responseDivisoes.json();
+        const divisaoClaudenir = dataDivisoes.divisoes.find((d: any) =>
+          d.usuario.name.includes("Claudenir")
+        );
 
-      // Recalcular resumo considerando valores compartilhados
-      const novoResumo = calcularResumoCompartilhado(lancamentosAtualizados);
-      setResumo(novoResumo);
+        if (!divisaoClaudenir) {
+          throw new Error("Divisão do Claudenir não encontrada");
+        }
 
-      // Toast de sucesso
+        if (pago) {
+          // Pagar o valor pendente
+          const valorPendente =
+            divisaoClaudenir.valorDivisao - divisaoClaudenir.valorPago;
+          await fetch("/api/lancamentos/compartilhado/pagamento", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              divisaoId: divisaoClaudenir.id,
+              valorPago: valorPendente,
+            }),
+          });
+        } else {
+          // Reverter para pendente (zerar o pagamento)
+          await fetch("/api/lancamentos/compartilhado/pagamento", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              divisaoId: divisaoClaudenir.id,
+              valorPago: -divisaoClaudenir.valorPago, // Valor negativo para reverter
+            }),
+          });
+        }
+      } else {
+        // Para lançamentos individuais, usar a API normal
+        const response = await fetch(`/api/lancamentos/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pago }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Erro ao atualizar status de pagamento");
+        }
+      }
+
+      // Recarregar os dados para refletir as mudanças
+      await buscarLancamentosClaudenir();
+
       toast.success(
         `Lançamento ${pago ? "confirmado" : "marcado como pendente"}`,
         {
@@ -219,8 +280,6 @@ export default function ReceitasPage() {
       );
     } catch (error) {
       console.error("Erro ao atualizar pagamento:", error);
-
-      // Toast de erro
       toast.error("Erro ao atualizar status", {
         description: "Não foi possível atualizar o status",
         duration: 5000,
@@ -228,6 +287,46 @@ export default function ReceitasPage() {
     } finally {
       setAtualizandoPagamento(null);
     }
+  };
+
+  // Adicione esta função para buscar as divisões de um lançamento compartilhado
+  const buscarDivisoesLancamento = async (lancamentoId: string) => {
+    try {
+      const response = await fetch(
+        `/api/lancamentos/compartilhado/${lancamentoId}`
+      );
+      if (response.ok) {
+        return await response.json();
+      }
+      return null;
+    } catch (error) {
+      console.error("Erro ao buscar divisões:", error);
+      return null;
+    }
+  };
+
+  // Função para verificar se o lançamento está pago considerando compartilhamento
+  const verificarSeEstaPago = async (
+    lancamento: Lancamento
+  ): Promise<boolean> => {
+    if (lancamento.tipoLancamento !== "compartilhado") {
+      return lancamento.pago;
+    }
+
+    try {
+      const dataDivisoes = await buscarDivisoesLancamento(lancamento.id);
+      if (dataDivisoes && dataDivisoes.divisoes) {
+        const divisaoClaudenir = dataDivisoes.divisoes.find((d: any) =>
+          d.usuario.name.includes("Claudenir")
+        );
+
+        return divisaoClaudenir ? divisaoClaudenir.pago : lancamento.pago;
+      }
+    } catch (error) {
+      console.error("Erro ao verificar status de pagamento:", error);
+    }
+
+    return lancamento.pago;
   };
 
   const excluirLancamento = async (id: string) => {
@@ -686,14 +785,18 @@ export default function ReceitasPage() {
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge
-                            variant={lancamento.pago ? "default" : "secondary"}
+                            variant={
+                              statusPagamento[lancamento.id]
+                                ? "default"
+                                : "secondary"
+                            }
                             className={
-                              lancamento.pago
+                              statusPagamento[lancamento.id]
                                 ? "bg-green-100 text-green-800 hover:bg-green-100"
                                 : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
                             }
                           >
-                            {lancamento.pago
+                            {statusPagamento[lancamento.id]
                               ? lancamento.tipo === "receita"
                                 ? "Recebido"
                                 : "Pago"

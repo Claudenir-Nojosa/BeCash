@@ -121,25 +121,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-async function calcularSaldosCompartilhados(lancamentoId: string) {
-  const lancamento = await db.lancamento.findUnique({
-    where: { id: lancamentoId },
-    include: {
-      divisao: {
-        include: {
-          usuario: true,
-        },
-      },
-    },
-  });
-
-  if (!lancamento) return;
-
-  // Lógica para calcular saldos entre participantes
-  // Esta é uma implementação simplificada
-  for (const divisao of lancamento.divisao) {
-    // Aqui você pode implementar a lógica de cálculo de saldos
-    // Por exemplo, comparar valorPago com valorDivisao
-  }
-}

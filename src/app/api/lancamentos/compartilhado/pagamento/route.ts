@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
     const novoValorPago = divisao.valorPago + parseFloat(valorPago.toString());
     const agoraPago = novoValorPago >= divisao.valorDivisao;
 
+    // Atualizar a divisão
     await db.divisaoLancamento.update({
       where: { id: divisaoId },
       data: {
@@ -48,6 +49,9 @@ export async function POST(request: NextRequest) {
         pago: agoraPago,
       },
     });
+
+    // ✅ NOVO: Verificar se todas as divisões estão pagas e atualizar o lançamento principal
+    await verificarEAtualizarStatusLancamento(divisao.lancamentoId);
 
     // Calcular e atualizar saldos compartilhados
     await atualizarSaldosCompartilhados(divisao.lancamento.id);
@@ -62,6 +66,28 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// ✅ NOVA FUNÇÃO: Verificar se todas as divisões estão pagas e atualizar o lançamento principal
+async function verificarEAtualizarStatusLancamento(lancamentoId: string) {
+  // Buscar todas as divisões do lançamento
+  const divisoes = await db.divisaoLancamento.findMany({
+    where: { lancamentoId },
+  });
+
+  // Verificar se todas as divisões estão pagas
+  const todasDivisoesPagas = divisoes.every(
+    (divisao) => divisao.valorPago >= divisao.valorDivisao
+  );
+
+  // Atualizar o status do lançamento principal
+  await db.lancamento.update({
+    where: { id: lancamentoId },
+    data: {
+      pago: todasDivisoesPagas,
+    },
+  });
+}
+
+// ... o restante do código permanece igual
 async function atualizarSaldosCompartilhados(lancamentoId: string) {
   // Buscar todas as divisões do lançamento
   const lancamento = await db.lancamento.findUnique({
