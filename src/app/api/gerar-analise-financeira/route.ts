@@ -4,12 +4,13 @@ import db from "@/lib/db";
 
 export async function POST(request: NextRequest) {
   try {
-    const { mensagemOriginal, usuarioId, dataReferencia } = await request.json();
+    const { mensagemOriginal, usuarioId, dataReferencia } =
+      await request.json();
 
     console.log("Dados recebidos para análise financeira:", {
       mensagemOriginal,
       usuarioId,
-      dataReferencia
+      dataReferencia,
     });
 
     if (!mensagemOriginal || !usuarioId) {
@@ -26,34 +27,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Buscar dados do usuário no Supabase
+    // Buscar dados do usuário no Supabase usando os nomes CORRETOS em PascalCase
     const usuario = await db.usuario.findUnique({
       where: { id: usuarioId },
       include: {
         Lancamento: {
+          // PascalCase - conforme schema
           where: {
             data: {
               gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1), // Mês atual
-            }
+            },
           },
-          orderBy: { data: 'desc' }
+          orderBy: { data: "desc" },
         },
         Meta: {
+          // PascalCase - conforme schema
           where: {
-            concluida: false
-          }
+            concluida: false,
+          },
         },
-        SaldoCompartilhado: {
+        saldosComoDevedor: {
+          // camelCase - conforme schema
           include: {
             deUsuario: {
-              select: { name: true }
+              select: { name: true },
             },
             paraUsuario: {
-              select: { name: true }
-            }
-          }
-        }
-      }
+              select: { name: true },
+            },
+          },
+        },
+        saldosComoCredor: {
+          // camelCase - conforme schema
+          include: {
+            deUsuario: {
+              select: { name: true },
+            },
+            paraUsuario: {
+              select: { name: true },
+            },
+          },
+        },
+      },
     });
 
     if (!usuario) {
@@ -63,19 +78,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Juntar todos os saldos compartilhados
+    const todosSaldosCompartilhados = [
+      ...usuario.saldosComoDevedor.map((s) => ({
+        ...s,
+        tipo: "devedor",
+      })),
+      ...usuario.saldosComoCredor.map((s) => ({
+        ...s,
+        tipo: "credor",
+      })),
+    ];
+
     // Preparar dados para análise
     const dadosFinanceiros = {
-      lancamentos: usuario.Lancamento,
-      metas: usuario.Meta,
-      saldosCompartilhados: usuario.SaldoCompartilhado,
-      totalReceitas: usuario.Lancamento.filter(l => l.tipo === 'Receita').reduce((sum, l) => sum + l.valor, 0),
-      totalDespesas: usuario.Lancamento.filter(l => l.tipo === 'Despesa').reduce((sum, l) => sum + l.valor, 0),
-      saldoAtual: usuario.Lancamento.filter(l => l.tipo === 'Receita').reduce((sum, l) => sum + l.valor, 0) - 
-                 usuario.Lancamento.filter(l => l.tipo === 'Despesa').reduce((sum, l) => sum + l.valor, 0)
+      lancamentos: usuario.Lancamento, // PascalCase
+      metas: usuario.Meta, // PascalCase
+      saldosCompartilhados: todosSaldosCompartilhados,
+      totalReceitas: usuario.Lancamento.filter(
+        (l) => l.tipo === "Receita"
+      ).reduce((sum, l) => sum + l.valor, 0),
+      totalDespesas: usuario.Lancamento.filter(
+        (l) => l.tipo === "Despesa"
+      ).reduce((sum, l) => sum + l.valor, 0),
+      saldoAtual:
+        usuario.Lancamento.filter((l) => l.tipo === "Receita").reduce(
+          (sum, l) => sum + l.valor,
+          0
+        ) -
+        usuario.Lancamento.filter((l) => l.tipo === "Despesa").reduce(
+          (sum, l) => sum + l.valor,
+          0
+        ),
     };
 
     // Criar prompt para o Claude
-    const prompt = criarPromptAnaliseFinanceira(mensagemOriginal, dadosFinanceiros);
+    const prompt = criarPromptAnaliseFinanceira(
+      mensagemOriginal,
+      dadosFinanceiros
+    );
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -109,17 +150,30 @@ export async function POST(request: NextRequest) {
         totalDespesas: dadosFinanceiros.totalDespesas,
         saldoAtual: dadosFinanceiros.saldoAtual,
         quantidadeLancamentos: dadosFinanceiros.lancamentos.length,
-        quantidadeMetas: dadosFinanceiros.metas.length
-      }
+        quantidadeMetas: dadosFinanceiros.metas.length,
+      },
     });
   } catch (error) {
     console.error("Erro ao gerar análise financeira:", error);
-    const errorMessage = error instanceof Error ? error.message : "Erro interno";
+    const errorMessage =
+      error instanceof Error ? error.message : "Erro interno";
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
-function criarPromptAnaliseFinanceira(mensagemOriginal: string, dados: any): string {
+function criarPromptAnaliseFinanceira(
+  mensagemOriginal: string,
+  dados: any
+): string {
+  // Formatar saldos para exibição
+  const saldosFormatados = dados.saldosCompartilhados.map((s: any) => {
+    if (s.tipo === "devedor") {
+      return `- Você deve R$ ${s.valor.toFixed(2)} para ${s.paraUsuario.name}${s.pago ? " (PAGO)" : ""}`;
+    } else {
+      return `- ${s.deUsuario.name} deve R$ ${s.valor.toFixed(2)} para você${s.pago ? " (PAGO)" : ""}`;
+    }
+  });
+
   return `
 Você é um assistente financeiro especializado em análise de gastos e receitas. 
 Analise os dados financeiros abaixo e responda à pergunta do usuário de forma clara, objetiva e útil.
@@ -135,31 +189,39 @@ RESUMO GERAL:
 - Quantidade de Lançamentos: ${dados.lancamentos.length}
 
 LANÇAMENTOS RECENTES (últimos 10):
-${dados.lancamentos.slice(0, 10).map((l: any) => 
-  `- ${l.data.toLocaleDateString('pt-BR')} | ${l.tipo} | ${l.categoria} | R$ ${l.valor.toFixed(2)} | ${l.descricao}`
-).join('\n')}
+${dados.lancamentos
+  .slice(0, 10)
+  .map(
+    (l: any) =>
+      `- ${l.data.toLocaleDateString("pt-BR")} | ${l.tipo} | ${l.categoria} | R$ ${l.valor.toFixed(2)} | ${l.descricao}`
+  )
+  .join("\n")}
 
 METAS EM ANDAMENTO:
-${dados.metas.map((m: any) => 
-  `- ${m.titulo}: R$ ${m.valorAtual.toFixed(2)} / R$ ${m.valorAlvo.toFixed(2)} (${((m.valorAtual / m.valorAlvo) * 100).toFixed(1)}%)`
-).join('\n')}
+${dados.metas
+  .map(
+    (m: any) =>
+      `- ${m.titulo}: R$ ${m.valorAtual.toFixed(2)} / R$ ${m.valorAlvo.toFixed(2)} (${((m.valorAtual / m.valorAlvo) * 100).toFixed(1)}%)`
+  )
+  .join("\n")}
 
 SALDOS COMPARTILHADOS:
-${dados.saldosCompartilhados.map((s: any) => 
-  `- ${s.deUsuario.name} deve R$ ${s.valor.toFixed(2)} para ${s.paraUsuario.name}${s.pago ? ' (PAGO)' : ''}`
-).join('\n')}
+${saldosFormatados.join("\n")}
 
 ANÁLISE POR CATEGORIA (Despesas):
 ${Object.entries(
   dados.lancamentos
-    .filter((l: any) => l.tipo === 'Despesa')
+    .filter((l: any) => l.tipo === "Despesa")
     .reduce((acc: any, l: any) => {
       acc[l.categoria] = (acc[l.categoria] || 0) + l.valor;
       return acc;
     }, {})
-).map(([categoria, valor]: [string, any]) => 
-  `- ${categoria}: R$ ${valor.toFixed(2)}`
-).join('\n')}
+)
+  .map(
+    ([categoria, valor]: [string, any]) =>
+      `- ${categoria}: R$ ${valor.toFixed(2)}`
+  )
+  .join("\n")}
 
 INSTRUÇÕES PARA SUA RESPOSTA:
 1. Seja direto e claro
