@@ -168,47 +168,43 @@ function criarPromptAnaliseFinanceira(
   // Formatar saldos para exibição
   const saldosFormatados = dados.saldosCompartilhados.map((s: any) => {
     if (s.tipo === "devedor") {
-      return `- Você deve R$ ${s.valor.toFixed(2)} para ${s.paraUsuario.name}${s.pago ? " (PAGO)" : ""}`;
+      return `➡️ Você deve R$ ${s.valor.toFixed(2)} para ${s.paraUsuario.name}${s.pago ? " ✅ PAGO" : ""}`;
     } else {
-      return `- ${s.deUsuario.name} deve R$ ${s.valor.toFixed(2)} para você${s.pago ? " (PAGO)" : ""}`;
+      return `⬅️ ${s.deUsuario.name} deve R$ ${s.valor.toFixed(2)} para você${s.pago ? " ✅ PAGO" : ""}`;
     }
   });
 
-  return `
-Você é um assistente financeiro especializado em análise de gastos e receitas. 
-Analise os dados financeiros abaixo e responda à pergunta do usuário de forma clara, objetiva e útil.
+  return `Analise estes dados financeiros e responda à pergunta: "${mensagemOriginal}"
 
-PERGUNTA DO USUÁRIO: "${mensagemOriginal}"
+DADOS FINANCEIROS:
 
-DADOS FINANCEIROS DO MÊS ATUAL:
+RESUMO:
+- Receitas: R$ ${dados.totalReceitas.toFixed(2)}
+- Despesas: R$ ${dados.totalDespesas.toFixed(2)}
+- Saldo: R$ ${dados.saldoAtual.toFixed(2)}
+- Lançamentos: ${dados.lancamentos.length}
 
-RESUMO GERAL:
-- Total de Receitas: R$ ${dados.totalReceitas.toFixed(2)}
-- Total de Despesas: R$ ${dados.totalDespesas.toFixed(2)}
-- Saldo Atual: R$ ${dados.saldoAtual.toFixed(2)}
-- Quantidade de Lançamentos: ${dados.lancamentos.length}
-
-LANÇAMENTOS RECENTES (últimos 10):
+ÚLTIMOS LANÇAMENTOS:
 ${dados.lancamentos
-  .slice(0, 10)
+  .slice(0, 8)
   .map(
     (l: any) =>
-      `- ${l.data.toLocaleDateString("pt-BR")} | ${l.tipo} | ${l.categoria} | R$ ${l.valor.toFixed(2)} | ${l.descricao}`
+      `📅 ${l.data.toLocaleDateString("pt-BR")} | ${l.tipo === 'Receita' ? '💚' : '💸'} ${l.categoria} | R$ ${l.valor.toFixed(2)} | ${l.descricao}`
   )
   .join("\n")}
 
-METAS EM ANDAMENTO:
-${dados.metas
+METAS:
+${dados.metas.length > 0 ? dados.metas
   .map(
     (m: any) =>
-      `- ${m.titulo}: R$ ${m.valorAtual.toFixed(2)} / R$ ${m.valorAlvo.toFixed(2)} (${((m.valorAtual / m.valorAlvo) * 100).toFixed(1)}%)`
+      `🎯 ${m.titulo}: R$ ${m.valorAtual.toFixed(2)} / R$ ${m.valorAlvo.toFixed(2)} (${((m.valorAtual / m.valorAlvo) * 100).toFixed(1)}%)`
   )
-  .join("\n")}
+  .join("\n") : "📝 Nenhuma meta ativa"}
 
-SALDOS COMPARTILHADOS:
-${saldosFormatados.join("\n")}
+SALDOS:
+${saldosFormatados.length > 0 ? saldosFormatados.join("\n") : "✅ Nenhum saldo pendente"}
 
-ANÁLISE POR CATEGORIA (Despesas):
+GASTOS POR CATEGORIA:
 ${Object.entries(
   dados.lancamentos
     .filter((l: any) => l.tipo === "Despesa")
@@ -219,22 +215,20 @@ ${Object.entries(
 )
   .map(
     ([categoria, valor]: [string, any]) =>
-      `- ${categoria}: R$ ${valor.toFixed(2)}`
+      `📊 ${categoria}: R$ ${valor.toFixed(2)}`
   )
   .join("\n")}
 
-INSTRUÇÕES PARA SUA RESPOSTA:
-1. Seja direto e claro
-2. Use emojis para tornar a resposta mais amigável
-3. Destaque pontos importantes
-4. Se relevante, faça recomendações específicas
-5. Mantenha a resposta em português brasileiro
-6. Formate números como moeda (R$ X.XX)
-7. Se a pergunta for sobre resumo, foque nos totais e principais categorias
-8. Se for sobre gastos, detalhe as categorias
-9. Se for sobre metas, mostre o progresso
-10. Limite a resposta a 500-800 caracteres para WhatsApp
+INSTRUÇÕES CRÍTICAS PARA SUA RESPOSTA:
+1. NUNCA use asteriscos (*) para formatação
+2. Use apenas emojis para destacar seções
+3. Formate com quebras de linha limpas
+4. Seja direto e objetivo
+5. Use números formatados como R$ X.XX
+6. Limite a resposta a 600 caracteres
+7. Comece com um título simples com emoji
+8. Use apenas traços (-) ou setas (➡️⬅️) para listas
+9. Mantenha o português claro e natural
 
-Responda agora à pergunta do usuário:
-`;
+Agora analise os dados acima e responda:`;
 }
