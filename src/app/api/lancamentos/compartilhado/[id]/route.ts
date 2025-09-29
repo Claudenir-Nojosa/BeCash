@@ -5,7 +5,7 @@ import { auth } from "../../../../../../auth";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -13,13 +13,27 @@ export async function GET(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const lancamentoId = params.id;
+    const { id } = await params; // Adicione await aqui
 
     const divisoes = await db.divisaoLancamento.findMany({
-      where: { lancamentoId },
+      where: { lancamentoId: id },
       include: {
-        usuario: true,
-        lancamento: true,
+        usuario: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        lancamento: {
+          select: {
+            id: true,
+            descricao: true,
+            valor: true,
+            tipo: true,
+            data: true,
+          },
+        },
       },
     });
 
