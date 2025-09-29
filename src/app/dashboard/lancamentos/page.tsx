@@ -48,7 +48,7 @@ interface Lancamento {
   id: string;
   descricao: string;
   valor: number;
-  tipo: "receita" | "despesa";
+  tipo: string;
   categoria: string;
   tipoLancamento: string;
   responsavel: string;
@@ -108,6 +108,22 @@ export default function LancamentosPage() {
   useEffect(() => {
     buscarLancamentos();
   }, [filtros.mes, filtros.ano, filtros.categoria, filtros.tipo]);
+
+  // Função para normalizar o tipo (lidar com "Despesa" e "Receita" com primeira letra maiúscula)
+  const normalizarTipo = (tipo: string): "receita" | "despesa" => {
+    const tipoLower = tipo.toLowerCase();
+    if (tipoLower === "receita" || tipoLower === "despesa") {
+      return tipoLower as "receita" | "despesa";
+    }
+    // Fallback para o valor original em minúsculo
+    return tipoLower as "receita" | "despesa";
+  };
+  // Função para obter o tipo normalizado para exibição
+  const obterTipoNormalizado = (
+    lancamento: Lancamento
+  ): "receita" | "despesa" => {
+    return normalizarTipo(lancamento.tipo);
+  };
 
   const buscarLancamentos = async () => {
     try {
@@ -186,7 +202,8 @@ export default function LancamentosPage() {
       if (pago) {
         const lancamento = lancamentos.find((l) => l.id === id);
         if (lancamento) {
-          if (lancamento.tipo === "receita") {
+          const tipo = obterTipoNormalizado(lancamento);
+          if (tipo === "receita") {
             setResumo((prev) => ({
               ...prev,
               receitas: prev.receitas + lancamento.valor,
@@ -374,7 +391,7 @@ export default function LancamentosPage() {
   ];
 
   const anos = Array.from(
-    { length: 6 }, 
+    { length: 6 },
     (_, i) => new Date().getFullYear() + i
   );
 
@@ -587,92 +604,97 @@ export default function LancamentosPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {lancamentosFiltrados.map((lancamento) => (
-                    <TableRow key={lancamento.id}>
-                      <TableCell className="text-center">
-                        {formatarDataParaExibição(lancamento.data)}
-                      </TableCell>
-                      <TableCell className="text-center font-medium">
-                        {lancamento.descricao}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {formatarCategoria(lancamento.categoria)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {lancamento.responsavel}
-                      </TableCell>
-                      <TableCell
-                        className={`text-center font-medium ${
-                          lancamento.tipo === "receita"
-                            ? "text-green-600"
-                            : "text-red-600"
-                        }`}
-                      >
-                        {lancamento.tipo === "receita" ? "+ " : "- "}
-                        {formatarMoeda(lancamento.valor)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge
-                          variant={lancamento.pago ? "default" : "secondary"}
-                          className={
-                            lancamento.pago
-                              ? "bg-green-100 text-green-800 hover:bg-green-100"
-                              : lancamento.tipo === "receita"
-                                ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
-                                : "bg-yellow-300 text-yellow-800 hover:bg-yellow-200"
-                          }
+                  {lancamentosFiltrados.map((lancamento) => {
+                    const tipoNormalizado = normalizarTipo(lancamento.tipo);
+                    return (
+                      <TableRow key={lancamento.id}>
+                        <TableCell className="text-center">
+                          {formatarDataParaExibição(lancamento.data)}
+                        </TableCell>
+                        <TableCell className="text-center font-medium">
+                          {lancamento.descricao}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {formatarCategoria(lancamento.categoria)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {lancamento.responsavel}
+                        </TableCell>
+                        <TableCell
+                          className={`text-center font-medium ${
+                            tipoNormalizado === "receita"
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
                         >
-                          {lancamento.pago
-                            ? lancamento.tipo === "receita"
-                              ? "Recebido"
-                              : "Pago"
-                            : lancamento.tipo === "receita"
-                              ? "A receber"
-                              : "A pagar"}
-                        </Badge>
-                      </TableCell>
-
-                      <TableCell className="text-center">
-                        <div className="flex items-center gap-2 justify-center">
-                          {!lancamento.pago && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                atualizarStatusPagamento(lancamento.id, true)
-                              }
-                              disabled={atualizandoPagamento === lancamento.id}
-                            >
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              {atualizandoPagamento === lancamento.id
-                                ? "Processando..."
-                                : lancamento.tipo === "receita"
-                                  ? "Receber"
-                                  : "Pagar"}
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() =>
-                              router.push(
-                                `/dashboard/lancamentos/${lancamento.id}`
-                              )
+                          {tipoNormalizado === "receita" ? "+ " : "- "}
+                          {formatarMoeda(lancamento.valor)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant={lancamento.pago ? "default" : "secondary"}
+                            className={
+                              lancamento.pago
+                                ? "bg-green-100 text-green-800 hover:bg-green-100"
+                                : tipoNormalizado === "receita"
+                                  ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
+                                  : "bg-yellow-300 text-yellow-800 hover:bg-yellow-200"
                             }
                           >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => excluirLancamento(lancamento.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                            {lancamento.pago
+                              ? tipoNormalizado === "receita"
+                                ? "Recebido"
+                                : "Pago"
+                              : tipoNormalizado === "receita"
+                                ? "A receber"
+                                : "A pagar"}
+                          </Badge>
+                        </TableCell>
+
+                        <TableCell className="text-center">
+                          <div className="flex items-center gap-2 justify-center">
+                            {!lancamento.pago && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  atualizarStatusPagamento(lancamento.id, true)
+                                }
+                                disabled={
+                                  atualizandoPagamento === lancamento.id
+                                }
+                              >
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                {atualizandoPagamento === lancamento.id
+                                  ? "Processando..."
+                                  : tipoNormalizado === "receita"
+                                    ? "Receber"
+                                    : "Pagar"}
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() =>
+                                router.push(
+                                  `/dashboard/lancamentos/${lancamento.id}`
+                                )
+                              }
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => excluirLancamento(lancamento.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

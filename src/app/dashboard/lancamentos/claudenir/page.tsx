@@ -50,7 +50,7 @@ interface Lancamento {
   id: string;
   descricao: string;
   valor: number;
-  tipo: "receita" | "despesa";
+  tipo: string; // Mudado para string para lidar com "Receita"/"Despesa"
   categoria: string;
   tipoLancamento: string;
   responsavel: string;
@@ -104,7 +104,7 @@ export default function ReceitasPage() {
     ano: new Date().getFullYear(),
     categoria: "todas",
     busca: "",
-    tipo: "todos", // Novo filtro para tipo (todos, receita, despesa)
+    tipo: "todos",
   });
   const [atualizandoPagamento, setAtualizandoPagamento] = useState<
     string | null
@@ -113,7 +113,38 @@ export default function ReceitasPage() {
   useEffect(() => {
     buscarLancamentosClaudenir();
   }, [filtros.mes, filtros.ano, filtros.categoria, filtros.tipo]);
-  // Use useEffect para carregar os status de pagamento para lançamentos compartilhados
+
+  // Função para normalizar o tipo (lidar com "Receita"/"Despesa" do banco)
+  const normalizarTipo = (tipo: string): "receita" | "despesa" => {
+    const tipoLower = tipo.toLowerCase();
+    if (tipoLower === "receita" || tipoLower === "despesa") {
+      return tipoLower as "receita" | "despesa";
+    }
+    return tipoLower as "receita" | "despesa";
+  };
+
+  // Função para obter o tipo normalizado para exibição
+  const obterTipoNormalizado = (
+    lancamento: Lancamento
+  ): "receita" | "despesa" => {
+    return normalizarTipo(lancamento.tipo);
+  };
+
+  // Função para corrigir o fuso horário da data
+  const corrigirDataFusoHorario = (data: Date): Date => {
+    const dataCorrigida = new Date(data);
+    dataCorrigida.setHours(dataCorrigida.getHours() + 3); // Adiciona 3 horas para corrigir fuso horário
+    return dataCorrigida;
+  };
+
+  // Função para formatar data corrigindo o fuso horário
+  const formatarDataCorrigida = (data: Date): string => {
+    const dataCorrigida = corrigirDataFusoHorario(data);
+    return format(dataCorrigida, "dd/MM/yyyy", {
+      locale: ptBR,
+    });
+  };
+
   useEffect(() => {
     const carregarStatusPagamento = async () => {
       const novosStatus: { [key: string]: boolean } = {};
@@ -184,8 +215,9 @@ export default function ReceitasPage() {
 
     lancamentos.forEach((lancamento) => {
       const valorClaudenir = calcularValorParaClaudenir(lancamento);
+      const tipoNormalizado = obterTipoNormalizado(lancamento);
 
-      if (lancamento.tipo === "receita") {
+      if (tipoNormalizado === "receita") {
         receitas += valorClaudenir;
       } else {
         despesas += valorClaudenir;
@@ -213,6 +245,8 @@ export default function ReceitasPage() {
       if (!lancamentoCompleto) {
         throw new Error("Lançamento não encontrado");
       }
+
+      const tipoNormalizado = obterTipoNormalizado(lancamentoCompleto);
 
       // Se for compartilhado, usar a API de pagamento compartilhado
       if (lancamentoCompleto.tipoLancamento === "compartilhado") {
@@ -720,33 +754,30 @@ export default function ReceitasPage() {
                 <TableBody>
                   {lancamentosFiltrados.map((lancamento) => {
                     const valorClaudenir =
-                      lancamento.tipoLancamento === "compartilhado"
-                        ? lancamento.valor / 2
-                        : lancamento.valor;
+                      calcularValorParaClaudenir(lancamento);
                     const ehCompartilhado =
                       lancamento.tipoLancamento === "compartilhado";
+                    const tipoNormalizado = obterTipoNormalizado(lancamento);
 
                     return (
                       <TableRow key={lancamento.id}>
                         <TableCell className="text-center">
-                          {format(new Date(lancamento.data), "dd/MM/yyyy", {
-                            locale: ptBR,
-                          })}
+                          {formatarDataCorrigida(lancamento.data)}
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge
                             variant={
-                              lancamento.tipo === "receita"
+                              tipoNormalizado === "receita"
                                 ? "default"
                                 : "destructive"
                             }
                             className={
-                              lancamento.tipo === "receita"
+                              tipoNormalizado === "receita"
                                 ? "bg-green-100 text-green-800 hover:bg-green-100"
                                 : "bg-red-100 text-red-800 hover:bg-red-100"
                             }
                           >
-                            {lancamento.tipo === "receita"
+                            {tipoNormalizado === "receita"
                               ? "Receita"
                               : "Despesa"}
                           </Badge>
@@ -759,21 +790,19 @@ export default function ReceitasPage() {
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center gap-1">
-                            {lancamento.tipoLancamento === "compartilhado"
-                              ? "Compartilhado"
-                              : "Individual"}
+                            {ehCompartilhado ? "Compartilhado" : "Individual"}
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
                           <div
                             className={`font-medium ${
-                              lancamento.tipo === "receita"
+                              tipoNormalizado === "receita"
                                 ? "text-green-600"
                                 : "text-red-600"
                             }`}
                           >
                             <div>
-                              {lancamento.tipo === "receita" ? "+ " : "- "}
+                              {tipoNormalizado === "receita" ? "+ " : "- "}
                               {formatarMoeda(valorClaudenir)}
                             </div>
                             {ehCompartilhado && (
@@ -797,7 +826,7 @@ export default function ReceitasPage() {
                             }
                           >
                             {statusPagamento[lancamento.id]
-                              ? lancamento.tipo === "receita"
+                              ? tipoNormalizado === "receita"
                                 ? "Recebido"
                                 : "Pago"
                               : "Pendente"}
@@ -819,7 +848,7 @@ export default function ReceitasPage() {
                                 <CheckCircle className="h-4 w-4 mr-1" />
                                 {atualizandoPagamento === lancamento.id
                                   ? "Processando..."
-                                  : lancamento.tipo === "receita"
+                                  : tipoNormalizado === "receita"
                                     ? "Receber"
                                     : "Pagar"}
                               </Button>
@@ -869,21 +898,24 @@ export default function ReceitasPage() {
               {totaisPorCategoria.map((item) => {
                 // Calcular o valor considerando compartilhamento
                 const valorAjustado = item._sum.valor ? item._sum.valor / 2 : 0;
+                const tipoNormalizado = normalizarTipo(item.tipo);
 
                 return (
                   <div
                     key={`${item.categoria}-${item.tipo}`}
                     className={`p-4 rounded-lg text-center ${
-                      item.tipo === "receita" ? "bg-green-50" : "bg-red-50"
+                      tipoNormalizado === "receita"
+                        ? "bg-green-50"
+                        : "bg-red-50"
                     }`}
                   >
                     <p className="text-sm text-muted-foreground">
                       {formatarCategoria(item.categoria)} (
-                      {item.tipo === "receita" ? "Receita" : "Despesa"})
+                      {tipoNormalizado === "receita" ? "Receita" : "Despesa"})
                     </p>
                     <p
                       className={`text-lg font-bold ${
-                        item.tipo === "receita"
+                        tipoNormalizado === "receita"
                           ? "text-green-600"
                           : "text-red-600"
                       }`}

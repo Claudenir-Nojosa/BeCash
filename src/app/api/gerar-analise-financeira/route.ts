@@ -225,9 +225,9 @@ INSTRUÇÕES CRÍTICAS PARA SUA RESPOSTA:
 3. Formate com quebras de linha limpas
 4. Seja direto e objetivo
 5. Use números formatados como R$ X.XX
-6. Limite a resposta a 600 caracteres
+6. Limite a resposta a 1000 caracteres
 7. Comece com um título simples com emoji
-8. Use apenas traços (-) ou setas (➡️⬅️) para listas
+8. Use apenas traços (-) para listas
 9. Mantenha o português claro e natural
 
 Agora analise os dados acima e responda:`;

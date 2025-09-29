@@ -103,6 +103,7 @@ export async function GET(request: NextRequest) {
     const ano = searchParams.get("ano");
     const categoria = searchParams.get("categoria");
     const tipo = searchParams.get("tipo");
+    const responsavel = searchParams.get("responsavel"); // Adicione esta linha
 
     // Autenticação
     const session = await auth();
@@ -137,7 +138,18 @@ export async function GET(request: NextRequest) {
     }
 
     if (tipo && tipo !== "todos") {
-      where.tipo = tipo;
+      where.tipo = {
+        equals: tipo,
+        mode: "insensitive",
+      };
+    }
+
+    // ADICIONE ESTE FILTRO PARA RESPONSÁVEL
+    if (responsavel) {
+      where.responsavel = {
+        equals: responsavel,
+        mode: "insensitive",
+      };
     }
 
     // Buscar lançamentos do banco
@@ -169,7 +181,10 @@ export async function GET(request: NextRequest) {
     const totalReceitas = await db.lancamento.aggregate({
       where: {
         ...where,
-        tipo: "receita",
+        tipo: {
+          equals: "receita",
+          mode: "insensitive",
+        },
       },
       _sum: {
         valor: true,
@@ -179,7 +194,10 @@ export async function GET(request: NextRequest) {
     const totalDespesas = await db.lancamento.aggregate({
       where: {
         ...where,
-        tipo: "despesa",
+        tipo: {
+          equals: "despesa",
+          mode: "insensitive",
+        },
       },
       _sum: {
         valor: true,
@@ -204,7 +222,6 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();

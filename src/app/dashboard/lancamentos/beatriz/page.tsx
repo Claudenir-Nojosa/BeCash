@@ -50,7 +50,7 @@ interface Lancamento {
   id: string;
   descricao: string;
   valor: number;
-  tipo: "receita" | "despesa";
+  tipo: string; // Mudado para string para lidar com "Receita"/"Despesa"
   categoria: string;
   tipoLancamento: string;
   responsavel: string;
@@ -95,13 +95,16 @@ export default function ReceitasPage() {
   const [totaisPorCategoria, setTotaisPorCategoria] = useState<
     TotaisPorCategoria[]
   >([]);
+  const [statusPagamento, setStatusPagamento] = useState<{
+    [key: string]: boolean;
+  }>({});
   const [carregando, setCarregando] = useState(true);
   const [filtros, setFiltros] = useState({
     mes: new Date().getMonth() + 1,
     ano: new Date().getFullYear(),
     categoria: "todas",
     busca: "",
-    tipo: "todos", // Novo filtro para tipo (todos, receita, despesa)
+    tipo: "todos",
   });
   const [atualizandoPagamento, setAtualizandoPagamento] = useState<
     string | null
@@ -110,6 +113,57 @@ export default function ReceitasPage() {
   useEffect(() => {
     buscarLancamentosBeatriz();
   }, [filtros.mes, filtros.ano, filtros.categoria, filtros.tipo]);
+
+  // Função para normalizar o tipo (lidar com "Receita"/"Despesa" do banco)
+  const normalizarTipo = (tipo: string): "receita" | "despesa" => {
+    const tipoLower = tipo.toLowerCase();
+    if (tipoLower === "receita" || tipoLower === "despesa") {
+      return tipoLower as "receita" | "despesa";
+    }
+    return tipoLower as "receita" | "despesa";
+  };
+
+  // Função para obter o tipo normalizado para exibição
+  const obterTipoNormalizado = (
+    lancamento: Lancamento
+  ): "receita" | "despesa" => {
+    return normalizarTipo(lancamento.tipo);
+  };
+
+  // Função para corrigir o fuso horário da data
+  const corrigirDataFusoHorario = (data: Date): Date => {
+    const dataCorrigida = new Date(data);
+    dataCorrigida.setHours(dataCorrigida.getHours() + 3); // Adiciona 3 horas para corrigir fuso horário
+    return dataCorrigida;
+  };
+
+  // Função para formatar data corrigindo o fuso horário
+  const formatarDataCorrigida = (data: Date): string => {
+    const dataCorrigida = corrigirDataFusoHorario(data);
+    return format(dataCorrigida, "dd/MM/yyyy", {
+      locale: ptBR,
+    });
+  };
+
+  useEffect(() => {
+    const carregarStatusPagamento = async () => {
+      const novosStatus: { [key: string]: boolean } = {};
+
+      for (const lancamento of lancamentos) {
+        if (lancamento.tipoLancamento === "compartilhado") {
+          novosStatus[lancamento.id] = await verificarSeEstaPago(lancamento);
+        } else {
+          novosStatus[lancamento.id] = lancamento.pago;
+        }
+      }
+
+      setStatusPagamento(novosStatus);
+    };
+
+    if (lancamentos.length > 0) {
+      carregarStatusPagamento();
+    }
+  }, [lancamentos]);
 
   const buscarLancamentosBeatriz = async () => {
     try {
@@ -161,8 +215,9 @@ export default function ReceitasPage() {
 
     lancamentos.forEach((lancamento) => {
       const valorBeatriz = calcularValorParaBeatriz(lancamento);
+      const tipoNormalizado = obterTipoNormalizado(lancamento);
 
-      if (lancamento.tipo === "receita") {
+      if (tipoNormalizado === "receita") {
         receitas += valorBeatriz;
       } else {
         despesas += valorBeatriz;
@@ -180,35 +235,75 @@ export default function ReceitasPage() {
     try {
       setAtualizandoPagamento(id);
 
-      // Toast de carregamento
       const toastId = toast.loading(
         pago ? "Marcando como recebido/pago..." : "Marcando como pendente..."
       );
 
-      const response = await fetch(`/api/lancamentos/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ pago }),
-      });
+      // Buscar o lançamento completo com divisões
+      const lancamentoCompleto = lancamentos.find((l) => l.id === id);
 
-      if (!response.ok) {
-        throw new Error("Erro ao atualizar status de pagamento");
+      if (!lancamentoCompleto) {
+        throw new Error("Lançamento não encontrado");
       }
 
-      // Atualizar a lista localmente
-      const lancamentosAtualizados = lancamentos.map((lancamento) =>
-        lancamento.id === id ? { ...lancamento, pago } : lancamento
-      );
+      const tipoNormalizado = obterTipoNormalizado(lancamentoCompleto);
 
-      setLancamentos(lancamentosAtualizados);
+      // Se for compartilhado, usar a API de pagamento compartilhado
+      if (lancamentoCompleto.tipoLancamento === "compartilhado") {
+        // Buscar a divisão específica do Beatriz
+        const responseDivisoes = await fetch(
+          `/api/lancamentos/compartilhado/${id}`
+        );
+        if (!responseDivisoes.ok) throw new Error("Erro ao buscar divisões");
 
-      // Recalcular resumo considerando valores compartilhados
-      const novoResumo = calcularResumoCompartilhado(lancamentosAtualizados);
-      setResumo(novoResumo);
+        const dataDivisoes = await responseDivisoes.json();
+        const divisaoBeatriz = dataDivisoes.divisoes.find((d: any) =>
+          d.usuario.name.includes("Beatriz")
+        );
 
-      // Toast de sucesso
+        if (!divisaoBeatriz) {
+          throw new Error("Divisão do Beatriz não encontrada");
+        }
+
+        if (pago) {
+          // Pagar o valor pendente
+          const valorPendente =
+            divisaoBeatriz.valorDivisao - divisaoBeatriz.valorPago;
+          await fetch("/api/lancamentos/compartilhado/pagamento", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              divisaoId: divisaoBeatriz.id,
+              valorPago: valorPendente,
+            }),
+          });
+        } else {
+          // Reverter para pendente (zerar o pagamento)
+          await fetch("/api/lancamentos/compartilhado/pagamento", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              divisaoId: divisaoBeatriz.id,
+              valorPago: -divisaoBeatriz.valorPago, // Valor negativo para reverter
+            }),
+          });
+        }
+      } else {
+        // Para lançamentos individuais, usar a API normal
+        const response = await fetch(`/api/lancamentos/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pago }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Erro ao atualizar status de pagamento");
+        }
+      }
+
+      // Recarregar os dados para refletir as mudanças
+      await buscarLancamentosBeatriz();
+
       toast.success(
         `Lançamento ${pago ? "confirmado" : "marcado como pendente"}`,
         {
@@ -219,8 +314,6 @@ export default function ReceitasPage() {
       );
     } catch (error) {
       console.error("Erro ao atualizar pagamento:", error);
-
-      // Toast de erro
       toast.error("Erro ao atualizar status", {
         description: "Não foi possível atualizar o status",
         duration: 5000,
@@ -228,6 +321,46 @@ export default function ReceitasPage() {
     } finally {
       setAtualizandoPagamento(null);
     }
+  };
+
+  // Adicione esta função para buscar as divisões de um lançamento compartilhado
+  const buscarDivisoesLancamento = async (lancamentoId: string) => {
+    try {
+      const response = await fetch(
+        `/api/lancamentos/compartilhado/${lancamentoId}`
+      );
+      if (response.ok) {
+        return await response.json();
+      }
+      return null;
+    } catch (error) {
+      console.error("Erro ao buscar divisões:", error);
+      return null;
+    }
+  };
+
+  // Função para verificar se o lançamento está pago considerando compartilhamento
+  const verificarSeEstaPago = async (
+    lancamento: Lancamento
+  ): Promise<boolean> => {
+    if (lancamento.tipoLancamento !== "compartilhado") {
+      return lancamento.pago;
+    }
+
+    try {
+      const dataDivisoes = await buscarDivisoesLancamento(lancamento.id);
+      if (dataDivisoes && dataDivisoes.divisoes) {
+        const divisaoBeatriz = dataDivisoes.divisoes.find((d: any) =>
+          d.usuario.name.includes("Beatriz")
+        );
+
+        return divisaoBeatriz ? divisaoBeatriz.pago : lancamento.pago;
+      }
+    } catch (error) {
+      console.error("Erro ao verificar status de pagamento:", error);
+    }
+
+    return lancamento.pago;
   };
 
   const excluirLancamento = async (id: string) => {
@@ -621,33 +754,30 @@ export default function ReceitasPage() {
                 <TableBody>
                   {lancamentosFiltrados.map((lancamento) => {
                     const valorBeatriz =
-                      lancamento.tipoLancamento === "compartilhado"
-                        ? lancamento.valor / 2
-                        : lancamento.valor;
+                      calcularValorParaBeatriz(lancamento);
                     const ehCompartilhado =
                       lancamento.tipoLancamento === "compartilhado";
+                    const tipoNormalizado = obterTipoNormalizado(lancamento);
 
                     return (
                       <TableRow key={lancamento.id}>
                         <TableCell className="text-center">
-                          {format(new Date(lancamento.data), "dd/MM/yyyy", {
-                            locale: ptBR,
-                          })}
+                          {formatarDataCorrigida(lancamento.data)}
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge
                             variant={
-                              lancamento.tipo === "receita"
+                              tipoNormalizado === "receita"
                                 ? "default"
                                 : "destructive"
                             }
                             className={
-                              lancamento.tipo === "receita"
+                              tipoNormalizado === "receita"
                                 ? "bg-green-100 text-green-800 hover:bg-green-100"
                                 : "bg-red-100 text-red-800 hover:bg-red-100"
                             }
                           >
-                            {lancamento.tipo === "receita"
+                            {tipoNormalizado === "receita"
                               ? "Receita"
                               : "Despesa"}
                           </Badge>
@@ -660,21 +790,19 @@ export default function ReceitasPage() {
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center gap-1">
-                            {lancamento.tipoLancamento === "compartilhado"
-                              ? "Compartilhado"
-                              : "Individual"}
+                            {ehCompartilhado ? "Compartilhado" : "Individual"}
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
                           <div
                             className={`font-medium ${
-                              lancamento.tipo === "receita"
+                              tipoNormalizado === "receita"
                                 ? "text-green-600"
                                 : "text-red-600"
                             }`}
                           >
                             <div>
-                              {lancamento.tipo === "receita" ? "+ " : "- "}
+                              {tipoNormalizado === "receita" ? "+ " : "- "}
                               {formatarMoeda(valorBeatriz)}
                             </div>
                             {ehCompartilhado && (
@@ -686,15 +814,19 @@ export default function ReceitasPage() {
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge
-                            variant={lancamento.pago ? "default" : "secondary"}
+                            variant={
+                              statusPagamento[lancamento.id]
+                                ? "default"
+                                : "secondary"
+                            }
                             className={
-                              lancamento.pago
+                              statusPagamento[lancamento.id]
                                 ? "bg-green-100 text-green-800 hover:bg-green-100"
                                 : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
                             }
                           >
-                            {lancamento.pago
-                              ? lancamento.tipo === "receita"
+                            {statusPagamento[lancamento.id]
+                              ? tipoNormalizado === "receita"
                                 ? "Recebido"
                                 : "Pago"
                               : "Pendente"}
@@ -716,7 +848,7 @@ export default function ReceitasPage() {
                                 <CheckCircle className="h-4 w-4 mr-1" />
                                 {atualizandoPagamento === lancamento.id
                                   ? "Processando..."
-                                  : lancamento.tipo === "receita"
+                                  : tipoNormalizado === "receita"
                                     ? "Receber"
                                     : "Pagar"}
                               </Button>
@@ -766,21 +898,24 @@ export default function ReceitasPage() {
               {totaisPorCategoria.map((item) => {
                 // Calcular o valor considerando compartilhamento
                 const valorAjustado = item._sum.valor ? item._sum.valor / 2 : 0;
+                const tipoNormalizado = normalizarTipo(item.tipo);
 
                 return (
                   <div
                     key={`${item.categoria}-${item.tipo}`}
                     className={`p-4 rounded-lg text-center ${
-                      item.tipo === "receita" ? "bg-green-50" : "bg-red-50"
+                      tipoNormalizado === "receita"
+                        ? "bg-green-50"
+                        : "bg-red-50"
                     }`}
                   >
                     <p className="text-sm text-muted-foreground">
                       {formatarCategoria(item.categoria)} (
-                      {item.tipo === "receita" ? "Receita" : "Despesa"})
+                      {tipoNormalizado === "receita" ? "Receita" : "Despesa"})
                     </p>
                     <p
                       className={`text-lg font-bold ${
-                        item.tipo === "receita"
+                        tipoNormalizado === "receita"
                           ? "text-green-600"
                           : "text-red-600"
                       }`}
