@@ -45,7 +45,7 @@ interface Lancamento {
   id: string;
   descricao: string;
   valor: number;
-  tipo: "receita" | "despesa";
+  tipo: "receita" | "despesa" | "Receita" | "Despesa"; // Adicione os tipos com maiúscula
   categoria: string;
   tipoLancamento: "individual" | "compartilhado";
   responsavel: string;
@@ -199,26 +199,36 @@ export default function DashboardLancamentosPage() {
 
   const calcularResumo = (lancamentos: Lancamento[]) => {
     const receitas = lancamentos
-      .filter((l) => l.tipo === "receita")
+      .filter((l) => normalizarTipo(l.tipo) === "receita")
       .reduce((sum, l) => sum + l.valor, 0);
 
     const despesas = lancamentos
-      .filter((l) => l.tipo === "despesa")
+      .filter((l) => normalizarTipo(l.tipo) === "despesa")
       .reduce((sum, l) => sum + l.valor, 0);
 
     const despesasCompartilhadas = lancamentos
       .filter(
-        (l) => l.tipoLancamento === "compartilhado" && l.tipo === "despesa"
+        (l) =>
+          l.tipoLancamento === "compartilhado" &&
+          normalizarTipo(l.tipo) === "despesa"
       )
       .reduce((sum, l) => sum + l.valor, 0);
 
     const individualEle = lancamentos
       .filter((l) => l.responsavel === "Claudenir")
-      .reduce((sum, l) => sum + (l.tipo === "receita" ? l.valor : -l.valor), 0);
+      .reduce(
+        (sum, l) =>
+          sum + (normalizarTipo(l.tipo) === "receita" ? l.valor : -l.valor),
+        0
+      );
 
     const individualEla = lancamentos
       .filter((l) => l.responsavel === "Beatriz")
-      .reduce((sum, l) => sum + (l.tipo === "receita" ? l.valor : -l.valor), 0);
+      .reduce(
+        (sum, l) =>
+          sum + (normalizarTipo(l.tipo) === "receita" ? l.valor : -l.valor),
+        0
+      );
 
     setResumoMensal({
       receitas,
@@ -236,10 +246,14 @@ export default function DashboardLancamentosPage() {
   ) => {
     // Preparar dados para gráfico de pizza (despesas por categoria)
     const dadosPizza = totais
-      .filter(
-        (item) =>
-          item.tipo === "despesa" && item._sum.valor && item._sum.valor > 0
-      )
+      .filter((item) => {
+        const tipoNormalizado = normalizarTipo(item.tipo);
+        return (
+          tipoNormalizado === "despesa" &&
+          item._sum.valor &&
+          item._sum.valor > 0
+        );
+      })
       .map((item, index) => ({
         name: formatarCategoria(item.categoria),
         value: item._sum.valor || 0,
@@ -275,11 +289,11 @@ export default function DashboardLancamentosPage() {
           const lancamentosMes = data.lancamentos || [];
 
           const receitas = lancamentosMes
-            .filter((l: Lancamento) => l.tipo === "receita")
+            .filter((l: Lancamento) => normalizarTipo(l.tipo) === "receita")
             .reduce((sum: number, l: Lancamento) => sum + l.valor, 0);
 
           const despesas = lancamentosMes
-            .filter((l: Lancamento) => l.tipo === "despesa")
+            .filter((l: Lancamento) => normalizarTipo(l.tipo) === "despesa")
             .reduce((sum: number, l: Lancamento) => sum + l.valor, 0);
 
           dadosMensais.push({
@@ -363,18 +377,26 @@ export default function DashboardLancamentosPage() {
   };
 
   // Custom Tooltip para o gráfico de barras
+
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white p-3 border rounded-lg shadow-md">
-          <p className="font-semibold">{label}</p>
-          <p className="text-green-600">
+          <p className="font-semibold text-black">{label}</p>{" "}
+          {/* Texto preto */}
+          <p className="text-green-600 ">
+            {" "}
+            {/* Texto preto */}
             Receitas: {formatarMoeda(payload[0].value)}
           </p>
           <p className="text-red-600">
+            {" "}
+            {/* Texto preto */}
             Despesas: {formatarMoeda(payload[1].value)}
           </p>
-          <p className="font-medium">
+          <p className="font-medium text-black">
+            {" "}
+            {/* Texto preto */}
             Saldo: {formatarMoeda(payload[0].value - payload[1].value)}
           </p>
         </div>
@@ -386,24 +408,30 @@ export default function DashboardLancamentosPage() {
   // Custom Tooltip para o gráfico de pizza
   const CustomPieTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
+      const total = dadosPizza.reduce((sum, item) => sum + item.value, 0);
+      const porcentagem = total > 0 ? (payload[0].value / total) * 100 : 0;
+
       return (
         <div className="bg-white p-3 border rounded-lg shadow-md">
-          <p className="font-semibold">{payload[0].name}</p>
-          <p>{formatarMoeda(payload[0].value)}</p>
-          <p>
-            {(
-              (payload[0].value /
-                dadosPizza.reduce((sum, item) => sum + item.value, 0)) *
-              100
-            ).toFixed(1)}
-            %
-          </p>
+          <p className="font-semibold text-black">{payload[0].name}</p>{" "}
+          {/* Texto preto */}
+          <p className="text-black">{formatarMoeda(payload[0].value)}</p>{" "}
+          {/* Texto preto */}
+          <p className="text-black">{porcentagem.toFixed(1)}%</p>{" "}
+          {/* Texto preto */}
         </div>
       );
     }
     return null;
   };
 
+  const normalizarTipo = (tipo: string): "receita" | "despesa" => {
+    const tipoLower = tipo.toLowerCase();
+    if (tipoLower === "receita" || tipoLower === "despesa") {
+      return tipoLower as "receita" | "despesa";
+    }
+    return tipoLower as "receita" | "despesa";
+  };
   return (
     <div className="container mx-auto p-6 mt-20">
       {/* Header com Seletor de Mês à direita */}

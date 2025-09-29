@@ -86,6 +86,7 @@ interface TotaisPorCategoria {
 
 export default function ReceitasPage() {
   const router = useRouter();
+  const [carregandoStatus, setCarregandoStatus] = useState<boolean>(true);
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
   const [resumo, setResumo] = useState<Resumo>({
     receitas: 0,
@@ -147,10 +148,14 @@ export default function ReceitasPage() {
 
   useEffect(() => {
     const carregarStatusPagamento = async () => {
+      setCarregandoStatus(true); // Iniciar carregamento
       const novosStatus: { [key: string]: boolean } = {};
 
       for (const lancamento of lancamentos) {
-        if (lancamento.tipoLancamento === "compartilhado") {
+        if (
+          lancamento.tipoLancamento === "compartilhado" ||
+          lancamento.responsavel === "Compartilhado"
+        ) {
           novosStatus[lancamento.id] = await verificarSeEstaPago(lancamento);
         } else {
           novosStatus[lancamento.id] = lancamento.pago;
@@ -158,13 +163,31 @@ export default function ReceitasPage() {
       }
 
       setStatusPagamento(novosStatus);
+      setCarregandoStatus(false); // Finalizar carregamento
     };
 
     if (lancamentos.length > 0) {
       carregarStatusPagamento();
+    } else {
+      setCarregandoStatus(false);
     }
   }, [lancamentos]);
 
+  const LoadingSpinner = ({ size = "sm" }: { size?: "sm" | "md" | "lg" }) => {
+    const sizeClasses = {
+      sm: "h-4 w-4",
+      md: "h-5 w-5",
+      lg: "h-6 w-6",
+    };
+
+    return (
+      <div className="flex items-center justify-center">
+        <div
+          className={`animate-spin rounded-full border-2 border-gray-300 border-t-blue-600 ${sizeClasses[size]}`}
+        ></div>
+      </div>
+    );
+  };
   const buscarLancamentosBeatriz = async () => {
     try {
       setCarregando(true);
@@ -178,7 +201,7 @@ export default function ReceitasPage() {
         tipo: filtros.tipo,
       });
 
-      const response = await fetch(`/api/lancamentos?${params}`);
+      const response = await fetch(`/api/lancamentos/beatriz`);
 
       if (!response.ok) throw new Error("Erro ao buscar lançamentos");
 
@@ -198,6 +221,55 @@ export default function ReceitasPage() {
     } finally {
       setCarregando(false);
     }
+  };
+
+  // Função para calcular totais por categoria considerando compartilhados
+  const calcularTotaisPorCategoria = (lancamentos: Lancamento[]) => {
+    const totais: { [key: string]: { receita: number; despesa: number } } = {};
+
+    lancamentos.forEach((lancamento) => {
+      const valorBeatriz = calcularValorParaBeatriz(lancamento);
+      const tipoNormalizado = obterTipoNormalizado(lancamento);
+      const categoria = lancamento.categoria;
+
+      // Inicializar a categoria se não existir
+      if (!totais[categoria]) {
+        totais[categoria] = { receita: 0, despesa: 0 };
+      }
+
+      // Adicionar ao total correspondente
+      if (tipoNormalizado === "receita") {
+        totais[categoria].receita += valorBeatriz;
+      } else {
+        totais[categoria].despesa += valorBeatriz;
+      }
+    });
+
+    // Converter para o formato do array
+    const resultado: Array<{
+      categoria: string;
+      tipo: string;
+      _sum: { valor: number | null };
+    }> = [];
+
+    Object.entries(totais).forEach(([categoria, valores]) => {
+      if (valores.receita > 0) {
+        resultado.push({
+          categoria,
+          tipo: "receita",
+          _sum: { valor: valores.receita },
+        });
+      }
+      if (valores.despesa > 0) {
+        resultado.push({
+          categoria,
+          tipo: "despesa",
+          _sum: { valor: valores.despesa },
+        });
+      }
+    });
+
+    return resultado;
   };
 
   // Função para calcular o valor considerando se é compartilhado
@@ -753,8 +825,7 @@ export default function ReceitasPage() {
                 </TableHeader>
                 <TableBody>
                   {lancamentosFiltrados.map((lancamento) => {
-                    const valorBeatriz =
-                      calcularValorParaBeatriz(lancamento);
+                    const valorBeatriz = calcularValorParaBeatriz(lancamento);
                     const ehCompartilhado =
                       lancamento.tipoLancamento === "compartilhado";
                     const tipoNormalizado = obterTipoNormalizado(lancamento);
@@ -813,24 +884,28 @@ export default function ReceitasPage() {
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge
-                            variant={
-                              statusPagamento[lancamento.id]
-                                ? "default"
-                                : "secondary"
-                            }
-                            className={
-                              statusPagamento[lancamento.id]
-                                ? "bg-green-100 text-green-800 hover:bg-green-100"
-                                : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
-                            }
-                          >
-                            {statusPagamento[lancamento.id]
-                              ? tipoNormalizado === "receita"
-                                ? "Recebido"
-                                : "Pago"
-                              : "Pendente"}
-                          </Badge>
+                          {carregandoStatus ? (
+                            <LoadingSpinner size="md" />
+                          ) : (
+                            <Badge
+                              variant={
+                                statusPagamento[lancamento.id]
+                                  ? "default"
+                                  : "secondary"
+                              }
+                              className={
+                                statusPagamento[lancamento.id]
+                                  ? "bg-green-100 text-green-800 hover:bg-green-100"
+                                  : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                              }
+                            >
+                              {statusPagamento[lancamento.id]
+                                ? tipoNormalizado === "receita"
+                                  ? "Recebido"
+                                  : "Pago"
+                                : "Pendente"}
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="flex items-center gap-2 justify-center">
@@ -884,51 +959,60 @@ export default function ReceitasPage() {
       </Card>
 
       {/* Resumo por Categoria */}
-      {totaisPorCategoria.length > 0 && (
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Resumo por Categoria</CardTitle>
-            <CardDescription>
-              Distribuição dos lançamentos por categoria (valores já consideram
-              divisão de compartilhados)
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {totaisPorCategoria.map((item) => {
-                // Calcular o valor considerando compartilhamento
-                const valorAjustado = item._sum.valor ? item._sum.valor / 2 : 0;
-                const tipoNormalizado = normalizarTipo(item.tipo);
+      {(() => {
+        const totaisCalculados =
+          calcularTotaisPorCategoria(lancamentosFiltrados);
 
-                return (
-                  <div
-                    key={`${item.categoria}-${item.tipo}`}
-                    className={`p-4 rounded-lg text-center ${
-                      tipoNormalizado === "receita"
-                        ? "bg-green-50"
-                        : "bg-red-50"
-                    }`}
-                  >
-                    <p className="text-sm text-muted-foreground">
-                      {formatarCategoria(item.categoria)} (
-                      {tipoNormalizado === "receita" ? "Receita" : "Despesa"})
-                    </p>
-                    <p
-                      className={`text-lg font-bold ${
-                        tipoNormalizado === "receita"
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }`}
-                    >
-                      {formatarMoeda(valorAjustado)}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+        return (
+          totaisCalculados.length > 0 && (
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>Resumo por Categoria</CardTitle>
+                <CardDescription>
+                  Distribuição dos lançamentos por categoria (valores já
+                  consideram divisão de compartilhados)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {totaisCalculados.map((item, index) => {
+                    const valorTotal = item._sum.valor || 0;
+                    const tipoNormalizado = normalizarTipo(item.tipo);
+
+                    return (
+                      <div
+                        key={`${item.categoria}-${item.tipo}-${index}`}
+                        className={`p-4 rounded-lg text-center ${
+                          tipoNormalizado === "receita"
+                            ? "bg-green-50"
+                            : "bg-red-50"
+                        }`}
+                      >
+                        <p className="text-sm text-muted-foreground">
+                          {formatarCategoria(item.categoria)} (
+                          {tipoNormalizado === "receita"
+                            ? "Receita"
+                            : "Despesa"}
+                          )
+                        </p>
+                        <p
+                          className={`text-lg font-bold ${
+                            tipoNormalizado === "receita"
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
+                        >
+                          {formatarMoeda(valorTotal)}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )
+        );
+      })()}
     </div>
   );
 }

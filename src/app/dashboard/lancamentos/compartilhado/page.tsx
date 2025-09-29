@@ -343,6 +343,22 @@ export default function ControleCompartilhado() {
       </div>
     );
 
+  const CustomTooltipPagamentos = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 border rounded-lg shadow-md">
+          <p className="font-semibold text-black mb-2">{label}</p>{" "}
+          {/* Nome em preto */}
+          {payload.map((entry: any, index: number) => (
+            <p key={index} style={{ color: entry.color }} className="text-sm">
+              {entry.name}: {formatarMoeda(entry.value)}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
   return (
     <div className="container mx-auto p-6 mt-20">
       {/* Header */}
@@ -587,11 +603,10 @@ export default function ControleCompartilhado() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={dadosPagamentos}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="nome" />
+                  <XAxis dataKey="nome" className="text-black" />
                   <YAxis tickFormatter={(value) => `R$ ${value}`} />
-                  <Tooltip
-                    formatter={(value) => formatarMoeda(Number(value))}
-                  />
+                  <Tooltip content={<CustomTooltipPagamentos />} />{" "}
+                  {/* Use CustomTooltip aqui */}
                   <Legend />
                   <Bar dataKey="pago" fill="#4CAF50" name="Pago" />
                   <Bar dataKey="pendente" fill="#FF9800" name="Pendente" />

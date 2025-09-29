@@ -1,7 +1,7 @@
 // app/api/lancamentos/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
-import { auth } from "../../../../auth";
+import { auth } from "../../../../../auth";
 
 // Função para gerar ocorrências de lançamentos recorrentes
 async function gerarOcorrenciasRecorrentes(
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
     const ano = searchParams.get("ano");
     const categoria = searchParams.get("categoria");
     const tipo = searchParams.get("tipo");
-    const responsavel = searchParams.get("responsavel"); // Adicione esta linha
+    const responsavel = searchParams.get("responsavel");
 
     // Autenticação
     const session = await auth();
@@ -121,9 +121,31 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Construir filtros
+    // Construir filtros - MODIFICADO PARA INCLUIR COMPARTILHADOS
     const where: any = {
       usuarioId,
+      OR: [
+        // Lançamentos onde o Claudenir é o responsável direto
+        { responsavel: "Claudenir" },
+        // Lançamentos compartilhados onde Claudenir participa
+        {
+          AND: [
+            { responsavel: "Compartilhado" },
+            {
+              divisao: {
+                some: {
+                  usuario: {
+                    name: {
+                      contains: "Claudenir",
+                      mode: "insensitive",
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
     };
 
     if (mes && ano) {
@@ -144,15 +166,7 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    // ADICIONE ESTE FILTRO PARA RESPONSÁVEL
-    if (responsavel) {
-      where.responsavel = {
-        equals: responsavel,
-        mode: "insensitive",
-      };
-    }
-
-    // Buscar lançamentos do banco
+    // Buscar lançamentos do banco INCLUINDO as divisões
     const lancamentos = await db.lancamento.findMany({
       where,
       orderBy: {
@@ -166,10 +180,21 @@ export async function GET(request: NextRequest) {
           },
         },
         recorrente: true,
+        divisao: {
+          // INCLUIR AS DIVISÕES
+          include: {
+            usuario: {
+              select: {
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
       },
     });
 
-    // Calcular totais
+    // Resto do código permanece igual...
     const totaisPorCategoria = await db.lancamento.groupBy({
       where,
       by: ["categoria", "tipo"],
@@ -216,151 +241,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Erro ao buscar lançamentos:", error);
-    return NextResponse.json(
-      { error: "Erro interno do servidor" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const {
-      descricao,
-      valor,
-      tipo,
-      categoria,
-      tipoLancamento,
-      responsavel,
-      data,
-      pago,
-      recorrente,
-      frequencia,
-      parcelas,
-      observacoes,
-      origem = "manual",
-      apiKey,
-      usuarioId: usuarioIdFromBody,
-    } = body;
-
-    // Determinar o usuarioId baseado no tipo de autenticação
-    let finalUsuarioId;
-
-    if (apiKey) {
-      // Autenticação via API Key (n8n)
-      if (apiKey !== process.env.N8N_API_KEY) {
-        return NextResponse.json(
-          { error: "API Key inválida" },
-          { status: 401 }
-        );
-      }
-
-      if (!usuarioIdFromBody) {
-        return NextResponse.json(
-          { error: "usuarioId é obrigatório para chamadas via API" },
-          { status: 400 }
-        );
-      }
-
-      finalUsuarioId = usuarioIdFromBody;
-    } else {
-      // Autenticação via sessão (frontend)
-      const session = await auth();
-      if (!session?.user?.id) {
-        return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-      }
-      finalUsuarioId = session.user.id;
-    }
-
-    // Validações básicas
-    if (
-      !descricao ||
-      !valor ||
-      !tipo ||
-      !categoria ||
-      !tipoLancamento ||
-      !responsavel ||
-      !data
-    ) {
-      return NextResponse.json(
-        { error: "Campos obrigatórios faltando" },
-        { status: 400 }
-      );
-    }
-
-    if (recorrente && !frequencia) {
-      return NextResponse.json(
-        { error: "Frequência é obrigatória para lançamentos recorrentes" },
-        { status: 400 }
-      );
-    }
-
-    let resultado;
-
-    if (recorrente) {
-      // Criar lançamento recorrente
-      const lancamentoRecorrente = await db.lancamentoRecorrente.create({
-        data: {
-          descricao,
-          valor: parseFloat(valor),
-          tipo,
-          categoria,
-          tipoLancamento,
-          responsavel,
-          dataInicio: new Date(data),
-          frequencia,
-          parcelas: parcelas ? parseInt(parcelas) : null,
-          observacoes: observacoes || null,
-          usuarioId: finalUsuarioId,
-        },
-      });
-
-      // Criar primeira ocorrência
-      const primeiraOcorrencia = await db.lancamento.create({
-        data: {
-          descricao,
-          valor: parseFloat(valor),
-          tipo,
-          categoria,
-          tipoLancamento,
-          responsavel,
-          data: new Date(data),
-          pago: Boolean(pago),
-          parcelaAtual: 1,
-          observacoes: observacoes || null,
-          origem,
-          usuarioId: finalUsuarioId,
-          recorrenteId: lancamentoRecorrente.id,
-        },
-      });
-
-      resultado = { ...primeiraOcorrencia, recorrente: lancamentoRecorrente };
-    } else {
-      // Criar lançamento único
-      resultado = await db.lancamento.create({
-        data: {
-          descricao,
-          valor: parseFloat(valor),
-          tipo,
-          categoria,
-          tipoLancamento,
-          responsavel,
-          data: new Date(data),
-          pago: Boolean(pago),
-          observacoes: observacoes || null,
-          origem,
-          usuarioId: finalUsuarioId,
-        },
-        include: {
-          recorrente: true,
-        },
-      });
-    }
-
-    return NextResponse.json(resultado, { status: 201 });
-  } catch (error) {
-    console.error("Erro ao criar lançamento:", error);
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }

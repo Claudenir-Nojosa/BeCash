@@ -57,7 +57,7 @@ interface Lancamento {
   id: string;
   descricao: string;
   valor: number;
-  tipo: "receita" | "despesa";
+  tipo: "receita" | "despesa" | "Receita" | "Despesa"; // Adicione os tipos com maiúscula
   categoria: string;
   tipoLancamento: "individual" | "compartilhado";
   responsavel: string;
@@ -151,6 +151,12 @@ const iconesCategorias: Record<string, JSX.Element> = {
   salario: <Wallet className="h-4 w-4" />,
   freela: <PiggyBank className="h-4 w-4" />,
   investimentos: <TrendingUp className="h-4 w-4" />,
+};
+
+// Função para normalizar o tipo (converter para minúsculo)
+const normalizarTipo = (tipo: string): "receita" | "despesa" => {
+  const tipoLower = tipo.toLowerCase();
+  return tipoLower as "receita" | "despesa";
 };
 
 export default function RelatoriosPage() {
@@ -253,19 +259,22 @@ export default function RelatoriosPage() {
 
   const prepararDadosGraficos = (
     lancamentos: Lancamento[],
-    totaisPorCategoria: ApiResponse["totaisPorCategoria"] = [], // ✅ Valor padrão
+    totaisPorCategoria: ApiResponse["totaisPorCategoria"] = [],
     resumo: ApiResponse["resumo"]
   ) => {
     // Preparar dados para gráfico de pizza (categorias de despesas)
-    // ✅ Verificar se totaisPorCategoria existe
     const totais = totaisPorCategoria || [];
 
     // Preparar dados para gráfico de pizza (categorias de despesas)
     const despesasPorCategoria = totais
-      .filter(
-        (item) =>
-          item.tipo === "despesa" && item._sum.valor && item._sum.valor > 0
-      )
+      .filter((item) => {
+        const tipoNormalizado = normalizarTipo(item.tipo);
+        return (
+          tipoNormalizado === "despesa" &&
+          item._sum.valor &&
+          item._sum.valor > 0
+        );
+      })
       .map((item, index) => ({
         name: formatarNomeCategoria(item.categoria),
         value: item._sum.valor || 0,
@@ -276,11 +285,15 @@ export default function RelatoriosPage() {
 
     // Preparar categorias de despesas para exibição
     const totalDespesas = resumo.despesas;
-    const categoriasDespesasData = totaisPorCategoria
-      .filter(
-        (item) =>
-          item.tipo === "despesa" && item._sum.valor && item._sum.valor > 0
-      )
+    const categoriasDespesasData = totais
+      .filter((item) => {
+        const tipoNormalizado = normalizarTipo(item.tipo);
+        return (
+          tipoNormalizado === "despesa" &&
+          item._sum.valor &&
+          item._sum.valor > 0
+        );
+      })
       .map((item, index) => ({
         categoria: formatarNomeCategoria(item.categoria),
         valor: item._sum.valor || 0,
@@ -294,11 +307,15 @@ export default function RelatoriosPage() {
 
     // Preparar categorias de receitas para exibição
     const totalReceitas = resumo.receitas;
-    const categoriasReceitasData = totaisPorCategoria
-      .filter(
-        (item) =>
-          item.tipo === "receita" && item._sum.valor && item._sum.valor > 0
-      )
+    const categoriasReceitasData = totais
+      .filter((item) => {
+        const tipoNormalizado = normalizarTipo(item.tipo);
+        return (
+          tipoNormalizado === "receita" &&
+          item._sum.valor &&
+          item._sum.valor > 0
+        );
+      })
       .map((item, index) => ({
         categoria: formatarNomeCategoria(item.categoria),
         valor: item._sum.valor || 0,
@@ -327,11 +344,11 @@ export default function RelatoriosPage() {
       });
 
       const receitas = lancamentosMes
-        .filter((l) => l.tipo === "receita")
+        .filter((l) => normalizarTipo(l.tipo) === "receita")
         .reduce((sum, l) => sum + l.valor, 0);
 
       const despesas = lancamentosMes
-        .filter((l) => l.tipo === "despesa")
+        .filter((l) => normalizarTipo(l.tipo) === "despesa")
         .reduce((sum, l) => sum + l.valor, 0);
 
       return {
@@ -390,7 +407,7 @@ export default function RelatoriosPage() {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-3 border rounded-lg shadow-md">
+        <div className="bg-white p-3 text-black border rounded-lg shadow-md">
           <p className="font-semibold">{label}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} style={{ color: entry.color }}>
@@ -991,12 +1008,11 @@ export default function RelatoriosPage() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="mes" />
                   <YAxis tickFormatter={(value) => `R$ ${value / 1000}k`} />
-                  <Tooltip
-                    formatter={(value) => formatarMoeda(Number(value))}
-                  />
+                  <Tooltip content={<CustomTooltip />} />
                   <Line
                     type="monotone"
                     dataKey="saldo"
+                    name="Saldo"
                     stroke="#3B82F6"
                     strokeWidth={2}
                   />
@@ -1022,20 +1038,20 @@ export default function RelatoriosPage() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="mes" />
                   <YAxis tickFormatter={(value) => `R$ ${value / 1000}k`} />
-                  <Tooltip
-                    formatter={(value) => formatarMoeda(Number(value))}
-                  />
+                  <Tooltip content={<CustomTooltip />} />
                   <Area
                     type="monotone"
                     dataKey="receitas"
                     fill="#4CAF50"
                     stroke="#4CAF50"
+                    name="Receitas"
                   />
                   <Area
                     type="monotone"
                     dataKey="despesas"
                     fill="#F44336"
                     stroke="#F44336"
+                    name="Despesas"
                   />
                 </AreaChart>
               </ResponsiveContainer>

@@ -94,6 +94,9 @@ export default function LancamentosPage() {
     TotaisPorCategoria[]
   >([]);
   const [carregando, setCarregando] = useState(true);
+  const [carregandoStatus, setCarregandoStatus] = useState<{
+    [key: string]: boolean;
+  }>({});
   const [filtros, setFiltros] = useState({
     mes: new Date().getMonth() + 1,
     ano: new Date().getFullYear(),
@@ -173,6 +176,7 @@ export default function LancamentosPage() {
   const atualizarStatusPagamento = async (id: string, pago: boolean) => {
     try {
       setAtualizandoPagamento(id);
+      setCarregandoStatus((prev) => ({ ...prev, [id]: true })); // Iniciar loading para este item
 
       // Toast de carregamento
       const toastId = toast.loading(
@@ -235,6 +239,7 @@ export default function LancamentosPage() {
       });
     } finally {
       setAtualizandoPagamento(null);
+      setCarregandoStatus((prev) => ({ ...prev, [id]: false })); // Finalizar loading para este item
     }
   };
 
@@ -395,6 +400,21 @@ export default function LancamentosPage() {
     (_, i) => new Date().getFullYear() + i
   );
 
+  const LoadingSpinner = ({ size = "sm" }: { size?: "sm" | "md" | "lg" }) => {
+    const sizeClasses = {
+      sm: "h-4 w-4",
+      md: "h-5 w-5",
+      lg: "h-6 w-6",
+    };
+
+    return (
+      <div className="flex items-center justify-center">
+        <div
+          className={`animate-spin rounded-full border-2 border-gray-300 border-t-blue-600 ${sizeClasses[size]}`}
+        ></div>
+      </div>
+    );
+  };
   return (
     <div className="container mx-auto p-6 mt-20">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
@@ -631,24 +651,30 @@ export default function LancamentosPage() {
                           {formatarMoeda(lancamento.valor)}
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge
-                            variant={lancamento.pago ? "default" : "secondary"}
-                            className={
-                              lancamento.pago
-                                ? "bg-green-100 text-green-800 hover:bg-green-100"
+                          {carregandoStatus[lancamento.id] ? (
+                            <LoadingSpinner />
+                          ) : (
+                            <Badge
+                              variant={
+                                lancamento.pago ? "default" : "secondary"
+                              }
+                              className={
+                                lancamento.pago
+                                  ? "bg-green-100 text-green-800 hover:bg-green-100"
+                                  : tipoNormalizado === "receita"
+                                    ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
+                                    : "bg-yellow-300 text-yellow-800 hover:bg-yellow-200"
+                              }
+                            >
+                              {lancamento.pago
+                                ? tipoNormalizado === "receita"
+                                  ? "Recebido"
+                                  : "Pago"
                                 : tipoNormalizado === "receita"
-                                  ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
-                                  : "bg-yellow-300 text-yellow-800 hover:bg-yellow-200"
-                            }
-                          >
-                            {lancamento.pago
-                              ? tipoNormalizado === "receita"
-                                ? "Recebido"
-                                : "Pago"
-                              : tipoNormalizado === "receita"
-                                ? "A receber"
-                                : "A pagar"}
-                          </Badge>
+                                  ? "A receber"
+                                  : "A pagar"}
+                            </Badge>
+                          )}
                         </TableCell>
 
                         <TableCell className="text-center">
