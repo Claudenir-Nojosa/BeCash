@@ -23,6 +23,7 @@ import {
   PieChart,
   BarChart3,
   Target,
+  Smartphone,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -45,7 +46,7 @@ interface Lancamento {
   id: string;
   descricao: string;
   valor: number;
-  tipo: "receita" | "despesa" | "Receita" | "Despesa"; // Adicione os tipos com maiúscula
+  tipo: "receita" | "despesa" | "Receita" | "Despesa";
   categoria: string;
   tipoLancamento: "individual" | "compartilhado";
   responsavel: string;
@@ -151,15 +152,22 @@ export default function DashboardLancamentosPage() {
   });
   const [dadosPizza, setDadosPizza] = useState<DadosPizza[]>([]);
   const [dadosBarras, setDadosBarras] = useState<DadosBarra[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     carregarDados();
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, [mesAtual, anoAtual]);
+
+  const checkMobile = () => {
+    setIsMobile(window.innerWidth < 768);
+  };
 
   const carregarDados = async () => {
     setCarregando(true);
     try {
-      // Carregar lançamentos
       const params = new URLSearchParams({
         mes: (mesAtual + 1).toString(),
         ano: anoAtual.toString(),
@@ -183,7 +191,6 @@ export default function DashboardLancamentosPage() {
 
       calcularResumo(lancamentosData.lancamentos);
       await prepararDadosGraficos(
-        // Agora é async
         lancamentosData.lancamentos,
         lancamentosData.totaisPorCategoria
       );
@@ -244,7 +251,6 @@ export default function DashboardLancamentosPage() {
     lancamentos: Lancamento[],
     totais: TotaisPorCategoria[]
   ) => {
-    // Preparar dados para gráfico de pizza (despesas por categoria)
     const dadosPizza = totais
       .filter((item) => {
         const tipoNormalizado = normalizarTipo(item.tipo);
@@ -261,8 +267,6 @@ export default function DashboardLancamentosPage() {
       }));
 
     setDadosPizza(dadosPizza);
-
-    // Buscar dados históricos dos últimos 6 meses
     const dadosBarras = await prepararDadosBarrasHistoricos();
     setDadosBarras(dadosBarras);
   };
@@ -271,7 +275,6 @@ export default function DashboardLancamentosPage() {
     try {
       const dadosMensais = [];
 
-      // Buscar dados dos últimos 6 meses
       for (let i = 5; i >= 0; i--) {
         const data = new Date(anoAtual, mesAtual - i, 1);
         const mes = data.getMonth();
@@ -302,7 +305,6 @@ export default function DashboardLancamentosPage() {
             despesas,
           });
         } else {
-          // Se não conseguir buscar dados, usar zeros
           dadosMensais.push({
             mes: meses[mes].substring(0, 3) + "/" + ano.toString().slice(-2),
             receitas: 0,
@@ -314,8 +316,6 @@ export default function DashboardLancamentosPage() {
       return dadosMensais;
     } catch (error) {
       console.error("Erro ao buscar dados históricos:", error);
-
-      // Fallback: retornar array vazio
       return Array.from({ length: 6 }, (_, i) => {
         const mesIndex = (mesAtual - i + 12) % 12;
         const ano = anoAtual - Math.floor((mesAtual - i) / 12);
@@ -333,6 +333,18 @@ export default function DashboardLancamentosPage() {
       style: "currency",
       currency: "BRL",
     }).format(valor);
+  };
+
+  const formatarMoedaMobile = (valor: number) => {
+    if (Math.abs(valor) >= 1000) {
+      return new Intl.NumberFormat("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(valor);
+    }
+    return formatarMoeda(valor);
   };
 
   const formatarCategoria = (categoria: string) => {
@@ -376,27 +388,18 @@ export default function DashboardLancamentosPage() {
     router.push("/dashboard/metas");
   };
 
-  // Custom Tooltip para o gráfico de barras
-
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white p-3 border rounded-lg shadow-md">
-          <p className="font-semibold text-black">{label}</p>{" "}
-          {/* Texto preto */}
-          <p className="text-green-600 ">
-            {" "}
-            {/* Texto preto */}
+          <p className="font-semibold text-black">{label}</p>
+          <p className="text-green-600">
             Receitas: {formatarMoeda(payload[0].value)}
           </p>
           <p className="text-red-600">
-            {" "}
-            {/* Texto preto */}
             Despesas: {formatarMoeda(payload[1].value)}
           </p>
           <p className="font-medium text-black">
-            {" "}
-            {/* Texto preto */}
             Saldo: {formatarMoeda(payload[0].value - payload[1].value)}
           </p>
         </div>
@@ -405,7 +408,6 @@ export default function DashboardLancamentosPage() {
     return null;
   };
 
-  // Custom Tooltip para o gráfico de pizza
   const CustomPieTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const total = dadosPizza.reduce((sum, item) => sum + item.value, 0);
@@ -413,12 +415,9 @@ export default function DashboardLancamentosPage() {
 
       return (
         <div className="bg-white p-3 border rounded-lg shadow-md">
-          <p className="font-semibold text-black">{payload[0].name}</p>{" "}
-          {/* Texto preto */}
-          <p className="text-black">{formatarMoeda(payload[0].value)}</p>{" "}
-          {/* Texto preto */}
-          <p className="text-black">{porcentagem.toFixed(1)}%</p>{" "}
-          {/* Texto preto */}
+          <p className="font-semibold text-black">{payload[0].name}</p>
+          <p className="text-black">{formatarMoeda(payload[0].value)}</p>
+          <p className="text-black">{porcentagem.toFixed(1)}%</p>
         </div>
       );
     }
@@ -432,158 +431,192 @@ export default function DashboardLancamentosPage() {
     }
     return tipoLower as "receita" | "despesa";
   };
+
   return (
-    <div className="container mx-auto p-6 mt-20">
-      {/* Header com Seletor de Mês à direita */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard Financeiro</h1>
-          <p className="text-muted-foreground">
-            Visão geral das suas finanças pessoais
-          </p>
-        </div>
-        <div className="flex items-center justify-center gap-4">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => mudarMes("anterior")}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-
-          <div className="text-center">
-            <h3 className="text-xl font-semibold">{meses[mesAtual]}</h3>
-            <p className="text-sm text-muted-foreground">{anoAtual}</p>
+    <div className="container mx-auto p-4 md:p-6 mt-16 md:mt-20">
+      {/* Header Mobile Otimizado */}
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold">Dashboard</h1>
+            <p className="text-sm md:text-base text-muted-foreground">
+              Visão geral das finanças
+            </p>
           </div>
-
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => mudarMes("proximo")}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="flex flex-col items-end gap-3">
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              size="sm"
+              size="icon"
               onClick={carregarDados}
               disabled={carregando}
-              className="w-32"
+              className="h-9 w-9"
             >
               <RefreshCw
-                className={`h-4 w-4 mr-2 ${carregando ? "animate-spin" : ""}`}
+                className={`h-3 w-3 md:h-4 md:w-4 ${carregando ? "animate-spin" : ""}`}
               />
-              {carregando ? "Atualizando..." : "Atualizar"}
             </Button>
-            <Button size="sm" onClick={handleNovoLancamento}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Lançamento
+            <Button size="sm" onClick={handleNovoLancamento} className="h-9">
+              <Plus className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+              <span className="hidden sm:inline">Novo</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Seletor de Mês Mobile */}
+        <div className="bg-card rounded-lg border p-4">
+          <div className="flex items-center justify-between mb-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => mudarMes("anterior")}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+
+            <div className="text-center flex-1">
+              <h3 className="text-lg md:text-xl font-semibold">
+                {meses[mesAtual]}
+              </h3>
+              <p className="text-xs md:text-sm text-muted-foreground">
+                {anoAtual}
+              </p>
+            </div>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => mudarMes("proximo")}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Cards de Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Saldo Total</CardTitle>
-            <Wallet className="h-4 w-4 text-muted-foreground" />
+      {/* Cards de Resumo - Layout Mobile Otimizado */}
+      <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+        <Card className="relative overflow-hidden">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium">
+              Saldo
+            </CardTitle>
+            <Wallet className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 pt-0">
             <div
-              className={`text-2xl font-bold ${resumoMensal.saldo >= 0 ? "text-green-600" : "text-red-600"}`}
+              className={`text-lg md:text-2xl font-bold ${resumoMensal.saldo >= 0 ? "text-green-600" : "text-red-600"}`}
             >
-              {formatarMoeda(resumoMensal.saldo)}
+              {isMobile
+                ? formatarMoedaMobile(resumoMensal.saldo)
+                : formatarMoeda(resumoMensal.saldo)}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receitas</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+        <Card className="relative overflow-hidden">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium">
+              Receitas
+            </CardTitle>
+            <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {formatarMoeda(resumoMensal.receitas)}
+          <CardContent className="p-4 pt-0">
+            <div className="text-lg md:text-2xl font-bold text-green-600">
+              {isMobile
+                ? formatarMoedaMobile(resumoMensal.receitas)
+                : formatarMoeda(resumoMensal.receitas)}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Despesas</CardTitle>
-            <TrendingDown className="h-4 w-4 text-muted-foreground" />
+        <Card className="relative overflow-hidden">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium">
+              Despesas
+            </CardTitle>
+            <TrendingDown className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {formatarMoeda(resumoMensal.despesas)}
+          <CardContent className="p-4 pt-0">
+            <div className="text-lg md:text-2xl font-bold text-red-600">
+              {isMobile
+                ? formatarMoedaMobile(resumoMensal.despesas)
+                : formatarMoeda(resumoMensal.despesas)}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Compartilhado</CardTitle>
-            <Handshake className="h-4 w-4 text-muted-foreground" />
+        <Card className="relative overflow-hidden">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium">
+              Compart.
+            </CardTitle>
+            <Handshake className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {formatarMoeda(resumoMensal.compartilhado)}
+          <CardContent className="p-4 pt-0">
+            <div className="text-lg md:text-2xl font-bold text-blue-600">
+              {isMobile
+                ? formatarMoedaMobile(resumoMensal.compartilhado)
+                : formatarMoeda(resumoMensal.compartilhado)}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Saldos Individuais */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      {/* Saldos Individuais - Layout Mobile Compacto */}
+      <div className="grid grid-cols-2 gap-3 md:gap-6 mb-6">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
-              Saldo Claudenir
+          <CardHeader className="p-4 pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium">
+              Claudenir
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 pt-0">
             <div
-              className={`text-xl font-bold ${resumoMensal.individualEle >= 0 ? "text-green-600" : "text-red-600"}`}
+              className={`text-base md:text-xl font-bold ${resumoMensal.individualEle >= 0 ? "text-green-600" : "text-red-600"}`}
             >
-              {formatarMoeda(resumoMensal.individualEle)}
+              {isMobile
+                ? formatarMoedaMobile(resumoMensal.individualEle)
+                : formatarMoeda(resumoMensal.individualEle)}
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Saldo Beatriz</CardTitle>
+          <CardHeader className="p-4 pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium">
+              Beatriz
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 pt-0">
             <div
-              className={`text-xl font-bold ${resumoMensal.individualEla >= 0 ? "text-green-600" : "text-red-600"}`}
+              className={`text-base md:text-xl font-bold ${resumoMensal.individualEla >= 0 ? "text-green-600" : "text-red-600"}`}
             >
-              {formatarMoeda(resumoMensal.individualEla)}
+              {isMobile
+                ? formatarMoedaMobile(resumoMensal.individualEla)
+                : formatarMoeda(resumoMensal.individualEla)}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+      {/* Gráficos - Stack vertical no mobile */}
+      <div className="grid grid-cols-1 gap-4 md:gap-6 mb-6">
         {/* Gráfico de Pizza */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <PieChart className="h-5 w-5" />
-              Distribuição de Gastos
+          <CardHeader className="p-4 md:p-6">
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <PieChart className="h-4 w-4 md:h-5 md:w-5" />
+              Gastos por Categoria
             </CardTitle>
-            <CardDescription>Por categoria</CardDescription>
+            <CardDescription className="text-xs md:text-sm">
+              Distribuição dos seus gastos
+            </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 md:p-6 pt-0">
             {dadosPizza.length > 0 ? (
-              <div className="h-64">
+              <div className="h-48 md:h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <RechartsPieChart>
                     <Pie
@@ -592,9 +625,11 @@ export default function DashboardLancamentosPage() {
                       cy="50%"
                       labelLine={false}
                       label={({ name, percent }) =>
-                        `${name}: ${(percent * 100).toFixed(0)}%`
+                        isMobile
+                          ? `${(percent * 100).toFixed(0)}%`
+                          : `${name}: ${(percent * 100).toFixed(0)}%`
                       }
-                      outerRadius={80}
+                      outerRadius={isMobile ? 60 : 80}
                       fill="#8884d8"
                       dataKey="value"
                     >
@@ -603,13 +638,14 @@ export default function DashboardLancamentosPage() {
                       ))}
                     </Pie>
                     <Tooltip content={<CustomPieTooltip />} />
-                    <Legend />
+                    {!isMobile && <Legend />}
                   </RechartsPieChart>
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-64 flex items-center justify-center text-muted-foreground">
-                Nenhuma despesa este mês
+              <div className="h-48 md:h-64 flex flex-col items-center justify-center text-muted-foreground">
+                <PieChart className="h-12 w-12 mb-2 opacity-50" />
+                <p className="text-sm">Nenhuma despesa este mês</p>
               </div>
             )}
           </CardContent>
@@ -617,24 +653,53 @@ export default function DashboardLancamentosPage() {
 
         {/* Gráfico de Barras */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
+          <CardHeader className="p-4 md:p-6">
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <BarChart3 className="h-4 w-4 md:h-5 md:w-5" />
               Evolução Mensal
             </CardTitle>
-            <CardDescription>Receitas vs Despesas</CardDescription>
+            <CardDescription className="text-xs md:text-sm">
+              Receitas vs Despesas
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="h-64">
+          <CardContent className="p-4 md:p-6 pt-0">
+            <div className="h-48 md:h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dadosBarras}>
+                <BarChart
+                  data={dadosBarras}
+                  margin={
+                    isMobile
+                      ? { top: 10, right: 10, left: 0, bottom: 10 }
+                      : { top: 20, right: 30, left: 20, bottom: 5 }
+                  }
+                >
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="mes" />
-                  <YAxis tickFormatter={(value) => `R$ ${value / 1000}k`} />
+                  <XAxis
+                    dataKey="mes"
+                    angle={isMobile ? -45 : 0}
+                    textAnchor={isMobile ? "end" : "middle"}
+                    fontSize={isMobile ? 10 : 12}
+                  />
+                  <YAxis
+                    tickFormatter={(value) =>
+                      isMobile ? `R$${value / 1000}k` : `R$ ${value / 1000}k`
+                    }
+                    fontSize={isMobile ? 10 : 12}
+                  />
                   <Tooltip content={<CustomTooltip />} />
-                  <Legend />
-                  <Bar dataKey="receitas" fill="#4CAF50" name="Receitas" />
-                  <Bar dataKey="despesas" fill="#F44336" name="Despesas" />
+                  {!isMobile && <Legend />}
+                  <Bar
+                    dataKey="receitas"
+                    fill="#4CAF50"
+                    name="Receitas"
+                    radius={[2, 2, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="despesas"
+                    fill="#F44336"
+                    name="Despesas"
+                    radius={[2, 2, 0, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -644,43 +709,59 @@ export default function DashboardLancamentosPage() {
 
       {/* Metas Financeiras */}
       <Card>
-        <CardHeader>
+        <CardHeader className="p-4 md:p-6">
           <div className="flex justify-between items-center">
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <Target className="h-4 w-4 md:h-5 md:w-5" />
               Metas Financeiras
             </CardTitle>
             <Button variant="outline" size="sm" onClick={handleVerMetas}>
-              Ver Todas
+              <span className="hidden sm:inline">Ver Todas</span>
+              <span className="sm:hidden">Todas</span>
             </Button>
           </div>
-          <CardDescription>Progresso das suas metas</CardDescription>
+          <CardDescription className="text-xs md:text-sm">
+            Progresso das suas metas
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="p-4 md:p-6 pt-0 space-y-4 md:space-y-6">
           {metas.length > 0 ? (
             metas.map((meta) => {
               const progresso = (meta.valorAtual / meta.valorAlvo) * 100;
 
               return (
-                <div key={meta.id}>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-medium">{meta.titulo}</span>
-                    <span className="text-sm text-muted-foreground">
-                      {formatarMoeda(meta.valorAtual)} /{" "}
-                      {formatarMoeda(meta.valorAlvo)}
+                <div key={meta.id} className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-sm md:text-base line-clamp-1">
+                      {meta.titulo}
+                    </span>
+                    <span className="text-xs md:text-sm text-muted-foreground whitespace-nowrap ml-2">
+                      {isMobile
+                        ? formatarMoedaMobile(meta.valorAtual)
+                        : formatarMoeda(meta.valorAtual)}{" "}
+                      /{" "}
+                      {isMobile
+                        ? formatarMoedaMobile(meta.valorAlvo)
+                        : formatarMoeda(meta.valorAlvo)}
                     </span>
                   </div>
                   <Progress value={progresso} className="h-2" />
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {progresso.toFixed(0)}% completo • Falta{" "}
-                    {formatarMoeda(meta.valorAlvo - meta.valorAtual)}
+                  <div className="text-xs text-muted-foreground flex justify-between">
+                    <span>{progresso.toFixed(0)}% completo</span>
+                    <span>
+                      Falta{" "}
+                      {isMobile
+                        ? formatarMoedaMobile(meta.valorAlvo - meta.valorAtual)
+                        : formatarMoeda(meta.valorAlvo - meta.valorAtual)}
+                    </span>
                   </div>
                 </div>
               );
             })
           ) : (
-            <div className="text-center text-muted-foreground py-4">
-              Nenhuma meta ativa no momento
+            <div className="text-center text-muted-foreground py-6 md:py-8">
+              <Target className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">Nenhuma meta ativa no momento</p>
             </div>
           )}
         </CardContent>
