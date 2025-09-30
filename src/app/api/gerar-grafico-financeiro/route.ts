@@ -27,34 +27,27 @@ export async function POST(request: NextRequest) {
     });
 
     if (!usuario) {
-      return NextResponse.json(
-        { error: "Usuário não encontrado" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
     }
 
-    // Gerar análise (mantém a função existente)
-    const analiseGrafico = await gerarAnaliseDoGrafico(
-      usuario.Lancamento,
-      mensagemOriginal
-    );
+    // Gerar análise
+    const analiseGrafico = await gerarAnaliseDoGrafico(usuario.Lancamento, mensagemOriginal);
 
-    // Retornar APENAS análise e lançamentos - SEM gráfico pronto
+    // Retornar TUDO, incluindo mensagemOriginal
     return NextResponse.json({
       analise: analiseGrafico,
-      lancamentos: usuario.Lancamento, // ← Dados brutos para o Code Node
+      lancamentos: usuario.Lancamento,
       tipoGrafico: tipoGrafico || "pizza",
-      success: true,
+      mensagemOriginal: mensagemOriginal, // ← ADICIONAR ESTA LINHA
+      success: true
     });
+
   } catch (error) {
     console.error("Erro ao gerar gráfico:", error);
-    return NextResponse.json(
-      {
-        error: "Erro interno do servidor",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ 
+      error: "Erro interno do servidor",
+      details: error instanceof Error ? error.message : "Unknown error"
+    }, { status: 500 });
   }
 }
 
