@@ -243,15 +243,18 @@ ${Object.entries(receitasPorCategoria)
   )
   .join("\n")}
 
-INSTRUÇÕES PARA SUA RESPOSTA:
+INSTRUÇÕES CRÍTICAS PARA SUA RESPOSTA:
 
-1. FOCO NA SOLICITAÇÃO: "${mensagemOriginal}" - analise especificamente o que o usuário pediu
-2. CONTEXTO DO GRÁFICO: Um gráfico ${tipoGrafico} será gerado com estes dados
-3. DESTAQUE PADRÕES: Identifique tendências, categorias problemáticas, oportunidades
-4. LINGUAGEM NATURAL: Seja direto, claro e use emojis para tornar visual
-5. FORMATAÇÃO: Use quebras de linha, mas SEM asteriscos ou markdown complexo
-6. TAMANHO: Limite a resposta a 1000-1500 caracteres
-7. PERSONALIZAÇÃO: Relacione com os dados específicos do usuário
+1. NUNCA use asteriscos (*) para formatação ou negrito
+2. Use apenas emojis para destacar seções importantes
+3. Formate com quebras de linha limpas e espaçamento adequado
+4. Seja direto e objetivo na análise
+5. Use números formatados como R$ X.XX
+6. Limite a resposta a 1000-1500 caracteres
+7. Comece com um título simples com emoji
+8. Use apenas traços (-) para listas quando necessário
+9. Mantenha o português claro e natural
+10. Foque na solicitação específica: "${mensagemOriginal}"
 
-Gere uma análise perspicaz que complementará visualmente o gráfico que será mostrado.`;
+Gere uma análise perspicaz que complementará visualmente o gráfico ${tipoGrafico} que será mostrado.`;
 }
