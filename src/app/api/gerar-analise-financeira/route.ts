@@ -2,8 +2,38 @@
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 
+function extrairDataReferencia(mensagem: string): Date | null {
+  const meses: Record<string, number> = {
+    janeiro: 0,
+    fevereiro: 1,
+    março: 2,
+    abril: 3,
+    maio: 4,
+    junho: 5,
+    julho: 6,
+    agosto: 7,
+    setembro: 8,
+    outubro: 9,
+    novembro: 10,
+    dezembro: 11,
+  };
+
+  const regex =
+    /(?:de\s)?(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+(?:de\s+)?(\d{4})/i;
+
+  const match = mensagem.match(regex);
+
+  if (match) {
+    const mes = meses[match[1].toLowerCase()];
+    const ano = parseInt(match[2], 10);
+    return new Date(ano, mes, 1);
+  }
+
+  return null;
+}
+
 export async function POST(request: NextRequest) {
-  try {
+try {
     const { mensagemOriginal, usuarioId, dataReferencia } =
       await request.json();
 
@@ -25,14 +55,21 @@ export async function POST(request: NextRequest) {
         { error: "Anthropic API key não configurada" },
         { status: 500 }
       );
-    }
-
+  }
+  
+  let base = extrairDataReferencia(mensagemOriginal);
+  
     // Definir intervalo de início e fim do mês com base na dataReferencia (ou mês atual se não enviada)
-    const base = dataReferencia
-      ? new Date(dataReferencia)
-      : new Date(
-          new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
-        );
+     // 🔎 Se não achar, usa dataReferencia recebida ou cai no "agora"
+    if (!base) {
+      base = dataReferencia
+        ? new Date(dataReferencia)
+        : new Date(
+            new Date().toLocaleString("en-US", {
+              timeZone: "America/Sao_Paulo",
+            })
+          );
+    }
 
     const inicioDoMes = new Date(base.getFullYear(), base.getMonth(), 1);
     const fimDoMes = new Date(
@@ -45,8 +82,12 @@ export async function POST(request: NextRequest) {
       999
     );
 
+    console.log("🔎 Intervalo considerado:", {
+      inicioDoMes,
+      fimDoMes,
+    });
     // Buscar dados do usuário no Supabase usando os nomes CORRETOS em PascalCase
-    const usuario = await db.usuario.findUnique({
+     const usuario = await db.usuario.findUnique({
       where: { id: usuarioId },
       include: {
         Lancamento: {
