@@ -27,45 +27,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Definir intervalo de início e fim do mês com base na dataReferencia (ou mês atual se não enviada)
+    const base = dataReferencia
+      ? new Date(dataReferencia)
+      : new Date(
+          new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
+        );
+
+    const inicioDoMes = new Date(base.getFullYear(), base.getMonth(), 1);
+    const fimDoMes = new Date(
+      base.getFullYear(),
+      base.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999
+    );
+
     // Buscar dados do usuário no Supabase usando os nomes CORRETOS em PascalCase
     const usuario = await db.usuario.findUnique({
       where: { id: usuarioId },
       include: {
         Lancamento: {
-          // PascalCase - conforme schema
           where: {
             data: {
-              gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1), // Mês atual
+              gte: inicioDoMes,
+              lte: fimDoMes,
             },
           },
           orderBy: { data: "desc" },
         },
         Meta: {
-          // PascalCase - conforme schema
-          where: {
-            concluida: false,
-          },
+          where: { concluida: false },
         },
         saldosComoDevedor: {
-          // camelCase - conforme schema
           include: {
-            deUsuario: {
-              select: { name: true },
-            },
-            paraUsuario: {
-              select: { name: true },
-            },
+            deUsuario: { select: { name: true } },
+            paraUsuario: { select: { name: true } },
           },
         },
         saldosComoCredor: {
-          // camelCase - conforme schema
           include: {
-            deUsuario: {
-              select: { name: true },
-            },
-            paraUsuario: {
-              select: { name: true },
-            },
+            deUsuario: { select: { name: true } },
+            paraUsuario: { select: { name: true } },
           },
         },
       },
@@ -189,17 +194,21 @@ ${dados.lancamentos
   .slice(0, 8)
   .map(
     (l: any) =>
-      `📅 ${l.data.toLocaleDateString("pt-BR")} | ${l.tipo === 'Receita' ? '💚' : '💸'} ${l.categoria} | R$ ${l.valor.toFixed(2)} | ${l.descricao}`
+      `📅 ${l.data.toLocaleDateString("pt-BR")} | ${l.tipo === "Receita" ? "💚" : "💸"} ${l.categoria} | R$ ${l.valor.toFixed(2)} | ${l.descricao}`
   )
   .join("\n")}
 
 METAS:
-${dados.metas.length > 0 ? dados.metas
-  .map(
-    (m: any) =>
-      `🎯 ${m.titulo}: R$ ${m.valorAtual.toFixed(2)} / R$ ${m.valorAlvo.toFixed(2)} (${((m.valorAtual / m.valorAlvo) * 100).toFixed(1)}%)`
-  )
-  .join("\n") : "📝 Nenhuma meta ativa"}
+${
+  dados.metas.length > 0
+    ? dados.metas
+        .map(
+          (m: any) =>
+            `🎯 ${m.titulo}: R$ ${m.valorAtual.toFixed(2)} / R$ ${m.valorAlvo.toFixed(2)} (${((m.valorAtual / m.valorAlvo) * 100).toFixed(1)}%)`
+        )
+        .join("\n")
+    : "📝 Nenhuma meta ativa"
+}
 
 SALDOS:
 ${saldosFormatados.length > 0 ? saldosFormatados.join("\n") : "✅ Nenhum saldo pendente"}
