@@ -4,7 +4,20 @@ import db from "@/lib/db";
 
 export async function POST(request: NextRequest) {
   try {
-    const { mensagemOriginal, usuarioId, tipoGrafico } = await request.json();
+    const { mensagemOriginal, usuarioId, tipoGrafico, dataReferencia } =
+      await request.json();
+
+    const base = dataReferencia ? new Date(dataReferencia) : new Date();
+    const inicioDoMes = new Date(base.getFullYear(), base.getMonth(), 1);
+    const fimDoMes = new Date(
+      base.getFullYear(),
+      base.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999
+    );
 
     console.log("Dados recebidos para gráfico financeiro:", {
       mensagemOriginal,
@@ -26,14 +39,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Buscar dados do usuário no Supabase
     const usuario = await db.usuario.findUnique({
       where: { id: usuarioId },
       include: {
         Lancamento: {
           where: {
             data: {
-              gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+              gte: inicioDoMes,
+              lte: fimDoMes,
             },
           },
           orderBy: { data: "desc" },
