@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 
 function extrairDataReferencia(mensagem: string): Date | null {
+  const agora = new Date();
+
   const meses: Record<string, number> = {
     janeiro: 0,
     fevereiro: 1,
@@ -18,10 +20,10 @@ function extrairDataReferencia(mensagem: string): Date | null {
     dezembro: 11,
   };
 
-  const regex =
+  // 1. Primeiro tenta encontrar "mês de ano"
+  const regexMesAno =
     /(?:de\s)?(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+(?:de\s+)?(\d{4})/i;
-
-  const match = mensagem.match(regex);
+  const match = mensagem.match(regexMesAno);
 
   if (match) {
     const mes = meses[match[1].toLowerCase()];
@@ -29,6 +31,32 @@ function extrairDataReferencia(mensagem: string): Date | null {
     return new Date(ano, mes, 1);
   }
 
+  // 2. Agora expressões relativas
+  if (/mês\s+passado|último\s+mês/i.test(mensagem)) {
+    return new Date(agora.getFullYear(), agora.getMonth() - 1, 1);
+  }
+
+  if (/este\s+mês|esse\s+mês|mês\s+atual/i.test(mensagem)) {
+    return new Date(agora.getFullYear(), agora.getMonth(), 1);
+  }
+
+  if (/próximo\s+mês|mês\s+que\s+vem/i.test(mensagem)) {
+    return new Date(agora.getFullYear(), agora.getMonth() + 1, 1);
+  }
+
+  if (/ano\s+passado/i.test(mensagem)) {
+    return new Date(agora.getFullYear() - 1, 0, 1);
+  }
+
+  if (/este\s+ano|esse\s+ano|ano\s+atual/i.test(mensagem)) {
+    return new Date(agora.getFullYear(), 0, 1);
+  }
+
+  if (/ano\s+que\s+vem|próximo\s+ano/i.test(mensagem)) {
+    return new Date(agora.getFullYear() + 1, 0, 1);
+  }
+
+  // 3. Se não encontrou nada, retorna null
   return null;
 }
 
