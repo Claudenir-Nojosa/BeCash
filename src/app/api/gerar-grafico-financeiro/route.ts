@@ -2,12 +2,50 @@
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 
+// 🔎 Função para extrair "mês de ano" do texto
+function extrairDataReferencia(mensagem: string): Date | null {
+  const meses: Record<string, number> = {
+    janeiro: 0,
+    fevereiro: 1,
+    março: 2,
+    abril: 3,
+    maio: 4,
+    junho: 5,
+    julho: 6,
+    agosto: 7,
+    setembro: 8,
+    outubro: 9,
+    novembro: 10,
+    dezembro: 11,
+  };
+
+  const regex =
+    /(?:de\s)?(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+(?:de\s+)?(\d{4})/i;
+
+  const match = mensagem.match(regex);
+
+  if (match) {
+    const mes = meses[match[1].toLowerCase()];
+    const ano = parseInt(match[2], 10);
+    return new Date(ano, mes, 1);
+  }
+
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { mensagemOriginal, usuarioId, tipoGrafico, dataReferencia } =
       await request.json();
 
-    const base = dataReferencia ? new Date(dataReferencia) : new Date();
+    // 🔎 Primeiro tenta extrair a data da mensagem
+    let base = extrairDataReferencia(mensagemOriginal);
+
+    // 🔎 Se não achar, usa dataReferencia enviada ou data atual
+    if (!base) {
+      base = dataReferencia ? new Date(dataReferencia) : new Date();
+    }
+
     const inicioDoMes = new Date(base.getFullYear(), base.getMonth(), 1);
     const fimDoMes = new Date(
       base.getFullYear(),
@@ -23,6 +61,8 @@ export async function POST(request: NextRequest) {
       mensagemOriginal,
       usuarioId,
       tipoGrafico,
+      inicioDoMes,
+      fimDoMes,
     });
 
     if (!mensagemOriginal || !usuarioId) {
@@ -58,22 +98,14 @@ export async function POST(request: NextRequest) {
         },
         saldosComoDevedor: {
           include: {
-            deUsuario: {
-              select: { name: true },
-            },
-            paraUsuario: {
-              select: { name: true },
-            },
+            deUsuario: { select: { name: true } },
+            paraUsuario: { select: { name: true } },
           },
         },
         saldosComoCredor: {
           include: {
-            deUsuario: {
-              select: { name: true },
-            },
-            paraUsuario: {
-              select: { name: true },
-            },
+            deUsuario: { select: { name: true } },
+            paraUsuario: { select: { name: true } },
           },
         },
       },
@@ -88,14 +120,8 @@ export async function POST(request: NextRequest) {
 
     // Juntar todos os saldos compartilhados
     const todosSaldosCompartilhados = [
-      ...usuario.saldosComoDevedor.map((s) => ({
-        ...s,
-        tipo: "devedor",
-      })),
-      ...usuario.saldosComoCredor.map((s) => ({
-        ...s,
-        tipo: "credor",
-      })),
+      ...usuario.saldosComoDevedor.map((s) => ({ ...s, tipo: "devedor" })),
+      ...usuario.saldosComoCredor.map((s) => ({ ...s, tipo: "credor" })),
     ];
 
     // Preparar dados para análise
