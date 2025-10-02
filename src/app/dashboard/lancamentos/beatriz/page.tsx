@@ -188,40 +188,40 @@ export default function ReceitasPage() {
       </div>
     );
   };
-  const buscarLancamentosBeatriz = async () => {
-    try {
-      setCarregando(true);
-      const toastId = toast.loading("Carregando lançamentos do Beatriz...");
+const buscarLancamentosBeatriz = async () => {
+  try {
+    setCarregando(true);
+    const toastId = toast.loading("Carregando lançamentos da Beatriz...");
 
-      const params = new URLSearchParams({
-        mes: filtros.mes.toString(),
-        ano: filtros.ano.toString(),
-        categoria: filtros.categoria,
-        responsavel: "Beatriz",
-        tipo: filtros.tipo,
-      });
+    const params = new URLSearchParams({
+      mes: filtros.mes.toString(),
+      ano: filtros.ano.toString(),
+      categoria: filtros.categoria,
+      tipo: filtros.tipo,
+    });
 
-      const response = await fetch(`/api/lancamentos/beatriz`);
+    // CORRIGIDO: Adicionar os parâmetros na URL
+    const response = await fetch(`/api/lancamentos/beatriz?${params}`);
 
-      if (!response.ok) throw new Error("Erro ao buscar lançamentos");
+    if (!response.ok) throw new Error("Erro ao buscar lançamentos");
 
-      const data = await response.json();
-      setLancamentos(data.lancamentos);
+    const data = await response.json();
+    setLancamentos(data.lancamentos);
 
-      // Usar o resumo calculado localmente considerando compartilhados
-      const resumoCompartilhado = calcularResumoCompartilhado(data.lancamentos);
-      setResumo(resumoCompartilhado);
+    // Usar o resumo calculado localmente considerando compartilhados
+    const resumoCompartilhado = calcularResumoCompartilhado(data.lancamentos);
+    setResumo(resumoCompartilhado);
 
-      setTotaisPorCategoria(data.totaisPorCategoria);
+    setTotaisPorCategoria(data.totaisPorCategoria);
 
-      toast.success("Lançamentos carregados", { id: toastId });
-    } catch (error) {
-      console.error("Erro ao buscar lançamentos:", error);
-      toast.error("Erro ao carregar lançamentos");
-    } finally {
-      setCarregando(false);
-    }
-  };
+    toast.success("Lançamentos carregados", { id: toastId });
+  } catch (error) {
+    console.error("Erro ao buscar lançamentos:", error);
+    toast.error("Erro ao carregar lançamentos");
+  } finally {
+    setCarregando(false);
+  }
+};
 
   // Função para calcular totais por categoria considerando compartilhados
   const calcularTotaisPorCategoria = (lancamentos: Lancamento[]) => {

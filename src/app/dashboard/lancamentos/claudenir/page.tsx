@@ -188,7 +188,7 @@ export default function ReceitasPage() {
       </div>
     );
   };
-  
+
   const buscarLancamentosClaudenir = async () => {
     try {
       setCarregando(true);
@@ -198,11 +198,11 @@ export default function ReceitasPage() {
         mes: filtros.mes.toString(),
         ano: filtros.ano.toString(),
         categoria: filtros.categoria,
-        responsavel: "Claudenir",
         tipo: filtros.tipo,
       });
 
-      const response = await fetch(`/api/lancamentos/claudenir`);
+      // CORRIGIDO: Adicionar os parâmetros na URL
+      const response = await fetch(`/api/lancamentos/claudenir?${params}`);
 
       if (!response.ok) throw new Error("Erro ao buscar lançamentos");
 
@@ -826,7 +826,8 @@ export default function ReceitasPage() {
                 </TableHeader>
                 <TableBody>
                   {lancamentosFiltrados.map((lancamento) => {
-                    const valorClaudenir = calcularValorParaClaudenir(lancamento);
+                    const valorClaudenir =
+                      calcularValorParaClaudenir(lancamento);
                     const ehCompartilhado =
                       lancamento.tipoLancamento === "compartilhado";
                     const tipoNormalizado = obterTipoNormalizado(lancamento);

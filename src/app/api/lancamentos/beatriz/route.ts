@@ -103,7 +103,6 @@ export async function GET(request: NextRequest) {
     const ano = searchParams.get("ano");
     const categoria = searchParams.get("categoria");
     const tipo = searchParams.get("tipo");
-    const responsavel = searchParams.get("responsavel");
 
     // Autenticação
     const session = await auth();
@@ -112,25 +111,48 @@ export async function GET(request: NextRequest) {
     }
     const usuarioId = session.user.id;
 
-    // Gerar ocorrências recorrentes para o mês solicitado
-    if (mes && ano) {
-      await gerarOcorrenciasRecorrentes(
-        parseInt(mes),
-        parseInt(ano),
-        usuarioId
+    // Validar mês e ano
+    if (!mes || !ano) {
+      return NextResponse.json(
+        { error: "Mês e ano são obrigatórios" },
+        { status: 400 }
       );
     }
 
-    // Construir filtros - MODIFICADO PARA INCLUIR COMPARTILHADOS
+    const mesNum = parseInt(mes);
+    const anoNum = parseInt(ano);
+
+    // Calcular datas do período
+    const inicioMes = new Date(anoNum, mesNum - 1, 1);
+    const fimMes = new Date(anoNum, mesNum, 1);
+
+    console.log(`Filtrando por período: ${inicioMes.toISOString()} até ${fimMes.toISOString()}`);
+
+    // Construir filtros para lançamentos da Beatriz
     const where: any = {
-      usuarioId,
       OR: [
-        // Lançamentos onde o Beatriz é o responsável direto
-        { responsavel: "Beatriz" },
+        // Lançamentos individuais da Beatriz
+        {
+          AND: [
+            { responsavel: "Beatriz" },
+            {
+              data: {
+                gte: inicioMes,
+                lt: fimMes,
+              },
+            },
+          ],
+        },
         // Lançamentos compartilhados onde Beatriz participa
         {
           AND: [
             { responsavel: "Compartilhado" },
+            {
+              data: {
+                gte: inicioMes,
+                lt: fimMes,
+              },
+            },
             {
               divisao: {
                 some: {
@@ -148,23 +170,24 @@ export async function GET(request: NextRequest) {
       ],
     };
 
-    if (mes && ano) {
-      where.data = {
-        gte: new Date(`${ano}-${mes}-01`),
-        lt: new Date(`${ano}-${Number(mes) + 1}-01`),
-      };
-    }
-
+    // Aplicar filtro de categoria
     if (categoria && categoria !== "todas") {
-      where.categoria = categoria;
+      where.AND = where.AND || [];
+      where.AND.push({ categoria });
     }
 
+    // Aplicar filtro de tipo
     if (tipo && tipo !== "todos") {
-      where.tipo = {
-        equals: tipo,
-        mode: "insensitive",
-      };
+      where.AND = where.AND || [];
+      where.AND.push({
+        tipo: {
+          equals: tipo,
+          mode: "insensitive",
+        },
+      });
     }
+
+    console.log("Where clause:", JSON.stringify(where, null, 2));
 
     // Buscar lançamentos do banco INCLUINDO as divisões
     const lancamentos = await db.lancamento.findMany({
@@ -181,7 +204,6 @@ export async function GET(request: NextRequest) {
         },
         recorrente: true,
         divisao: {
-          // INCLUIR AS DIVISÕES
           include: {
             usuario: {
               select: {
@@ -194,7 +216,9 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Resto do código permanece igual...
+    console.log(`Encontrados ${lancamentos.length} lançamentos`);
+
+    // Calcular totais por categoria
     const totaisPorCategoria = await db.lancamento.groupBy({
       where,
       by: ["categoria", "tipo"],
@@ -203,6 +227,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // Calcular resumo
     const totalReceitas = await db.lancamento.aggregate({
       where: {
         ...where,
@@ -235,12 +260,11 @@ export async function GET(request: NextRequest) {
       resumo: {
         receitas: totalReceitas._sum.valor || 0,
         despesas: totalDespesas._sum.valor || 0,
-        saldo:
-          (totalReceitas._sum.valor || 0) - (totalDespesas._sum.valor || 0),
+        saldo: (totalReceitas._sum.valor || 0) - (totalDespesas._sum.valor || 0),
       },
     });
   } catch (error) {
-    console.error("Erro ao buscar lançamentos:", error);
+    console.error("Erro ao buscar lançamentos da Beatriz:", error);
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }

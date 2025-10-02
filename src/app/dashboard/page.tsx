@@ -40,6 +40,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Tipos para os lançamentos
 interface Lancamento {
@@ -134,6 +135,7 @@ const CORES_GRAFICO = [
 
 export default function DashboardLancamentosPage() {
   const router = useRouter();
+  const [carregandoGraficos, setCarregandoGraficos] = useState(false);
   const [mesAtual, setMesAtual] = useState(new Date().getMonth());
   const [anoAtual, setAnoAtual] = useState(new Date().getFullYear());
   const [carregando, setCarregando] = useState(false);
@@ -167,6 +169,7 @@ export default function DashboardLancamentosPage() {
 
   const carregarDados = async () => {
     setCarregando(true);
+    setCarregandoGraficos(true); // Iniciar carregamento dos gráficos
     try {
       const params = new URLSearchParams({
         mes: (mesAtual + 1).toString(),
@@ -201,6 +204,7 @@ export default function DashboardLancamentosPage() {
       console.error(error);
     } finally {
       setCarregando(false);
+      setCarregandoGraficos(false); // Finalizar carregamento dos gráficos
     }
   };
 
@@ -246,6 +250,41 @@ export default function DashboardLancamentosPage() {
       individualEla,
     });
   };
+
+  // Componente de Skeleton para o gráfico de pizza - Spinner
+  const PieChartSkeleton = () => (
+    <div className="h-48 md:h-64 flex items-center justify-center">
+      <div className="flex flex-col items-center space-y-3">
+        <div className="w-8 h-8 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+        <p className="text-sm text-gray-500">Carregando gráfico...</p>
+      </div>
+    </div>
+  );
+
+  // Componente de Skeleton para o gráfico de barras - Spinner
+  const BarChartSkeleton = () => (
+    <div className="h-48 md:h-64 flex items-center justify-center">
+      <div className="flex flex-col items-center space-y-3">
+        <div className="w-8 h-8 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+        <p className="text-sm text-gray-500">Carregando dados...</p>
+      </div>
+    </div>
+  );
+
+  // Componente de Skeleton para cards - Spinner
+  const CardSkeleton = () => (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
+        <div className="h-4 w-16 bg-gray-100 rounded"></div>
+        <div className="w-4 h-4 flex items-center justify-center">
+          <div className="w-3 h-3 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-4 pt-0">
+        <div className="h-6 w-20 bg-gray-100 rounded"></div>
+      </CardContent>
+    </Card>
+  );
 
   const prepararDadosGraficos = async (
     lancamentos: Lancamento[],
@@ -470,17 +509,24 @@ export default function DashboardLancamentosPage() {
               size="sm"
               onClick={() => mudarMes("anterior")}
               className="h-8 w-8 p-0"
+              disabled={carregando}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
 
             <div className="text-center flex-1">
-              <h3 className="text-lg md:text-xl font-semibold">
-                {meses[mesAtual]}
-              </h3>
-              <p className="text-xs md:text-sm text-muted-foreground">
-                {anoAtual}
-              </p>
+              {carregando ? (
+                <Skeleton className="h-6 w-32 mx-auto" />
+              ) : (
+                <>
+                  <h3 className="text-lg md:text-xl font-semibold">
+                    {meses[mesAtual]}
+                  </h3>
+                  <p className="text-xs md:text-sm text-muted-foreground">
+                    {anoAtual}
+                  </p>
+                </>
+              )}
             </div>
 
             <Button
@@ -488,117 +534,93 @@ export default function DashboardLancamentosPage() {
               size="sm"
               onClick={() => mudarMes("proximo")}
               className="h-8 w-8 p-0"
+              disabled={carregando}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </div>
-
       {/* Cards de Resumo - Layout Mobile Otimizado */}
       <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-        <Card className="relative overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">
-              Saldo
-            </CardTitle>
-            <Wallet className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div
-              className={`text-lg md:text-2xl font-bold ${resumoMensal.saldo >= 0 ? "text-green-600" : "text-red-600"}`}
-            >
-              {isMobile
-                ? formatarMoedaMobile(resumoMensal.saldo)
-                : formatarMoeda(resumoMensal.saldo)}
-            </div>
-          </CardContent>
-        </Card>
+        {carregando ? (
+          // Skeletons durante o carregamento
+          <>
+            <CardSkeleton />
+            <CardSkeleton />
+            <CardSkeleton />
+            <CardSkeleton />
+          </>
+        ) : (
+          // Cards reais quando carregados
+          <>
+            <Card className="relative overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
+                <CardTitle className="text-xs md:text-sm font-medium">
+                  Saldo
+                </CardTitle>
+                <Wallet className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <div
+                  className={`text-lg md:text-2xl font-bold ${resumoMensal.saldo >= 0 ? "text-green-600" : "text-red-600"}`}
+                >
+                  {isMobile
+                    ? formatarMoedaMobile(resumoMensal.saldo)
+                    : formatarMoeda(resumoMensal.saldo)}
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card className="relative overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">
-              Receitas
-            </CardTitle>
-            <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-lg md:text-2xl font-bold text-green-600">
-              {isMobile
-                ? formatarMoedaMobile(resumoMensal.receitas)
-                : formatarMoeda(resumoMensal.receitas)}
-            </div>
-          </CardContent>
-        </Card>
+            <Card className="relative overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
+                <CardTitle className="text-xs md:text-sm font-medium">
+                  Receitas
+                </CardTitle>
+                <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <div className="text-lg md:text-2xl font-bold text-green-600">
+                  {isMobile
+                    ? formatarMoedaMobile(resumoMensal.receitas)
+                    : formatarMoeda(resumoMensal.receitas)}
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card className="relative overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">
-              Despesas
-            </CardTitle>
-            <TrendingDown className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-lg md:text-2xl font-bold text-red-600">
-              {isMobile
-                ? formatarMoedaMobile(resumoMensal.despesas)
-                : formatarMoeda(resumoMensal.despesas)}
-            </div>
-          </CardContent>
-        </Card>
+            <Card className="relative overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
+                <CardTitle className="text-xs md:text-sm font-medium">
+                  Despesas
+                </CardTitle>
+                <TrendingDown className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <div className="text-lg md:text-2xl font-bold text-red-600">
+                  {isMobile
+                    ? formatarMoedaMobile(resumoMensal.despesas)
+                    : formatarMoeda(resumoMensal.despesas)}
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card className="relative overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">
-              Compart.
-            </CardTitle>
-            <Handshake className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-lg md:text-2xl font-bold text-blue-600">
-              {isMobile
-                ? formatarMoedaMobile(resumoMensal.compartilhado)
-                : formatarMoeda(resumoMensal.compartilhado)}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Saldos Individuais - Layout Mobile Compacto */}
-      <div className="grid grid-cols-2 gap-3 md:gap-6 mb-6">
-        <Card>
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">
-              Claudenir
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div
-              className={`text-base md:text-xl font-bold ${resumoMensal.individualEle >= 0 ? "text-green-600" : "text-red-600"}`}
-            >
-              {isMobile
-                ? formatarMoedaMobile(resumoMensal.individualEle)
-                : formatarMoeda(resumoMensal.individualEle)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">
-              Beatriz
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div
-              className={`text-base md:text-xl font-bold ${resumoMensal.individualEla >= 0 ? "text-green-600" : "text-red-600"}`}
-            >
-              {isMobile
-                ? formatarMoedaMobile(resumoMensal.individualEla)
-                : formatarMoeda(resumoMensal.individualEla)}
-            </div>
-          </CardContent>
-        </Card>
+            <Card className="relative overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
+                <CardTitle className="text-xs md:text-sm font-medium">
+                  Compart.
+                </CardTitle>
+                <Handshake className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <div className="text-lg md:text-2xl font-bold text-blue-600">
+                  {isMobile
+                    ? formatarMoedaMobile(resumoMensal.compartilhado)
+                    : formatarMoeda(resumoMensal.compartilhado)}
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
       {/* Gráficos - Stack vertical no mobile */}
@@ -615,7 +637,9 @@ export default function DashboardLancamentosPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-4 md:p-6 pt-0">
-            {dadosPizza.length > 0 ? (
+            {carregandoGraficos ? (
+              <PieChartSkeleton />
+            ) : dadosPizza.length > 0 ? (
               <div className="h-48 md:h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <RechartsPieChart>
@@ -663,46 +687,50 @@ export default function DashboardLancamentosPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-4 md:p-6 pt-0">
-            <div className="h-48 md:h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={dadosBarras}
-                  margin={
-                    isMobile
-                      ? { top: 10, right: 10, left: 0, bottom: 10 }
-                      : { top: 20, right: 30, left: 20, bottom: 5 }
-                  }
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="mes"
-                    angle={isMobile ? -45 : 0}
-                    textAnchor={isMobile ? "end" : "middle"}
-                    fontSize={isMobile ? 10 : 12}
-                  />
-                  <YAxis
-                    tickFormatter={(value) =>
-                      isMobile ? `R$${value / 1000}k` : `R$ ${value / 1000}k`
+            {carregandoGraficos ? (
+              <BarChartSkeleton />
+            ) : (
+              <div className="h-48 md:h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={dadosBarras}
+                    margin={
+                      isMobile
+                        ? { top: 10, right: 10, left: 0, bottom: 10 }
+                        : { top: 20, right: 30, left: 20, bottom: 5 }
                     }
-                    fontSize={isMobile ? 10 : 12}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  {!isMobile && <Legend />}
-                  <Bar
-                    dataKey="receitas"
-                    fill="#4CAF50"
-                    name="Receitas"
-                    radius={[2, 2, 0, 0]}
-                  />
-                  <Bar
-                    dataKey="despesas"
-                    fill="#F44336"
-                    name="Despesas"
-                    radius={[2, 2, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="mes"
+                      angle={isMobile ? -45 : 0}
+                      textAnchor={isMobile ? "end" : "middle"}
+                      fontSize={isMobile ? 10 : 12}
+                    />
+                    <YAxis
+                      tickFormatter={(value) =>
+                        isMobile ? `R$${value / 1000}k` : `R$ ${value / 1000}k`
+                      }
+                      fontSize={isMobile ? 10 : 12}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    {!isMobile && <Legend />}
+                    <Bar
+                      dataKey="receitas"
+                      fill="#4CAF50"
+                      name="Receitas"
+                      radius={[2, 2, 0, 0]}
+                    />
+                    <Bar
+                      dataKey="despesas"
+                      fill="#F44336"
+                      name="Despesas"
+                      radius={[2, 2, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
