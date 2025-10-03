@@ -414,17 +414,33 @@ export async function POST(request: NextRequest) {
 // Função auxiliar para criar divisões automáticas
 async function criarDivisoesAutomaticas(usuarioId: string, valorTotal: number) {
   try {
-    // Buscar todos os usuários (exceto o atual)
-    const usuarios = await db.usuario.findMany({
+    // Buscar APENAS os usuários principais (Claudenir e Beatriz)
+    // Você pode ajustar esses emails conforme necessário
+    const usuariosPrincipais = await db.usuario.findMany({
       where: {
+        OR: [
+          { email: "clau.nojosaf@gmail.com" }, // Claudenir Filho
+          { email: "blaurindo23@gmail.com" }, // Beatriz Laurindo
+        ],
+        // Garantir que não inclua o usuário atual duplicado
         id: {
           not: usuarioId,
         },
       },
     });
 
-    // Se não há outros usuários, criar divisão apenas para o usuário atual
-    if (usuarios.length === 0) {
+    console.log(
+      "Usuários principais encontrados:",
+      usuariosPrincipais.map((u) => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+      }))
+    );
+
+    // Se não encontrou os usuários principais, usar fallback
+    if (usuariosPrincipais.length === 0) {
+      console.log("Nenhum usuário principal encontrado, usando fallback");
       return [
         {
           usuarioId: usuarioId,
@@ -434,24 +450,30 @@ async function criarDivisoesAutomaticas(usuarioId: string, valorTotal: number) {
       ];
     }
 
-    // Dividir o valor igualmente entre todos os usuários (incluindo o atual)
-    const valorPorPessoa = valorTotal / (usuarios.length + 1);
+    // Dividir o valor igualmente entre o usuário atual + usuários principais
+    const totalParticipantes = usuariosPrincipais.length + 1;
+    const valorPorPessoa = valorTotal / totalParticipantes;
+
+    console.log(
+      `Dividindo R$ ${valorTotal} entre ${totalParticipantes} pessoas: R$ ${valorPorPessoa} cada`
+    );
 
     const divisoes = [
-      // Divisão para o usuário atual
+      // Divisão para o usuário atual (quem criou o lançamento)
       {
         usuarioId: usuarioId,
         valorDivisao: valorPorPessoa,
         valorPago: 0,
       },
-      // Divisões para os outros usuários
-      ...usuarios.map((usuario) => ({
+      // Divisões para os usuários principais
+      ...usuariosPrincipais.map((usuario) => ({
         usuarioId: usuario.id,
         valorDivisao: valorPorPessoa,
         valorPago: 0,
       })),
     ];
 
+    console.log("Divisões criadas:", divisoes);
     return divisoes;
   } catch (error) {
     console.error("Erro ao criar divisões automáticas:", error);
