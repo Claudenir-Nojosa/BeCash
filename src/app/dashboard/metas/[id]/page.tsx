@@ -16,11 +16,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Calendar, User, Target, ArrowLeft, Plus, History } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  Calendar,
+  User,
+  Target,
+  DollarSign,
+  TrendingUp,
+} from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
 
 interface Meta {
   id: string;
@@ -32,8 +39,6 @@ interface Meta {
   tipo: string;
   responsavel: string;
   categoria: string;
-  icone: string | null;
-  cor: string | null;
   concluida: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -58,7 +63,6 @@ export default function DetalhesMetaPage() {
   const [carregando, setCarregando] = useState(true);
   const [contribuindo, setContribuindo] = useState(false);
   const [valorContribuicao, setValorContribuicao] = useState("");
-  const [observacoesContribuicao, setObservacoesContribuicao] = useState("");
 
   const mostrarFormContribuicao = searchParams.get("contribuir") === "true";
 
@@ -72,15 +76,10 @@ export default function DetalhesMetaPage() {
     try {
       setCarregando(true);
       const response = await fetch(`/api/metas/${id}`);
-
-      if (!response.ok) {
-        throw new Error("Erro ao carregar meta");
-      }
-
+      if (!response.ok) throw new Error("Erro ao carregar meta");
       const data = await response.json();
       setMeta(data);
     } catch (error) {
-      console.error("Erro ao carregar meta:", error);
       toast.error("Erro ao carregar meta");
     } finally {
       setCarregando(false);
@@ -89,69 +88,45 @@ export default function DetalhesMetaPage() {
 
   const handleContribuir = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!meta) {
-      toast.error("Meta não encontrada");
-      return;
-    }
+    if (!meta) return;
 
     const valorNumerico = parseFloat(valorContribuicao);
-
     if (!valorContribuicao || valorNumerico <= 0 || isNaN(valorNumerico)) {
-      toast.error("Digite um valor válido para contribuição");
+      toast.error("Digite um valor válido");
       return;
     }
 
-    // Lidar com imprecisão de números float - usar tolerância de 0.01
-    const valorRestantePreciso = Math.max(0, meta.valorAlvo - meta.valorAtual);
-    const tolerancia = 0.01; // 1 centavo de tolerância
-
-    if (valorNumerico > valorRestantePreciso + tolerancia) {
-      toast.error(
-        `O valor não pode ser maior que ${formatarMoeda(valorRestantePreciso)}`
-      );
+    const valorRestante = Math.max(0, meta.valorAlvo - meta.valorAtual);
+    if (valorNumerico > valorRestante + 0.01) {
+      toast.error(`Valor máximo: ${formatarMoeda(valorRestante)}`);
       return;
     }
 
     try {
       setContribuindo(true);
-
       const response = await fetch(`/api/metas/${id}/contribuir`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          valor: valorContribuicao,
-          observacoes: observacoesContribuicao,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ valor: valorContribuicao }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Erro ao contribuir");
-      }
+      if (!response.ok) throw new Error("Erro ao contribuir");
 
       const data = await response.json();
       setMeta(data.meta);
-
       setValorContribuicao("");
-      setObservacoesContribuicao("");
-
-      toast.success("Contribuição realizada com sucesso!");
-
-      // Fechar o formulário de contribuição
+      toast.success("Contribuição realizada!");
       router.replace(`/dashboard/metas/${id}`);
-    } catch (error: any) {
-      console.error("Erro ao contribuir:", error);
-      toast.error(error.message || "Erro ao realizar contribuição");
+    } catch (error) {
+      toast.error("Erro ao realizar contribuição");
     } finally {
       setContribuindo(false);
     }
   };
 
-  const calcularProgresso = (valorAtual: number, valorAlvo: number) => {
-    return Math.min((valorAtual / valorAlvo) * 100, 100);
+  const calcularProgresso = () => {
+    if (!meta) return 0;
+    return Math.min((meta.valorAtual / meta.valorAlvo) * 100, 100);
   };
 
   const formatarMoeda = (valor: number) => {
@@ -161,40 +136,15 @@ export default function DetalhesMetaPage() {
     }).format(valor);
   };
 
-  const formatarCategoria = (categoria: string) => {
-    const categorias: Record<string, string> = {
-      viagem: "Viagem",
-      reserva: "Reserva",
-      investimento: "Investimento",
-      compra: "Compra",
-      outros: "Outros",
-    };
-    return categorias[categoria] || categoria;
-  };
-
-  // Adicionar esta função no início do componente
-  const calcularValorRestante = () => {
-    if (!meta) return 0;
-    // Usar precisão de centavos para evitar problemas com float
-    const restante = meta.valorAlvo - meta.valorAtual;
-    return Math.max(0, Math.round(restante * 100) / 100); // Arredondar para 2 casas decimais
-  };
-
-  // Usar esta função onde for necessário
-  const valorRestante = calcularValorRestante();
-
   if (carregando) {
     return (
-      <div className="container mx-auto p-6 mt-20 max-w-2xl">
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="outline" size="icon" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <Skeleton className="h-9 w-48" />
-        </div>
-        <div className="space-y-6">
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-64 w-full" />
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto p-6 max-w-4xl">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-8 h-8 bg-muted rounded-lg animate-pulse" />
+            <div className="h-8 w-48 bg-muted rounded animate-pulse" />
+          </div>
+          <div className="h-96 bg-muted rounded-lg animate-pulse" />
         </div>
       </div>
     );
@@ -202,220 +152,169 @@ export default function DetalhesMetaPage() {
 
   if (!meta) {
     return (
-      <div className="container mx-auto p-6 mt-20 max-w-2xl">
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="outline" size="icon" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <h1 className="text-2xl">Meta não encontrada</h1>
+          <Button
+            variant="outline"
+            onClick={() => router.push("/dashboard/metas")}
+          >
+            Voltar
           </Button>
-          <h1 className="text-3xl font-bold">Meta não encontrada</h1>
         </div>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground py-8">
-              A meta solicitada não foi encontrada.
-            </p>
-            <div className="flex justify-center">
-              <Button onClick={() => router.push("/dashboard/metas")}>
-                Voltar para Metas
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     );
   }
 
-  return (
-    <div className="container mx-auto p-6 mt-20 max-w-4xl">
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="outline" size="icon" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-3xl font-bold">Detalhes da Meta</h1>
-      </div>
+  const progresso = calcularProgresso();
+  const valorRestante = Math.max(0, meta.valorAlvo - meta.valorAtual);
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Coluna principal */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Card de informações da meta */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-2xl flex items-center gap-2">
-                    {meta.icone && <span>{meta.icone}</span>}
-                    {meta.titulo}
-                  </CardTitle>
-                  <CardDescription>{meta.descricao}</CardDescription>
-                </div>
-                <Badge
-                  variant={meta.concluida ? "default" : "secondary"}
-                  className={
-                    meta.concluida ? "bg-green-100 text-green-800" : ""
-                  }
-                >
-                  {meta.concluida ? "Concluída" : "Em andamento"}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Progresso */}
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="font-medium">
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto p-6 max-w-4xl">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.back()}
+            className="h-9 w-9 rounded-lg"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-2xl">{meta.titulo}</h1>
+            {meta.descricao && (
+              <p className="text-muted-foreground mt-1">{meta.descricao}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="grid gap-6">
+          {/* Progresso */}
+          <Card className="border-0 shadow-none">
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-2xl">
                     {formatarMoeda(meta.valorAtual)}
                   </span>
-                  <span className="font-medium">
+                  <span className="text-2xl text-muted-foreground">
                     {formatarMoeda(meta.valorAlvo)}
                   </span>
                 </div>
-                <Progress
-                  value={calcularProgresso(meta.valorAtual, meta.valorAlvo)}
-                  className="h-3"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                  <span>Arrecadado</span>
-                  <span>
-                    {calcularProgresso(meta.valorAtual, meta.valorAlvo).toFixed(
-                      1
-                    )}
-                    %
-                  </span>
+
+                <Progress value={progresso} className="h-2" />
+
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>{progresso.toFixed(1)}% concluído</span>
+                  <span>{formatarMoeda(valorRestante)} restantes</span>
                 </div>
               </div>
+            </CardContent>
+          </Card>
 
-              {/* Informações */}
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Target className="h-4 w-4" />
-                    <span className="font-medium">Categoria:</span>
+          {/* Informações */}
+          <div className="grid md:grid-cols-3 gap-4">
+            <Card className="border-0 shadow-none">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                    <Target className="h-4 w-4 text-blue-600" />
                   </div>
-                  <span>{formatarCategoria(meta.categoria)}</span>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    <span className="font-medium">Responsável:</span>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Categoria</p>
+                    <p className="">{meta.categoria}</p>
                   </div>
-                  <span>{meta.responsavel}</span>
                 </div>
+              </CardContent>
+            </Card>
 
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    <span className="font-medium">Tipo:</span>
+            <Card className="border-0 shadow-none">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 bg-green-50 rounded-lg flex items-center justify-center">
+                    <User className="h-4 w-4 text-green-600" />
                   </div>
-                  <span>
-                    {meta.tipo === "individual"
-                      ? "Individual"
-                      : "Compartilhado"}
-                  </span>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Responsável</p>
+                    <p className="">{meta.responsavel}</p>
+                  </div>
                 </div>
+              </CardContent>
+            </Card>
 
-                {meta.dataLimite && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      <span className="font-medium">Data Limite:</span>
+            {meta.dataLimite && (
+              <Card className="border-0 shadow-none">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 bg-orange-50 rounded-lg flex items-center justify-center">
+                      <Calendar className="h-4 w-4 text-orange-600" />
                     </div>
-                    <span>
-                      {format(new Date(meta.dataLimite), "dd/MM/yyyy", {
-                        locale: ptBR,
-                      })}
-                    </span>
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        Data Limite
+                      </p>
+                      <p className="">
+                        {format(new Date(meta.dataLimite), "dd/MM/yyyy", {
+                          locale: ptBR,
+                        })}
+                      </p>
+                    </div>
                   </div>
-                )}
-              </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
 
-              {/* Valor restante */}
-              {!meta.concluida && (
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <h3 className="font-semibold text-blue-800 mb-2">
-                    Valor Restante
-                  </h3>
-                  <p className="text-2xl font-bold text-blue-800">
-                    {formatarMoeda(valorRestante)}
-                  </p>
-                  <p className="text-sm text-blue-600 mt-1">
-                    Faltam {formatarMoeda(valorRestante)} para atingir sua meta!
-                  </p>
-                </div>
-              )}
-
-              {/* Botão de contribuição */}
-              {!meta.concluida && !mostrarFormContribuicao && (
-                <Button
-                  className="w-full"
-                  onClick={() =>
-                    router.push(`/dashboard/metas/${id}?contribuir=true`)
-                  }
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Contribuir para esta Meta
-                </Button>
-              )}
-
-              {/* Formulário de contribuição */}
-              {mostrarFormContribuicao && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">
+          {/* Contribuição */}
+          {!meta.concluida && (
+            <Card className="border-0 shadow-none">
+              <CardContent className="p-6">
+                {!mostrarFormContribuicao ? (
+                  <div className="text-center space-y-4">
+                    <div className="h-12 w-12 bg-blue-50 rounded-full flex items-center justify-center mx-auto">
+                      <DollarSign className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className=" mb-1">
+                        Contribuir para a meta
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Ajude a alcançar o objetivo
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() =>
+                        router.push(`/dashboard/metas/${id}?contribuir=true`)
+                      }
+                      className="w-full max-w-xs"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
                       Fazer Contribuição
-                    </CardTitle>
-                    <CardDescription>
-                      Adicione um valor para contribuir com esta meta
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <h3 className="">Fazer Contribuição</h3>
                     <form onSubmit={handleContribuir} className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="valor">Valor da Contribuição *</Label>
+                        <Label htmlFor="valor">Valor</Label>
                         <Input
                           id="valor"
                           type="number"
                           step="0.01"
                           min="0.01"
                           value={valorContribuicao}
-                          onChange={(e) => {
-                            // Permitir apenas números e ponto decimal
-                            const value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              ""
-                            );
-                            // Garantir que há no máximo um ponto decimal
-                            const parts = value.split(".");
-                            if (parts.length > 2) return;
-                            // Garantir que após o ponto há no máximo 2 dígitos
-                            if (parts.length === 2 && parts[1].length > 2)
-                              return;
-                            setValorContribuicao(value);
-                          }}
+                          onChange={(e) => setValorContribuicao(e.target.value)}
                           placeholder="0,00"
                           required
                         />
-                        <p className="text-sm text-muted-foreground">
-                          Valor máximo: {formatarMoeda(valorRestante)}
+                        <p className="text-xs text-muted-foreground">
+                          Máximo: {formatarMoeda(valorRestante)}
                         </p>
                       </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="observacoes">
-                          Observações (Opcional)
-                        </Label>
-                        <Textarea
-                          id="observacoes"
-                          value={observacoesContribuicao}
-                          onChange={(e) =>
-                            setObservacoesContribuicao(e.target.value)
-                          }
-                          placeholder="Descreva esta contribuição..."
-                          rows={3}
-                        />
-                      </div>
-
-                      <div className="flex gap-4">
+                      <div className="flex gap-3">
                         <Button
                           type="button"
                           variant="outline"
@@ -431,145 +330,52 @@ export default function DetalhesMetaPage() {
                           disabled={contribuindo}
                           className="flex-1"
                         >
-                          {contribuindo
-                            ? "Processando..."
-                            : "Confirmar Contribuição"}
+                          {contribuindo ? "Processando..." : "Confirmar"}
                         </Button>
                       </div>
                     </form>
-                  </CardContent>
-                </Card>
-              )}
-            </CardContent>
-          </Card>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Histórico de contribuições */}
-          <Card>
+          {/* Histórico */}
+          <Card className="border-0 shadow-none">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <History className="h-5 w-5" />
-                Histórico de Contribuições
+              <CardTitle className="text-lg ">
+                Contribuições
               </CardTitle>
               <CardDescription>
-                {meta.contribuicoes.length} contribuição(ões) realizadas
+                {meta.contribuicoes.length} contribuições realizadas
               </CardDescription>
             </CardHeader>
             <CardContent>
               {meta.contribuicoes.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  Nenhuma contribuição realizada ainda.
-                </p>
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhuma contribuição ainda
+                </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {meta.contribuicoes.map((contribuicao) => (
                     <div
                       key={contribuicao.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
+                      className="flex items-center justify-between p-3 rounded-lg border"
                     >
-                      <div className="space-y-1">
-                        <p className="font-semibold text-green-600">
+                      <div>
+                        <p className=" text-green-600">
                           + {formatarMoeda(contribuicao.valor)}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {format(
-                            new Date(contribuicao.data),
-                            "dd/MM/yyyy 'às' HH:mm",
-                            {
-                              locale: ptBR,
-                            }
-                          )}
+                          {format(new Date(contribuicao.data), "dd/MM/yyyy", {
+                            locale: ptBR,
+                          })}
                         </p>
-                        {contribuicao.observacoes && (
-                          <p className="text-sm">{contribuicao.observacoes}</p>
-                        )}
                       </div>
                     </div>
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Coluna lateral - Estatísticas */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Estatísticas</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Valor Arrecadado</p>
-                <p className="text-2xl font-bold text-green-600">
-                  {formatarMoeda(meta.valorAtual)}
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Valor Restante</p>
-                <p className="text-2xl font-bold text-blue-600">
-                  {formatarMoeda(valorRestante)}
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Progresso</p>
-                <p className="text-2xl font-bold">
-                  {calcularProgresso(meta.valorAtual, meta.valorAlvo).toFixed(
-                    1
-                  )}
-                  %
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Total de Contribuições</p>
-                <p className="text-2xl font-bold">
-                  {meta.contribuicoes.length}
-                </p>
-              </div>
-
-              {meta.dataLimite && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Dias Restantes</p>
-                  <p className="text-2xl font-bold">
-                    {Math.max(
-                      0,
-                      Math.ceil(
-                        (new Date(meta.dataLimite).getTime() - Date.now()) /
-                          (1000 * 60 * 60 * 24)
-                      )
-                    )}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Ações</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {!meta.concluida && (
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() =>
-                    router.push(`/dashboard/metas/${id}?contribuir=true`)
-                  }
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Contribuir
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => router.push(`/dashboard/metas`)}
-              >
-                Voltar para Lista
-              </Button>
             </CardContent>
           </Card>
         </div>

@@ -242,6 +242,8 @@ export async function POST(request: NextRequest) {
       origem = "manual",
       apiKey,
       usuarioId: usuarioIdFromBody,
+      // Novo campo para divisão automática
+      divisaoAutomatica = true, // Padrão: dividir automaticamente
     } = body;
 
     // Determinar o usuarioId baseado no tipo de autenticação
@@ -298,6 +300,9 @@ export async function POST(request: NextRequest) {
 
     let resultado;
 
+    // VERIFICAÇÃO SIMPLIFICADA - APENAS PELO TIPO LANÇAMENTO
+    const isCompartilhado = tipoLancamento === "compartilhado";
+
     if (recorrente) {
       // Criar lançamento recorrente
       const lancamentoRecorrente = await db.lancamentoRecorrente.create({
@@ -332,6 +337,20 @@ export async function POST(request: NextRequest) {
           origem,
           usuarioId: finalUsuarioId,
           recorrenteId: lancamentoRecorrente.id,
+          // Se for compartilhado, criar as divisões automaticamente
+          ...(isCompartilhado &&
+            divisaoAutomatica && {
+              divisao: {
+                create: await criarDivisoesAutomaticas(
+                  finalUsuarioId,
+                  parseFloat(valor)
+                ),
+              },
+            }),
+        },
+        include: {
+          recorrente: true,
+          ...(isCompartilhado && divisaoAutomatica && { divisao: true }),
         },
       });
 
@@ -351,9 +370,33 @@ export async function POST(request: NextRequest) {
           observacoes: observacoes || null,
           origem,
           usuarioId: finalUsuarioId,
+          // Se for compartilhado, criar as divisões automaticamente
+          ...(isCompartilhado &&
+            divisaoAutomatica && {
+              divisao: {
+                create: await criarDivisoesAutomaticas(
+                  finalUsuarioId,
+                  parseFloat(valor)
+                ),
+              },
+            }),
         },
         include: {
           recorrente: true,
+          ...(isCompartilhado &&
+            divisaoAutomatica && {
+              divisao: {
+                include: {
+                  usuario: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                    },
+                  },
+                },
+              },
+            }),
         },
       });
     }
@@ -365,5 +408,60 @@ export async function POST(request: NextRequest) {
       { error: "Erro interno do servidor" },
       { status: 500 }
     );
+  }
+}
+
+// Função auxiliar para criar divisões automáticas
+async function criarDivisoesAutomaticas(usuarioId: string, valorTotal: number) {
+  try {
+    // Buscar todos os usuários (exceto o atual)
+    const usuarios = await db.usuario.findMany({
+      where: {
+        id: {
+          not: usuarioId,
+        },
+      },
+    });
+
+    // Se não há outros usuários, criar divisão apenas para o usuário atual
+    if (usuarios.length === 0) {
+      return [
+        {
+          usuarioId: usuarioId,
+          valorDivisao: valorTotal,
+          valorPago: 0,
+        },
+      ];
+    }
+
+    // Dividir o valor igualmente entre todos os usuários (incluindo o atual)
+    const valorPorPessoa = valorTotal / (usuarios.length + 1);
+
+    const divisoes = [
+      // Divisão para o usuário atual
+      {
+        usuarioId: usuarioId,
+        valorDivisao: valorPorPessoa,
+        valorPago: 0,
+      },
+      // Divisões para os outros usuários
+      ...usuarios.map((usuario) => ({
+        usuarioId: usuario.id,
+        valorDivisao: valorPorPessoa,
+        valorPago: 0,
+      })),
+    ];
+
+    return divisoes;
+  } catch (error) {
+    console.error("Erro ao criar divisões automáticas:", error);
+    // Em caso de erro, criar divisão apenas para o usuário atual
+    return [
+      {
+        usuarioId: usuarioId,
+        valorDivisao: valorTotal,
+        valorPago: 0,
+      },
+    ];
   }
 }

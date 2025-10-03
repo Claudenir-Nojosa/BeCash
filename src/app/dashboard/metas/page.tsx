@@ -117,9 +117,6 @@ export default function MetasPage() {
     <div className="container mx-auto p-6 mt-20">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-100 rounded-full">
-            <Target className="h-8 w-8 text-blue-600" />
-          </div>
           <div>
             <h1 className="text-3xl font-bold">Metas Financeiras</h1>
             <p className="text-muted-foreground">
