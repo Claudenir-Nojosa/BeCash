@@ -105,15 +105,51 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Usuário não autenticado" },
-        { status: 401 }
-      );
+    const { id } = await params;
+    let finalUsuarioId;
+    let body = {};
+
+    // Tentar parsear o body apenas se for uma requisição com corpo
+    if (request.headers.get("content-type")?.includes("application/json")) {
+      try {
+        body = await request.json();
+      } catch (error) {
+        // Body vazio ou inválido - não é problema, vamos usar auth por sessão
+        console.log(
+          "Requisição sem body JSON - usando autenticação por sessão"
+        );
+      }
     }
 
-    const { id } = await params; // Adicione await aqui
+    const { apiKey, usuarioId: usuarioIdFromBody } = body as any;
+
+    // Verificar autenticação via API Key (n8n)
+    if (apiKey) {
+      if (apiKey !== process.env.N8N_API_KEY) {
+        return NextResponse.json(
+          { error: "API Key inválida" },
+          { status: 401 }
+        );
+      }
+
+      if (!usuarioIdFromBody) {
+        return NextResponse.json(
+          { error: "usuarioId é obrigatório para chamadas via API" },
+          { status: 400 }
+        );
+      }
+
+      finalUsuarioId = usuarioIdFromBody;
+      console.log("Autenticação via API Key - usuário:", finalUsuarioId);
+    } else {
+      // Autenticação via sessão (frontend)
+      const session = await auth();
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+      }
+      finalUsuarioId = session.user.id;
+      console.log("Autenticação via sessão - usuário:", finalUsuarioId);
+    }
 
     // Verificar se o lançamento existe e pertence ao usuário
     const lancamentoExistente = await db.lancamento.findUnique({
@@ -127,7 +163,7 @@ export async function DELETE(
       );
     }
 
-    if (lancamentoExistente.usuarioId !== session.user.id) {
+    if (lancamentoExistente.usuarioId !== finalUsuarioId) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 403 });
     }
 
@@ -136,7 +172,11 @@ export async function DELETE(
       where: { id },
     });
 
-    return NextResponse.json({ message: "Lançamento excluído com sucesso" });
+    return NextResponse.json({
+      success: true,
+      message: "Lançamento excluído com sucesso",
+      id: id,
+    });
   } catch (error) {
     console.error("Erro ao excluir lançamento:", error);
     return NextResponse.json(
