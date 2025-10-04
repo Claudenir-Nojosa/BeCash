@@ -103,27 +103,55 @@ export async function GET(request: NextRequest) {
     const ano = searchParams.get("ano");
     const categoria = searchParams.get("categoria");
     const tipo = searchParams.get("tipo");
-    const responsavel = searchParams.get("responsavel"); // Adicione esta linha
+    const responsavel = searchParams.get("responsavel");
+    const limit = searchParams.get("limit");
+    const apiKey = searchParams.get("apiKey");
+    const usuarioIdQuery = searchParams.get("usuarioId");
 
-    // Autenticação
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    // AUTENTICAÇÃO DUPLA: Sessão ou API Key
+    let finalUsuarioId;
+
+    if (apiKey) {
+      // Autenticação via API Key (n8n)
+      if (apiKey !== process.env.N8N_API_KEY) {
+        return NextResponse.json(
+          { error: "API Key inválida" },
+          { status: 401 }
+        );
+      }
+
+      if (!usuarioIdQuery) {
+        return NextResponse.json(
+          { error: "usuarioId é obrigatório para chamadas via API" },
+          { status: 400 }
+        );
+      }
+
+      finalUsuarioId = usuarioIdQuery;
+      console.log("Autenticação via API Key - usuário:", finalUsuarioId);
+    } else {
+      // Autenticação via sessão (frontend)
+      const session = await auth();
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+      }
+      finalUsuarioId = session.user.id;
+      console.log("Autenticação via sessão - usuário:", finalUsuarioId);
     }
-    const usuarioId = session.user.id;
 
-    // Gerar ocorrências recorrentes para o mês solicitado
-    if (mes && ano) {
+    // Gerar ocorrências recorrentes para o mês solicitado (apenas para sessão)
+    if (mes && ano && !apiKey) {
+      // Só gera recorrências para usuários logados
       await gerarOcorrenciasRecorrentes(
         parseInt(mes),
         parseInt(ano),
-        usuarioId
+        finalUsuarioId
       );
     }
 
     // Construir filtros
     const where: any = {
-      usuarioId,
+      usuarioId: finalUsuarioId,
     };
 
     if (mes && ano) {
@@ -144,7 +172,6 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    // ADICIONE ESTE FILTRO PARA RESPONSÁVEL
     if (responsavel) {
       where.responsavel = {
         equals: responsavel,
@@ -152,12 +179,16 @@ export async function GET(request: NextRequest) {
       };
     }
 
+    // Configurar limite
+    const takeLimit = limit ? parseInt(limit) : 50;
+
     // Buscar lançamentos do banco
     const lancamentos = await db.lancamento.findMany({
       where,
       orderBy: {
         data: "desc",
       },
+      take: takeLimit,
       include: {
         usuario: {
           select: {
@@ -169,7 +200,12 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Calcular totais
+    // Para API calls, retornar apenas os lançamentos de forma simples
+    if (apiKey) {
+      return NextResponse.json(lancamentos);
+    }
+
+    // Para o frontend, manter a estrutura completa com totais
     const totaisPorCategoria = await db.lancamento.groupBy({
       where,
       by: ["categoria", "tipo"],
