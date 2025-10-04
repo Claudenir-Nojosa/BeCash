@@ -3,19 +3,21 @@ import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { auth } from "../../../../../auth";
 
+// API Key fixa - use a mesma que você colocou no Make
+const API_KEY_FIXA = "minha_chave_secreta_super_segura_12345";
+
 export async function GET(request: NextRequest) {
   try {
     // Tentar autenticação via session (usuário logado)
     const session = await auth();
 
-    // Se não tem session, verificar API Key
     let usuarioId: string;
 
     if (session?.user?.id) {
       // Autenticação via session (web)
       usuarioId = session.user.id;
     } else {
-      // Autenticação via API Key
+      // Autenticação via API Key fixa
       const { searchParams } = new URL(request.url);
       const apiKey = searchParams.get("apiKey");
 
@@ -26,14 +28,21 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Buscar usuário pela API Key - CORREÇÃO AQUI: db.usuario em vez de db.user
-      const usuario = await db.usuario.findFirst({
-        where: { apiKey: apiKey },
-      });
-
-      if (!usuario) {
+      // Verificar se a API Key é válida (comparação simples)
+      if (apiKey !== API_KEY_FIXA) {
         return NextResponse.json(
           { error: "API Key inválida" },
+          { status: 401 }
+        );
+      }
+
+      // PARA TESTES: Use um usuário específico ou o primeiro usuário
+      // Você pode ajustar isso conforme sua necessidade
+      const usuario = await db.usuario.findFirst();
+      
+      if (!usuario) {
+        return NextResponse.json(
+          { error: "Nenhum usuário encontrado" },
           { status: 401 }
         );
       }
@@ -53,7 +62,7 @@ export async function GET(request: NextRequest) {
 
     // Construir where clause
     const where: any = {
-      usuarioId: usuarioId, // Usar o ID do usuário autenticado
+      usuarioId: usuarioId,
     };
 
     if (descricao) {
@@ -72,7 +81,6 @@ export async function GET(request: NextRequest) {
     }
 
     if (dataParam) {
-      // Lógica para tratar datas (hoje, ontem, data específica)
       let dataBusca;
       if (dataParam === "hoje") {
         dataBusca = new Date();
@@ -81,7 +89,6 @@ export async function GET(request: NextRequest) {
         ontem.setDate(ontem.getDate() - 1);
         dataBusca = ontem;
       } else {
-        // Tentar parse como data DD/MM/YYYY
         const [dia, mes, ano] = dataParam.split("/");
         dataBusca = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
       }
