@@ -17,6 +17,9 @@ import {
   User,
   Users,
   CreditCard,
+  Pointer,
+  ReceiptCent,
+  Coins,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSession, signOut } from "next-auth/react";
@@ -331,6 +334,21 @@ export default function Sidebar({ onClose }: SidebarProps) {
             </Link>
           </li>
 
+           {/* Pontos */}
+          <li>
+            <Link
+              href="/dashboard/pontos"
+              className={`
+                flex items-center rounded-lg hover:bg-blue-900/20 text-blue-100 transition-colors
+                ${isCollapsed ? "justify-center p-4" : "p-4"}
+                ${isActiveRoute("/dashboard/pontos") ? "bg-blue-900/30 text-white" : ""}
+              `}
+              onClick={handleLinkClick}
+            >
+              <Coins className="h-6 w-6" />
+              {!isCollapsed && <span className="ml-4 text-base">Pontos</span>}
+            </Link>
+          </li>
           {/* Investimentos */}
           <li>
             <Link

@@ -38,6 +38,10 @@ model Usuario {
   saldosComoCredor  SaldoCompartilhado[] @relation("SaldoCredor")
 
   Cartao Cartao[]
+
+  Pontos Pontos[]
+
+  MetaPontos MetaPontos[]
 }
 
 model Account {
@@ -505,4 +509,36 @@ enum BandeiraCartao {
   AMERICAN_EXPRESS
   HIPERCARD
   OUTROS
+}
+
+model Pontos {
+  id          String   @id @default(cuid())
+  programa     String   // LIVELO, SMILES, etc.
+  quantidade   Int
+  descricao    String
+  data         DateTime
+  tipo         String   // GANHO, RESGATE, EXPIRACAO
+  valorResgate Float?   // Valor em reais se for resgate
+  usuarioId    String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@map("pontos")
+}
+
+model MetaPontos {
+  id          String   @id @default(cuid())
+  programa    String
+  metaPontos  Int
+  descricao   String?
+  dataAlvo    DateTime
+  usuarioId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([programa, usuarioId])
 }
