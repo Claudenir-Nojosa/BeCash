@@ -1,16 +1,12 @@
 // app/api/cartoes/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "../../../../../auth";
 import db from "@/lib/db";
+import { auth } from "../../../../../auth";
 
-// Tipo para os parâmetros
-interface RouteParams {
-  params: {
-    id: string;
-  };
-}
-
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -64,7 +60,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 }
 
 // PUT - Atualizar cartão
-export async function PUT(request: NextRequest, { params }: RouteParams) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -146,7 +145,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
