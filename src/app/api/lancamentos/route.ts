@@ -18,9 +18,6 @@ async function gerarOcorrenciasRecorrentes(
     where: {
       usuarioId,
       ativo: true,
-      dataInicio: {
-        lte: fimMes,
-      },
     },
     include: {
       ocorrencias: {
@@ -40,7 +37,6 @@ async function gerarOcorrenciasRecorrentes(
             },
           ],
         },
-        take: 1,
       },
     },
   });
@@ -51,7 +47,7 @@ async function gerarOcorrenciasRecorrentes(
 
   for (const recorrente of recorenciasAtivas) {
     console.log(
-      `\n🔍 Analisando: "${recorrente.descricao}" (${recorrente.tipoTransacao})`
+      `\n🔍 Analisando: "${recorrente.descricao}" (${recorrente.tipoRecorrencia})`
     );
 
     // SE JÁ EXISTE lançamento para este mês, PULAR
@@ -60,8 +56,8 @@ async function gerarOcorrenciasRecorrentes(
       continue;
     }
 
-    // Buscar o PRIMEIRO lançamento
-    const primeiroLancamento = await db.lancamento.findFirst({
+    // Buscar TODOS os lançamentos deste recorrente
+    const todosLancamentos = await db.lancamento.findMany({
       where: {
         recorrenteId: recorrente.id,
       },
@@ -70,22 +66,23 @@ async function gerarOcorrenciasRecorrentes(
       },
     });
 
-    if (!primeiroLancamento) {
-      console.log(`❌ Primeiro lançamento não encontrado`);
+    if (todosLancamentos.length === 0) {
+      console.log(`❌ Nenhum lançamento encontrado para esta recorrência`);
       continue;
     }
 
+    const primeiroLancamento = todosLancamentos[0];
+
     // LÓGICA DIFERENCIADA POR TIPO
     if (recorrente.tipoRecorrencia === "PARCELAMENTO") {
-      // PARCELAMENTO: criar apenas a próxima parcela
       ocorrenciasCriadas += await gerarParcela(
         recorrente,
         primeiroLancamento,
+        todosLancamentos,
         mes,
         ano
       );
     } else {
-      // RECORRÊNCIA: criar ocorrência mensal
       ocorrenciasCriadas += await gerarRecorrencia(
         recorrente,
         primeiroLancamento,
@@ -101,91 +98,105 @@ async function gerarOcorrenciasRecorrentes(
   return ocorrenciasCriadas;
 }
 
-// NOVA FUNÇÃO ESPECÍFICA PARA CARTÃO DE CRÉDITO
-async function gerarRecorrenciaCartao(
+// NOVA FUNÇÃO: Verificar se já existe lançamento duplicado
+async function verificarDuplicacaoCartaoCredito(
   recorrente: any,
-  primeiroLancamento: any,
   mes: number,
-  ano: number
-) {
-  console.log(`💳 Processando RECORRÊNCIA DE CARTÃO`);
+  ano: number,
+  usuarioId: string
+): Promise<boolean> {
+  // Para cartão de crédito, verificar se já existe lançamento MANUAL no mesmo mês
+  const inicioMes = new Date(ano, mes - 1, 1);
+  const fimMes = new Date(ano, mes, 1);
 
-  const dataInicio = new Date(recorrente.dataInicio);
-  const dataAlvo = new Date(ano, mes - 1, 1);
-
-  // Para cartão, sempre considerar mensal
-  const mesesDiff =
-    (dataAlvo.getFullYear() - dataInicio.getFullYear()) * 12 +
-    (dataAlvo.getMonth() - dataInicio.getMonth());
-
-  console.log(`   Meses diferença: ${mesesDiff}`);
-
-  // Só gerar se for pelo menos 1 mês depois do início
-  if (mesesDiff < 1) {
-    console.log(`❌ Cartão: Mês atual é igual ou anterior ao início, pulando`);
-    return 0;
-  }
-
-  // VERIFICAÇÃO EXTRA: Buscar TODOS os lançamentos deste recorrente
-  const lancamentosExistentes = await db.lancamento.findMany({
+  const lancamentoManual = await db.lancamento.findFirst({
     where: {
-      recorrenteId: recorrente.id,
-      OR: [
-        { data: { gte: new Date(ano, mes - 1, 1), lt: new Date(ano, mes, 1) } },
-        {
-          dataVencimento: {
-            gte: new Date(ano, mes - 1, 1),
-            lt: new Date(ano, mes, 1),
-          },
-        },
-      ],
+      usuarioId,
+      descricao: recorrente.descricao,
+      tipoTransacao: "CARTAO_CREDITO",
+      dataVencimento: {
+        gte: inicioMes,
+        lt: fimMes,
+      },
+      recorrenteId: null, // É um lançamento manual, não de recorrência
     },
   });
 
-  if (lancamentosExistentes.length > 0) {
+  if (lancamentoManual) {
     console.log(
-      `⚠️ Já existem ${lancamentosExistentes.length} lançamentos para ${mes}/${ano}, pulando...`
+      `🚫 Já existe lançamento MANUAL para cartão em ${mes}/${ano}, evitando duplicação`
     );
+    return true;
+  }
+
+  return false;
+}
+
+async function gerarParcela(
+  recorrente: any,
+  primeiroLancamento: any,
+  todosLancamentos: any[],
+  mes: number,
+  ano: number
+) {
+  console.log(`📦 Processando PARCELAMENTO: "${recorrente.descricao}"`);
+  
+  // 1. Contar quantas parcelas JÁ EXISTEM (incluindo a manual)
+  const totalParcelasExistentes = todosLancamentos.length;
+  console.log(`   Parcelas existentes: ${totalParcelasExistentes}, Total desejado: ${recorrente.parcelas}`);
+
+  // 2. Se já temos todas as parcelas, PARAR
+  if (totalParcelasExistentes >= recorrente.parcelas) {
+    console.log(`⏹️ Já temos ${totalParcelasExistentes} parcelas de ${recorrente.parcelas}, parando`);
+    await db.lancamentoRecorrente.update({
+      where: { id: recorrente.id },
+      data: { ativo: false },
+    });
     return 0;
   }
 
-  // Calcular data baseada na data de início + meses de diferença
-  let dataOcorrencia = new Date(dataInicio);
-  dataOcorrencia.setMonth(dataInicio.getMonth() + mesesDiff);
+  // 3. Calcular número da PRÓXIMA parcela
+  const numeroParcela = totalParcelasExistentes + 1;
+  
+  // 4. Calcular data da PRÓXIMA parcela
+  const dataPrimeiraParcela = new Date(primeiroLancamento.dataVencimento || primeiroLancamento.data);
+  let dataParcela = new Date(dataPrimeiraParcela);
+  
+  // SIMPLES: Parcela 1 = mês 0, Parcela 2 = mês +1, Parcela 3 = mês +2
+  dataParcela.setMonth(dataPrimeiraParcela.getMonth() + (numeroParcela - 1));
 
-  // Ajustar para último dia do mês se necessário
-  const ultimoDiaMes = new Date(ano, mes, 0).getDate();
-  if (dataOcorrencia.getDate() > ultimoDiaMes) {
-    dataOcorrencia = new Date(ano, mes, 0);
+  // 5. Verificar se esta parcela é para o mês atual
+  const mesParcela = dataParcela.getMonth() + 1;
+  const anoParcela = dataParcela.getFullYear();
+  
+  if (mesParcela !== mes || anoParcela !== ano) {
+    console.log(`📅 Parcela ${numeroParcela} não é para ${mes}/${ano} (é para ${mesParcela}/${anoParcela})`);
+    return 0;
   }
 
-  // Calcular data de vencimento
+  console.log(`🔄 Criando PARCELA ${numeroParcela}/${recorrente.parcelas} para ${dataParcela.toISOString()}`);
+
+  // 6. Calcular data de vencimento
   let dataVencimento = null;
   if (primeiroLancamento.dataVencimento) {
     const vencimentoOriginal = new Date(primeiroLancamento.dataVencimento);
-    dataVencimento = new Date(ano, mes - 1, vencimentoOriginal.getDate());
-
-    const ultimoDia = new Date(ano, mes, 0).getDate();
-    if (dataVencimento.getDate() > ultimoDia) {
-      dataVencimento = new Date(ano, mes, 0);
-    }
+    dataVencimento = new Date(vencimentoOriginal);
+    dataVencimento.setMonth(vencimentoOriginal.getMonth() + (numeroParcela - 1));
   }
 
-  console.log(
-    `🔄 Criando RECORRÊNCIA DE CARTÃO para ${dataOcorrencia.toISOString()}`
-  );
-
+  // 7. Criar a parcela
   const dadosLancamento: any = {
-    descricao: recorrente.descricao,
+    descricao: `${recorrente.descricao} (${numeroParcela}/${recorrente.parcelas})`,
     valor: recorrente.valor,
     tipo: recorrente.tipo,
     categoria: recorrente.categoria,
     tipoLancamento: recorrente.tipoLancamento,
     tipoTransacao: primeiroLancamento.tipoTransacao,
     responsavel: recorrente.responsavel,
-    data: dataOcorrencia,
+    data: dataParcela,
     dataVencimento: dataVencimento,
     pago: false,
+    parcelaAtual: numeroParcela,
     observacoes: recorrente.observacoes,
     usuarioId: recorrente.usuarioId,
     recorrenteId: recorrente.id,
@@ -197,7 +208,7 @@ async function gerarRecorrenciaCartao(
     data: dadosLancamento,
   });
 
-  console.log(`✅ Recorrência de cartão criada com sucesso!`);
+  console.log(`✅ Parcela ${numeroParcela} criada com sucesso!`);
   return 1;
 }
 
@@ -213,19 +224,9 @@ async function gerarRecorrencia(
   console.log(`📅 Analisando recorrência: "${recorrente.descricao}"`);
   console.log(`   Data início: ${dataInicio.toISOString()}`);
   console.log(`   Mês/Ano alvo: ${mes}/${ano}`);
-  console.log(`   Tipo: ${recorrente.tipoTransacao}`);
+  console.log(`   Tipo: ${recorrente.tipoRecorrencia}`);
 
-  // CORREÇÃO RADICAL: Para cartão de crédito, lógica diferente
-  if (recorrente.tipoTransacao === "CARTAO_CREDITO") {
-    return await gerarRecorrenciaCartao(
-      recorrente,
-      primeiroLancamento,
-      mes,
-      ano
-    );
-  }
-
-  // Lógica normal para outros tipos
+  // Lógica normal para recorrência
   const mesesDiff =
     (ano - dataInicio.getFullYear()) * 12 + (mes - dataInicio.getMonth() - 1);
 
@@ -320,87 +321,6 @@ async function gerarRecorrencia(
   });
 
   console.log(`✅ Recorrência criada com sucesso!`);
-  return 1;
-}
-
-// Função para PARCELAMENTO (compras únicas parceladas)
-async function gerarParcela(
-  recorrente: any,
-  primeiroLancamento: any,
-  mes: number,
-  ano: number
-) {
-  // Contar quantas parcelas já existem
-  const parcelasExistentes = await db.lancamento.count({
-    where: {
-      recorrenteId: recorrente.id,
-    },
-  });
-
-  console.log(
-    `📦 Parcelamento - Parcelas existentes: ${parcelasExistentes}, Total: ${recorrente.parcelas}`
-  );
-
-  // Se já atingiu o total de parcelas, desativar
-  if (recorrente.parcelas && parcelasExistentes >= recorrente.parcelas) {
-    console.log(`⏹️ Parcelamento concluído: ${recorrente.parcelas} parcelas`);
-    await db.lancamentoRecorrente.update({
-      where: { id: recorrente.id },
-      data: { ativo: false },
-    });
-    return 0;
-  }
-
-  // Calcular número da próxima parcela
-  const numeroParcela = parcelasExistentes + 1;
-
-  // Calcular data baseada na primeira parcela + número de meses
-  const dataPrimeiraParcela = new Date(primeiroLancamento.data);
-  let dataParcela = new Date(dataPrimeiraParcela);
-  dataParcela.setMonth(dataPrimeiraParcela.getMonth() + (numeroParcela - 1));
-
-  // Verificar se a parcela é para este mês
-  if (dataParcela.getMonth() + 1 !== mes || dataParcela.getFullYear() !== ano) {
-    console.log(`📅 Parcela ${numeroParcela} não é para ${mes}/${ano}`);
-    return 0;
-  }
-
-  console.log(
-    `🔄 Criando PARCELA ${numeroParcela} para ${dataParcela.toISOString()}`
-  );
-
-  // Calcular data de vencimento (mesma lógica da primeira parcela)
-  let dataVencimento = null;
-  if (primeiroLancamento.dataVencimento) {
-    const vencimentoOriginal = new Date(primeiroLancamento.dataVencimento);
-    dataVencimento = new Date(dataParcela);
-    dataVencimento.setDate(vencimentoOriginal.getDate());
-  }
-
-  const dadosLancamento: any = {
-    descricao: `${recorrente.descricao} (${numeroParcela}/${recorrente.parcelas})`,
-    valor: recorrente.valor,
-    tipo: recorrente.tipo,
-    categoria: recorrente.categoria,
-    tipoLancamento: recorrente.tipoLancamento,
-    tipoTransacao: primeiroLancamento.tipoTransacao,
-    responsavel: recorrente.responsavel,
-    data: dataParcela,
-    dataVencimento: dataVencimento,
-    pago: false,
-    parcelaAtual: numeroParcela,
-    observacoes: recorrente.observacoes,
-    usuarioId: recorrente.usuarioId,
-    recorrenteId: recorrente.id,
-    origem: "recorrente",
-    cartaoId: primeiroLancamento.cartaoId,
-  };
-
-  await db.lancamento.create({
-    data: dadosLancamento,
-  });
-
-  console.log(`✅ Parcela ${numeroParcela} criada com sucesso!`);
   return 1;
 }
 
@@ -530,11 +450,10 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const {
+    let {
       descricao,
       valor,
       tipo,
@@ -618,9 +537,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (recorrente && !frequencia) {
+    if (recorrente && !frequencia && tipoRecorrencia === "RECORRENCIA") {
       return NextResponse.json(
         { error: "Frequência é obrigatória para lançamentos recorrentes" },
+        { status: 400 }
+      );
+    }
+
+    if (recorrente && !parcelas && tipoRecorrencia === "PARCELAMENTO") {
+      return NextResponse.json(
+        { error: "Número de parcelas é obrigatório para parcelamento" },
         { status: 400 }
       );
     }
@@ -641,10 +567,16 @@ export async function POST(request: NextRequest) {
     // VERIFICAÇÃO SIMPLIFICADA - APENAS PELO TIPO LANÇAMENTO
     const isCompartilhado = tipoLancamento === "compartilhado";
 
+    // CORREÇÃO: Para parcelamento, dividir o valor
+    const valorFinal =
+      tipoRecorrencia === "PARCELAMENTO" && parcelas
+        ? parseFloat(valor) / parseInt(parcelas)
+        : parseFloat(valor);
+
     // Dados base para criação do lançamento
     const dadosLancamento = {
       descricao,
-      valor: parseFloat(valor),
+      valor: valorFinal,
       tipo,
       categoria,
       tipoLancamento,
@@ -661,32 +593,58 @@ export async function POST(request: NextRequest) {
       ...(isCompartilhado &&
         divisaoAutomatica && {
           divisao: {
-            create: await criarDivisoesAutomaticas(
-              finalUsuarioId,
-              parseFloat(valor)
-            ),
+            create: await criarDivisoesAutomaticas(finalUsuarioId, valorFinal),
           },
         }),
     };
 
-    if (recorrente) {
-      // CORREÇÃO DEFINITIVA: Para cartão de crédito recorrente, NUNCA criar primeira ocorrência
-      const dataCompra = new Date(data);
-      const dataVenc = dataVencimento ? new Date(dataVencimento) : null;
+    // LÓGICA SIMPLIFICADA PARA PARCELAMENTO
+    if (recorrente && tipoRecorrencia === "PARCELAMENTO") {
+      // PARA PARCELAMENTO: Criar APENAS o lançamento manual (Parcela 1)
+      const lancamentoManual = await db.lancamento.create({
+        data: {
+          ...dadosLancamento,
+          origem: "manual",
+          parcelaAtual: 1,
+          // NÃO adicionar recorrenteId - é manual
+        },
+        include: {
+          cartao: true,
+          fatura: true,
+          ...(isCompartilhado && divisaoAutomatica && { divisao: true }),
+        },
+      });
 
-      let criarPrimeiraOcorrencia = true;
-
-      // SE FOR CARTÃO DE CRÉDITO, NUNCA CRIAR PRIMEIRA OCORRÊNCIA
-      if (tipoTransacao === "CARTAO_CREDITO") {
-        criarPrimeiraOcorrencia = false;
-        console.log(`🚫 Cartão de crédito: NUNCA criar primeira ocorrência`);
-      }
-
-      // Criar lançamento recorrente
+      // Criar o registro de recorrência APENAS para controle futuro
       const lancamentoRecorrente = await db.lancamentoRecorrente.create({
         data: {
           descricao,
-          valor: parseFloat(valor),
+          valor: valorFinal, // Valor já dividido
+          tipo,
+          categoria,
+          tipoLancamento,
+          tipoTransacao,
+          responsavel,
+          dataInicio: new Date(dataVencimento), // Usar data de vencimento como referência
+          frequencia: "mensal",
+          parcelas: parseInt(parcelas),
+          observacoes: observacoes || null,
+          usuarioId: finalUsuarioId,
+          tipoRecorrencia: "PARCELAMENTO",
+        },
+      });
+
+      resultado = {
+        ...lancamentoManual,
+        recorrente: lancamentoRecorrente,
+      };
+
+    } else if (recorrente) {
+      // PARA RECORRÊNCIA NORMAL (não parcelamento)
+      const lancamentoRecorrente = await db.lancamentoRecorrente.create({
+        data: {
+          descricao,
+          valor: valorFinal,
           tipo,
           categoria,
           tipoLancamento,
@@ -701,50 +659,27 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      let primeiraOcorrencia = null;
-
-      // Criar primeira ocorrência apenas se NÃO for cartão de crédito
-      if (criarPrimeiraOcorrencia) {
-        primeiraOcorrencia = await db.lancamento.create({
-          data: {
-            ...dadosLancamento,
-            recorrenteId: lancamentoRecorrente.id,
-          },
-          include: {
-            recorrente: true,
-            cartao: true,
-            fatura: true,
-            ...(isCompartilhado && divisaoAutomatica && { divisao: true }),
-          },
-        });
-
-        console.log(`✅ Primeira ocorrência criada: ${primeiraOcorrencia.id}`);
-      } else {
-        console.log(`🚫 Primeira ocorrência NÃO criada (cartão de crédito)`);
-
-        // Para cartão de crédito, criar APENAS o lançamento manual SEM recorrenteId
-        primeiraOcorrencia = await db.lancamento.create({
-          data: {
-            ...dadosLancamento,
-            origem: "manual", // Manter como manual
-            // NÃO adicionar recorrenteId - isso evita duplicação
-          },
-          include: {
-            recorrente: true,
-            cartao: true,
-            fatura: true,
-            ...(isCompartilhado && divisaoAutomatica && { divisao: true }),
-          },
-        });
-      }
+      // Criar primeira ocorrência
+      const primeiraOcorrencia = await db.lancamento.create({
+        data: {
+          ...dadosLancamento,
+          recorrenteId: lancamentoRecorrente.id,
+        },
+        include: {
+          recorrente: true,
+          cartao: true,
+          fatura: true,
+          ...(isCompartilhado && divisaoAutomatica && { divisao: true }),
+        },
+      });
 
       resultado = {
         ...primeiraOcorrencia,
         recorrente: lancamentoRecorrente,
-        primeiraOcorrenciaCriada: criarPrimeiraOcorrencia,
       };
+
     } else {
-      // Criar lançamento único
+      // LANÇAMENTO ÚNICO (não recorrente)
       resultado = await db.lancamento.create({
         data: dadosLancamento,
         include: {

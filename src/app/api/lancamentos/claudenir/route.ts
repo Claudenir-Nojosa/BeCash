@@ -338,6 +338,10 @@ export async function GET(request: NextRequest) {
 
     console.log(`Encontrados ${lancamentos.length} lançamentos`);
 
+    // CORREÇÃO: FILTRAR DUPLICAÇÕES DE PARCELAMENTO
+    const lancamentosFiltrados = filtrarDuplicacoesParcelamento(lancamentos);
+    console.log(`Após filtro: ${lancamentosFiltrados.length} lançamentos`);
+
     // CALCULAR TOTAIS POR CATEGORIA CORRETAMENTE
     const totaisPorCategoria = await db.lancamento.groupBy({
       where: {
@@ -448,7 +452,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({
-      lancamentos,
+      lancamentos: lancamentosFiltrados, // USAR OS LANÇAMENTOS FILTRADOS
       totaisPorCategoria,
       resumo: {
         receitas: totalReceitas._sum.valor || 0,
@@ -465,4 +469,53 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// FUNÇÃO PARA FILTRAR DUPLICAÇÕES DE PARCELAMENTO
+function filtrarDuplicacoesParcelamento(lancamentos: any[]) {
+  const lancamentosFiltrados: any[] = [];
+  const descricoesProcessadas = new Set();
+
+  for (const lancamento of lancamentos) {
+    // Extrair a descrição base (sem o número da parcela)
+    const descricaoBase = lancamento.descricao.replace(/\s*\(\d+\/\d+\)$/, '').trim();
+    
+    // Se já processamos esta descrição, verificar duplicação
+    if (descricoesProcessadas.has(descricaoBase)) {
+      // CORREÇÃO: Manter APENAS o lançamento MANUAL (parcelaAtual: 1, recorrenteId: null)
+      // e remover o lançamento automático duplicado
+      const lancamentoManualExistente = lancamentosFiltrados.find(
+        l => l.descricao.replace(/\s*\(\d+\/\d+\)$/, '').trim() === descricaoBase &&
+             l.parcelaAtual === 1 && 
+             l.recorrenteId === null
+      );
+
+      if (lancamentoManualExistente) {
+        // Já temos o manual, pular este automático
+        console.log(`🚫 Removendo duplicação automática: ${lancamento.descricao}`);
+        continue;
+      }
+
+      // Se não encontrou o manual, verificar se temos um automático e este é manual
+      const lancamentoAutomaticoExistente = lancamentosFiltrados.find(
+        l => l.descricao.replace(/\s*\(\d+\/\d+\)$/, '').trim() === descricaoBase &&
+             l.recorrenteId !== null
+      );
+
+      if (lancamentoAutomaticoExistente && lancamento.parcelaAtual === 1 && lancamento.recorrenteId === null) {
+        // Temos um automático e este é manual - substituir pelo manual
+        console.log(`🔄 Substituindo automático por manual: ${lancamento.descricao}`);
+        const index = lancamentosFiltrados.indexOf(lancamentoAutomaticoExistente);
+        lancamentosFiltrados[index] = lancamento;
+        continue;
+      }
+    }
+
+    // Adicionar à lista e marcar como processado
+    lancamentosFiltrados.push(lancamento);
+    descricoesProcessadas.add(descricaoBase);
+  }
+
+  console.log(`📊 Filtrados ${lancamentos.length} -> ${lancamentosFiltrados.length} lançamentos`);
+  return lancamentosFiltrados;
 }
