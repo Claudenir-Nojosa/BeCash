@@ -4,6 +4,7 @@ import db from "@/lib/db";
 import { auth } from "../../../../../auth";
 
 // Função para gerar ocorrências de lançamentos recorrentes
+// Na sua função gerarOcorrenciasRecorrentes, atualize a parte de criação:
 async function gerarOcorrenciasRecorrentes(
   mes: number,
   ano: number,
@@ -20,8 +21,21 @@ async function gerarOcorrenciasRecorrentes(
       usuarioId,
       ativo: true,
       dataInicio: {
-        lte: fimMes, // Data início deve ser antes do fim do mês
+        lte: fimMes,
       },
+    },
+    include: {
+      // Incluir o primeiro lançamento para pegar dados do cartão
+      ocorrencias: {
+        take: 1,
+        orderBy: {
+          data: 'asc'
+        },
+        include: {
+          cartao: true,
+          fatura: true
+        }
+      }
     },
   });
 
@@ -31,19 +45,21 @@ async function gerarOcorrenciasRecorrentes(
 
   for (const recorrente of recorenciasAtivas) {
     console.log(`Processando: ${recorrente.descricao}`);
-
+    
+    // Buscar o primeiro lançamento para pegar dados do cartão (se houver)
+    const primeiroLancamento = recorrente.ocorrencias[0];
+    
     // Calcular diferença em meses desde o início
     const dataInicio = new Date(recorrente.dataInicio);
-    const mesesDiff =
-      (ano - dataInicio.getFullYear()) * 12 + (mes - dataInicio.getMonth() - 1);
-
+    const mesesDiff = (ano - dataInicio.getFullYear()) * 12 + (mes - dataInicio.getMonth() - 1);
+    
     console.log(`Meses desde início: ${mesesDiff}`);
 
     // Verificar se deve gerar baseado na frequência
     let deveGerar = false;
     switch (recorrente.frequencia) {
       case "mensal":
-        deveGerar = mesesDiff >= 0; // Gera a partir do mês inicial
+        deveGerar = mesesDiff >= 0;
         break;
       case "trimestral":
         deveGerar = mesesDiff >= 0 && mesesDiff % 3 === 0;
@@ -78,45 +94,60 @@ async function gerarOcorrenciasRecorrentes(
       });
 
       if (existeLancamento) {
-        console.log(
-          `❌ Já existe lançamento para ${mes}/${ano}: ${existeLancamento.id}`
-        );
+        console.log(`❌ Já existe lançamento para ${mes}/${ano}: ${existeLancamento.id}`);
         continue;
       }
 
       // Criar data da ocorrência (usar o mesmo dia do mês da data inicial)
       const diaOriginal = dataInicio.getDate();
       let dataOcorrencia = new Date(ano, mes - 1, diaOriginal);
-
-      // Ajustar se o dia for maior que os dias do mês (ex: 31 em Fevereiro)
+      
+      // Ajustar se o dia for maior que os dias do mês
       const ultimoDiaMes = new Date(ano, mes, 0).getDate();
       if (diaOriginal > ultimoDiaMes) {
-        dataOcorrencia = new Date(ano, mes, 0); // Último dia do mês
+        dataOcorrencia = new Date(ano, mes, 0);
       }
 
-      console.log(
-        `✅ Criando ocorrência para: ${dataOcorrencia.toISOString()}`
-      );
+      // Calcular data de vencimento para cartão (se o primeiro lançamento tinha)
+      let dataVencimento = null;
+      if (primeiroLancamento?.dataVencimento) {
+        const vencimentoOriginal = new Date(primeiroLancamento.dataVencimento);
+        dataVencimento = new Date(ano, mes - 1, vencimentoOriginal.getDate());
+      }
+
+      console.log(`✅ Criando ocorrência para: ${dataOcorrencia.toISOString()}`);
 
       try {
+        // Dados base para o lançamento
+        const dadosLancamento: any = {
+          descricao: recorrente.descricao,
+          valor: recorrente.valor,
+          tipo: recorrente.tipo,
+          categoria: recorrente.categoria,
+          tipoLancamento: recorrente.tipoLancamento,
+          tipoTransacao: recorrente.tipoTransacao || "DINHEIRO",
+          responsavel: recorrente.responsavel,
+          data: dataOcorrencia,
+          pago: false,
+          observacoes: recorrente.observacoes,
+          usuarioId: recorrente.usuarioId,
+          recorrenteId: recorrente.id,
+          origem: "recorrente",
+        };
+
+        // Se o primeiro lançamento tinha dados de cartão, replicar para as recorrências
+        if (primeiroLancamento?.cartaoId) {
+          dadosLancamento.cartaoId = primeiroLancamento.cartaoId;
+          dadosLancamento.tipoTransacao = primeiroLancamento.tipoTransacao || "CARTAO_CREDITO";
+          dadosLancamento.dataVencimento = dataVencimento;
+          dadosLancamento.pago = false; // Cartão nunca marca como pago automaticamente
+          
+          console.log(`🔄 Replicando dados do cartão: ${primeiroLancamento.cartaoId}`);
+        }
+
         // Criar a ocorrência
         await db.lancamento.create({
-          data: {
-            descricao: recorrente.descricao,
-            valor: recorrente.valor,
-            tipo: recorrente.tipo,
-            categoria: recorrente.categoria,
-            tipoLancamento: recorrente.tipoLancamento,
-            tipoTransacao: recorrente.tipoTransacao || "DINHEIRO",
-            responsavel: recorrente.responsavel,
-            data: dataOcorrencia,
-            pago: false,
-            parcelaAtual: mesesDiff + 1,
-            observacoes: recorrente.observacoes,
-            usuarioId: recorrente.usuarioId,
-            recorrenteId: recorrente.id,
-            origem: "recorrente",
-          },
+          data: dadosLancamento,
         });
 
         ocorrenciasCriadas++;

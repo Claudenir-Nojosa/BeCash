@@ -362,7 +362,7 @@ export async function POST(request: NextRequest) {
     };
 
     if (recorrente) {
-      // Criar lançamento recorrente
+      // Criar lançamento recorrente COM dados do cartão
       const lancamentoRecorrente = await db.lancamentoRecorrente.create({
         data: {
           descricao,
@@ -370,7 +370,7 @@ export async function POST(request: NextRequest) {
           tipo,
           categoria,
           tipoLancamento,
-          tipoTransacao, // Novo campo
+          tipoTransacao, // Incluir tipoTransacao
           responsavel,
           dataInicio: new Date(data),
           frequencia,
@@ -380,13 +380,39 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      // Dados para o primeiro lançamento
+      const dadosPrimeiroLancamento = {
+        descricao,
+        valor: parseFloat(valor),
+        tipo,
+        categoria,
+        tipoLancamento,
+        tipoTransacao,
+        responsavel,
+        data: new Date(data),
+        dataVencimento: dataVencimento ? new Date(dataVencimento) : null,
+        pago: tipoTransacao === "CARTAO_CREDITO" ? false : Boolean(pago),
+        observacoes: observacoes || null,
+        origem,
+        usuarioId: finalUsuarioId,
+        cartaoId: tipoTransacao === "CARTAO_CREDITO" ? cartaoId : null,
+        faturaId, // Já calculado anteriormente
+        recorrenteId: lancamentoRecorrente.id,
+        // Se for compartilhado, criar as divisões automaticamente
+        ...(isCompartilhado &&
+          divisaoAutomatica && {
+            divisao: {
+              create: await criarDivisoesAutomaticas(
+                finalUsuarioId,
+                parseFloat(valor)
+              ),
+            },
+          }),
+      };
+
       // Criar primeira ocorrência
       const primeiraOcorrencia = await db.lancamento.create({
-        data: {
-          ...dadosLancamento,
-          parcelaAtual: 1,
-          recorrenteId: lancamentoRecorrente.id,
-        },
+        data: dadosPrimeiroLancamento,
         include: {
           recorrente: true,
           cartao: true,
