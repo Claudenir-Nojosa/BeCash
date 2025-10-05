@@ -3,17 +3,24 @@ import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { auth } from "../../../../../auth";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const cartaoId = params.id;
+    // Extrair o ID da URL manualmente (mesmo método que funciona na outra rota)
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split("/");
+    const cartaoId = pathParts[pathParts.length - 1];
+
+    if (!cartaoId) {
+      return NextResponse.json(
+        { error: "ID do cartão não fornecido" },
+        { status: 400 }
+      );
+    }
 
     const cartao = await db.cartao.findFirst({
       where: {
@@ -60,17 +67,25 @@ export async function GET(
 }
 
 // PUT - Atualizar cartão
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const cartaoId = params.id;
+    // Extrair o ID da URL manualmente
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split("/");
+    const cartaoId = pathParts[pathParts.length - 1];
+
+    if (!cartaoId) {
+      return NextResponse.json(
+        { error: "ID do cartão não fornecido" },
+        { status: 400 }
+      );
+    }
+
     const body = await request.json();
 
     const {
@@ -145,17 +160,24 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const cartaoId = params.id;
+    // Extrair o ID da URL manualmente
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split("/");
+    const cartaoId = pathParts[pathParts.length - 1];
+
+    if (!cartaoId) {
+      return NextResponse.json(
+        { error: "ID do cartão não fornecido" },
+        { status: 400 }
+      );
+    }
 
     // Verificar se o cartão pertence ao usuário
     const cartao = await db.cartao.findFirst({
