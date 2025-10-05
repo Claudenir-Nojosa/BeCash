@@ -21,7 +21,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, ArrowLeft, CreditCard } from "lucide-react";
+import {
+  CalendarIcon,
+  ArrowLeft,
+  CreditCard,
+  Repeat,
+  Divide,
+} from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -55,7 +61,9 @@ export default function NovoLancamentoPage() {
     responsavel: "",
     pago: false,
     recorrente: false,
-    frequencia: "",
+    tipoRecorrencia: "RECORRENCIA", // NOVO: RECORRENCIA ou PARCELAMENTO
+    frequencia: "mensal",
+    parcelas: "", // NOVO: número de parcelas
     observacoes: "",
   });
 
@@ -73,6 +81,13 @@ export default function NovoLancamentoPage() {
       setDataVencimento(proximoMes);
     }
   }, [formData.tipoTransacao, date, dataVencimento]);
+
+  // Resetar parcelas quando mudar o tipo de recorrência
+  useEffect(() => {
+    if (formData.tipoRecorrencia === "RECORRENCIA") {
+      setFormData((prev) => ({ ...prev, parcelas: "" }));
+    }
+  }, [formData.tipoRecorrencia]);
 
   const carregarCartoes = async () => {
     setCarregandoCartoes(true);
@@ -102,6 +117,7 @@ export default function NovoLancamentoPage() {
           formData.tipoTransacao === "CARTAO_CREDITO" && dataVencimento
             ? dataVencimento.toISOString()
             : null,
+        parcelas: formData.parcelas ? parseInt(formData.parcelas) : null,
         // Para cartão de crédito, força pago como false
         pago:
           formData.tipoTransacao === "CARTAO_CREDITO" ? false : formData.pago,
@@ -420,35 +436,109 @@ export default function NovoLancamentoPage() {
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="recorrente"
-            checked={formData.recorrente}
-            onCheckedChange={(checked) =>
-              handleChange("recorrente", checked === true)
-            }
-          />
-          <Label htmlFor="recorrente">Lançamento recorrente</Label>
-        </div>
-
-        {formData.recorrente && (
-          <div className="space-y-2">
-            <Label htmlFor="frequencia">Frequência</Label>
-            <Select
-              value={formData.frequencia}
-              onValueChange={(value) => handleChange("frequencia", value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a frequência" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="mensal">Mensal</SelectItem>
-                <SelectItem value="trimestral">Trimestral</SelectItem>
-                <SelectItem value="anual">Anual</SelectItem>
-              </SelectContent>
-            </Select>
+        {/* SEÇÃO DE RECORRÊNCIA/PARCELAMENTO */}
+        <div className="border rounded-lg p-4 space-y-4">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="recorrente"
+              checked={formData.recorrente}
+              onCheckedChange={(checked) =>
+                handleChange("recorrente", checked === true)
+              }
+            />
+            <Label htmlFor="recorrente" className="font-semibold">
+              Lançamento recorrente/parcelado
+            </Label>
           </div>
-        )}
+
+          {formData.recorrente && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pl-6">
+              {/* Tipo de Recorrência */}
+              <div className="space-y-2">
+                <Label htmlFor="tipoRecorrencia">Tipo *</Label>
+                <Select
+                  value={formData.tipoRecorrencia}
+                  onValueChange={(value) =>
+                    handleChange("tipoRecorrencia", value)
+                  }
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="RECORRENCIA">
+                      <div className="flex items-center gap-2">
+                        <Repeat className="h-4 w-4" />
+                        Recorrência
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="PARCELAMENTO">
+                      <div className="flex items-center gap-2">
+                        <Divide className="h-4 w-4" />
+                        Parcelamento
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Frequência (apenas para recorrência) */}
+              {formData.tipoRecorrencia === "RECORRENCIA" && (
+                <div className="space-y-2">
+                  <Label htmlFor="frequencia">Frequência *</Label>
+                  <Select
+                    value={formData.frequencia}
+                    onValueChange={(value) => handleChange("frequencia", value)}
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a frequência" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mensal">Mensal</SelectItem>
+                      <SelectItem value="trimestral">Trimestral</SelectItem>
+                      <SelectItem value="anual">Anual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Parcelas (apenas para parcelamento) */}
+              {formData.tipoRecorrencia === "PARCELAMENTO" && (
+                <div className="space-y-2">
+                  <Label htmlFor="parcelas">Número de Parcelas *</Label>
+                  <Input
+                    id="parcelas"
+                    type="number"
+                    min="2"
+                    max="24"
+                    value={formData.parcelas}
+                    onChange={(e) => handleChange("parcelas", e.target.value)}
+                    placeholder="Ex: 3, 6, 12"
+                    required
+                  />
+                </div>
+              )}
+
+              {/* Informações explicativas */}
+              <div className="col-span-full">
+                {formData.tipoRecorrencia === "RECORRENCIA" && (
+                  <p className="text-xs text-muted-foreground">
+                    💡 <strong>Recorrência</strong>: Valor que se repete
+                    periodicamente (ex: Spotify, Aluguel)
+                  </p>
+                )}
+                {formData.tipoRecorrencia === "PARCELAMENTO" && (
+                  <p className="text-xs text-muted-foreground">
+                    💡 <strong>Parcelamento</strong>: Compra única dividida em X
+                    meses (ex: TV em 12x)
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Informações sobre cartão de crédito */}
         {formData.tipoTransacao === "CARTAO_CREDITO" && (

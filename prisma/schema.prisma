@@ -323,7 +323,7 @@ model LancamentoRecorrente {
   tipo           String
   categoria      String
   tipoLancamento String
-  tipoTransacao  String?  // Adicione esta linha
+  tipoTransacao  String?
   responsavel    String
   dataInicio     DateTime
   frequencia     String
@@ -331,6 +331,8 @@ model LancamentoRecorrente {
   observacoes    String?
   usuarioId      String
   ativo          Boolean  @default(true)
+  // NOVO CAMPO: diferenciar recorrência de parcelamento
+  tipoRecorrencia String  @default("RECORRENCIA") // RECORRENCIA ou PARCELAMENTO
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
