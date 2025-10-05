@@ -232,8 +232,10 @@ export async function POST(request: NextRequest) {
       tipo,
       categoria,
       tipoLancamento,
+      tipoTransacao = "DINHEIRO", // Novo campo com valor padrão
       responsavel,
       data,
+      dataVencimento, // Novo campo para cartão
       pago,
       recorrente,
       frequencia,
@@ -242,8 +244,8 @@ export async function POST(request: NextRequest) {
       origem = "manual",
       apiKey,
       usuarioId: usuarioIdFromBody,
-      // Novo campo para divisão automática
-      divisaoAutomatica = true, // Padrão: dividir automaticamente
+      cartaoId, // Novo campo
+      divisaoAutomatica = true,
     } = body;
 
     // Determinar o usuarioId baseado no tipo de autenticação
@@ -291,6 +293,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validações para cartão de crédito
+    if (tipoTransacao === "CARTAO_CREDITO") {
+      if (!cartaoId) {
+        return NextResponse.json(
+          { error: "Cartão é obrigatório para compras no cartão de crédito" },
+          { status: 400 }
+        );
+      }
+      if (!dataVencimento) {
+        return NextResponse.json(
+          { error: "Data de vencimento é obrigatória para cartão de crédito" },
+          { status: 400 }
+        );
+      }
+    }
+
     if (recorrente && !frequencia) {
       return NextResponse.json(
         { error: "Frequência é obrigatória para lançamentos recorrentes" },
@@ -299,9 +317,49 @@ export async function POST(request: NextRequest) {
     }
 
     let resultado;
+    let faturaId = null;
+
+    // LÓGICA PARA CARTÃO DE CRÉDITO - CRIAR/ATUALIZAR FATURA
+    if (tipoTransacao === "CARTAO_CREDITO" && cartaoId) {
+      faturaId = await criarOuAtualizarFatura({
+        cartaoId,
+        dataVencimento: new Date(dataVencimento),
+        valor: parseFloat(valor),
+        usuarioId: finalUsuarioId,
+      });
+    }
 
     // VERIFICAÇÃO SIMPLIFICADA - APENAS PELO TIPO LANÇAMENTO
     const isCompartilhado = tipoLancamento === "compartilhado";
+
+    // Dados base para criação do lançamento
+    const dadosLancamento = {
+      descricao,
+      valor: parseFloat(valor),
+      tipo,
+      categoria,
+      tipoLancamento,
+      tipoTransacao, // Novo campo
+      responsavel,
+      data: new Date(data),
+      dataVencimento: dataVencimento ? new Date(dataVencimento) : null,
+      pago: tipoTransacao === "CARTAO_CREDITO" ? false : Boolean(pago), // Cartão não marca como pago
+      observacoes: observacoes || null,
+      origem,
+      usuarioId: finalUsuarioId,
+      cartaoId: tipoTransacao === "CARTAO_CREDITO" ? cartaoId : null, // Só associa se for cartão
+      faturaId, // Associa à fatura criada
+      // Se for compartilhado, criar as divisões automaticamente
+      ...(isCompartilhado &&
+        divisaoAutomatica && {
+          divisao: {
+            create: await criarDivisoesAutomaticas(
+              finalUsuarioId,
+              parseFloat(valor)
+            ),
+          },
+        }),
+    };
 
     if (recorrente) {
       // Criar lançamento recorrente
@@ -312,6 +370,7 @@ export async function POST(request: NextRequest) {
           tipo,
           categoria,
           tipoLancamento,
+          tipoTransacao, // Novo campo
           responsavel,
           dataInicio: new Date(data),
           frequencia,
@@ -324,32 +383,14 @@ export async function POST(request: NextRequest) {
       // Criar primeira ocorrência
       const primeiraOcorrencia = await db.lancamento.create({
         data: {
-          descricao,
-          valor: parseFloat(valor),
-          tipo,
-          categoria,
-          tipoLancamento,
-          responsavel,
-          data: new Date(data),
-          pago: Boolean(pago),
+          ...dadosLancamento,
           parcelaAtual: 1,
-          observacoes: observacoes || null,
-          origem,
-          usuarioId: finalUsuarioId,
           recorrenteId: lancamentoRecorrente.id,
-          // Se for compartilhado, criar as divisões automaticamente
-          ...(isCompartilhado &&
-            divisaoAutomatica && {
-              divisao: {
-                create: await criarDivisoesAutomaticas(
-                  finalUsuarioId,
-                  parseFloat(valor)
-                ),
-              },
-            }),
         },
         include: {
           recorrente: true,
+          cartao: true,
+          fatura: true,
           ...(isCompartilhado && divisaoAutomatica && { divisao: true }),
         },
       });
@@ -358,31 +399,11 @@ export async function POST(request: NextRequest) {
     } else {
       // Criar lançamento único
       resultado = await db.lancamento.create({
-        data: {
-          descricao,
-          valor: parseFloat(valor),
-          tipo,
-          categoria,
-          tipoLancamento,
-          responsavel,
-          data: new Date(data),
-          pago: Boolean(pago),
-          observacoes: observacoes || null,
-          origem,
-          usuarioId: finalUsuarioId,
-          // Se for compartilhado, criar as divisões automaticamente
-          ...(isCompartilhado &&
-            divisaoAutomatica && {
-              divisao: {
-                create: await criarDivisoesAutomaticas(
-                  finalUsuarioId,
-                  parseFloat(valor)
-                ),
-              },
-            }),
-        },
+        data: dadosLancamento,
         include: {
           recorrente: true,
+          cartao: true,
+          fatura: true,
           ...(isCompartilhado &&
             divisaoAutomatica && {
               divisao: {
@@ -408,6 +429,77 @@ export async function POST(request: NextRequest) {
       { error: "Erro interno do servidor" },
       { status: 500 }
     );
+  }
+}
+
+// Função auxiliar para criar ou atualizar fatura
+async function criarOuAtualizarFatura({
+  cartaoId,
+  dataVencimento,
+  valor,
+  usuarioId,
+}: {
+  cartaoId: string;
+  dataVencimento: Date;
+  valor: number;
+  usuarioId: string;
+}) {
+  try {
+    // Verificar se o cartão pertence ao usuário
+    const cartao = await db.cartao.findFirst({
+      where: {
+        id: cartaoId,
+        usuarioId: usuarioId,
+      },
+    });
+
+    if (!cartao) {
+      throw new Error("Cartão não encontrado");
+    }
+
+    // Calcular mês de referência baseado na data de vencimento
+    const mesReferencia = new Date(dataVencimento);
+    mesReferencia.setDate(1); // Primeiro dia do mês
+
+    // Calcular data de fechamento (fechamento é 1 mês antes do vencimento)
+    const dataFechamento = new Date(dataVencimento);
+    dataFechamento.setMonth(dataFechamento.getMonth() - 1);
+    dataFechamento.setDate(cartao.diaFechamento);
+
+    // Verificar se já existe uma fatura para este mês
+    let fatura = await db.fatura.findFirst({
+      where: {
+        cartaoId,
+        mesReferencia,
+      },
+    });
+
+    if (fatura) {
+      // Atualizar fatura existente
+      fatura = await db.fatura.update({
+        where: { id: fatura.id },
+        data: {
+          valorTotal: { increment: valor },
+        },
+      });
+    } else {
+      // Criar nova fatura
+      fatura = await db.fatura.create({
+        data: {
+          cartaoId,
+          mesReferencia,
+          valorTotal: valor,
+          dataFechamento,
+          dataVencimento,
+          status: "ABERTA",
+        },
+      });
+    }
+
+    return fatura.id;
+  } catch (error) {
+    console.error("Erro ao criar/atualizar fatura:", error);
+    throw error;
   }
 }
 

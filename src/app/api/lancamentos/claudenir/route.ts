@@ -12,67 +12,93 @@ async function gerarOcorrenciasRecorrentes(
   const inicioMes = new Date(ano, mes - 1, 1);
   const fimMes = new Date(ano, mes, 1);
 
-  // Buscar todas as recorrências ativas que devem gerar lançamentos neste mês
+  console.log(`=== GERANDO RECORRÊNCIAS ${mes}/${ano} ===`);
+
+  // Buscar recorrências ativas
   const recorenciasAtivas = await db.lancamentoRecorrente.findMany({
     where: {
       usuarioId,
       ativo: true,
       dataInicio: {
-        lte: fimMes,
+        lte: fimMes, // Data início deve ser antes do fim do mês
       },
     },
   });
 
+  console.log(`Recorrências ativas encontradas: ${recorenciasAtivas.length}`);
+
+  let ocorrenciasCriadas = 0;
+
   for (const recorrente of recorenciasAtivas) {
-    // Verificar se já existe lançamento para este mês
-    const existeLancamento = await db.lancamento.findFirst({
-      where: {
-        recorrenteId: recorrente.id,
-        data: {
-          gte: inicioMes,
-          lt: fimMes,
+    console.log(`Processando: ${recorrente.descricao}`);
+
+    // Calcular diferença em meses desde o início
+    const dataInicio = new Date(recorrente.dataInicio);
+    const mesesDiff =
+      (ano - dataInicio.getFullYear()) * 12 + (mes - dataInicio.getMonth() - 1);
+
+    console.log(`Meses desde início: ${mesesDiff}`);
+
+    // Verificar se deve gerar baseado na frequência
+    let deveGerar = false;
+    switch (recorrente.frequencia) {
+      case "mensal":
+        deveGerar = mesesDiff >= 0; // Gera a partir do mês inicial
+        break;
+      case "trimestral":
+        deveGerar = mesesDiff >= 0 && mesesDiff % 3 === 0;
+        break;
+      case "anual":
+        deveGerar = mesesDiff >= 0 && mesesDiff % 12 === 0;
+        break;
+    }
+
+    console.log(`Deve gerar para ${mes}/${ano}? ${deveGerar}`);
+
+    // Verificar limite de parcelas
+    if (deveGerar && recorrente.parcelas && mesesDiff >= recorrente.parcelas) {
+      console.log(`Limite de ${recorrente.parcelas} parcelas atingido`);
+      deveGerar = false;
+      await db.lancamentoRecorrente.update({
+        where: { id: recorrente.id },
+        data: { ativo: false },
+      });
+    }
+
+    if (deveGerar) {
+      // Verificar se JÁ EXISTE lançamento para este mês/recorrência
+      const existeLancamento = await db.lancamento.findFirst({
+        where: {
+          recorrenteId: recorrente.id,
+          data: {
+            gte: inicioMes,
+            lt: fimMes,
+          },
         },
-      },
-    });
+      });
 
-    if (!existeLancamento) {
-      // Calcular data da ocorrência
-      let dataOcorrencia = new Date(recorrente.dataInicio);
-      const mesesDiff =
-        (ano - dataOcorrencia.getFullYear()) * 12 +
-        (mes - dataOcorrencia.getMonth() - 1);
-
-      // Verificar se deve gerar baseado na frequência
-      let deveGerar = false;
-      switch (recorrente.frequencia) {
-        case "mensal":
-          deveGerar = mesesDiff >= 0;
-          break;
-        case "trimestral":
-          deveGerar = mesesDiff >= 0 && mesesDiff % 3 === 0;
-          break;
-        case "anual":
-          deveGerar = mesesDiff >= 0 && mesesDiff % 12 === 0;
-          break;
+      if (existeLancamento) {
+        console.log(
+          `❌ Já existe lançamento para ${mes}/${ano}: ${existeLancamento.id}`
+        );
+        continue;
       }
 
-      // Verificar limite de parcelas
-      if (
-        deveGerar &&
-        recorrente.parcelas &&
-        mesesDiff >= recorrente.parcelas
-      ) {
-        deveGerar = false;
-        // Desativar recorrência se atingiu o limite
-        await db.lancamentoRecorrente.update({
-          where: { id: recorrente.id },
-          data: { ativo: false },
-        });
+      // Criar data da ocorrência (usar o mesmo dia do mês da data inicial)
+      const diaOriginal = dataInicio.getDate();
+      let dataOcorrencia = new Date(ano, mes - 1, diaOriginal);
+
+      // Ajustar se o dia for maior que os dias do mês (ex: 31 em Fevereiro)
+      const ultimoDiaMes = new Date(ano, mes, 0).getDate();
+      if (diaOriginal > ultimoDiaMes) {
+        dataOcorrencia = new Date(ano, mes, 0); // Último dia do mês
       }
 
-      if (deveGerar) {
-        dataOcorrencia.setMonth(dataOcorrencia.getMonth() + mesesDiff);
+      console.log(
+        `✅ Criando ocorrência para: ${dataOcorrencia.toISOString()}`
+      );
 
+      try {
         // Criar a ocorrência
         await db.lancamento.create({
           data: {
@@ -81,6 +107,7 @@ async function gerarOcorrenciasRecorrentes(
             tipo: recorrente.tipo,
             categoria: recorrente.categoria,
             tipoLancamento: recorrente.tipoLancamento,
+            tipoTransacao: recorrente.tipoTransacao || "DINHEIRO",
             responsavel: recorrente.responsavel,
             data: dataOcorrencia,
             pago: false,
@@ -91,9 +118,17 @@ async function gerarOcorrenciasRecorrentes(
             origem: "recorrente",
           },
         });
+
+        ocorrenciasCriadas++;
+        console.log(`✅ Ocorrência criada com sucesso!`);
+      } catch (error) {
+        console.error(`❌ Erro ao criar ocorrência:`, error);
       }
     }
   }
+
+  console.log(`=== FIM: ${ocorrenciasCriadas} ocorrências criadas ===`);
+  return ocorrenciasCriadas;
 }
 
 export async function GET(request: NextRequest) {
@@ -122,6 +157,20 @@ export async function GET(request: NextRequest) {
     const mesNum = parseInt(mes);
     const anoNum = parseInt(ano);
 
+    // CHAMAR A FUNÇÃO DE GERAR RECORRÊNCIAS ANTES DE BUSCAR OS LANÇAMENTOS
+    console.log("Gerando ocorrências recorrentes...");
+    const ocorrenciasCriadas = await gerarOcorrenciasRecorrentes(
+      mesNum,
+      anoNum,
+      usuarioId
+    );
+
+    if (ocorrenciasCriadas > 0) {
+      console.log(
+        `${ocorrenciasCriadas} ocorrências recorrentes foram geradas`
+      );
+    }
+
     // Calcular datas do período
     const inicioMes = new Date(anoNum, mesNum - 1, 1);
     const fimMes = new Date(anoNum, mesNum, 1);
@@ -130,30 +179,56 @@ export async function GET(request: NextRequest) {
       `Filtrando por período: ${inicioMes.toISOString()} até ${fimMes.toISOString()}`
     );
 
-    // Construir filtros para lançamentos do Claudenir
+    // CONSTRUIR FILTRO CORRIGIDO - CONSIDERANDO dataVencimento
     const where: any = {
       OR: [
-        // Lançamentos individuais do Claudenir
+        // Lançamentos individuais do Claudenir - considerando data OU dataVencimento
         {
           AND: [
             { responsavel: "Claudenir" },
             {
-              data: {
-                gte: inicioMes,
-                lt: fimMes,
-              },
+              OR: [
+                // Lançamentos normais: data está no período
+                {
+                  data: {
+                    gte: inicioMes,
+                    lt: fimMes,
+                  },
+                  dataVencimento: null, // Sem data de vencimento
+                },
+                // Lançamentos de cartão: dataVencimento está no período
+                {
+                  dataVencimento: {
+                    gte: inicioMes,
+                    lt: fimMes,
+                  },
+                },
+              ],
             },
           ],
         },
-        // Lançamentos compartilhados onde Claudenir participa
+        // Lançamentos compartilhados onde Claudenir participa - considerando data OU dataVencimento
         {
           AND: [
             { responsavel: "Compartilhado" },
             {
-              data: {
-                gte: inicioMes,
-                lt: fimMes,
-              },
+              OR: [
+                // Lançamentos normais: data está no período
+                {
+                  data: {
+                    gte: inicioMes,
+                    lt: fimMes,
+                  },
+                  dataVencimento: null, // Sem data de vencimento
+                },
+                // Lançamentos de cartão: dataVencimento está no período
+                {
+                  dataVencimento: {
+                    gte: inicioMes,
+                    lt: fimMes,
+                  },
+                },
+              ],
             },
             {
               divisao: {
@@ -215,42 +290,127 @@ export async function GET(request: NextRequest) {
             },
           },
         },
+        cartao: {
+          select: {
+            nome: true,
+            bandeira: true,
+          },
+        },
+        fatura: {
+          select: {
+            status: true,
+            mesReferencia: true,
+          },
+        },
       },
     });
 
     console.log(`Encontrados ${lancamentos.length} lançamentos`);
 
-    // Calcular totais por categoria
+    // CALCULAR TOTAIS POR CATEGORIA CORRETAMENTE
     const totaisPorCategoria = await db.lancamento.groupBy({
-      where,
+      where: {
+        OR: [
+          // Lançamentos do Claudenir individuais
+          {
+            AND: [
+              { responsavel: "Claudenir" },
+              {
+                OR: [
+                  {
+                    data: {
+                      gte: inicioMes,
+                      lt: fimMes,
+                    },
+                    dataVencimento: null,
+                  },
+                  {
+                    dataVencimento: {
+                      gte: inicioMes,
+                      lt: fimMes,
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+          // Lançamentos compartilhados onde Claudenir participa
+          {
+            AND: [
+              { responsavel: "Compartilhado" },
+              {
+                OR: [
+                  {
+                    data: {
+                      gte: inicioMes,
+                      lt: fimMes,
+                    },
+                    dataVencimento: null,
+                  },
+                  {
+                    dataVencimento: {
+                      gte: inicioMes,
+                      lt: fimMes,
+                    },
+                  },
+                ],
+              },
+              {
+                divisao: {
+                  some: {
+                    usuario: {
+                      name: {
+                        contains: "Claudenir",
+                        mode: "insensitive",
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        ...(categoria && categoria !== "todas" && { categoria }),
+        ...(tipo &&
+          tipo !== "todos" && {
+            tipo: {
+              equals: tipo,
+              mode: "insensitive",
+            },
+          }),
+      },
       by: ["categoria", "tipo"],
       _sum: {
         valor: true,
       },
     });
 
-    // Calcular resumo
-    const totalReceitas = await db.lancamento.aggregate({
-      where: {
-        ...where,
-        tipo: {
-          equals: "receita",
-          mode: "insensitive",
-        },
+    // CALCULAR RESUMO CORRETAMENTE
+    const whereReceitas = {
+      ...where,
+      tipo: {
+        equals: "receita",
+        mode: "insensitive",
       },
+    };
+
+    const whereDespesas = {
+      ...where,
+      tipo: {
+        equals: "despesa",
+        mode: "insensitive",
+      },
+    };
+
+    const totalReceitas = await db.lancamento.aggregate({
+      where: whereReceitas,
       _sum: {
         valor: true,
       },
     });
 
     const totalDespesas = await db.lancamento.aggregate({
-      where: {
-        ...where,
-        tipo: {
-          equals: "despesa",
-          mode: "insensitive",
-        },
-      },
+      where: whereDespesas,
       _sum: {
         valor: true,
       },
@@ -265,6 +425,7 @@ export async function GET(request: NextRequest) {
         saldo:
           (totalReceitas._sum.valor || 0) - (totalDespesas._sum.valor || 0),
       },
+      ocorrenciasCriadas, // Retornar info sobre recorrências criadas
     });
   } catch (error) {
     console.error("Erro ao buscar lançamentos do Claudenir:", error);

@@ -16,6 +16,7 @@ import {
   X,
   User,
   Users,
+  CreditCard,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSession, signOut } from "next-auth/react";
@@ -311,6 +312,22 @@ export default function Sidebar({ onClose }: SidebarProps) {
               {!isCollapsed && (
                 <span className="ml-4 text-base">Relatórios</span>
               )}
+            </Link>
+          </li>
+
+          {/* Cartões */}
+          <li>
+            <Link
+              href="/dashboard/cartoes"
+              className={`
+                flex items-center rounded-lg hover:bg-blue-900/20 text-blue-100 transition-colors
+                ${isCollapsed ? "justify-center p-4" : "p-4"}
+                ${isActiveRoute("/dashboard/cartoes") ? "bg-blue-900/30 text-white" : ""}
+              `}
+              onClick={handleLinkClick}
+            >
+              <CreditCard className="h-6 w-6" />
+              {!isCollapsed && <span className="ml-4 text-base">Cartões</span>}
             </Link>
           </li>
 

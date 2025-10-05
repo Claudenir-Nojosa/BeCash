@@ -111,9 +111,18 @@ export default function ReceitasPage() {
     string | null
   >(null);
 
-  useEffect(() => {
-    buscarLancamentosClaudenir();
-  }, [filtros.mes, filtros.ano, filtros.categoria, filtros.tipo]);
+  const getDataReferencia = (lancamento: Lancamento): Date => {
+  // Se for cartão de crédito e tiver data de vencimento, usa a data de vencimento
+  // Caso contrário, usa a data normal da compra/transação
+  if (lancamento.dataVencimento) {
+    return new Date(lancamento.dataVencimento);
+  }
+  return new Date(lancamento.data);
+};
+
+useEffect(() => {
+  buscarLancamentosClaudenir();
+}, [filtros.mes, filtros.ano, filtros.categoria, filtros.tipo]);
 
   // Função para normalizar o tipo (lidar com "Receita"/"Despesa" do banco)
   const normalizarTipo = (tipo: string): "receita" | "despesa" => {
@@ -189,40 +198,69 @@ export default function ReceitasPage() {
     );
   };
 
-  const buscarLancamentosClaudenir = async () => {
-    try {
-      setCarregando(true);
-      const toastId = toast.loading("Carregando lançamentos do Claudenir...");
+const buscarLancamentosClaudenir = async () => {
+  try {
+    setCarregando(true);
+    const toastId = toast.loading("Carregando lançamentos do Claudenir...");
 
-      const params = new URLSearchParams({
-        mes: filtros.mes.toString(),
-        ano: filtros.ano.toString(),
-        categoria: filtros.categoria,
-        tipo: filtros.tipo,
-      });
+    const params = new URLSearchParams({
+      mes: filtros.mes.toString(),
+      ano: filtros.ano.toString(),
+      categoria: filtros.categoria,
+      tipo: filtros.tipo,
+    });
 
-      // CORRIGIDO: Adicionar os parâmetros na URL
-      const response = await fetch(`/api/lancamentos/claudenir?${params}`);
+    const response = await fetch(`/api/lancamentos/claudenir?${params}`);
 
-      if (!response.ok) throw new Error("Erro ao buscar lançamentos");
+    if (!response.ok) throw new Error("Erro ao buscar lançamentos");
 
-      const data = await response.json();
-      setLancamentos(data.lancamentos);
+    const data = await response.json();
+    
+    // Filtrar os lançamentos pela data de referência (dataVencimento quando existir)
+    const lancamentosFiltradosPorData = data.lancamentos.filter((lancamento: Lancamento) => {
+      const dataReferencia = getDataReferencia(lancamento);
+      return (
+        dataReferencia.getMonth() + 1 === filtros.mes &&
+        dataReferencia.getFullYear() === filtros.ano
+      );
+    });
 
-      // Usar o resumo calculado localmente considerando compartilhados
-      const resumoCompartilhado = calcularResumoCompartilhado(data.lancamentos);
-      setResumo(resumoCompartilhado);
+    setLancamentos(lancamentosFiltradosPorData);
 
-      setTotaisPorCategoria(data.totaisPorCategoria);
+    // Usar o resumo calculado localmente considerando compartilhados
+    const resumoCompartilhado = calcularResumoCompartilhado(lancamentosFiltradosPorData);
+    setResumo(resumoCompartilhado);
 
-      toast.success("Lançamentos carregados", { id: toastId });
-    } catch (error) {
-      console.error("Erro ao buscar lançamentos:", error);
-      toast.error("Erro ao carregar lançamentos");
-    } finally {
-      setCarregando(false);
-    }
-  };
+    setTotaisPorCategoria(data.totaisPorCategoria);
+
+    toast.success("Lançamentos carregados", { id: toastId });
+  } catch (error) {
+    console.error("Erro ao buscar lançamentos:", error);
+    toast.error("Erro ao carregar lançamentos");
+  } finally {
+    setCarregando(false);
+  }
+};
+
+// Adicione uma função para exibir a data correta na tabela
+const getDataExibicao = (lancamento: Lancamento): string => {
+  if (lancamento.dataVencimento) {
+    return `Compra: ${formatarDataCorrigida(new Date(lancamento.data))}\nVence: ${formatarDataCorrigida(new Date(lancamento.dataVencimento))}`;
+  }
+  return formatarDataCorrigida(new Date(lancamento.data));
+};
+
+// Adicione um badge para identificar lançamentos de cartão de crédito
+const getTipoTransacaoBadge = (lancamento: Lancamento) => {
+  if (lancamento.dataVencimento) {
+    return (
+      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+        💳 Cartão
+      </Badge>
+    );
+  }
+  return null;
+};
 
   // Função para calcular totais por categoria considerando compartilhados
   const calcularTotaisPorCategoria = (lancamentos: Lancamento[]) => {

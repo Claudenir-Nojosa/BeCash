@@ -21,7 +21,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, ArrowLeft, Save, CheckCircle } from "lucide-react";
+import {
+  CalendarIcon,
+  ArrowLeft,
+  Save,
+  CheckCircle,
+  CreditCard,
+} from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -34,6 +40,7 @@ interface Lancamento {
   tipo: "receita" | "despesa";
   categoria: string;
   tipoLancamento: string;
+  tipoTransacao: string;
   responsavel: string;
   data: Date;
   dataVencimento: Date | null;
@@ -43,8 +50,21 @@ interface Lancamento {
   observacoes: string | null;
   origem: string;
   usuarioId: string;
+  cartaoId: string | null;
+  cartao?: {
+    id: string;
+    nome: string;
+    bandeira: string;
+  } | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+interface Cartao {
+  id: string;
+  nome: string;
+  bandeira: string;
+  limite: number;
 }
 
 export default function EditarLancamentoPage() {
@@ -56,6 +76,8 @@ export default function EditarLancamentoPage() {
   const [salvando, setSalvando] = useState(false);
   const [date, setDate] = useState<Date>(new Date());
   const [dataVencimento, setDataVencimento] = useState<Date | null>(null);
+  const [cartoes, setCartoes] = useState<Cartao[]>([]);
+  const [carregandoCartoes, setCarregandoCartoes] = useState(false);
 
   const [formData, setFormData] = useState({
     descricao: "",
@@ -63,18 +85,46 @@ export default function EditarLancamentoPage() {
     tipo: "",
     categoria: "",
     tipoLancamento: "",
+    tipoTransacao: "DINHEIRO",
     responsavel: "",
     pago: false,
     recorrente: false,
     frequencia: "",
     observacoes: "",
+    cartaoId: "",
   });
 
   useEffect(() => {
     if (id) {
       carregarLancamento();
+      carregarCartoes();
     }
   }, [id]);
+
+  // Calcular automaticamente a data de vencimento para cartão de crédito
+  useEffect(() => {
+    if (formData.tipoTransacao === "CARTAO_CREDITO" && !dataVencimento) {
+      const proximoMes = new Date(date);
+      proximoMes.setMonth(proximoMes.getMonth() + 1);
+      proximoMes.setDate(10); // Dia 10 do próximo mês
+      setDataVencimento(proximoMes);
+    }
+  }, [formData.tipoTransacao, date, dataVencimento]);
+
+  const carregarCartoes = async () => {
+    try {
+      setCarregandoCartoes(true);
+      const response = await fetch("/api/cartoes");
+      if (response.ok) {
+        const data = await response.json();
+        setCartoes(data);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar cartões:", error);
+    } finally {
+      setCarregandoCartoes(false);
+    }
+  };
 
   const carregarLancamento = async () => {
     try {
@@ -93,11 +143,13 @@ export default function EditarLancamentoPage() {
         tipo: lancamento.tipo,
         categoria: lancamento.categoria,
         tipoLancamento: lancamento.tipoLancamento,
+        tipoTransacao: lancamento.tipoTransacao || "DINHEIRO",
         responsavel: lancamento.responsavel,
         pago: lancamento.pago,
-        recorrente: lancamento.recorrente,
+        recorrente: lancamento.recorrente || false,
         frequencia: lancamento.frequencia || "",
         observacoes: lancamento.observacoes || "",
+        cartaoId: lancamento.cartaoId || "",
       });
 
       setDate(new Date(lancamento.data));
@@ -117,15 +169,20 @@ export default function EditarLancamentoPage() {
     setSalvando(true);
 
     try {
+      const payload = {
+        ...formData,
+        valor: parseFloat(formData.valor),
+        data: date.toISOString(),
+        dataVencimento: dataVencimento ? dataVencimento.toISOString() : null,
+        // Para cartão de crédito, força pago como false
+        pago:
+          formData.tipoTransacao === "CARTAO_CREDITO" ? false : formData.pago,
+      };
+
       const response = await fetch(`/api/lancamentos/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          valor: parseFloat(formData.valor),
-          data: date.toISOString(),
-          dataVencimento: dataVencimento ? dataVencimento.toISOString() : null,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -162,6 +219,10 @@ export default function EditarLancamentoPage() {
     { value: "lazer", label: "Lazer" },
     { value: "outros", label: "Outros" },
   ];
+
+  const cartaoSelecionado = cartoes.find(
+    (cartao) => cartao.id === formData.cartaoId
+  );
 
   if (carregando) {
     return (
@@ -241,6 +302,84 @@ export default function EditarLancamentoPage() {
           </div>
         </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label htmlFor="tipoTransacao">Tipo de Transação *</Label>
+            <Select
+              value={formData.tipoTransacao}
+              onValueChange={(value) => handleChange("tipoTransacao", value)}
+              required
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
+                <SelectItem value="PIX">PIX</SelectItem>
+                <SelectItem value="CARTAO_DEBITO">Cartão Débito</SelectItem>
+                <SelectItem value="CARTAO_CREDITO">Cartão Crédito</SelectItem>
+                <SelectItem value="TRANSFERENCIA">Transferência</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="tipoLancamento">Tipo de Lançamento *</Label>
+            <Select
+              value={formData.tipoLancamento}
+              onValueChange={(value) => handleChange("tipoLancamento", value)}
+              required
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="individual">Individual</SelectItem>
+                <SelectItem value="compartilhado">Compartilhado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Seleção de Cartão (apenas para cartão de crédito) */}
+        {formData.tipoTransacao === "CARTAO_CREDITO" && (
+          <div className="space-y-2">
+            <Label htmlFor="cartaoId">Cartão *</Label>
+            <Select
+              value={formData.cartaoId}
+              onValueChange={(value) => handleChange("cartaoId", value)}
+              required
+              disabled={carregandoCartoes}
+            >
+              <SelectTrigger>
+                <SelectValue
+                  placeholder={
+                    carregandoCartoes
+                      ? "Carregando cartões..."
+                      : "Selecione o cartão"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {cartoes.map((cartao) => (
+                  <SelectItem key={cartao.id} value={cartao.id}>
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4" />
+                      {cartao.nome} - {cartao.bandeira}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {cartaoSelecionado && (
+              <p className="text-xs text-muted-foreground">
+                Cartão selecionado: {cartaoSelecionado.nome} (
+                {cartaoSelecionado.bandeira})
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="space-y-2">
           <Label htmlFor="descricao">Descrição *</Label>
           <Input
@@ -266,46 +405,27 @@ export default function EditarLancamentoPage() {
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label htmlFor="tipoLancamento">Tipo de Lançamento *</Label>
-            <Select
-              value={formData.tipoLancamento}
-              onValueChange={(value) => handleChange("tipoLancamento", value)}
-              required
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="individual">Individual</SelectItem>
-                <SelectItem value="compartilhado">Compartilhado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="responsavel">Responsável *</Label>
-            <Select
-              value={formData.responsavel}
-              onValueChange={(value) => handleChange("responsavel", value)}
-              required
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o responsável" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Claudenir">Claudenir</SelectItem>
-                <SelectItem value="Beatriz">Beatriz</SelectItem>
-                <SelectItem value="Compartilhado">Compartilhado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="responsavel">Responsável *</Label>
+          <Select
+            value={formData.responsavel}
+            onValueChange={(value) => handleChange("responsavel", value)}
+            required
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione o responsável" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Claudenir">Claudenir</SelectItem>
+              <SelectItem value="Beatriz">Beatriz</SelectItem>
+              <SelectItem value="Compartilhado">Compartilhado</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <Label>Data *</Label>
+            <Label>Data da Compra *</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -330,32 +450,60 @@ export default function EditarLancamentoPage() {
             </Popover>
           </div>
 
-          <div className="space-y-2">
-            <Label>Data de Vencimento</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-left font-normal"
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dataVencimento
-                    ? format(dataVencimento, "PPP", { locale: ptBR })
-                    : "Selecione a data"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={dataVencimento || undefined}
-                  onSelect={(date) => setDataVencimento(date || null)}
-                  initialFocus
-                  locale={ptBR}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+          {/* Data de Vencimento (apenas para cartão de crédito) */}
+          {formData.tipoTransacao === "CARTAO_CREDITO" && (
+            <div className="space-y-2">
+              <Label>Data de Vencimento *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dataVencimento
+                      ? format(dataVencimento, "PPP", { locale: ptBR })
+                      : "Selecione a data"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={dataVencimento || undefined}
+                    onSelect={(date) => setDataVencimento(date || null)}
+                    initialFocus
+                    locale={ptBR}
+                  />
+                </PopoverContent>
+              </Popover>
+              <p className="text-xs text-muted-foreground">
+                Data que a fatura vence
+              </p>
+            </div>
+          )}
         </div>
+
+        {/* Informações sobre cartão de crédito */}
+        {formData.tipoTransacao === "CARTAO_CREDITO" && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start">
+              <CreditCard className="h-4 w-4 text-blue-600 mr-2 mt-0.5" />
+              <div>
+                <p className="text-sm text-blue-800 font-medium">
+                  Compra no Cartão de Crédito
+                </p>
+                <p className="text-xs text-blue-700 mt-1">
+                  Esta compra será considerada na fatura de{" "}
+                  {dataVencimento
+                    ? format(dataVencimento, "MMMM 'de' yyyy", { locale: ptBR })
+                    : "próximo mês"}
+                  . O valor não afetará seu saldo atual até o vencimento da
+                  fatura.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="flex items-center space-x-2">
@@ -365,8 +513,23 @@ export default function EditarLancamentoPage() {
               onCheckedChange={(checked) =>
                 handleChange("pago", checked === true)
               }
+              disabled={formData.tipoTransacao === "CARTAO_CREDITO"}
             />
-            <Label htmlFor="pago">Marcar como pago</Label>
+            <Label
+              htmlFor="pago"
+              className={
+                formData.tipoTransacao === "CARTAO_CREDITO"
+                  ? "text-muted-foreground"
+                  : ""
+              }
+            >
+              Marcar como pago
+              {formData.tipoTransacao === "CARTAO_CREDITO" && (
+                <span className="block text-xs text-muted-foreground">
+                  (Não disponível para cartão de crédito)
+                </span>
+              )}
+            </Label>
           </div>
 
           <div className="flex items-center space-x-2">
