@@ -3,16 +3,20 @@ import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { auth } from "../../../../auth";
 
-// Função para gerar ocorrências de lançamentos recorrentes
+// Nova função de gerar recorrências - VERSÃO SIMPLIFICADA
 async function gerarOcorrenciasRecorrentes(
   mes: number,
   ano: number,
   usuarioId: string
 ) {
+  console.log(
+    `=== GERANDO RECORRÊNCIAS ${mes}/${ano} - USUÁRIO: ${usuarioId} ===`
+  );
+
   const inicioMes = new Date(ano, mes - 1, 1);
   const fimMes = new Date(ano, mes, 1);
 
-  // Buscar todas as recorrências ativas que devem gerar lançamentos neste mês
+  // Buscar recorrências ativas UMA VEZ
   const recorenciasAtivas = await db.lancamentoRecorrente.findMany({
     where: {
       usuarioId,
@@ -21,79 +25,146 @@ async function gerarOcorrenciasRecorrentes(
         lte: fimMes,
       },
     },
+    include: {
+      ocorrencias: {
+        where: {
+          OR: [
+            { data: { gte: inicioMes, lt: fimMes } },
+            { dataVencimento: { gte: inicioMes, lt: fimMes } },
+          ],
+        },
+        take: 1,
+      },
+    },
   });
 
+  console.log(`📊 Recorrências ativas: ${recorenciasAtivas.length}`);
+
+  let ocorrenciasCriadas = 0;
+
   for (const recorrente of recorenciasAtivas) {
-    // Verificar se já existe lançamento para este mês
-    const existeLancamento = await db.lancamento.findFirst({
+    console.log(`\n🔍 Analisando: "${recorrente.descricao}"`);
+
+    // SE JÁ EXISTE lançamento para este mês, PULAR
+    if (recorrente.ocorrencias.length > 0) {
+      console.log(`✅ Já existe lançamento para ${mes}/${ano}, pulando...`);
+      continue;
+    }
+
+    // Buscar o PRIMEIRO lançamento desta recorrência para copiar dados
+    const primeiroLancamento = await db.lancamento.findFirst({
       where: {
         recorrenteId: recorrente.id,
-        data: {
-          gte: inicioMes,
-          lt: fimMes,
-        },
+      },
+      orderBy: {
+        data: "asc",
+      },
+      include: {
+        cartao: true,
+        fatura: true,
       },
     });
 
-    if (!existeLancamento) {
-      // Calcular data da ocorrência
-      let dataOcorrencia = new Date(recorrente.dataInicio);
-      const mesesDiff =
-        (ano - dataOcorrencia.getFullYear()) * 12 +
-        (mes - dataOcorrencia.getMonth() - 1);
+    if (!primeiroLancamento) {
+      console.log(
+        `❌ Primeiro lançamento não encontrado para recorrência ${recorrente.id}`
+      );
+      continue;
+    }
 
-      // Verificar se deve gerar baseado na frequência
-      let deveGerar = false;
-      switch (recorrente.frequencia) {
-        case "mensal":
-          deveGerar = mesesDiff >= 0;
-          break;
-        case "trimestral":
-          deveGerar = mesesDiff >= 0 && mesesDiff % 3 === 0;
-          break;
-        case "anual":
-          deveGerar = mesesDiff >= 0 && mesesDiff % 12 === 0;
-          break;
+    // Calcular se deve gerar
+    const dataInicio = new Date(recorrente.dataInicio);
+    const mesesDiff =
+      (ano - dataInicio.getFullYear()) * 12 + (mes - dataInicio.getMonth() - 1);
+
+    console.log(`📅 Meses desde início: ${mesesDiff}`);
+
+    let deveGerar = false;
+    switch (recorrente.frequencia) {
+      case "mensal":
+        deveGerar = mesesDiff >= 0;
+        break;
+      case "trimestral":
+        deveGerar = mesesDiff >= 0 && mesesDiff % 3 === 0;
+        break;
+      case "anual":
+        deveGerar = mesesDiff >= 0 && mesesDiff % 12 === 0;
+        break;
+    }
+
+    // Verificar parcelas
+    if (deveGerar && recorrente.parcelas && mesesDiff >= recorrente.parcelas) {
+      console.log(`⏹️ Limite de parcelas atingido: ${recorrente.parcelas}`);
+      deveGerar = false;
+      await db.lancamentoRecorrente.update({
+        where: { id: recorrente.id },
+        data: { ativo: false },
+      });
+    }
+
+    if (!deveGerar) {
+      console.log(`❌ Não deve gerar para ${mes}/${ano}`);
+      continue;
+    }
+
+    // CRIAR APENAS UM lançamento
+    try {
+      const diaOriginal = dataInicio.getDate();
+      let dataOcorrencia = new Date(ano, mes - 1, diaOriginal);
+
+      // Ajustar data se necessário
+      const ultimoDiaMes = new Date(ano, mes, 0).getDate();
+      if (diaOriginal > ultimoDiaMes) {
+        dataOcorrencia = new Date(ano, mes, 0);
       }
 
-      // Verificar limite de parcelas
-      if (
-        deveGerar &&
-        recorrente.parcelas &&
-        mesesDiff >= recorrente.parcelas
-      ) {
-        deveGerar = false;
-        // Desativar recorrência se atingiu o limite
-        await db.lancamentoRecorrente.update({
-          where: { id: recorrente.id },
-          data: { ativo: false },
-        });
+      // Calcular data de vencimento (se existia no primeiro)
+      let dataVencimento = null;
+      if (primeiroLancamento.dataVencimento) {
+        const vencimentoOriginal = new Date(primeiroLancamento.dataVencimento);
+        dataVencimento = new Date(ano, mes - 1, vencimentoOriginal.getDate());
       }
 
-      if (deveGerar) {
-        dataOcorrencia.setMonth(dataOcorrencia.getMonth() + mesesDiff);
+      console.log(
+        `🔄 Criando ÚNICO lançamento para ${dataOcorrencia.toISOString()}`
+      );
 
-        // Criar a ocorrência
-        await db.lancamento.create({
-          data: {
-            descricao: recorrente.descricao,
-            valor: recorrente.valor,
-            tipo: recorrente.tipo,
-            categoria: recorrente.categoria,
-            tipoLancamento: recorrente.tipoLancamento,
-            responsavel: recorrente.responsavel,
-            data: dataOcorrencia,
-            pago: false,
-            parcelaAtual: mesesDiff + 1,
-            observacoes: recorrente.observacoes,
-            usuarioId: recorrente.usuarioId,
-            recorrenteId: recorrente.id,
-            origem: "recorrente",
-          },
-        });
-      }
+      const dadosLancamento: any = {
+        descricao: recorrente.descricao,
+        valor: recorrente.valor,
+        tipo: recorrente.tipo,
+        categoria: recorrente.categoria,
+        tipoLancamento: recorrente.tipoLancamento,
+        tipoTransacao:
+          primeiroLancamento.tipoTransacao ||
+          recorrente.tipoTransacao ||
+          "DINHEIRO",
+        responsavel: recorrente.responsavel,
+        data: dataOcorrencia,
+        dataVencimento: dataVencimento,
+        pago: false,
+        observacoes: recorrente.observacoes,
+        usuarioId: recorrente.usuarioId,
+        recorrenteId: recorrente.id,
+        origem: "recorrente",
+        cartaoId: primeiroLancamento.cartaoId,
+      };
+
+      await db.lancamento.create({
+        data: dadosLancamento,
+      });
+
+      ocorrenciasCriadas++;
+      console.log(`✅ Lançamento único criado com sucesso!`);
+    } catch (error) {
+      console.error(`💥 Erro ao criar lançamento:`, error);
     }
   }
+
+  console.log(
+    `🎯 TOTAL: ${ocorrenciasCriadas} ocorrências criadas para ${mes}/${ano}`
+  );
+  return ocorrenciasCriadas;
 }
 
 export async function GET(request: NextRequest) {
