@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { auth } from "../../../../../../auth";
 
+// Correção: Use esta assinatura para rotas dinâmicas no App Router
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> } // params é uma Promise
 ) {
   try {
     const session = await auth();
@@ -12,6 +13,8 @@ export async function GET(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
+    // Aguarde os params serem resolvidos
+    const params = await context.params;
     const cartaoId = params.id;
 
     // Verificar se o cartão pertence ao usuário
@@ -162,7 +165,7 @@ async function gerarPrevisaoFaturasFuturas(cartaoId: string, cartao: any) {
   return faturasFuturas;
 }
 
-// Funções auxiliares para calcular datas (já existentes no FaturaService)
+// Funções auxiliares para calcular datas
 function calcularDataFechamento(
   diaFechamento: number | null,
   mesReferencia: string
