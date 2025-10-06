@@ -179,12 +179,12 @@ Retorne APENAS JSON sem textos adicionais. Exemplo:
 
     console.log("📦 Dados para salvar:", dadosParaSalvar);
 
-    // Salvar no banco
-    const resultado = await db.lancamento.create({
-      data: dadosParaSalvar,
-    });
+    // Salvar no banco ARRUMAR AQUI
+    // const resultado = await db.lancamento.create({
+     //  data: dadosParaSalvar,
+    // });
 
-    console.log("✅ Salvo com sucesso! ID:", resultado.id);
+    // console.log("✅ Salvo com sucesso! ID:", resultado.id);
 
     // Enviar confirmação via Twilio
     const numeroFormatado = from.toString().replace("whatsapp:", "");
