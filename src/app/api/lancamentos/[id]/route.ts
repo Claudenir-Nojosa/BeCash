@@ -3,9 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { auth } from "../../../../../auth";
 
+// Correção para todas as funções
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -13,6 +14,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
+    const params = await context.params;
     const lancamentoId = params.id;
     const body = await request.json();
     const { pago } = body;
@@ -50,7 +52,7 @@ export async function PATCH(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -61,7 +63,8 @@ export async function GET(
       );
     }
 
-    const { id } = await params; // Adicione await aqui
+    const params = await context.params;
+    const id = params.id;
 
     const lancamento = await db.lancamento.findUnique({
       where: { id },
@@ -98,10 +101,12 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
+    const params = await context.params;
+    const id = params.id;
+    
     let finalUsuarioId;
     let body = {};
 
