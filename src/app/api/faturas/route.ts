@@ -11,37 +11,37 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const cartaoId = searchParams.get('cartaoId');
+    const cartaoId = searchParams.get("cartaoId");
 
     let faturas;
 
     if (cartaoId) {
       faturas = await db.fatura.findMany({
-        where: { 
+        where: {
           cartaoId,
-          cartao: { usuarioId: session.user.id }
+          cartao: { usuarioId: session.user.id },
         },
         include: {
           lancamentos: {
             include: {
-              categoria: true
-            }
+              categoria: true,
+            },
           },
-          pagamentos: true
+          PagamentoFatura: true, // CORREÇÃO: mudado de 'pagamentos' para 'PagamentoFatura'
         },
-        orderBy: { mesReferencia: 'desc' }
+        orderBy: { mesReferencia: "desc" },
       });
     } else {
       faturas = await db.fatura.findMany({
         where: {
-          cartao: { usuarioId: session.user.id }
+          cartao: { usuarioId: session.user.id },
         },
         include: {
           cartao: true,
           lancamentos: true,
-          pagamentos: true
+          PagamentoFatura: true, // CORREÇÃO: mudado de 'pagamentos' para 'PagamentoFatura'
         },
-        orderBy: { mesReferencia: 'desc' }
+        orderBy: { mesReferencia: "desc" },
       });
     }
 
