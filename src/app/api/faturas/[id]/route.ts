@@ -3,9 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "../../../../../auth";
 import db from "@/lib/db";
 
+// Correção: Use esta assinatura para rotas dinâmicas no App Router
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> } // params é uma Promise
 ) {
   try {
     const session = await auth();
@@ -13,6 +14,8 @@ export async function GET(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
+    // Aguarde os params serem resolvidos
+    const params = await context.params;
     const faturaId = params.id;
 
     const fatura = await db.fatura.findFirst({
