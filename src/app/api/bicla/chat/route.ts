@@ -65,12 +65,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       resposta,
       pontuacao,
-      tipo: "analysis"
+      tipo: "analysis",
     });
-
   } catch (error) {
     console.error("Erro no chat da Bicla:", error);
-    const errorMessage = error instanceof Error ? error.message : "Erro interno";
+    const errorMessage =
+      error instanceof Error ? error.message : "Erro interno";
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
@@ -87,60 +87,30 @@ async function buscarDadosFinanceiros(usuarioId: string) {
         gte: seisMesesAtras,
       },
     },
-    include: {
-      divisao: {
-        include: {
-          usuario: true,
-        },
-      },
-    },
     orderBy: {
-      data: 'desc',
-    },
-  });
-
-  const metas = await db.meta.findMany({
-    where: {
-      usuarioId,
-      concluida: false,
+      data: "desc",
     },
   });
 
   // Calcular métricas básicas
-  const receitas = lancamentos.filter(l => l.tipo === 'receita');
-  const despesas = lancamentos.filter(l => l.tipo === 'despesa');
-  
+  const receitas = lancamentos.filter((l) => l.tipo === "receita");
+  const despesas = lancamentos.filter((l) => l.tipo === "despesa");
+
   const totalReceitas = receitas.reduce((sum, l) => sum + l.valor, 0);
   const totalDespesas = despesas.reduce((sum, l) => sum + l.valor, 0);
   const saldo = totalReceitas - totalDespesas;
 
-  // Agrupar por categoria
-  const despesasPorCategoria = despesas.reduce((acc: any, l) => {
-    acc[l.categoria] = (acc[l.categoria] || 0) + l.valor;
-    return acc;
-  }, {});
-
-  const receitasPorCategoria = receitas.reduce((acc: any, l) => {
-    acc[l.categoria] = (acc[l.categoria] || 0) + l.valor;
-    return acc;
-  }, {});
-
   return {
     lancamentos,
-    metas,
     totais: {
       receitas: totalReceitas,
       despesas: totalDespesas,
-      saldo
-    },
-    categorias: {
-      despesas: despesasPorCategoria,
-      receitas: receitasPorCategoria
+      saldo,
     },
     periodo: {
       inicio: seisMesesAtras,
-      fim: new Date()
-    }
+      fim: new Date(),
+    },
   };
 }
 
@@ -171,9 +141,9 @@ RESPONDA EM PORTUGUÊS BRASILEIRO:
 
 function calcularPontuacaoSaude(dados: any) {
   const { receitas, despesas, saldo } = dados.totais;
-  
+
   if (receitas === 0) return 50; // Caso não haja dados
-  
+
   const taxaPoupanca = saldo / receitas;
   let pontuacao = 50;
 
@@ -184,6 +154,6 @@ function calcularPontuacaoSaude(dados: any) {
   // Ajustar baseado na diversificação de gastos
   const categoriasDespesas = Object.keys(dados.categorias.despesas);
   if (categoriasDespesas.length >= 3) pontuacao += 10;
-  
+
   return Math.max(0, Math.min(100, pontuacao));
 }
