@@ -1,732 +1,871 @@
-// app/dashboard/lancamentos/page.tsx
 "use client";
-
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Plus,
-  Filter,
-  Search,
-  ArrowUpDown,
-  CheckCircle,
-  Edit,
-  Trash2,
-} from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { formatarDataParaExibição } from "@/lib/utils";
+import { CheckCircle, XCircle, Clock } from "lucide-react";
+
+interface Categoria {
+  id: string;
+  nome: string;
+  tipo: string;
+  cor: string;
+}
+
+interface Cartao {
+  id: string;
+  nome: string;
+  bandeira: string;
+  cor: string;
+}
 
 interface Lancamento {
   id: string;
   descricao: string;
   valor: number;
   tipo: string;
-  categoria: string;
-  tipoLancamento: string;
-  responsavel: string;
-  data: Date;
-  dataVencimento: Date | null;
+  metodoPagamento: string;
+  data: string;
   pago: boolean;
-  recorrente: boolean;
-  frequencia: string | null;
-  observacoes: string | null;
-  origem: string;
-  usuarioId: string;
-  createdAt: Date;
-  updatedAt: Date;
-  usuario: {
-    name: string | null;
-    email: string;
-  };
-}
-
-interface Resumo {
-  receitas: number;
-  despesas: number;
-  saldo: number;
-}
-
-interface TotaisPorCategoria {
-  categoria: string;
-  tipo: string;
-  _sum: {
-    valor: number | null;
-  };
+  tipoParcelamento?: string;
+  parcelasTotal?: number;
+  parcelaAtual?: number;
+  recorrente?: boolean;
+  dataFimRecorrencia?: string;
+  categoria: Categoria;
+  cartao?: Cartao;
+  lancamentosFilhos?: Lancamento[];
 }
 
 export default function LancamentosPage() {
-  const router = useRouter();
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
-  const [resumo, setResumo] = useState<Resumo>({
-    receitas: 0,
-    despesas: 0,
-    saldo: 0,
+  const [mostrarPrevisoes, setMostrarPrevisoes] = useState(false);
+  const [previsoesFuturas, setPrevisoesFuturas] = useState<any[]>([]);
+  const [mesPrevisao, setMesPrevisao] = useState(
+    new Date().toISOString().slice(0, 7) // YYYY-MM
+  );
+
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [cartoes, setCartoes] = useState<Cartao[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [formData, setFormData] = useState({
+    descricao: "",
+    valor: "",
+    tipo: "DESPESA",
+    metodoPagamento: "PIX",
+    categoriaId: "",
+    cartaoId: "",
+    observacoes: "",
+    tipoParcelamento: "AVISTA",
+    parcelasTotal: "2",
+    recorrente: false,
+    dataFimRecorrencia: "",
   });
-  const [totaisPorCategoria, setTotaisPorCategoria] = useState<
-    TotaisPorCategoria[]
-  >([]);
-  const [carregando, setCarregando] = useState(true);
-  const [carregandoStatus, setCarregandoStatus] = useState<{
-    [key: string]: boolean;
-  }>({});
-  const [filtros, setFiltros] = useState({
-    mes: new Date().getMonth() + 1,
-    ano: new Date().getFullYear(),
-    categoria: "todas",
-    tipo: "todos",
-    busca: "",
-  });
-  const [atualizandoPagamento, setAtualizandoPagamento] = useState<
-    string | null
-  >(null);
 
   useEffect(() => {
-    buscarLancamentos();
-  }, [filtros.mes, filtros.ano, filtros.categoria, filtros.tipo]);
-
-  // Função para normalizar o tipo (lidar com "Despesa" e "Receita" com primeira letra maiúscula)
-  const normalizarTipo = (tipo: string): "receita" | "despesa" => {
-    const tipoLower = tipo.toLowerCase();
-    if (tipoLower === "receita" || tipoLower === "despesa") {
-      return tipoLower as "receita" | "despesa";
-    }
-    // Fallback para o valor original em minúsculo
-    return tipoLower as "receita" | "despesa";
-  };
-  // Função para obter o tipo normalizado para exibição
-  const obterTipoNormalizado = (
-    lancamento: Lancamento
-  ): "receita" | "despesa" => {
-    return normalizarTipo(lancamento.tipo);
-  };
-
-  const buscarLancamentos = async () => {
+    carregarDados();
+  }, []);
+  // Função para carregar previsões
+  const carregarPrevisoes = async () => {
     try {
-      setCarregando(true);
+      const res = await fetch(
+        `/api/lancamentos/recorrencias-futuras?mes=${mesPrevisao}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setPrevisoesFuturas(data);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar previsões:", error);
+    }
+  };
 
-      // Toast de carregamento
-      const toastId = toast.loading("Carregando lançamentos...");
+  // Chame esta função quando mostrarPrevisoes mudar para true
+  useEffect(() => {
+    if (mostrarPrevisoes) {
+      carregarPrevisoes();
+    }
+  }, [mostrarPrevisoes, mesPrevisao]);
+  const carregarDados = async () => {
+    try {
+      setLoading(true);
+      const [lancamentosRes, categoriasRes, cartoesRes] = await Promise.all([
+        fetch("/api/lancamentos"),
+        fetch("/api/categorias"),
+        fetch("/api/cartoes"),
+      ]);
 
-      const params = new URLSearchParams({
-        mes: filtros.mes.toString(),
-        ano: filtros.ano.toString(),
-        categoria: filtros.categoria,
-        tipo: filtros.tipo,
-      });
-
-      const response = await fetch(`/api/lancamentos?${params}`);
-
-      if (!response.ok) {
-        throw new Error("Erro ao buscar lançamentos");
+      if (lancamentosRes.ok) {
+        const lancamentosData = await lancamentosRes.json();
+        setLancamentos(Array.isArray(lancamentosData) ? lancamentosData : []);
       }
 
-      const data = await response.json();
-      setLancamentos(data.lancamentos);
-      setResumo(data.resumo);
-      setTotaisPorCategoria(data.totaisPorCategoria);
+      if (categoriasRes.ok) {
+        const categoriasData = await categoriasRes.json();
+        setCategorias(Array.isArray(categoriasData) ? categoriasData : []);
+      }
 
-      // Toast de sucesso
-      toast.success("Lançamentos carregados", {
-        id: toastId,
-        description: `${data.lancamentos.length} lançamento(s) encontrado(s)`,
-        duration: 3000,
-      });
+      if (cartoesRes.ok) {
+        const cartoesData = await cartoesRes.json();
+        if (Array.isArray(cartoesData)) {
+          setCartoes(cartoesData);
+        } else {
+          console.error("Resposta de cartões não é um array:", cartoesData);
+          setCartoes([]);
+        }
+      }
     } catch (error) {
-      console.error("Erro ao buscar lançamentos:", error);
-
-      // Toast de erro
-      toast.error("Erro ao carregar lançamentos", {
-        description:
-          "Não foi possível carregar os lançamentos. Tente novamente.",
-        duration: 5000,
-      });
+      console.error("Erro ao carregar dados:", error);
+      setLancamentos([]);
+      setCategorias([]);
+      setCartoes([]);
     } finally {
-      setCarregando(false);
+      setLoading(false);
     }
   };
+  const criarTodasRecorrencias = async (recorrenciaId: string) => {
+    if (
+      !confirm(
+        "Deseja criar TODOS os lançamentos futuros desta recorrência de uma vez?"
+      )
+    ) {
+      return;
+    }
 
-  const atualizarStatusPagamento = async (id: string, pago: boolean) => {
     try {
-      setAtualizandoPagamento(id);
-      setCarregandoStatus((prev) => ({ ...prev, [id]: true })); // Iniciar loading para este item
+      const res = await fetch("/api/lancamentos/criar-todas-recorrencias", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recorrenciaId }),
+      });
 
-      // Toast de carregamento
-      const toastId = toast.loading(
-        pago ? "Marcando como pago..." : "Marcando como pendente..."
-      );
+      if (res.ok) {
+        const result = await res.json();
+        toast.success(result.message);
+        carregarDados(); // Recarregar a lista
+        carregarPrevisoes(); // Recarregar previsões
+      } else {
+        const error = await res.json();
+        toast.error(error.error);
+      }
+    } catch (error) {
+      console.error("Erro ao criar recorrências:", error);
+      toast.error("Erro ao criar recorrências");
+    }
+  };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch("/api/lancamentos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          valor: parseFloat(formData.valor),
+          parcelasTotal: parseInt(formData.parcelasTotal),
+        }),
+      });
 
-      const response = await fetch(`/api/lancamentos/${id}`, {
+      if (res.ok) {
+        setShowForm(false);
+        setFormData({
+          descricao: "",
+          valor: "",
+          tipo: "DESPESA",
+          metodoPagamento: "PIX",
+          categoriaId: "",
+          cartaoId: "",
+          observacoes: "",
+          tipoParcelamento: "AVISTA",
+          parcelasTotal: "2",
+          recorrente: false,
+          dataFimRecorrencia: "",
+        });
+        carregarDados();
+      } else {
+        const errorData = await res.json();
+        console.error("Erro na resposta:", errorData);
+        alert(errorData.error || "Erro ao criar lançamento");
+      }
+    } catch (error) {
+      console.error("Erro ao criar lançamento:", error);
+      alert("Erro ao criar lançamento");
+    }
+  };
+  const categoriasFiltradas = categorias.filter(
+    (cat) => cat.tipo === formData.tipo
+  );
+  // Resetar campos quando mudar o método de pagamento
+  const handleMetodoPagamentoChange = (metodo: string) => {
+    setFormData({
+      ...formData,
+      metodoPagamento: metodo,
+      tipoParcelamento: metodo === "CREDITO" ? "AVISTA" : "AVISTA",
+      parcelasTotal: "2",
+      cartaoId: metodo === "CREDITO" ? formData.cartaoId : "",
+    });
+  };
+
+  const toggleStatus = async (lancamentoId: string, atualStatus: boolean) => {
+    try {
+      const response = await fetch(`/api/lancamentos/${lancamentoId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ pago }),
+        body: JSON.stringify({
+          pago: !atualStatus,
+        }),
       });
 
-      if (!response.ok) {
-        throw new Error("Erro ao atualizar status de pagamento");
+      if (response.ok) {
+        toast.success("Status atualizado com sucesso!");
+        carregarDados(); // Recarregar a lista
+      } else {
+        throw new Error("Erro ao atualizar status");
       }
-
-      // Atualizar a lista localmente
-      setLancamentos((prev) =>
-        prev.map((lancamento) =>
-          lancamento.id === id ? { ...lancamento, pago } : lancamento
-        )
-      );
-
-      // Recalcular resumo
-      if (pago) {
-        const lancamento = lancamentos.find((l) => l.id === id);
-        if (lancamento) {
-          const tipo = obterTipoNormalizado(lancamento);
-          if (tipo === "receita") {
-            setResumo((prev) => ({
-              ...prev,
-              receitas: prev.receitas + lancamento.valor,
-              saldo: prev.saldo + lancamento.valor,
-            }));
-          } else {
-            setResumo((prev) => ({
-              ...prev,
-              despesas: prev.despesas + lancamento.valor,
-              saldo: prev.saldo - lancamento.valor,
-            }));
-          }
-        }
-      }
-
-      // Toast de sucesso
-      toast.success(`Lançamento ${pago ? "pago" : "marcado como pendente"}`, {
-        id: toastId,
-        description: `O status foi atualizado com sucesso`,
-        duration: 3000,
-      });
     } catch (error) {
-      console.error("Erro ao atualizar pagamento:", error);
-
-      // Toast de erro
-      toast.error("Erro ao atualizar status", {
-        description: "Não foi possível atualizar o status de pagamento",
-        duration: 5000,
-      });
-    } finally {
-      setAtualizandoPagamento(null);
-      setCarregandoStatus((prev) => ({ ...prev, [id]: false })); // Finalizar loading para este item
+      console.error("Erro ao alterar status:", error);
+      toast.error("Erro ao alterar status");
     }
   };
-
-  const excluirLancamento = async (id: string) => {
-    // Toast personalizado para confirmar a exclusão
-    toast.custom(
-      (t) => (
-        <div className="flex flex-col gap-4 w-full max-w-md bg-white rounded-lg shadow-lg border p-4">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0">
-              <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center">
-                <svg
-                  className="w-4 h-4 text-red-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
-                </svg>
-              </div>
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-gray-900">
-                Confirmar exclusão
-              </h3>
-              <p className="mt-1 text-sm text-gray-600">
-                Tem certeza que deseja excluir este lançamento? Esta ação não
-                pode ser desfeita.
-              </p>
-            </div>
-            <button
-              onClick={() => toast.dismiss(t)}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-          <div className="flex gap-3 justify-end">
-            <button
-              onClick={() => toast.dismiss(t)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={async () => {
-                toast.dismiss(t);
-                await realizarExclusao(id);
-              }}
-              className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors"
-            >
-              Excluir
-            </button>
-          </div>
-        </div>
-      ),
-      {
-        duration: 10000, // 10 segundos
-      }
-    );
-  };
-
-  const realizarExclusao = async (id: string) => {
-    try {
-      // Mostrar toast de carregamento
-      const toastId = toast.loading("Excluindo lançamento...");
-
-      const response = await fetch(`/api/lancamentos/${id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error("Erro ao excluir lançamento");
-      }
-
-      // Remover da lista localmente
-      setLancamentos((prev) =>
-        prev.filter((lancamento) => lancamento.id !== id)
-      );
-
-      // Atualizar toast para sucesso
-      toast.success("Lançamento excluído com sucesso", {
-        id: toastId,
-        description: "O lançamento foi removido do sistema",
-        duration: 3000,
-      });
-    } catch (error) {
-      console.error("Erro ao excluir lançamento:", error);
-
-      // Toast de erro
-      toast.error("Erro ao excluir lançamento", {
-        description: "Não foi possível excluir o lançamento. Tente novamente.",
-        duration: 5000,
-      });
-    }
-  };
-
-  const formatarMoeda = (valor: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(valor);
-  };
-
-  const formatarCategoria = (categoria: string) => {
-    const categorias: Record<string, string> = {
-      salario: "Salário",
-      freela: "Freelance",
-      investimentos: "Investimentos",
-      alimentacao: "Alimentação",
-      transporte: "Transporte",
-      casa: "Casa",
-      pessoal: "Pessoal",
-      lazer: "Lazer",
-      outros: "Outros",
-    };
-    return categorias[categoria] || categoria;
-  };
-
-  const lancamentosFiltrados = lancamentos.filter((lancamento) =>
-    lancamento.descricao.toLowerCase().includes(filtros.busca.toLowerCase())
-  );
-
-  const meses = [
-    { value: 1, label: "Janeiro" },
-    { value: 2, label: "Fevereiro" },
-    { value: 3, label: "Março" },
-    { value: 4, label: "Abril" },
-    { value: 5, label: "Maio" },
-    { value: 6, label: "Junho" },
-    { value: 7, label: "Julho" },
-    { value: 8, label: "Agosto" },
-    { value: 9, label: "Setembro" },
-    { value: 10, label: "Outubro" },
-    { value: 11, label: "Novembro" },
-    { value: 12, label: "Dezembro" },
-  ];
-
-  const anos = Array.from(
-    { length: 6 },
-    (_, i) => new Date().getFullYear() + i
-  );
-
-  const LoadingSpinner = ({ size = "sm" }: { size?: "sm" | "md" | "lg" }) => {
-    const sizeClasses = {
-      sm: "h-4 w-4",
-      md: "h-5 w-5",
-      lg: "h-6 w-6",
-    };
-
+  if (loading) {
     return (
-      <div className="flex items-center justify-center">
-        <div
-          className={`animate-spin rounded-full border-2 border-gray-300 border-t-blue-600 ${sizeClasses[size]}`}
-        ></div>
+      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+        <div className="text-gray-600">Carregando...</div>
       </div>
     );
-  };
+  }
+
   return (
-    <div className="container mx-auto p-6 mt-20">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <h1 className="text-3xl font-bold">Lançamentos</h1>
-        <Button onClick={() => router.push("/dashboard/lancamentos/novo")}>
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Lançamento
-        </Button>
-      </div>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">Lançamentos</h1>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          >
+            {showForm ? "Cancelar" : "Novo Lançamento"}
+          </button>
+        </div>
 
-      {/* Filtros */}
-      <Card className="mb-6">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Filter className="h-5 w-5" />
-              Filtros
-            </CardTitle>
-            <Button variant="outline" size="sm" onClick={buscarLancamentos}>
-              Aplicar Filtros
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="mes">Mês</Label>
-              <Select
-                value={filtros.mes.toString()}
-                onValueChange={(value) =>
-                  setFiltros({ ...filtros, mes: parseInt(value) })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o mês" />
-                </SelectTrigger>
-                <SelectContent>
-                  {meses.map((mes) => (
-                    <SelectItem key={mes.value} value={mes.value.toString()}>
-                      {mes.label}
-                    </SelectItem>
+        {showForm && (
+          <form
+            onSubmit={handleSubmit}
+            className="bg-white p-6 rounded-lg shadow-md mb-8"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Descrição
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.descricao}
+                  onChange={(e) =>
+                    setFormData({ ...formData, descricao: e.target.value })
+                  }
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  placeholder="Ex: Aluguel, Salário, Mercado..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Valor
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  value={formData.valor}
+                  onChange={(e) =>
+                    setFormData({ ...formData, valor: e.target.value })
+                  }
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  placeholder="0,00"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tipo
+                </label>
+                <select
+                  value={formData.tipo}
+                  onChange={(e) =>
+                    setFormData({ ...formData, tipo: e.target.value })
+                  }
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                >
+                  <option value="DESPESA">Despesa</option>
+                  <option value="RECEITA">Receita</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Método de Pagamento
+                </label>
+                <select
+                  value={formData.metodoPagamento}
+                  onChange={(e) => handleMetodoPagamentoChange(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                >
+                  <option value="PIX">PIX</option>
+                  <option value="TRANSFERENCIA">Transferência</option>
+                  <option value="DEBITO">Cartão de Débito</option>
+                  <option value="CREDITO">Cartão de Crédito</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Categoria
+                </label>
+                <select
+                  required
+                  value={formData.categoriaId}
+                  onChange={(e) =>
+                    setFormData({ ...formData, categoriaId: e.target.value })
+                  }
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                >
+                  <option value="">Selecione uma categoria</option>
+                  {categoriasFiltradas.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.nome}
+                    </option>
                   ))}
-                </SelectContent>
-              </Select>
+                </select>
+                {categoriasFiltradas.length === 0 && (
+                  <p className="text-sm text-red-600 mt-1">
+                    Nenhuma categoria encontrada para{" "}
+                    {formData.tipo === "DESPESA" ? "despesa" : "receita"}.
+                    <a
+                      href="/categorias"
+                      className="text-blue-600 underline ml-1"
+                    >
+                      Criar categoria
+                    </a>
+                  </p>
+                )}
+              </div>
+
+              {formData.metodoPagamento === "CREDITO" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Cartão
+                  </label>
+                  <select
+                    required
+                    value={formData.cartaoId}
+                    onChange={(e) =>
+                      setFormData({ ...formData, cartaoId: e.target.value })
+                    }
+                    className="w-full p-2 border border-gray-300 rounded-md"
+                  >
+                    <option value="">Selecione um cartão</option>
+                    {Array.isArray(cartoes) &&
+                      cartoes.map((cartao) => (
+                        <option key={cartao.id} value={cartao.id}>
+                          {cartao.nome}
+                        </option>
+                      ))}
+                  </select>
+                  {(!Array.isArray(cartoes) || cartoes.length === 0) && (
+                    <p className="text-sm text-red-600 mt-1">
+                      Nenhum cartão encontrado.
+                      <a
+                        href="/cartoes"
+                        className="text-blue-600 underline ml-1"
+                      >
+                        Criar cartão
+                      </a>
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* CAMPOS DE PARCELAMENTO - AGORA VISÍVEIS */}
+              {formData.metodoPagamento === "CREDITO" && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Tipo de Pagamento
+                    </label>
+                    <select
+                      value={formData.tipoParcelamento}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          tipoParcelamento: e.target.value,
+                        })
+                      }
+                      className="w-full p-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="AVISTA">À Vista (1x)</option>
+                      <option value="PARCELADO">Parcelado</option>
+                      <option value="RECORRENTE">
+                        Recorrente (Assinatura)
+                      </option>
+                    </select>
+                  </div>
+
+                  {/* CAMPO DE PARCELAS - SEMPRE VISÍVEL QUANDO FOR PARCELADO */}
+                  {formData.tipoParcelamento === "PARCELADO" && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Número de Parcelas
+                      </label>
+                      <select
+                        value={formData.parcelasTotal}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            parcelasTotal: e.target.value,
+                          })
+                        }
+                        className="w-full p-2 border border-gray-300 rounded-md"
+                      >
+                        {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
+                          <option key={num} value={num.toString()}>
+                            {num}x
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {formData.tipoParcelamento === "RECORRENTE" && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Data Final da Recorrência
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={formData.dataFimRecorrencia}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            dataFimRecorrencia: e.target.value,
+                          })
+                        }
+                        className="w-full p-2 border border-gray-300 rounded-md"
+                      />
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="ano">Ano</Label>
-              <Select
-                value={filtros.ano.toString()}
-                onValueChange={(value) =>
-                  setFiltros({ ...filtros, ano: parseInt(value) })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o ano" />
-                </SelectTrigger>
-                <SelectContent>
-                  {anos.map((ano) => (
-                    <SelectItem key={ano} value={ano.toString()}>
-                      {ano}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* INFORMAÇÕES DO PARCELAMENTO */}
+            {formData.metodoPagamento === "CREDITO" &&
+              formData.tipoParcelamento === "PARCELADO" &&
+              formData.valor && (
+                <div className="mt-4 p-3 bg-blue-50 rounded-md">
+                  <p className="text-sm text-blue-800">
+                    <strong>Detalhes do parcelamento:</strong>
+                    <br />• Valor total: R${" "}
+                    {parseFloat(formData.valor).toFixed(2)}
+                    <br />• {formData.parcelasTotal} parcelas de R${" "}
+                    {(
+                      parseFloat(formData.valor) /
+                      parseInt(formData.parcelasTotal)
+                    ).toFixed(2)}
+                    <br />• Primeira parcela em{" "}
+                    {new Date().toLocaleDateString("pt-BR")}
+                  </p>
+                </div>
+              )}
 
-            <div className="space-y-2">
-              <Label htmlFor="categoria">Categoria</Label>
-              <Select
-                value={filtros.categoria}
-                onValueChange={(value) =>
-                  setFiltros({ ...filtros, categoria: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todas categorias" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todas">Todas</SelectItem>
-                  <SelectItem value="salario">Salário</SelectItem>
-                  <SelectItem value="freela">Freelance</SelectItem>
-                  <SelectItem value="investimentos">Investimentos</SelectItem>
-                  <SelectItem value="alimentacao">Alimentação</SelectItem>
-                  <SelectItem value="transporte">Transporte</SelectItem>
-                  <SelectItem value="casa">Casa</SelectItem>
-                  <SelectItem value="pessoal">Pessoal</SelectItem>
-                  <SelectItem value="lazer">Lazer</SelectItem>
-                  <SelectItem value="outros">Outros</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {formData.metodoPagamento === "CREDITO" &&
+              formData.tipoParcelamento === "AVISTA" && (
+                <div className="mt-4 p-3 bg-green-50 rounded-md">
+                  <p className="text-sm text-green-800">
+                    <strong>Pagamento à vista:</strong> O valor será cobrado na
+                    próxima fatura.
+                  </p>
+                </div>
+              )}
 
-            <div className="space-y-2">
-              <Label htmlFor="tipo">Tipo</Label>
-              <Select
-                value={filtros.tipo}
-                onValueChange={(value) =>
-                  setFiltros({ ...filtros, tipo: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos os tipos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="receita">Receita</SelectItem>
-                  <SelectItem value="despesa">Despesa</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+            {formData.metodoPagamento === "CREDITO" &&
+              formData.tipoParcelamento === "RECORRENTE" && (
+                <div className="mt-4 p-3 bg-purple-50 rounded-md">
+                  <p className="text-sm text-purple-800">
+                    <strong>Recorrência mensal:</strong> Será criado um
+                    lançamento automático todo mês.
+                  </p>
+                </div>
+              )}
 
-          <div className="mt-4 space-y-2">
-            <Label htmlFor="busca">Buscar</Label>
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="busca"
-                placeholder="Buscar por descrição..."
-                className="pl-8"
-                value={filtros.busca}
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Observações
+              </label>
+              <textarea
+                value={formData.observacoes}
                 onChange={(e) =>
-                  setFiltros({ ...filtros, busca: e.target.value })
+                  setFormData({ ...formData, observacoes: e.target.value })
                 }
+                className="w-full p-2 border border-gray-300 rounded-md"
+                rows={3}
+                placeholder="Observações adicionais..."
               />
             </div>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card className="bg-green-50 border-green-200">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg text-green-800">Receitas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-green-800">
-              {formatarMoeda(resumo.receitas)}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-red-50 border-red-200">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg text-red-800">Despesas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-red-800">
-              {formatarMoeda(resumo.despesas)}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card
-          className={
-            resumo.saldo >= 0
-              ? "bg-blue-50 border-blue-200"
-              : "bg-amber-50 border-amber-200"
-          }
-        >
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg text-blue-800">Saldo</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p
-              className={`text-2xl font-bold ${resumo.saldo >= 0 ? "text-blue-800" : "text-amber-800"}`}
+            <button
+              type="submit"
+              className="mt-4 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400"
+              disabled={
+                !formData.categoriaId ||
+                (formData.metodoPagamento === "CREDITO" &&
+                  !formData.cartaoId) ||
+                (formData.metodoPagamento === "CREDITO" &&
+                  formData.tipoParcelamento === "RECORRENTE" &&
+                  !formData.dataFimRecorrencia)
+              }
             >
-              {formatarMoeda(resumo.saldo)}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tabela de Lançamentos */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Lista de Lançamentos</CardTitle>
-          <CardDescription>
-            {lancamentosFiltrados.length} lançamento(s) encontrado(s)
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {carregando ? (
-            <div className="space-y-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
+              Salvar Lançamento
+            </button>
+          </form>
+        )}
+        <div className="mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Previsões de Recorrências
+            </h2>
+            <div className="flex gap-2">
+              <input
+                type="month"
+                value={mesPrevisao}
+                onChange={(e) => setMesPrevisao(e.target.value)}
+                className="p-2 border border-gray-300 rounded-md"
+              />
+              <button
+                onClick={() => setMostrarPrevisoes(!mostrarPrevisoes)}
+                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+              >
+                {mostrarPrevisoes
+                  ? "Ocultar Previsões"
+                  : "Ver Previsões Futuras"}
+              </button>
             </div>
-          ) : lancamentosFiltrados.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Nenhum lançamento encontrado
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-center">Data</TableHead>
-                    <TableHead className="text-center">Descrição</TableHead>
-                    <TableHead className="text-center">Categoria</TableHead>
-                    <TableHead className="text-center">Responsável</TableHead>
-                    <TableHead className="text-center">Valor</TableHead>
-                    <TableHead className="text-center">Status</TableHead>
-                    <TableHead className="text-center">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {lancamentosFiltrados.map((lancamento) => {
-                    const tipoNormalizado = normalizarTipo(lancamento.tipo);
-                    return (
-                      <TableRow key={lancamento.id}>
-                        <TableCell className="text-center">
-                          {formatarDataParaExibição(lancamento.data)}
-                        </TableCell>
-                        <TableCell className="text-center font-medium">
-                          {lancamento.descricao}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {formatarCategoria(lancamento.categoria)}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {lancamento.responsavel}
-                        </TableCell>
-                        <TableCell
-                          className={`text-center font-medium ${
-                            tipoNormalizado === "receita"
-                              ? "text-green-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {tipoNormalizado === "receita" ? "+ " : "- "}
-                          {formatarMoeda(lancamento.valor)}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {carregandoStatus[lancamento.id] ? (
-                            <LoadingSpinner />
-                          ) : (
-                            <Badge
-                              variant={
-                                lancamento.pago ? "default" : "secondary"
-                              }
-                              className={
-                                lancamento.pago
-                                  ? "bg-green-100 text-green-800 hover:bg-green-100"
-                                  : tipoNormalizado === "receita"
-                                    ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
-                                    : "bg-yellow-300 text-yellow-800 hover:bg-yellow-200"
-                              }
-                            >
-                              {lancamento.pago
-                                ? tipoNormalizado === "receita"
-                                  ? "Recebido"
-                                  : "Pago"
-                                : tipoNormalizado === "receita"
-                                  ? "A receber"
-                                  : "A pagar"}
-                            </Badge>
-                          )}
-                        </TableCell>
+          </div>
 
-                        <TableCell className="text-center">
-                          <div className="flex items-center gap-2 justify-center">
-                            {!lancamento.pago && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  atualizarStatusPagamento(lancamento.id, true)
-                                }
-                                disabled={
-                                  atualizandoPagamento === lancamento.id
-                                }
-                              >
-                                <CheckCircle className="h-4 w-4 mr-1" />
-                                {atualizandoPagamento === lancamento.id
-                                  ? "Processando..."
-                                  : tipoNormalizado === "receita"
-                                    ? "Receber"
-                                    : "Pagar"}
-                              </Button>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() =>
-                                router.push(
-                                  `/dashboard/lancamentos/${lancamento.id}`
-                                )
-                              }
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => excluirLancamento(lancamento.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+          {mostrarPrevisoes && (
+            <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+              {previsoesFuturas.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">
+                  Nenhuma previsão de recorrência encontrada.
+                </div>
+              ) : (
+                <table className="w-full">
+                  <thead className="bg-purple-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
+                        Descrição
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
+                        Valor
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
+                        Categoria
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
+                        Cartão
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
+                        Data Prevista
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {previsoesFuturas.map((previsao) => (
+                      <tr
+                        key={previsao.id}
+                        className={previsao.jaExiste ? "bg-green-50" : ""}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <span className="mr-2 text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                              🔄
+                            </span>
+                            {previsao.descricao}
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {previsao.jaExiste ? (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                              ✅ Criado
+                            </span>
+                          ) : (
+                            <div className="flex gap-2">
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">
+                                ⏳ Pendente
+                              </span>
+                              {previsao.ehOriginal && (
+                                <button
+                                  onClick={() =>
+                                    criarTodasRecorrencias(
+                                      previsao.lancamentoPaiId
+                                    )
+                                  }
+                                  className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded hover:bg-blue-200"
+                                >
+                                  Criar Todos
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={
+                              previsao.tipo === "RECEITA"
+                                ? "text-green-600 font-medium"
+                                : "text-red-600 font-medium"
+                            }
+                          >
+                            R$ {previsao.valor.toFixed(2)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+                            style={{
+                              backgroundColor: `${previsao.categoria.cor}20`,
+                              color: previsao.categoria.cor,
+                            }}
+                          >
+                            {previsao.categoria.nome}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {previsao.cartao?.nome || "-"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {new Date(previsao.data).toLocaleDateString("pt-BR")}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {previsao.jaExiste ? (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                              ✅ Já lançado
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">
+                              ⏳ Pendente
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+        {/* Resto do código da tabela permanece igual */}
+        <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+          {" "}
+          {/* Mudei para overflow-x-auto */}
+          {lancamentos.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              Nenhum lançamento encontrado. Clique em "Novo Lançamento" para
+              começar.
+            </div>
+          ) : (
+            <table className="w-full min-w-max">
+              {" "}
+              {/* Adicionei min-w-max */}
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    Descrição
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    Valor
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    Categoria
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    Método
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    Data
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {lancamentos.map((lancamento) => (
+                  <>
+                    <tr key={lancamento.id}>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          {lancamento.parcelasTotal &&
+                            lancamento.parcelasTotal > 1 && (
+                              <span className="mr-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                {lancamento.parcelaAtual}/
+                                {lancamento.parcelasTotal}
+                              </span>
+                            )}
+                          {lancamento.recorrente && (
+                            <span className="mr-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                              🔄
+                            </span>
+                          )}
+                          <span className="text-sm">
+                            {lancamento.descricao}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <span
+                          className={
+                            lancamento.tipo === "RECEITA"
+                              ? "text-green-600 font-medium text-sm"
+                              : "text-red-600 font-medium text-sm"
+                          }
+                        >
+                          R$ {lancamento.valor.toFixed(2)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <span
+                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+                          style={{
+                            backgroundColor: `${lancamento.categoria.cor}20`,
+                            color: lancamento.categoria.cor,
+                          }}
+                        >
+                          {lancamento.categoria.nome}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm">
+                        <div>
+                          <div>{lancamento.metodoPagamento}</div>
+                          {lancamento.cartao && (
+                            <div className="text-xs text-gray-500">
+                              {lancamento.cartao.nome}
+                            </div>
+                          )}
+                          {lancamento.tipoParcelamento && (
+                            <div className="text-xs text-gray-500">
+                              ({lancamento.tipoParcelamento.toLowerCase()})
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm">
+                        {new Date(lancamento.data).toLocaleDateString("pt-BR")}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <button
+                          onClick={() =>
+                            toggleStatus(lancamento.id, lancamento.pago)
+                          }
+                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors ${
+                            lancamento.pago
+                              ? "bg-green-100 text-green-800 hover:bg-green-200"
+                              : "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+                          }`}
+                        >
+                          {lancamento.pago ? (
+                            <>
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Pago
+                            </>
+                          ) : (
+                            <>
+                              <Clock className="w-3 h-3 mr-1" />
+                              Pendente
+                            </>
+                          )}
+                        </button>
+                      </td>
+                    </tr>
+
+                    {/* Mostrar parcelas filhas */}
+                    {lancamento.lancamentosFilhos?.map((parcela) => (
+                      <tr key={parcela.id} className="bg-gray-50">
+                        <td className="px-4 py-4 whitespace-nowrap pl-8">
+                          <div className="flex items-center text-sm text-gray-600">
+                            <span className="mr-2 text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
+                              {parcela.parcelaAtual}/{parcela.parcelasTotal}
+                            </span>
+                            {parcela.descricao}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                          R$ {parcela.valor.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <span
+                            className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+                            style={{
+                              backgroundColor: `${parcela.categoria.cor}20`,
+                              color: parcela.categoria.cor,
+                            }}
+                          >
+                            {parcela.categoria.nome}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                          <div>
+                            <div>{parcela.metodoPagamento}</div>
+                            {parcela.cartao && (
+                              <div className="text-xs text-gray-500">
+                                {parcela.cartao.nome}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {new Date(parcela.data).toLocaleDateString("pt-BR")}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <button
+                            onClick={() =>
+                              toggleStatus(parcela.id, parcela.pago)
+                            }
+                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors ${
+                              parcela.pago
+                                ? "bg-green-100 text-green-800 hover:bg-green-200"
+                                : "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+                            }`}
+                          >
+                            {parcela.pago ? (
+                              <>
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Pago
+                              </>
+                            ) : (
+                              <>
+                                <Clock className="w-3 h-3 mr-1" />
+                                Pendente
+                              </>
+                            )}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

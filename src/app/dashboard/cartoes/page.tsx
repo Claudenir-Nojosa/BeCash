@@ -20,6 +20,8 @@ import {
   Edit,
   Trash2,
   MoreVertical,
+  Eye,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -30,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface Cartao {
+  faturaAtual: any;
   id: string;
   nome: string;
   bandeira: string;
@@ -37,16 +40,12 @@ interface Cartao {
   diaFechamento: number;
   diaVencimento: number;
   cor: string;
-  ativo: boolean;
   observacoes?: string;
   lancamentos: Array<{
     id: string;
     valor: number;
-  }>;
-  faturas: Array<{
-    id: string;
-    valorTotal: number;
-    status: string;
+    descricao: string;
+    data: string;
   }>;
   _count?: {
     lancamentos: number;
@@ -67,133 +66,115 @@ export default function CartoesPage() {
 
   const carregarCartoes = async () => {
     try {
+      setCarregando(true);
       const response = await fetch("/api/cartoes");
-      if (response.ok) {
-        const data = await response.json();
-        setCartoes(data);
-      } else {
-        throw new Error("Erro ao carregar cartões");
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erro ao carregar cartões");
       }
+
+      const data = await response.json();
+
+      // Para cada cartão, carregar o limite real (opcional)
+      const cartoesComLimiteReal = await Promise.all(
+        data.map(async (cartao: Cartao) => {
+          try {
+            const limiteResponse = await fetch(
+              `/api/cartoes/${cartao.id}/limite`
+            );
+            if (limiteResponse.ok) {
+              const limiteData = await limiteResponse.json();
+              return {
+                ...cartao,
+                totalGasto: limiteData.totalUtilizado,
+                utilizacaoLimite: limiteData.utilizacaoPercentual,
+              };
+            }
+            return cartao;
+          } catch (error) {
+            console.error(
+              `Erro ao carregar limite do cartão ${cartao.id}:`,
+              error
+            );
+            return cartao;
+          }
+        })
+      );
+
+      setCartoes(cartoesComLimiteReal);
     } catch (error) {
       console.error("Erro ao carregar cartões:", error);
-      toast.error("Erro ao carregar cartões");
+      toast.error(
+        error instanceof Error ? error.message : "Erro ao carregar cartões"
+      );
     } finally {
       setCarregando(false);
     }
   };
 
   const handleDeletarCartao = async (cartaoId: string) => {
-    if (
-      !confirm(
-        "Tem certeza que deseja excluir este cartão? Esta ação não pode ser desfeita."
-      )
-    ) {
+    if (!confirm("Tem certeza que deseja excluir este cartão?")) {
       return;
     }
 
-    setDeletandoId(cartaoId);
     try {
+      setDeletandoId(cartaoId);
       const response = await fetch(`/api/cartoes/${cartaoId}`, {
         method: "DELETE",
       });
 
-      if (!response.ok) {
+      if (response.ok) {
+        toast.success("Cartão excluído com sucesso");
+        carregarCartoes();
+      } else {
         const errorData = await response.json();
         throw new Error(errorData.error || "Erro ao excluir cartão");
       }
-
-      toast.success("Cartão excluído com sucesso!");
-      carregarCartoes(); // Recarregar a lista
-    } catch (error: any) {
-      toast.error(error.message || "Erro ao excluir cartão");
-      console.error(error);
+    } catch (error) {
+      console.error("Erro ao excluir cartão:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Erro ao excluir cartão"
+      );
     } finally {
       setDeletandoId(null);
     }
   };
 
-  const getStatusCor = (utilizacao: number) => {
-    if (utilizacao >= 90) return "text-red-500";
-    if (utilizacao >= 70) return "text-orange-500";
-    return "text-green-500";
+  const getStatusUtilizacao = (utilizacaoLimite: number) => {
+    if (utilizacaoLimite >= 90) return "critico";
+    if (utilizacaoLimite >= 70) return "alerta";
+    return "normal";
   };
 
-  const getStatusBg = (utilizacao: number) => {
-    if (utilizacao >= 90) return "bg-red-500";
-    if (utilizacao >= 70) return "bg-orange-500";
-    return "bg-green-500";
-  };
-
-  const getBandeiraIcon = (bandeira: string) => {
-    const icons = {
-      VISA: "💳",
-      MASTERCARD: "🔴",
-      ELO: "🟡",
-      AMERICAN_EXPRESS: "🔵",
-      HIPERCARD: "🟣",
-      OUTROS: "💳",
-    };
-    return icons[bandeira as keyof typeof icons] || "💳";
-  };
-
-  const getStatusFatura = (fatura: any) => {
-    if (!fatura) return null;
-
-    const statusConfig = {
-      ABERTA: { label: "Aberta", variant: "secondary" as const },
-      FECHADA: { label: "Fechada", variant: "outline" as const },
-      PAGA: { label: "Paga", variant: "default" as const },
-      VENCIDA: { label: "Vencida", variant: "destructive" as const },
-    };
-
-    return (
-      statusConfig[fatura.status as keyof typeof statusConfig] ||
-      statusConfig.ABERTA
-    );
+  const formatarMoeda = (valor: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(valor);
   };
 
   if (carregando) {
     return (
-      <div className="container mx-auto p-6 mt-20">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold">Meus Cartões</h1>
-            <p className="text-muted-foreground">
-              Gerencie seus cartões de crédito
-            </p>
-          </div>
-          <Button disabled>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Cartão
-          </Button>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-6">
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
-                <div className="h-2 bg-gray-200 rounded w-full mb-2"></div>
-                <div className="h-2 bg-gray-200 rounded w-5/6"></div>
-              </CardContent>
-            </Card>
-          ))}
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-lg text-gray-600">Carregando cartões...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 mt-20">
-      <div className="flex justify-between items-center mb-6">
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Meus Cartões</h1>
-          <p className="text-muted-foreground">
-            Gerencie seus cartões de crédito
+          <h1 className="text-3xl font-bold text-gray-900">Cartões</h1>
+          <p className="text-gray-600 mt-2">
+            Gerencie seus cartões de crédito e débito
           </p>
         </div>
         <Button onClick={() => router.push("/dashboard/cartoes/novo")}>
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className="w-4 h-4 mr-2" />
           Novo Cartão
         </Button>
       </div>
@@ -201,28 +182,31 @@ export default function CartoesPage() {
       {cartoes.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <CreditCard className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">
+            <CreditCard className="w-16 h-16 text-gray-400 mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Nenhum cartão cadastrado
             </h3>
-            <p className="text-muted-foreground text-center mb-4">
-              Adicione seu primeiro cartão para começar a controlar suas faturas
+            <p className="text-gray-600 text-center mb-4">
+              Comece cadastrando seu primeiro cartão para acompanhar seus
+              gastos.
             </p>
             <Button onClick={() => router.push("/dashboard/cartoes/novo")}>
-              <Plus className="h-4 w-4 mr-2" />
-              Adicionar Cartão
+              <Plus className="w-4 h-4 mr-2" />
+              Cadastrar Primeiro Cartão
             </Button>
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {cartoes.map((cartao) => {
-            const utilizacao = cartao.utilizacaoLimite || 0;
-            const faturaAtual = cartao.faturas[0];
-            const statusFatura = getStatusFatura(faturaAtual);
+            const status = getStatusUtilizacao(cartao.utilizacaoLimite || 0);
 
             return (
-              <Card key={cartao.id} className="relative overflow-hidden">
+              <Card
+                key={cartao.id}
+                className="relative overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+                onClick={() => router.push(`/dashboard/cartoes/${cartao.id}`)}
+              >
                 <div
                   className="absolute top-0 left-0 w-full h-2"
                   style={{ backgroundColor: cartao.cor }}
@@ -230,54 +214,74 @@ export default function CartoesPage() {
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="flex items-center gap-2 text-lg">
-                        {getBandeiraIcon(cartao.bandeira)}
+                      <CardTitle className="flex items-center gap-2">
+                        <CreditCard className="w-5 h-5" />
                         {cartao.nome}
                       </CardTitle>
-                      <CardDescription className="flex items-center gap-2">
-                        <span className="capitalize">
-                          {cartao.bandeira.toLowerCase()}
-                        </span>
-                        {!cartao.ativo && (
-                          <Badge variant="secondary" className="text-xs">
-                            Inativo
-                          </Badge>
-                        )}
-                      </CardDescription>
+                      <CardDescription>{cartao.bandeira}</CardDescription>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="h-4 w-4" />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreVertical className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
-                          onClick={() =>
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/dashboard/cartoes/${cartao.id}`);
+                          }}
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          Ver Detalhes
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(
+                              `/dashboard/cartoes/${cartao.id}/faturas`
+                            );
+                          }}
+                        >
+                          <FileText className="w-4 h-4 mr-2" />
+                          Ver Faturas
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
                             router.push(
                               `/dashboard/cartoes/${cartao.id}/editar`
-                            )
-                          }
+                            );
+                          }}
                         >
-                          <Edit className="h-4 w-4 mr-2" />
+                          <Edit className="w-4 h-4 mr-2" />
                           Editar
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() =>
+                          onClick={(e) => {
+                            e.stopPropagation();
                             router.push(
-                              `/dashboard/lancamentos/novo?cartaoId=${cartao.id}`
-                            )
-                          }
+                              `/dashboard/faturas/${cartao.faturaAtual?.id}/pagar`
+                            );
+                          }}
                         >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Nova Compra
+                          <CreditCard className="w-4 h-4 mr-2" />
+                          Pagar Fatura
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          className="text-red-600"
-                          onClick={() => handleDeletarCartao(cartao.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeletarCartao(cartao.id);
+                          }}
                           disabled={deletandoId === cartao.id}
+                          className="text-red-600"
                         >
-                          <Trash2 className="h-4 w-4 mr-2" />
+                          <Trash2 className="w-4 h-4 mr-2" />
                           {deletandoId === cartao.id
                             ? "Excluindo..."
                             : "Excluir"}
@@ -287,108 +291,112 @@ export default function CartoesPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Limite e Utilização */}
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-muted-foreground">Limite:</span>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Limite:</span>
                       <span className="font-medium">
-                        R${" "}
-                        {cartao.limite.toLocaleString("pt-BR", {
-                          minimumFractionDigits: 2,
-                        })}
+                        {formatarMoeda(cartao.limite)}
                       </span>
                     </div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-muted-foreground">Utilizado:</span>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Utilizado:</span>
+                      <span className="font-medium">
+                        {formatarMoeda(cartao.totalGasto || 0)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Disponível:</span>
+                      <span className="font-medium">
+                        {formatarMoeda(
+                          cartao.limite - (cartao.totalGasto || 0)
+                        )}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Utilização:</span>
+                      <span className="font-medium">
+                        {Math.round(cartao.utilizacaoLimite || 0)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full ${
+                          status === "critico"
+                            ? "bg-red-500"
+                            : status === "alerta"
+                              ? "bg-yellow-500"
+                              : "bg-green-500"
+                        }`}
+                        style={{
+                          width: `${Math.min(cartao.utilizacaoLimite || 0, 100)}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-1">
+                      {status === "critico" ? (
+                        <AlertTriangle className="w-4 h-4 text-red-500" />
+                      ) : status === "alerta" ? (
+                        <AlertTriangle className="w-4 h-4 text-yellow-500" />
+                      ) : (
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                      )}
                       <span
-                        className={`font-medium ${getStatusCor(utilizacao)}`}
+                        className={
+                          status === "critico"
+                            ? "text-red-600"
+                            : status === "alerta"
+                              ? "text-yellow-600"
+                              : "text-green-600"
+                        }
                       >
-                        R${" "}
-                        {(cartao.totalGasto || 0).toLocaleString("pt-BR", {
-                          minimumFractionDigits: 2,
-                        })}
-                        <span className="ml-1">({utilizacao.toFixed(1)}%)</span>
+                        {status === "critico"
+                          ? "Limite crítico"
+                          : status === "alerta"
+                            ? "Atenção"
+                            : "Dentro do limite"}
                       </span>
                     </div>
-                    {faturaAtual && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          Fatura atual:
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">
-                            R${" "}
-                            {faturaAtual.valorTotal.toLocaleString("pt-BR", {
-                              minimumFractionDigits: 2,
-                            })}
-                          </span>
-                          {statusFatura && (
-                            <Badge
-                              variant={statusFatura.variant}
-                              className="text-xs"
-                            >
-                              {statusFatura.label}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    )}
+                    <Badge variant="outline">
+                      {cartao._count?.lancamentos || 0} lançamentos
+                    </Badge>
                   </div>
 
-                  {/* Barra de progresso */}
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full ${getStatusBg(utilizacao)}`}
-                      style={{ width: `${Math.min(utilizacao, 100)}%` }}
-                    />
-                  </div>
-
-                  {/* Datas de fechamento e vencimento */}
-                  <div className="flex justify-between text-xs text-muted-foreground">
+                  <div className="flex justify-between text-xs text-gray-500 pt-2 border-t">
                     <span>Fechamento: dia {cartao.diaFechamento}</span>
                     <span>Vencimento: dia {cartao.diaVencimento}</span>
                   </div>
 
-                  {/* Alertas */}
-                  {utilizacao >= 70 && (
-                    <div
-                      className={`flex items-center gap-2 text-sm p-2 rounded ${
-                        utilizacao >= 90
-                          ? "bg-red-50 text-red-700"
-                          : "bg-orange-50 text-orange-700"
-                      }`}
-                    >
-                      <AlertTriangle className="h-4 w-4" />
-                      <span className="font-medium">
-                        {utilizacao >= 90
-                          ? "Limite quase esgotado"
-                          : "Limite elevado"}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Botões de ação */}
+                  {/* Botões de ação rápida */}
                   <div className="flex gap-2 pt-2">
                     <Button
                       variant="outline"
                       size="sm"
                       className="flex-1"
-                      onClick={() =>
-                        router.push(`/dashboard/cartoes/${cartao.id}`)
-                      }
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/dashboard/cartoes/${cartao.id}`);
+                      }}
                     >
+                      <Eye className="w-3 h-3 mr-1" />
                       Detalhes
                     </Button>
                     <Button
-                      variant="default"
+                      variant="outline"
                       size="sm"
-                      onClick={() =>
-                        router.push(
-                          `/dashboard/lancamentos/novo?cartaoId=${cartao.id}`
-                        )
-                      }
+                      className="flex-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/dashboard/cartoes/${cartao.id}/faturas`);
+                      }}
                     >
-                      Comprar
+                      <FileText className="w-3 h-3 mr-1" />
+                      Faturas
                     </Button>
                   </div>
                 </CardContent>

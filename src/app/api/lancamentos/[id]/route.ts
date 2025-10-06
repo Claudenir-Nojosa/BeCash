@@ -5,24 +5,24 @@ import { auth } from "../../../../../auth";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Usuário não autenticado" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const { id } = await params; // Adicione await aqui
+    const lancamentoId = params.id;
     const body = await request.json();
     const { pago } = body;
 
-    // Verificar se o lançamento existe e pertence ao usuário
-    const lancamentoExistente = await db.lancamento.findUnique({
-      where: { id },
+    // Verificar se o lançamento pertence ao usuário
+    const lancamentoExistente = await db.lancamento.findFirst({
+      where: {
+        id: lancamentoId,
+        usuarioId: session.user.id,
+      },
     });
 
     if (!lancamentoExistente) {
@@ -32,17 +32,13 @@ export async function PATCH(
       );
     }
 
-    if (lancamentoExistente.usuarioId !== session.user.id) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 403 });
-    }
-
-    // Atualizar o status de pagamento
-    const lancamento = await db.lancamento.update({
-      where: { id },
+    // Atualizar o status
+    const lancamentoAtualizado = await db.lancamento.update({
+      where: { id: lancamentoId },
       data: { pago },
     });
 
-    return NextResponse.json(lancamento);
+    return NextResponse.json(lancamentoAtualizado);
   } catch (error) {
     console.error("Erro ao atualizar lançamento:", error);
     return NextResponse.json(

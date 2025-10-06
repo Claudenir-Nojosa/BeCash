@@ -30,7 +30,8 @@ export async function GET(request: NextRequest) {
       include: {
         lancamentos: {
           include: {
-            fatura: {
+            Fatura: {
+              // CORREÇÃO: Fatura com F maiúsculo
               select: {
                 status: true,
                 mesReferencia: true,
@@ -41,7 +42,8 @@ export async function GET(request: NextRequest) {
             data: "desc",
           },
         },
-        faturas: {
+        Fatura: {
+          // CORREÇÃO: Fatura com F maiúsculo
           orderBy: {
             mesReferencia: "desc",
           },
@@ -95,7 +97,6 @@ export async function PUT(request: NextRequest) {
       diaFechamento,
       diaVencimento,
       cor,
-      ativo,
       observacoes,
     } = body;
 
@@ -145,7 +146,6 @@ export async function PUT(request: NextRequest) {
         diaFechamento: parseInt(diaFechamento),
         diaVencimento: parseInt(diaVencimento),
         cor,
-        ativo: Boolean(ativo),
         observacoes: observacoes || null,
       },
     });

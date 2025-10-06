@@ -333,6 +333,21 @@ export default function Sidebar({ onClose }: SidebarProps) {
               {!isCollapsed && <span className="ml-4 text-base">Cartões</span>}
             </Link>
           </li>
+        {/* Categorias */}
+          <li>
+            <Link
+              href="/dashboard/lancamentos/categorias"
+              className={`
+                flex items-center rounded-lg hover:bg-blue-900/20 text-blue-100 transition-colors
+                ${isCollapsed ? "justify-center p-4" : "p-4"}
+                ${isActiveRoute("/dashboard/lancamentos/categorias") ? "bg-blue-900/30 text-white" : ""}
+              `}
+              onClick={handleLinkClick}
+            >
+              <CreditCard className="h-6 w-6" />
+              {!isCollapsed && <span className="ml-4 text-base">Categorias</span>}
+            </Link>
+          </li>
 
            {/* Pontos */}
           <li>

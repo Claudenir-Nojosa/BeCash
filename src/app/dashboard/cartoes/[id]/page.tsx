@@ -21,6 +21,7 @@ import {
   DollarSign,
   TrendingUp,
   FileText,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -40,12 +41,12 @@ interface Cartao {
     valor: number;
     data: string;
     pago: boolean;
-    fatura: {
+    Fatura: {
       status: string;
       mesReferencia: string;
     } | null;
   }>;
-  faturas: Array<{
+  Fatura: Array<{
     id: string;
     valorTotal: number;
     valorPago: number;
@@ -112,7 +113,7 @@ export default function DetalhesCartaoPage() {
   const calcularUtilizacao = () => {
     if (!cartao) return 0;
     const lancamentosAtivos = cartao.lancamentos.filter(
-      (l) => !l.pago && l.fatura?.status !== "PAGA"
+      (l) => !l.pago && l.Fatura?.status !== "PAGA"
     );
     const total = lancamentosAtivos.reduce((sum, l) => sum + l.valor, 0);
     return (total / cartao.limite) * 100;
@@ -120,13 +121,13 @@ export default function DetalhesCartaoPage() {
 
   const calcularTotalFaturaAtual = () => {
     if (!cartao) return 0;
-    const faturaAberta = cartao.faturas.find((f) => f.status === "ABERTA");
+    const faturaAberta = cartao.Fatura.find((f) => f.status === "ABERTA");
     return faturaAberta ? faturaAberta.valorTotal : 0;
   };
 
   if (carregando) {
     return (
-      <div className="container mx-auto p-6 mt-20">
+      <div className="container mx-auto p-6">
         <div className="animate-pulse">
           <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -146,7 +147,7 @@ export default function DetalhesCartaoPage() {
 
   if (!cartao) {
     return (
-      <div className="container mx-auto p-6 mt-20">
+      <div className="container mx-auto p-6">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Cartão não encontrado</h1>
           <Button onClick={() => router.push("/dashboard/cartoes")}>
@@ -159,11 +160,11 @@ export default function DetalhesCartaoPage() {
 
   const utilizacao = calcularUtilizacao();
   const totalFaturaAtual = calcularTotalFaturaAtual();
-  const faturaAberta = cartao.faturas.find((f) => f.status === "ABERTA");
-  const proximasFaturas = cartao.faturas.filter((f) => f.status === "FECHADA");
+  const faturaAberta = cartao.Fatura.find((f) => f.status === "ABERTA");
+  const proximasFaturas = cartao.Fatura.filter((f) => f.status === "FECHADA");
 
   return (
-    <div className="container mx-auto p-6 mt-20">
+    <div className="container mx-auto p-6">
       {/* Cabeçalho */}
       <div className="flex items-center gap-4 mb-6">
         <Button
@@ -191,12 +192,23 @@ export default function DetalhesCartaoPage() {
             </div>
           </div>
         </div>
-        <Button
-          onClick={() => router.push(`/dashboard/cartoes/${cartaoId}/editar`)}
-        >
-          <Edit className="h-4 w-4 mr-2" />
-          Editar
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() =>
+              router.push(`/dashboard/cartoes/${cartaoId}/faturas`)
+            }
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            Ver Faturas
+          </Button>
+          <Button
+            onClick={() => router.push(`/dashboard/cartoes/${cartaoId}/editar`)}
+          >
+            <Edit className="h-4 w-4 mr-2" />
+            Editar
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -215,18 +227,18 @@ export default function DetalhesCartaoPage() {
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Limite Total</p>
                   <p className="text-2xl font-bold">
-                    R${" "}
                     {cartao.limite.toLocaleString("pt-BR", {
-                      minimumFractionDigits: 2,
+                      style: "currency",
+                      currency: "BRL",
                     })}
                   </p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Utilizado</p>
                   <p className="text-2xl font-bold">
-                    R${" "}
                     {totalFaturaAtual.toLocaleString("pt-BR", {
-                      minimumFractionDigits: 2,
+                      style: "currency",
+                      currency: "BRL",
                     })}
                   </p>
                 </div>
@@ -301,9 +313,9 @@ export default function DetalhesCartaoPage() {
                   <div className="flex justify-between items-center">
                     <span>Valor atual:</span>
                     <span className="text-lg font-bold">
-                      R${" "}
                       {faturaAberta.valorTotal.toLocaleString("pt-BR", {
-                        minimumFractionDigits: 2,
+                        style: "currency",
+                        currency: "BRL",
                       })}
                     </span>
                   </div>
@@ -362,9 +374,9 @@ export default function DetalhesCartaoPage() {
                       </div>
                       <div className="text-right">
                         <p className="font-medium">
-                          R${" "}
                           {lancamento.valor.toLocaleString("pt-BR", {
-                            minimumFractionDigits: 2,
+                            style: "currency",
+                            currency: "BRL",
                           })}
                         </p>
                         <Badge
@@ -456,11 +468,11 @@ export default function DetalhesCartaoPage() {
                 variant="outline"
                 className="w-full"
                 onClick={() =>
-                  router.push(`/dashboard/cartoes/${cartaoId}/editar`)
+                  router.push(`/dashboard/cartoes/${cartaoId}/faturas`)
                 }
               >
-                <Edit className="h-4 w-4 mr-2" />
-                Editar Cartão
+                <FileText className="h-4 w-4 mr-2" />
+                Ver Todas as Faturas
               </Button>
             </CardContent>
           </Card>
@@ -477,13 +489,12 @@ export default function DetalhesCartaoPage() {
                     <div key={fatura.id} className="p-2 border rounded">
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium">
-                          {new Date(fatura.mesReferencia).toLocaleDateString(
-                            "pt-BR",
-                            {
-                              month: "long",
-                              year: "numeric",
-                            }
-                          )}
+                          {new Date(
+                            fatura.mesReferencia + "-01"
+                          ).toLocaleDateString("pt-BR", {
+                            month: "long",
+                            year: "numeric",
+                          })}
                         </span>
                         <Badge className={getStatusColor(fatura.status)}>
                           {fatura.status === "FECHADA"
@@ -492,9 +503,9 @@ export default function DetalhesCartaoPage() {
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        R${" "}
                         {fatura.valorTotal.toLocaleString("pt-BR", {
-                          minimumFractionDigits: 2,
+                          style: "currency",
+                          currency: "BRL",
                         })}
                       </p>
                     </div>

@@ -20,28 +20,22 @@ model Usuario {
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
-  Account              Account[]
-  Empresa              Empresa[]
-  Pendencia            Pendencia[]
-  BaseLegal            BaseLegal[]
-  Anotacao             Anotacao[]
-  Diagnostico          Diagnostico[]
-  BaseLegalFavorito    BaseLegalFavorito[]
-  AnaliseTributaria    AnaliseTributaria[]
-  MapeamentoTelefone   MapeamentoTelefone[]
-  Lancamento           Lancamento[]
-  Meta                 Meta[]
-  LancamentoRecorrente LancamentoRecorrente[]
-  DivisaoLancamento    DivisaoLancamento[]
+  Account            Account[]
+  Empresa            Empresa[]
+  Pendencia          Pendencia[]
+  BaseLegal          BaseLegal[]
+  Anotacao           Anotacao[]
+  Diagnostico        Diagnostico[]
+  BaseLegalFavorito  BaseLegalFavorito[]
+  AnaliseTributaria  AnaliseTributaria[]
+  MapeamentoTelefone MapeamentoTelefone[]
+  Pontos             Pontos[]
 
-  saldosComoDevedor SaldoCompartilhado[] @relation("SaldoDevedor")
-  saldosComoCredor  SaldoCompartilhado[] @relation("SaldoCredor")
-
-  Cartao Cartao[]
-
-  Pontos Pontos[]
-
-  MetaPontos MetaPontos[]
+  MetaPontos      MetaPontos[]
+  Categoria       Categoria[]
+  Cartao          Cartao[]
+  Lancamento      Lancamento[]
+  PagamentoFatura PagamentoFatura[]
 }
 
 model Account {
@@ -64,23 +58,20 @@ model Account {
 }
 
 model Empresa {
-  id                   String                      @id @default(cuid())
-  razaoSocial          String
-  cnpj                 String                      @unique
-  inscricaoEstadual    String?
-  email                String?
-  cidade               String?
-  uf                   String
-  regimeTributacao     RegimeTributacao
-  responsavel          String
-  observacoes          String?
-  createdAt            DateTime                    @default(now())
-  updatedAt            DateTime                    @updatedAt
-  usuarioId            String
-  obrigacoesAcessorias EmpresaObrigacaoAcessoria[]
-  obrigacoesPrincipais EmpresaObrigacaoPrincipal[]
-  parcelamentos        Parcelamento[]
-  status               StatusEmpresa?
+  id                String           @id @default(cuid())
+  razaoSocial       String
+  cnpj              String           @unique
+  inscricaoEstadual String?
+  email             String?
+  cidade            String?
+  uf                String
+  regimeTributacao  RegimeTributacao
+  responsavel       String
+  observacoes       String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  usuarioId         String
+  status            StatusEmpresa?
 
   usuario Usuario @relation(fields: [usuarioId], references: [id])
 
@@ -109,87 +100,6 @@ enum RegimeTributacao {
   SIMPLES_NACIONAL
   LUCRO_PRESUMIDO
   LUCRO_REAL
-}
-
-model ObrigacaoAcessoria {
-  id            String                      @id @default(cuid())
-  nome          String                      @unique
-  descricao     String?
-  periodicidade String
-  empresas      EmpresaObrigacaoAcessoria[]
-}
-
-model ObrigacaoPrincipal {
-  id        String                      @id @default(cuid())
-  nome      String                      @unique
-  descricao String?
-  empresas  EmpresaObrigacaoPrincipal[]
-}
-
-model EmpresaObrigacaoAcessoria {
-  id                   String                      @id @default(cuid())
-  empresa              Empresa                     @relation(fields: [empresaId], references: [id])
-  empresaId            String
-  obrigacaoAcessoria   ObrigacaoAcessoria          @relation(fields: [obrigacaoAcessoriaId], references: [id])
-  obrigacaoAcessoriaId String
-  diaVencimento        Int
-  anteciparDiaNaoUtil  Boolean                     @default(false)
-  observacoes          String?
-  entregas             EntregaObrigacaoAcessoria[]
-
-  @@unique([empresaId, obrigacaoAcessoriaId])
-}
-
-model EntregaObrigacaoAcessoria {
-  id                 String    @id @default(cuid())
-  empresaObrigacaoId String
-  mes                Int
-  ano                Int
-  entregue           Boolean   @default(false)
-  dataEntrega        DateTime?
-  observacoes        String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-
-  empresaObrigacao EmpresaObrigacaoAcessoria @relation(fields: [empresaObrigacaoId], references: [id])
-
-  @@unique([empresaObrigacaoId, mes, ano])
-}
-
-model EmpresaObrigacaoPrincipal {
-  id                   String             @id @default(cuid())
-  empresa              Empresa            @relation(fields: [empresaId], references: [id])
-  empresaId            String
-  obrigacaoPrincipal   ObrigacaoPrincipal @relation(fields: [obrigacaoPrincipalId], references: [id])
-  obrigacaoPrincipalId String
-  aliquota             Float
-  diaVencimento        Int
-  anteciparDiaNaoUtil  Boolean
-  descricao            String? // Nova campo para identificar o tipo de ICMS
-  uf                   String? // Para vincular a um estado específico
-  observacoes          String?
-
-  @@unique([empresaId, obrigacaoPrincipalId, descricao, uf]) // Chave composta
-}
-
-model Parcelamento {
-  id             String             @id @default(cuid())
-  empresa        Empresa            @relation(fields: [empresaId], references: [id])
-  empresaId      String
-  numero         Int
-  valor          Float
-  dataVencimento DateTime
-  status         StatusParcelamento @default(PENDENTE)
-  observacoes    String?
-
-  @@unique([empresaId, numero])
-}
-
-enum StatusParcelamento {
-  PENDENTE
-  PAGO
-  ATRASADO
-  CANCELADO
 }
 
 model Atividade {
@@ -320,205 +230,14 @@ model MapeamentoTelefone {
   @@map("mapeamento_telefone")
 }
 
-model LancamentoRecorrente {
-  id             String   @id @default(cuid())
-  descricao      String
-  valor          Float
-  tipo           String
-  categoria      String
-  tipoLancamento String
-  tipoTransacao  String?
-  responsavel    String
-  dataInicio     DateTime
-  frequencia     String
-  parcelas       Int?
-  observacoes    String?
-  usuarioId      String
-  ativo          Boolean  @default(true)
-  // NOVO CAMPO: diferenciar recorrência de parcelamento
-  tipoRecorrencia String  @default("RECORRENCIA") // RECORRENCIA ou PARCELAMENTO
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  usuario     Usuario      @relation(fields: [usuarioId], references: [id])
-  ocorrencias Lancamento[]
-
-  @@map("lancamentos_recorrentes")
-}
-
-model Lancamento {
-  id               String          @id @default(cuid())
-  descricao        String
-  valor            Float
-  tipo             String
-  categoria        String
-  tipoLancamento   String
-  tipoTransacao    String?         // Adicione esta linha - pode ser opcional inicialmente
-  responsavel      String
-  data             DateTime
-  dataVencimento   DateTime?
-  pago             Boolean         @default(false)
-  origem           String?
-  mensagemOriginal String?
-  parcelaAtual     Int?
-  observacoes      String?
-  usuarioId        String
-  recorrenteId     String?
-  cartaoId         String?
-  faturaId         String?
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  divisao          DivisaoLancamento[]
-
-  usuario          Usuario               @relation(fields: [usuarioId], references: [id])
-  recorrente       LancamentoRecorrente? @relation(fields: [recorrenteId], references: [id])
-  cartao           Cartao?               @relation(fields: [cartaoId], references: [id])
-  fatura           Fatura?               @relation(fields: [faturaId], references: [id])
-  ContribuicaoMeta ContribuicaoMeta[]
-
-  @@map("lancamentos")
-}
-
-model DivisaoLancamento {
-  id           String   @id @default(cuid())
-  lancamentoId String
-  usuarioId    String // Quem está participando da divisão
-  valorDivisao Float // Valor que cabe a esta pessoa
-  valorPago    Float // Valor que esta pessoa já pagou
-  pago         Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  lancamento Lancamento @relation(fields: [lancamentoId], references: [id], onDelete: Cascade)
-  usuario    Usuario    @relation(fields: [usuarioId], references: [id])
-
-  @@unique([lancamentoId, usuarioId])
-  @@map("divisao_lancamentos")
-}
-
-model SaldoCompartilhado {
-  id            String   @id @default(cuid())
-  deUsuarioId   String // Quem deve
-  paraUsuarioId String // Para quem deve
-  valor         Float // Valor devido
-  descricao     String? // Descrição opcional
-  pago          Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // Relações corretas - remova o campo usuarioId e a relação Usuario
-  deUsuario   Usuario @relation("SaldoDevedor", fields: [deUsuarioId], references: [id])
-  paraUsuario Usuario @relation("SaldoCredor", fields: [paraUsuarioId], references: [id])
-
-  @@unique([deUsuarioId, paraUsuarioId])
-  @@map("saldos_compartilhados")
-}
-
-model Meta {
-  id          String    @id @default(cuid())
-  titulo      String
-  descricao   String?
-  valorAlvo   Float
-  valorAtual  Float     @default(0)
-  dataLimite  DateTime?
-  tipo        String // individual, compartilhado
-  responsavel String // Claudenir, Beatriz, Compartilhado
-  categoria   String // viagem, reserva, investimento, compra, outros
-  icone       String? // emoji ou nome do ícone
-  cor         String? // cor personalizada
-  concluida   Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  usuarioId   String
-
-  // Relacionamentos
-  usuario       Usuario            @relation(fields: [usuarioId], references: [id])
-  contribuicoes ContribuicaoMeta[]
-
-  @@map("metas")
-}
-
-model ContribuicaoMeta {
-  id           String   @id @default(cuid())
-  valor        Float
-  data         DateTime @default(now())
-  observacoes  String?
-  createdAt    DateTime @default(now())
-  metaId       String
-  lancamentoId String? // Referência ao lançamento de despesa criado
-
-  // Relacionamentos
-  meta       Meta        @relation(fields: [metaId], references: [id])
-  lancamento Lancamento? @relation(fields: [lancamentoId], references: [id])
-
-  @@map("contribuicoes_meta")
-}
-
-model Cartao {
-  id                String        @id @default(cuid())
-  nome              String
-  bandeira          BandeiraCartao
-  limite            Float
-  diaFechamento     Int
-  diaVencimento     Int
-  cor               String?
-  ativo             Boolean       @default(true)
-  usuarioId         String
-  observacoes       String?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-
-  usuario           Usuario       @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  lancamentos       Lancamento[]
-  faturas           Fatura[]
-
-  @@map("cartoes")
-}
-
-model Fatura {
-  id                String        @id @default(cuid())
-  cartaoId          String
-  mesReferencia     DateTime
-  valorTotal        Float
-  valorPago         Float         @default(0)
-  dataFechamento    DateTime
-  dataVencimento    DateTime
-  status            StatusFatura  @default(ABERTA)
-  observacoes       String?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-
-  cartao            Cartao        @relation(fields: [cartaoId], references: [id], onDelete: Cascade)
-  lancamentos       Lancamento[]
-
-  @@unique([cartaoId, mesReferencia])
-  @@map("faturas")
-}
-
-enum StatusFatura {
-  ABERTA
-  FECHADA
-  PAGA
-  VENCIDA
-}
-
-enum BandeiraCartao {
-  VISA
-  MASTERCARD
-  ELO
-  AMERICAN_EXPRESS
-  HIPERCARD
-  OUTROS
-}
-
 model Pontos {
-  id          String   @id @default(cuid())
-  programa     String   // LIVELO, SMILES, etc.
+  id           String   @id @default(cuid())
+  programa     String // LIVELO, SMILES, etc.
   quantidade   Int
   descricao    String
   data         DateTime
-  tipo         String   // GANHO, RESGATE, EXPIRACAO
-  valorResgate Float?   // Valor em reais se for resgate
+  tipo         String // GANHO, RESGATE, EXPIRACAO
+  valorResgate Float? // Valor em reais se for resgate
   usuarioId    String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -529,16 +248,114 @@ model Pontos {
 }
 
 model MetaPontos {
-  id          String   @id @default(cuid())
-  programa    String
-  metaPontos  Int
-  descricao   String?
-  dataAlvo    DateTime
-  usuarioId   String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  programa   String
+  metaPontos Int
+  descricao  String?
+  dataAlvo   DateTime
+  usuarioId  String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@unique([programa, usuarioId])
+}
+
+model Categoria {
+  id        String   @id @default(cuid())
+  nome      String
+  tipo      String // "RECEITA" ou "DESPESA"
+  cor       String?  @default("#3B82F6")
+  usuarioId String
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lancamentos Lancamento[]
+
+  @@unique([nome, usuarioId, tipo])
+}
+
+model Cartao {
+  id            String   @id @default(cuid())
+  nome          String
+  bandeira      String
+  limite        Float?
+  diaFechamento Int? // 1-31
+  diaVencimento Int? // 1-31
+  cor           String   @default("#3B82F6")
+  observacoes   String?
+  usuarioId     String
+  usuario       Usuario  @relation(fields: [usuarioId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  lancamentos Lancamento[]
+  Fatura      Fatura[]
+}
+
+model Lancamento {
+  id              String    @id @default(cuid())
+  descricao       String
+  valor           Float
+  tipo            String // "RECEITA" ou "DESPESA"
+  metodoPagamento String // "PIX", "TRANSFERENCIA", "DEBITO", "CREDITO"
+  data            DateTime  @default(now())
+  pago            Boolean   @default(true)
+  observacoes     String?
+  usuarioId       String
+  usuario         Usuario   @relation(fields: [usuarioId], references: [id])
+  categoriaId     String
+  categoria       Categoria @relation(fields: [categoriaId], references: [id])
+  cartaoId        String?
+  cartao          Cartao?   @relation(fields: [cartaoId], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Novos campos para crédito
+  tipoParcelamento   String? // "AVISTA", "PARCELADO", "RECORRENTE"
+  parcelasTotal      Int? // Total de parcelas
+  parcelaAtual       Int? // Parcela atual (1, 2, 3...)
+  recorrente         Boolean   @default(false)
+  dataFimRecorrencia DateTime? // Data final para recorrentes
+
+  // Relação para parcelas (auto-relacionamento)
+  lancamentoPaiId   String?
+  lancamentoPai     Lancamento?  @relation("LancamentoParcelas", fields: [lancamentoPaiId], references: [id])
+  lancamentosFilhos Lancamento[] @relation("LancamentoParcelas")
+  Fatura            Fatura?      @relation(fields: [faturaId], references: [id])
+  faturaId          String?
+}
+
+model Fatura {
+  id              String            @id @default(cuid())
+  cartaoId        String
+  cartao          Cartao            @relation(fields: [cartaoId], references: [id])
+  mesReferencia   String // "2025-10" formato YYYY-MM
+  dataFechamento  DateTime
+  dataVencimento  DateTime
+  valorTotal      Float             @default(0)
+  valorPago       Float             @default(0)
+  status          String            @default("ABERTA") // "ABERTA", "FECHADA", "PAGA", "ATRASADA"
+  lancamentos     Lancamento[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  PagamentoFatura PagamentoFatura[]
+
+  @@unique([cartaoId, mesReferencia])
+}
+
+model PagamentoFatura {
+  id          String   @id @default(cuid())
+  faturaId    String
+  fatura      Fatura   @relation(fields: [faturaId], references: [id])
+  valor       Float
+  data        DateTime @default(now())
+  metodo      String // "PIX", "TRANSFERENCIA", "DEBITO"
+  observacoes String?
+  usuarioId   String
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

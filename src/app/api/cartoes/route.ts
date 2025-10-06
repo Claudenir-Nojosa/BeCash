@@ -16,43 +16,37 @@ export async function GET() {
         lancamentos: {
           where: {
             pago: false,
-            fatura: {
-              is: {
-                status: {
-                  in: ["ABERTA", "FECHADA"],
-                },
-              },
-            },
+            metodoPagamento: "CREDITO",
           },
-        },
-        faturas: {
-          where: {
-            status: {
-              in: ["ABERTA", "FECHADA"],
-            },
-          },
-          orderBy: {
-            mesReferencia: "desc",
-          },
-          take: 1,
         },
       },
       orderBy: { nome: "asc" },
     });
 
-    // Calcular counts e totais manualmente
-    const cartoesComTotais = cartoes.map(cartao => {
-      const totalGasto = cartao.lancamentos.reduce((sum, lancamento) => sum + lancamento.valor, 0);
-      const utilizacaoLimite = (totalGasto / cartao.limite) * 100;
-      const faturaAtual = cartao.faturas[0];
+    // Calcular o total utilizado considerando TODAS as parcelas futuras
+    const cartoesComTotais = cartoes.map((cartao) => {
+      // Somar todos os lançamentos não pagos (incluindo parcelas futuras)
+      const totalUtilizado = cartao.lancamentos.reduce((total, lancamento) => {
+        return total + lancamento.valor;
+      }, 0);
+
+      // Tratar o caso onde limite pode ser null
+      const limite = cartao.limite || 0;
+      const utilizacaoPercentual =
+        limite > 0
+          ? (totalUtilizado / limite) * 100
+          : totalUtilizado > 0
+            ? 100
+            : 0; // Se não tem limite mas tem gastos, mostra 100%
 
       return {
         ...cartao,
         _count: {
-          lancamentos: cartao.lancamentos.length
+          lancamentos: cartao.lancamentos.length,
         },
-        totalGasto,
-        utilizacaoLimite
+        totalGasto: totalUtilizado,
+        utilizacaoLimite: utilizacaoPercentual,
+        limiteDisponivel: limite - totalUtilizado,
       };
     });
 
