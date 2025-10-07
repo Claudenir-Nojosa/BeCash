@@ -11,7 +11,7 @@ export async function GET() {
     }
 
     const cartoes = await db.cartao.findMany({
-      where: { usuarioId: session.user.id },
+      where: { userId: session.user.id },
       include: {
         lancamentos: {
           where: {
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
         diaVencimento: parseInt(diaVencimento),
         cor: cor || "#3B82F6",
         observacoes: observacoes || null,
-        usuarioId: session.user.id,
+        userId: session.user.id,
       },
     });
 

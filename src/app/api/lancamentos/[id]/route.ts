@@ -23,7 +23,7 @@ export async function PATCH(
     const lancamentoExistente = await db.lancamento.findFirst({
       where: {
         id: lancamentoId,
-        usuarioId: session.user.id,
+        userId: session.user.id,
       },
     });
 
@@ -69,7 +69,7 @@ export async function GET(
     const lancamento = await db.lancamento.findUnique({
       where: { id },
       include: {
-        usuario: {
+        user: {
           select: {
             name: true,
             email: true,
@@ -85,7 +85,7 @@ export async function GET(
       );
     }
 
-    if (lancamento.usuarioId !== session.user.id) {
+    if (lancamento.userId !== session.user.id) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 403 });
     }
 
@@ -164,7 +164,7 @@ export async function DELETE(
       );
     }
 
-    if (lancamentoExistente.usuarioId !== finalUsuarioId) {
+    if (lancamentoExistente.userId !== finalUsuarioId) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 403 });
     }
 

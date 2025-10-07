@@ -185,7 +185,7 @@ export class FaturaService {
     faturaId: string,
     valor: number,
     metodo: string,
-    usuarioId: string
+    userId: string
   ) {
     const fatura = await db.fatura.findUnique({
       where: { id: faturaId },
@@ -202,7 +202,7 @@ export class FaturaService {
         faturaId,
         valor,
         metodo,
-        usuarioId,
+        userId,
         observacoes: `Pagamento da fatura ${fatura.mesReferencia}`,
       },
     });

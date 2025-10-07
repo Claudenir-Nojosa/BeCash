@@ -10,7 +10,7 @@ export async function GET() {
     }
 
     const categorias = await db.categoria.findMany({
-      where: { usuarioId: session.user.id },
+      where: { userId: session.user.id },
       orderBy: { nome: "asc" },
     });
 
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
         nome,
         tipo,
         cor: cor || "#3B82F6",
-        usuarioId: session.user.id,
+        userId: session.user.id,
       },
     });
 

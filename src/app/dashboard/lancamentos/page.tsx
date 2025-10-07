@@ -1,7 +1,64 @@
 "use client";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { CheckCircle, XCircle, Clock } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Plus,
+  Filter,
+  ChevronDown,
+  CheckCircle,
+  Clock,
+  TrendingUp,
+  TrendingDown,
+  CreditCard,
+  Wallet,
+  Repeat,
+  Calendar,
+  X,
+  Sparkles,
+  Search,
+  MoreHorizontal,
+  Share2,
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Link } from "@radix-ui/react-navigation-menu";
 
 interface Categoria {
   id: string;
@@ -40,13 +97,19 @@ export default function LancamentosPage() {
   const [mostrarPrevisoes, setMostrarPrevisoes] = useState(false);
   const [previsoesFuturas, setPrevisoesFuturas] = useState<any[]>([]);
   const [mesPrevisao, setMesPrevisao] = useState(
-    new Date().toISOString().slice(0, 7) // YYYY-MM
+    new Date().toISOString().slice(0, 7)
   );
 
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [cartoes, setCartoes] = useState<Cartao[]>([]);
-  const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filtros, setFiltros] = useState({
+    tipo: "all",
+    status: "all",
+    metodo: "all",
+  });
+
   const [formData, setFormData] = useState({
     descricao: "",
     valor: "",
@@ -64,7 +127,7 @@ export default function LancamentosPage() {
   useEffect(() => {
     carregarDados();
   }, []);
-  // Função para carregar previsões
+
   const carregarPrevisoes = async () => {
     try {
       const res = await fetch(
@@ -79,12 +142,12 @@ export default function LancamentosPage() {
     }
   };
 
-  // Chame esta função quando mostrarPrevisoes mudar para true
   useEffect(() => {
     if (mostrarPrevisoes) {
       carregarPrevisoes();
     }
   }, [mostrarPrevisoes, mesPrevisao]);
+
   const carregarDados = async () => {
     try {
       setLoading(true);
@@ -106,12 +169,7 @@ export default function LancamentosPage() {
 
       if (cartoesRes.ok) {
         const cartoesData = await cartoesRes.json();
-        if (Array.isArray(cartoesData)) {
-          setCartoes(cartoesData);
-        } else {
-          console.error("Resposta de cartões não é um array:", cartoesData);
-          setCartoes([]);
-        }
+        setCartoes(Array.isArray(cartoesData) ? cartoesData : []);
       }
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
@@ -122,6 +180,7 @@ export default function LancamentosPage() {
       setLoading(false);
     }
   };
+
   const criarTodasRecorrencias = async (recorrenciaId: string) => {
     if (
       !confirm(
@@ -141,8 +200,8 @@ export default function LancamentosPage() {
       if (res.ok) {
         const result = await res.json();
         toast.success(result.message);
-        carregarDados(); // Recarregar a lista
-        carregarPrevisoes(); // Recarregar previsões
+        carregarDados();
+        carregarPrevisoes();
       } else {
         const error = await res.json();
         toast.error(error.error);
@@ -152,6 +211,7 @@ export default function LancamentosPage() {
       toast.error("Erro ao criar recorrências");
     }
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -166,7 +226,6 @@ export default function LancamentosPage() {
       });
 
       if (res.ok) {
-        setShowForm(false);
         setFormData({
           descricao: "",
           valor: "",
@@ -181,20 +240,21 @@ export default function LancamentosPage() {
           dataFimRecorrencia: "",
         });
         carregarDados();
+        toast.success("Lançamento criado com sucesso!");
       } else {
         const errorData = await res.json();
-        console.error("Erro na resposta:", errorData);
-        alert(errorData.error || "Erro ao criar lançamento");
+        toast.error(errorData.error || "Erro ao criar lançamento");
       }
     } catch (error) {
       console.error("Erro ao criar lançamento:", error);
-      alert("Erro ao criar lançamento");
+      toast.error("Erro ao criar lançamento");
     }
   };
+
   const categoriasFiltradas = categorias.filter(
     (cat) => cat.tipo === formData.tipo
   );
-  // Resetar campos quando mudar o método de pagamento
+
   const handleMetodoPagamentoChange = (metodo: string) => {
     setFormData({
       ...formData,
@@ -209,17 +269,13 @@ export default function LancamentosPage() {
     try {
       const response = await fetch(`/api/lancamentos/${lancamentoId}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          pago: !atualStatus,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pago: !atualStatus }),
       });
 
       if (response.ok) {
         toast.success("Status atualizado com sucesso!");
-        carregarDados(); // Recarregar a lista
+        carregarDados();
       } else {
         throw new Error("Erro ao atualizar status");
       }
@@ -228,643 +284,762 @@ export default function LancamentosPage() {
       toast.error("Erro ao alterar status");
     }
   };
+
+  const getMetodoPagamentoIcon = (metodo: string) => {
+    switch (metodo) {
+      case "PIX":
+        return <Sparkles className="w-4 h-4" />;
+      case "CREDITO":
+        return <CreditCard className="w-4 h-4" />;
+      case "DEBITO":
+        return <CreditCard className="w-4 h-4" />;
+      default:
+        return <Wallet className="w-4 h-4" />;
+    }
+  };
+
+  const lancamentosFiltrados = lancamentos.filter((lancamento) => {
+    if (
+      searchTerm &&
+      !lancamento.descricao.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+      return false;
+    if (filtros.tipo !== "all" && lancamento.tipo !== filtros.tipo)
+      return false;
+    if (filtros.status !== "all") {
+      if (filtros.status === "pago" && !lancamento.pago) return false;
+      if (filtros.status === "pendente" && lancamento.pago) return false;
+    }
+    if (
+      filtros.metodo !== "all" &&
+      lancamento.metodoPagamento !== filtros.metodo
+    )
+      return false;
+    return true;
+  });
+
+  const totalReceitas = lancamentosFiltrados
+    .filter((l) => l.tipo === "RECEITA")
+    .reduce((sum, l) => sum + l.valor, 0);
+
+  const totalDespesas = lancamentosFiltrados
+    .filter((l) => l.tipo === "DESPESA")
+    .reduce((sum, l) => sum + l.valor, 0);
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
-        <div className="text-gray-600">Carregando...</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-muted-foreground">Carregando lançamentos...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Lançamentos</h1>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-          >
-            {showForm ? "Cancelar" : "Novo Lançamento"}
-          </button>
-        </div>
+    <div className="min-h-screen bg-background p-4 lg:p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4"
+        >
+          <div>
+            <h1 className="text-3xl lg:text-4xl font-bold tracking-tight">
+              Lançamentos
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              Gerencie suas receitas e despesas
+            </p>
+          </div>
 
-        {showForm && (
-          <form
-            onSubmit={handleSubmit}
-            className="bg-white p-6 rounded-lg shadow-md mb-8"
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Descrição
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.descricao}
-                  onChange={(e) =>
-                    setFormData({ ...formData, descricao: e.target.value })
-                  }
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                  placeholder="Ex: Aluguel, Salário, Mercado..."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Valor
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  value={formData.valor}
-                  onChange={(e) =>
-                    setFormData({ ...formData, valor: e.target.value })
-                  }
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                  placeholder="0,00"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tipo
-                </label>
-                <select
-                  value={formData.tipo}
-                  onChange={(e) =>
-                    setFormData({ ...formData, tipo: e.target.value })
-                  }
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                >
-                  <option value="DESPESA">Despesa</option>
-                  <option value="RECEITA">Receita</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Método de Pagamento
-                </label>
-                <select
-                  value={formData.metodoPagamento}
-                  onChange={(e) => handleMetodoPagamentoChange(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                >
-                  <option value="PIX">PIX</option>
-                  <option value="TRANSFERENCIA">Transferência</option>
-                  <option value="DEBITO">Cartão de Débito</option>
-                  <option value="CREDITO">Cartão de Crédito</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Categoria
-                </label>
-                <select
-                  required
-                  value={formData.categoriaId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, categoriaId: e.target.value })
-                  }
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                >
-                  <option value="">Selecione uma categoria</option>
-                  {categoriasFiltradas.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.nome}
-                    </option>
-                  ))}
-                </select>
-                {categoriasFiltradas.length === 0 && (
-                  <p className="text-sm text-red-600 mt-1">
-                    Nenhuma categoria encontrada para{" "}
-                    {formData.tipo === "DESPESA" ? "despesa" : "receita"}.
-                    <a
-                      href="/categorias"
-                      className="text-blue-600 underline ml-1"
+          <div className="flex gap-3 w-full lg:w-auto">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <Filter className="w-4 h-4" />
+                  Filtros
+                </Button>
+              </SheetTrigger>
+              <SheetContent>
+                <SheetHeader>
+                  <SheetTitle>Filtrar Lançamentos</SheetTitle>
+                  <SheetDescription>
+                    Aplique filtros para encontrar lançamentos específicos
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="space-y-4 mt-6">
+                  <div className="space-y-2">
+                    <Label>Tipo</Label>
+                    <Select
+                      value={filtros.tipo}
+                      onValueChange={(value) =>
+                        setFiltros({ ...filtros, tipo: value })
+                      }
                     >
-                      Criar categoria
-                    </a>
-                  </p>
-                )}
-              </div>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="RECEITA">Receita</SelectItem>
+                        <SelectItem value="DESPESA">Despesa</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              {formData.metodoPagamento === "CREDITO" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Cartão
-                  </label>
-                  <select
-                    required
-                    value={formData.cartaoId}
-                    onChange={(e) =>
-                      setFormData({ ...formData, cartaoId: e.target.value })
-                    }
-                    className="w-full p-2 border border-gray-300 rounded-md"
-                  >
-                    <option value="">Selecione um cartão</option>
-                    {Array.isArray(cartoes) &&
-                      cartoes.map((cartao) => (
-                        <option key={cartao.id} value={cartao.id}>
-                          {cartao.nome}
-                        </option>
-                      ))}
-                  </select>
-                  {(!Array.isArray(cartoes) || cartoes.length === 0) && (
-                    <p className="text-sm text-red-600 mt-1">
-                      Nenhum cartão encontrado.
-                      <a
-                        href="/cartoes"
-                        className="text-blue-600 underline ml-1"
-                      >
-                        Criar cartão
-                      </a>
-                    </p>
-                  )}
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Select
+                      value={filtros.status}
+                      onValueChange={(value) =>
+                        setFiltros({ ...filtros, status: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="pago">Pago</SelectItem>
+                        <SelectItem value="pendente">Pendente</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Método de Pagamento</Label>
+                    <Select
+                      value={filtros.metodo}
+                      onValueChange={(value) =>
+                        setFiltros({ ...filtros, metodo: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="PIX">PIX</SelectItem>
+                        <SelectItem value="CREDITO">
+                          Cartão de Crédito
+                        </SelectItem>
+                        <SelectItem value="DEBITO">Cartão de Débito</SelectItem>
+                        <SelectItem value="TRANSFERENCIA">
+                          Transferência
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              )}
+              </SheetContent>
+            </Sheet>
 
-              {/* CAMPOS DE PARCELAMENTO - AGORA VISÍVEIS */}
-              {formData.metodoPagamento === "CREDITO" && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Tipo de Pagamento
-                    </label>
-                    <select
-                      value={formData.tipoParcelamento}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Novo Lançamento
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="sm:max-w-md">
+                <SheetHeader>
+                  <SheetTitle>Novo Lançamento</SheetTitle>
+                  <SheetDescription>
+                    Adicione uma nova receita ou despesa ao seu controle
+                    financeiro
+                  </SheetDescription>
+                </SheetHeader>
+
+                <form onSubmit={handleSubmit} className="space-y-4 mt-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="descricao">Descrição</Label>
+                    <Input
+                      id="descricao"
+                      value={formData.descricao}
+                      onChange={(e) =>
+                        setFormData({ ...formData, descricao: e.target.value })
+                      }
+                      placeholder="Ex: Aluguel, Salário, Mercado..."
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="valor">Valor</Label>
+                    <Input
+                      id="valor"
+                      type="number"
+                      step="0.01"
+                      value={formData.valor}
+                      onChange={(e) =>
+                        setFormData({ ...formData, valor: e.target.value })
+                      }
+                      placeholder="0,00"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="tipo">Tipo</Label>
+                      <Select
+                        value={formData.tipo}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, tipo: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="DESPESA">Despesa</SelectItem>
+                          <SelectItem value="RECEITA">Receita</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="metodoPagamento">Método</Label>
+                      <Select
+                        value={formData.metodoPagamento}
+                        onValueChange={handleMetodoPagamentoChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="PIX">PIX</SelectItem>
+                          <SelectItem value="TRANSFERENCIA">
+                            Transferência
+                          </SelectItem>
+                          <SelectItem value="DEBITO">Débito</SelectItem>
+                          <SelectItem value="CREDITO">Crédito</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="categoria">Categoria</Label>
+                    <Select
+                      value={formData.categoriaId}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, categoriaId: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione uma categoria" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categoriasFiltradas.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: cat.cor }}
+                              />
+                              {cat.nome}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {formData.metodoPagamento === "CREDITO" && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="cartao">Cartão</Label>
+                        <Select
+                          value={formData.cartaoId}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, cartaoId: value })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione um cartão" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {cartoes.map((cartao) => (
+                              <SelectItem key={cartao.id} value={cartao.id}>
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: cartao.cor }}
+                                  />
+                                  {cartao.nome}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="tipoParcelamento">
+                          Tipo de Pagamento
+                        </Label>
+                        <Select
+                          value={formData.tipoParcelamento}
+                          onValueChange={(value) =>
+                            setFormData({
+                              ...formData,
+                              tipoParcelamento: value,
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="AVISTA">À Vista</SelectItem>
+                            <SelectItem value="PARCELADO">Parcelado</SelectItem>
+                            <SelectItem value="RECORRENTE">
+                              Recorrente
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {formData.tipoParcelamento === "PARCELADO" && (
+                        <div className="space-y-2">
+                          <Label htmlFor="parcelas">Parcelas</Label>
+                          <Select
+                            value={formData.parcelasTotal}
+                            onValueChange={(value) =>
+                              setFormData({ ...formData, parcelasTotal: value })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(
+                                (num) => (
+                                  <SelectItem key={num} value={num.toString()}>
+                                    {num}x
+                                  </SelectItem>
+                                )
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+
+                      {formData.tipoParcelamento === "RECORRENTE" && (
+                        <div className="space-y-2">
+                          <Label htmlFor="dataFim">Data Final</Label>
+                          <Input
+                            type="date"
+                            value={formData.dataFimRecorrencia}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                dataFimRecorrencia: e.target.value,
+                              })
+                            }
+                            required
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="observacoes">Observações</Label>
+                    <Textarea
+                      id="observacoes"
+                      value={formData.observacoes}
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          tipoParcelamento: e.target.value,
+                          observacoes: e.target.value,
                         })
                       }
-                      className="w-full p-2 border border-gray-300 rounded-md"
-                    >
-                      <option value="AVISTA">À Vista (1x)</option>
-                      <option value="PARCELADO">Parcelado</option>
-                      <option value="RECORRENTE">
-                        Recorrente (Assinatura)
-                      </option>
-                    </select>
+                      placeholder="Observações adicionais..."
+                      rows={3}
+                    />
                   </div>
 
-                  {/* CAMPO DE PARCELAS - SEMPRE VISÍVEL QUANDO FOR PARCELADO */}
-                  {formData.tipoParcelamento === "PARCELADO" && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Número de Parcelas
-                      </label>
-                      <select
-                        value={formData.parcelasTotal}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            parcelasTotal: e.target.value,
-                          })
-                        }
-                        className="w-full p-2 border border-gray-300 rounded-md"
-                      >
-                        {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
-                          <option key={num} value={num.toString()}>
-                            {num}x
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {formData.tipoParcelamento === "RECORRENTE" && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Data Final da Recorrência
-                      </label>
-                      <input
-                        type="date"
-                        required
-                        value={formData.dataFimRecorrencia}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            dataFimRecorrencia: e.target.value,
-                          })
-                        }
-                        className="w-full p-2 border border-gray-300 rounded-md"
-                      />
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* INFORMAÇÕES DO PARCELAMENTO */}
-            {formData.metodoPagamento === "CREDITO" &&
-              formData.tipoParcelamento === "PARCELADO" &&
-              formData.valor && (
-                <div className="mt-4 p-3 bg-blue-50 rounded-md">
-                  <p className="text-sm text-blue-800">
-                    <strong>Detalhes do parcelamento:</strong>
-                    <br />• Valor total: R${" "}
-                    {parseFloat(formData.valor).toFixed(2)}
-                    <br />• {formData.parcelasTotal} parcelas de R${" "}
-                    {(
-                      parseFloat(formData.valor) /
-                      parseInt(formData.parcelasTotal)
-                    ).toFixed(2)}
-                    <br />• Primeira parcela em{" "}
-                    {new Date().toLocaleDateString("pt-BR")}
-                  </p>
-                </div>
-              )}
-
-            {formData.metodoPagamento === "CREDITO" &&
-              formData.tipoParcelamento === "AVISTA" && (
-                <div className="mt-4 p-3 bg-green-50 rounded-md">
-                  <p className="text-sm text-green-800">
-                    <strong>Pagamento à vista:</strong> O valor será cobrado na
-                    próxima fatura.
-                  </p>
-                </div>
-              )}
-
-            {formData.metodoPagamento === "CREDITO" &&
-              formData.tipoParcelamento === "RECORRENTE" && (
-                <div className="mt-4 p-3 bg-purple-50 rounded-md">
-                  <p className="text-sm text-purple-800">
-                    <strong>Recorrência mensal:</strong> Será criado um
-                    lançamento automático todo mês.
-                  </p>
-                </div>
-              )}
-
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Observações
-              </label>
-              <textarea
-                value={formData.observacoes}
-                onChange={(e) =>
-                  setFormData({ ...formData, observacoes: e.target.value })
-                }
-                className="w-full p-2 border border-gray-300 rounded-md"
-                rows={3}
-                placeholder="Observações adicionais..."
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="mt-4 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400"
-              disabled={
-                !formData.categoriaId ||
-                (formData.metodoPagamento === "CREDITO" &&
-                  !formData.cartaoId) ||
-                (formData.metodoPagamento === "CREDITO" &&
-                  formData.tipoParcelamento === "RECORRENTE" &&
-                  !formData.dataFimRecorrencia)
-              }
-            >
-              Salvar Lançamento
-            </button>
-          </form>
-        )}
-        <div className="mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Previsões de Recorrências
-            </h2>
-            <div className="flex gap-2">
-              <input
-                type="month"
-                value={mesPrevisao}
-                onChange={(e) => setMesPrevisao(e.target.value)}
-                className="p-2 border border-gray-300 rounded-md"
-              />
-              <button
-                onClick={() => setMostrarPrevisoes(!mostrarPrevisoes)}
-                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
-              >
-                {mostrarPrevisoes
-                  ? "Ocultar Previsões"
-                  : "Ver Previsões Futuras"}
-              </button>
-            </div>
+                  <Button type="submit" className="w-full">
+                    Salvar Lançamento
+                  </Button>
+                </form>
+              </SheetContent>
+            </Sheet>
           </div>
+        </motion.div>
 
-          {mostrarPrevisoes && (
-            <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
-              {previsoesFuturas.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">
-                  Nenhuma previsão de recorrência encontrada.
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Total Receitas
+                  </p>
+                  <p className="text-2xl font-bold text-green-600">
+                    R$ {totalReceitas.toFixed(2)}
+                  </p>
                 </div>
-              ) : (
-                <table className="w-full">
-                  <thead className="bg-purple-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
-                        Descrição
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
-                        Valor
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
-                        Categoria
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
-                        Cartão
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
-                        Data Prevista
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-purple-700 uppercase tracking-wider">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {previsoesFuturas.map((previsao) => (
-                      <tr
-                        key={previsao.id}
-                        className={previsao.jaExiste ? "bg-green-50" : ""}
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <span className="mr-2 text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
-                              🔄
-                            </span>
-                            {previsao.descricao}
+                <TrendingUp className="w-8 h-8 text-green-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Total Despesas
+                  </p>
+                  <p className="text-2xl font-bold text-red-600">
+                    R$ {totalDespesas.toFixed(2)}
+                  </p>
+                </div>
+                <TrendingDown className="w-8 h-8 text-red-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Saldo
+                  </p>
+                  <p
+                    className={`text-2xl font-bold ${totalReceitas - totalDespesas >= 0 ? "text-green-600" : "text-red-600"}`}
+                  >
+                    R$ {(totalReceitas - totalDespesas).toFixed(2)}
+                  </p>
+                </div>
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    totalReceitas - totalDespesas >= 0
+                      ? "bg-green-100"
+                      : "bg-red-100"
+                  }`}
+                >
+                  {totalReceitas - totalDespesas >= 0 ? (
+                    <TrendingUp className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <TrendingDown className="w-4 h-4 text-red-600" />
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Search */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar lançamentos..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setMostrarPrevisoes(!mostrarPrevisoes)}
+                className="gap-2"
+              >
+                <Repeat className="w-4 h-4" />
+                Previsões
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Previsões */}
+        <AnimatePresence>
+          {mostrarPrevisoes && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Repeat className="w-5 h-5" />
+                    Previsões de Recorrências
+                  </CardTitle>
+                  <CardDescription>
+                    Lançamentos recorrentes previstos para o mês selecionado
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-4 mb-4">
+                    <Input
+                      type="month"
+                      value={mesPrevisao}
+                      onChange={(e) => setMesPrevisao(e.target.value)}
+                      className="max-w-[200px]"
+                    />
+                  </div>
+
+                  <ScrollArea className="h-[300px]">
+                    <div className="space-y-3">
+                      {previsoesFuturas.map((previsao) => (
+                        <div
+                          key={previsao.id}
+                          className="flex items-center justify-between p-3 border rounded-lg"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-2 h-8 rounded-full ${
+                                previsao.tipo === "RECEITA"
+                                  ? "bg-green-500"
+                                  : "bg-red-500"
+                              }`}
+                            />
+                            <div>
+                              <p className="font-medium">
+                                {previsao.descricao}
+                              </p>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Badge variant="outline" className="text-xs">
+                                  {previsao.categoria.nome}
+                                </Badge>
+                                <span>{previsao.cartao?.nome || "-"}</span>
+                              </div>
+                            </div>
                           </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {previsao.jaExiste ? (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                              ✅ Criado
+
+                          <div className="flex items-center gap-3">
+                            <span
+                              className={`font-medium ${
+                                previsao.tipo === "RECEITA"
+                                  ? "text-green-600"
+                                  : "text-red-600"
+                              }`}
+                            >
+                              R$ {previsao.valor.toFixed(2)}
                             </span>
+
+                            <Badge
+                              variant={
+                                previsao.jaExiste ? "default" : "secondary"
+                              }
+                            >
+                              {previsao.jaExiste ? "Criado" : "Pendente"}
+                            </Badge>
+
+                            {!previsao.jaExiste && previsao.ehOriginal && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  criarTodasRecorrencias(
+                                    previsao.lancamentoPaiId
+                                  )
+                                }
+                              >
+                                Criar Todos
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Lançamentos */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Lançamentos Recentes</CardTitle>
+            <CardDescription>
+              {lancamentosFiltrados.length} lançamentos encontrados
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[600px]">
+              <div className="space-y-3">
+                {lancamentosFiltrados.map((lancamento) => (
+                  <motion.div
+                    key={lancamento.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-4 border rounded-lg hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4 flex-1">
+                        <div
+                          className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                            lancamento.tipo === "RECEITA"
+                              ? "bg-green-100"
+                              : "bg-red-100"
+                          }`}
+                        >
+                          {lancamento.tipo === "RECEITA" ? (
+                            <TrendingUp className="w-6 h-6 text-green-600" />
                           ) : (
-                            <div className="flex gap-2">
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">
-                                ⏳ Pendente
-                              </span>
-                              {previsao.ehOriginal && (
-                                <button
-                                  onClick={() =>
-                                    criarTodasRecorrencias(
-                                      previsao.lancamentoPaiId
-                                    )
-                                  }
-                                  className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded hover:bg-blue-200"
-                                >
-                                  Criar Todos
-                                </button>
+                            <TrendingDown className="w-6 h-6 text-red-600" />
+                          )}
+                        </div>
+
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-medium">
+                              {lancamento.descricao}
+                            </p>
+                            {lancamento.recorrente && (
+                              <Badge variant="secondary" className="gap-1">
+                                <Repeat className="w-3 h-3" />
+                                Recorrente
+                              </Badge>
+                            )}
+                            {lancamento.parcelasTotal &&
+                              lancamento.parcelasTotal > 1 && (
+                                <Badge variant="outline">
+                                  {lancamento.parcelaAtual}/
+                                  {lancamento.parcelasTotal}
+                                </Badge>
+                              )}
+                          </div>
+
+                          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                            <Badge
+                              variant="outline"
+                              className="flex items-center gap-1"
+                              style={{
+                                backgroundColor: `${lancamento.categoria.cor}20`,
+                                color: lancamento.categoria.cor,
+                                borderColor: lancamento.categoria.cor,
+                              }}
+                            >
+                              {lancamento.categoria.nome}
+                            </Badge>
+
+                            <div className="flex items-center gap-1">
+                              {getMetodoPagamentoIcon(
+                                lancamento.metodoPagamento
+                              )}
+                              {lancamento.metodoPagamento}
+                            </div>
+
+                            {lancamento.cartao && (
+                              <Badge variant="secondary">
+                                {lancamento.cartao.nome}
+                              </Badge>
+                            )}
+
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {new Date(lancamento.data).toLocaleDateString(
+                                "pt-BR"
                               )}
                             </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={
-                              previsao.tipo === "RECEITA"
-                                ? "text-green-600 font-medium"
-                                : "text-red-600 font-medium"
-                            }
-                          >
-                            R$ {previsao.valor.toFixed(2)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
-                            style={{
-                              backgroundColor: `${previsao.categoria.cor}20`,
-                              color: previsao.categoria.cor,
-                            }}
-                          >
-                            {previsao.categoria.nome}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {previsao.cartao?.nome || "-"}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {new Date(previsao.data).toLocaleDateString("pt-BR")}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {previsao.jaExiste ? (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                              ✅ Já lançado
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">
-                              ⏳ Pendente
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          )}
-        </div>
-        {/* Resto do código da tabela permanece igual */}
-        <div className="bg-white rounded-lg shadow-md overflow-x-auto">
-          {" "}
-          {/* Mudei para overflow-x-auto */}
-          {lancamentos.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              Nenhum lançamento encontrado. Clique em "Novo Lançamento" para
-              começar.
-            </div>
-          ) : (
-            <table className="w-full min-w-max">
-              {" "}
-              {/* Adicionei min-w-max */}
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                    Descrição
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                    Valor
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                    Categoria
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                    Método
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                    Data
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {lancamentos.map((lancamento) => (
-                  <>
-                    <tr key={lancamento.id}>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          {lancamento.parcelasTotal &&
-                            lancamento.parcelasTotal > 1 && (
-                              <span className="mr-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                                {lancamento.parcelaAtual}/
-                                {lancamento.parcelasTotal}
-                              </span>
-                            )}
-                          {lancamento.recorrente && (
-                            <span className="mr-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                              🔄
-                            </span>
-                          )}
-                          <span className="text-sm">
-                            {lancamento.descricao}
-                          </span>
+                          </div>
                         </div>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
+                      </div>
+
+                      <div className="flex items-center gap-4">
                         <span
-                          className={
+                          className={`text-lg font-bold ${
                             lancamento.tipo === "RECEITA"
-                              ? "text-green-600 font-medium text-sm"
-                              : "text-red-600 font-medium text-sm"
-                          }
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
                         >
                           R$ {lancamento.valor.toFixed(2)}
                         </span>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <span
-                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
-                          style={{
-                            backgroundColor: `${lancamento.categoria.cor}20`,
-                            color: lancamento.categoria.cor,
-                          }}
-                        >
-                          {lancamento.categoria.nome}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm">
-                        <div>
-                          <div>{lancamento.metodoPagamento}</div>
-                          {lancamento.cartao && (
-                            <div className="text-xs text-gray-500">
-                              {lancamento.cartao.nome}
-                            </div>
-                          )}
-                          {lancamento.tipoParcelamento && (
-                            <div className="text-xs text-gray-500">
-                              ({lancamento.tipoParcelamento.toLowerCase()})
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm">
-                        {new Date(lancamento.data).toLocaleDateString("pt-BR")}
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <button
+
+                        <Button
+                          variant={lancamento.pago ? "default" : "outline"}
+                          size="sm"
                           onClick={() =>
                             toggleStatus(lancamento.id, lancamento.pago)
                           }
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors ${
-                            lancamento.pago
-                              ? "bg-green-100 text-green-800 hover:bg-green-200"
-                              : "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
-                          }`}
+                          className="gap-2"
                         >
                           {lancamento.pago ? (
                             <>
-                              <CheckCircle className="w-3 h-3 mr-1" />
+                              <CheckCircle className="w-4 h-4" />
                               Pago
                             </>
                           ) : (
                             <>
-                              <Clock className="w-3 h-3 mr-1" />
+                              <Clock className="w-4 h-4" />
                               Pendente
                             </>
                           )}
-                        </button>
-                      </td>
-                    </tr>
+                        </Button>
 
-                    {/* Mostrar parcelas filhas */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>Editar</DropdownMenuItem>
+                            <DropdownMenuItem className="text-red-600">
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                    {/* Parcelas Filhas */}
                     {lancamento.lancamentosFilhos?.map((parcela) => (
-                      <tr key={parcela.id} className="bg-gray-50">
-                        <td className="px-4 py-4 whitespace-nowrap pl-8">
-                          <div className="flex items-center text-sm text-gray-600">
-                            <span className="mr-2 text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
-                              {parcela.parcelaAtual}/{parcela.parcelasTotal}
+                      <motion.div
+                        key={parcela.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="ml-16 mt-3 p-3 bg-muted/50 rounded-lg border"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Badge variant="outline">
+                              Parcela {parcela.parcelaAtual}/
+                              {parcela.parcelasTotal}
+                            </Badge>
+                            <span className="text-sm">{parcela.descricao}</span>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm font-medium">
+                              R$ {parcela.valor.toFixed(2)}
                             </span>
-                            {parcela.descricao}
+
+                            <Button
+                              variant={parcela.pago ? "default" : "outline"}
+                              size="sm"
+                              onClick={() =>
+                                toggleStatus(parcela.id, parcela.pago)
+                              }
+                            >
+                              {parcela.pago ? "Pago" : "Pendente"}
+                            </Button>
                           </div>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                          R$ {parcela.valor.toFixed(2)}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <span
-                            className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
-                            style={{
-                              backgroundColor: `${parcela.categoria.cor}20`,
-                              color: parcela.categoria.cor,
-                            }}
-                          >
-                            {parcela.categoria.nome}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                          <div>
-                            <div>{parcela.metodoPagamento}</div>
-                            {parcela.cartao && (
-                              <div className="text-xs text-gray-500">
-                                {parcela.cartao.nome}
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {new Date(parcela.data).toLocaleDateString("pt-BR")}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <button
-                            onClick={() =>
-                              toggleStatus(parcela.id, parcela.pago)
-                            }
-                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors ${
-                              parcela.pago
-                                ? "bg-green-100 text-green-800 hover:bg-green-200"
-                                : "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
-                            }`}
-                          >
-                            {parcela.pago ? (
-                              <>
-                                <CheckCircle className="w-3 h-3 mr-1" />
-                                Pago
-                              </>
-                            ) : (
-                              <>
-                                <Clock className="w-3 h-3 mr-1" />
-                                Pendente
-                              </>
-                            )}
-                          </button>
-                        </td>
-                      </tr>
+                        </div>
+                      </motion.div>
                     ))}
-                  </>
+                  </motion.div>
                 ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

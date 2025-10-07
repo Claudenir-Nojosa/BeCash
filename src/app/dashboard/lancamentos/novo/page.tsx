@@ -3,6 +3,19 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
+import {
+  CalendarIcon,
+  ArrowLeft,
+  CreditCard,
+  Repeat,
+  Divide,
+} from "lucide-react";
+
+// Components
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,17 +34,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  CalendarIcon,
-  ArrowLeft,
-  CreditCard,
-  Repeat,
-  Divide,
-} from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { toast } from "sonner";
 
+// Types
 interface Cartao {
   id: string;
   nome: string;
@@ -39,56 +43,124 @@ interface Cartao {
   limite: number;
 }
 
+interface Usuario {
+  id: string;
+  name: string;
+  email: string;
+  image?: string;
+}
+
+interface FormData {
+  descricao: string;
+  valor: string;
+  tipo: string;
+  categoria: string;
+  tipoLancamento: string;
+  tipoTransacao: string;
+  cartaoId: string;
+  responsavel: string;
+  pago: boolean;
+  recorrente: boolean;
+  tipoRecorrencia: string;
+  frequencia: string;
+  parcelas: string;
+  observacoes: string;
+  usuarioAlvoId: string;
+  valorCompartilhado: string;
+}
+
+interface Categoria {
+  id: string;
+  nome: string;
+  tipo: string;
+  cor?: string;
+}
+
+// Constants
+const TIPOS_TRANSACAO = [
+  { value: "DINHEIRO", label: "Dinheiro" },
+  { value: "PIX", label: "PIX" },
+  { value: "CARTAO_DEBITO", label: "Cartão Débito" },
+  { value: "CARTAO_CREDITO", label: "Cartão Crédito" },
+  { value: "TRANSFERENCIA", label: "Transferência" },
+];
+
+const TIPOS_LANCAMENTO = [
+  { value: "individual", label: "Individual" },
+  { value: "compartilhado", label: "Compartilhado" },
+];
+
+const RESPONSAVEIS = [
+  { value: "Claudenir", label: "Claudenir" },
+  { value: "Beatriz", label: "Beatriz" },
+  { value: "Compartilhado", label: "Compartilhado" },
+];
+
+const FREQUENCIAS = [
+  { value: "mensal", label: "Mensal" },
+  { value: "trimestral", label: "Trimestral" },
+  { value: "anual", label: "Anual" },
+];
+
 export default function NovoLancamentoPage() {
+  // Hooks
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: session, status, update } = useSession();
+
+  // State
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [cartoes, setCartoes] = useState<Cartao[]>([]);
   const [carregando, setCarregando] = useState(false);
+  const [carregandoUsuarios, setCarregandoUsuarios] = useState(false);
+  const [carregandoCartoes, setCarregandoCartoes] = useState(false);
   const [date, setDate] = useState<Date>(new Date());
   const [dataVencimento, setDataVencimento] = useState<Date | null>(null);
-  const [cartoes, setCartoes] = useState<Cartao[]>([]);
-  const [carregandoCartoes, setCarregandoCartoes] = useState(false);
-
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [carregandoCategorias, setCarregandoCategorias] = useState(false);
   const cartaoIdFromUrl = searchParams.get("cartaoId");
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     descricao: "",
     valor: "",
     tipo: "",
     categoria: "",
-    tipoLancamento: "",
+    tipoLancamento: "individual",
     tipoTransacao: "DINHEIRO",
     cartaoId: cartaoIdFromUrl || "",
     responsavel: "",
     pago: false,
     recorrente: false,
-    tipoRecorrencia: "RECORRENCIA", // NOVO: RECORRENCIA ou PARCELAMENTO
+    tipoRecorrencia: "RECORRENCIA",
     frequencia: "mensal",
-    parcelas: "", // NOVO: número de parcelas
+    parcelas: "",
     observacoes: "",
+    usuarioAlvoId: "",
+    valorCompartilhado: "",
   });
-
-  // Carregar cartões disponíveis
   useEffect(() => {
-    carregarCartoes();
-  }, []);
+    const forceSessionUpdate = async () => {
+      if (status === "unauthenticated") {
+        console.log("🔄 Forçando atualização da session...");
+        try {
+          await update();
+        } catch (error) {
+          console.error("Erro ao forçar update:", error);
+        }
+      }
+    };
 
-  // Calcular data de vencimento automática para cartão de crédito
-  useEffect(() => {
-    if (formData.tipoTransacao === "CARTAO_CREDITO" && !dataVencimento) {
-      const proximoMes = new Date(date);
-      proximoMes.setMonth(proximoMes.getMonth() + 1);
-      proximoMes.setDate(10); // Dia 10 do próximo mês
-      setDataVencimento(proximoMes);
-    }
-  }, [formData.tipoTransacao, date, dataVencimento]);
+    forceSessionUpdate();
+  }, [status, update]);
+  // Derived state
+  const cartaoSelecionado = cartoes.find(
+    (cartao) => cartao.id === formData.cartaoId
+  );
+  const usuarioSelecionado = usuarios.find(
+    (usuario) => usuario.id === formData.usuarioAlvoId
+  );
 
-  // Resetar parcelas quando mudar o tipo de recorrência
-  useEffect(() => {
-    if (formData.tipoRecorrencia === "RECORRENCIA") {
-      setFormData((prev) => ({ ...prev, parcelas: "" }));
-    }
-  }, [formData.tipoRecorrencia]);
-
+  // API Functions
   const carregarCartoes = async () => {
     setCarregandoCartoes(true);
     try {
@@ -99,29 +171,137 @@ export default function NovoLancamentoPage() {
       }
     } catch (error) {
       console.error("Erro ao carregar cartões:", error);
+      toast.error("Erro ao carregar cartões");
     } finally {
       setCarregandoCartoes(false);
     }
   };
 
+  const carregarUsuarios = async () => {
+    console.log(
+      "🚀 carregarUsuarios - Status:",
+      status,
+      "Session ID:",
+      session?.user?.id
+    );
+
+    // Se ainda está carregando ou não tem session, espera
+    if (status === "loading" || !session?.user?.id) {
+      console.log("⏳ Aguardando session carregar...");
+      return;
+    }
+
+    setCarregandoUsuarios(true);
+    try {
+      console.log("📡 Fazendo fetch para /api/usuarios...");
+      const response = await fetch("/api/usuarios");
+      console.log("📡 Response status:", response.status);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("✅ Usuários recebidos da API:", data);
+
+        const outrosUsuarios = data.filter(
+          (usuario: Usuario) => usuario.id !== session.user.id
+        );
+        console.log("👥 Usuários após filtro:", outrosUsuarios);
+
+        setUsuarios(outrosUsuarios);
+      } else {
+        console.error("❌ Erro na resposta da API:", response.status);
+      }
+    } catch (error) {
+      console.error("❌ Erro ao carregar usuários:", error);
+      toast.error("Erro ao carregar lista de usuários");
+    } finally {
+      setCarregandoUsuarios(false);
+    }
+  };
+  const categoriasFiltradas = categorias.filter(
+    (cat) => cat.tipo === (formData.tipo === "receita" ? "RECEITA" : "DESPESA")
+  );
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setCarregando(true);
 
+    if (!session?.user?.id) {
+      toast.error("Usuário não autenticado");
+      return;
+    }
+
+    setCarregando(true);
     try {
+      // CORREÇÃO: Mapear os valores do frontend para os valores que a API espera
+      const mapearMetodoPagamento = (valor: string) => {
+        const mapeamento: { [key: string]: string } = {
+          DINHEIRO: "PIX",
+          PIX: "PIX",
+          CARTAO_DEBITO: "DEBITO",
+          CARTAO_CREDITO: "CREDITO",
+          TRANSFERENCIA: "TRANSFERENCIA",
+        };
+        return mapeamento[valor] || valor;
+      };
+
+      // CORREÇÃO: Determinar o tipoParcelamento baseado nas seleções do usuário
+      const determinarTipoParcelamento = () => {
+        if (formData.tipoTransacao !== "CARTAO_CREDITO") {
+          return null;
+        }
+
+        if (formData.recorrente) {
+          return formData.tipoRecorrencia === "RECORRENCIA"
+            ? "RECORRENTE"
+            : "PARCELADO";
+        }
+
+        // Se não é recorrente e é cartão crédito, assume à vista
+        return "AVISTA";
+      };
+
       const payload = {
-        ...formData,
+        descricao: formData.descricao,
         valor: parseFloat(formData.valor),
+        tipo: formData.tipo.toUpperCase(), // "RECEITA" ou "DESPESA"
+        metodoPagamento: mapearMetodoPagamento(formData.tipoTransacao),
         data: date.toISOString(),
+        categoriaId: formData.categoria,
+        cartaoId:
+          formData.tipoTransacao === "CARTAO_CREDITO"
+            ? formData.cartaoId
+            : null,
+        observacoes: formData.observacoes,
+        // CORREÇÃO: Campos de recorrência/parcelamento para cartão crédito
+        tipoParcelamento:
+          formData.tipoTransacao === "CARTAO_CREDITO"
+            ? determinarTipoParcelamento()
+            : null,
+        parcelasTotal:
+          formData.tipoTransacao === "CARTAO_CREDITO" && formData.parcelas
+            ? parseInt(formData.parcelas)
+            : null,
+        recorrente:
+          formData.tipoTransacao === "CARTAO_CREDITO"
+            ? formData.recorrente
+            : false,
+        // Campos de compartilhamento
+        tipoLancamento: formData.tipoLancamento,
+        usuarioAlvoId:
+          formData.tipoLancamento === "compartilhado"
+            ? formData.usuarioAlvoId
+            : null,
+        valorCompartilhado:
+          formData.tipoLancamento === "compartilhado" &&
+          formData.valorCompartilhado
+            ? parseFloat(formData.valorCompartilhado)
+            : null,
+        // Campos específicos do cartão
         dataVencimento:
           formData.tipoTransacao === "CARTAO_CREDITO" && dataVencimento
             ? dataVencimento.toISOString()
             : null,
-        parcelas: formData.parcelas ? parseInt(formData.parcelas) : null,
-        // Para cartão de crédito, força pago como false
-        pago:
-          formData.tipoTransacao === "CARTAO_CREDITO" ? false : formData.pago,
       };
+
+      console.log("📤 Payload enviado:", payload);
 
       const response = await fetch("/api/lancamentos", {
         method: "POST",
@@ -131,6 +311,7 @@ export default function NovoLancamentoPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error("❌ Erro da API:", errorData);
         throw new Error(errorData.error || "Erro ao criar lançamento");
       }
 
@@ -145,32 +326,119 @@ export default function NovoLancamentoPage() {
     }
   };
 
-  const handleChange = (field: string, value: string | boolean) => {
+  // Event Handlers
+  const handleChange = (field: keyof FormData, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const categoriasReceita = [
-    { value: "salario", label: "Salário" },
-    { value: "freela", label: "Freelance" },
-    { value: "investimentos", label: "Investimentos" },
-    { value: "outros", label: "Outros" },
-  ];
+  // Função para carregar categorias
+  const carregarCategorias = async () => {
+    if (!session?.user?.id) return;
 
-  const categoriasDespesa = [
-    { value: "alimentacao", label: "Alimentação" },
-    { value: "transporte", label: "Transporte" },
-    { value: "casa", label: "Casa" },
-    { value: "pessoal", label: "Pessoal" },
-    { value: "lazer", label: "Lazer" },
-    { value: "outros", label: "Outros" },
-  ];
+    setCarregandoCategorias(true);
+    try {
+      const response = await fetch("/api/categorias");
+      if (response.ok) {
+        const data = await response.json();
+        setCategorias(data);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar categorias:", error);
+      toast.error("Erro ao carregar categorias");
+    } finally {
+      setCarregandoCategorias(false);
+    }
+  };
 
-  const cartaoSelecionado = cartoes.find(
-    (cartao) => cartao.id === formData.cartaoId
-  );
+  // Atualize o useEffect para carregar categorias
+  useEffect(() => {
+    if (status === "authenticated") {
+      carregarCategorias();
+      carregarCartoes();
+    }
+  }, [status]);
+
+  // CORREÇÃO: Só carregar usuários quando tiver session E for compartilhado
+  useEffect(() => {
+    console.log(
+      "🔐 useEffect - Status:",
+      status,
+      "Session:",
+      session?.user?.id
+    );
+
+    if (
+      status === "authenticated" &&
+      formData.tipoLancamento === "compartilhado"
+    ) {
+      console.log("✅ Carregando usuários para compartilhamento");
+      carregarUsuarios();
+    } else if (formData.tipoLancamento !== "compartilhado") {
+      setFormData((prev) => ({
+        ...prev,
+        usuarioAlvoId: "",
+        valorCompartilhado: "",
+      }));
+    }
+  }, [formData.tipoLancamento, status, session]);
+
+  useEffect(() => {
+    if (formData.tipoLancamento === "compartilhado") {
+      carregarUsuarios();
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        usuarioAlvoId: "",
+        valorCompartilhado: "",
+      }));
+    }
+  }, [formData.tipoLancamento]);
+
+  useEffect(() => {
+    if (formData.tipoTransacao === "CARTAO_CREDITO" && !dataVencimento) {
+      const proximoMes = new Date(date);
+      proximoMes.setMonth(proximoMes.getMonth() + 1);
+      proximoMes.setDate(10);
+      setDataVencimento(proximoMes);
+    }
+  }, [formData.tipoTransacao, date, dataVencimento]);
+
+  useEffect(() => {
+    if (formData.tipoRecorrencia === "RECORRENCIA") {
+      setFormData((prev) => ({ ...prev, parcelas: "" }));
+    }
+  }, [formData.tipoRecorrencia]);
+
+  useEffect(() => {
+    if (
+      formData.tipoLancamento === "compartilhado" &&
+      formData.valor &&
+      !formData.valorCompartilhado
+    ) {
+      const valorTotal = parseFloat(formData.valor);
+      if (!isNaN(valorTotal)) {
+        setFormData((prev) => ({
+          ...prev,
+          valorCompartilhado: (valorTotal / 2).toFixed(2),
+        }));
+      }
+    }
+  }, [formData.valor, formData.tipoLancamento]);
+
+  // Render Conditions - SOLUÇÃO SIMPLES
+  if (status === "loading") {
+    return (
+      <div className="container mx-auto p-6 mt-20 max-w-2xl">
+        <div className="flex items-center justify-center">
+          <p>Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6 mt-20 max-w-2xl">
+      {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <Button variant="outline" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4" />
@@ -178,7 +446,9 @@ export default function NovoLancamentoPage() {
         <h1 className="text-3xl font-bold">Novo Lançamento</h1>
       </div>
 
+      {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Tipo e Categoria */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label htmlFor="tipo">Tipo *</Label>
@@ -203,30 +473,43 @@ export default function NovoLancamentoPage() {
               value={formData.categoria}
               onValueChange={(value) => handleChange("categoria", value)}
               required
-              disabled={!formData.tipo}
+              disabled={!formData.tipo || carregandoCategorias}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Selecione a categoria" />
+                <SelectValue
+                  placeholder={
+                    carregandoCategorias
+                      ? "Carregando categorias..."
+                      : !formData.tipo
+                        ? "Selecione o tipo primeiro"
+                        : "Selecione a categoria"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
-                {formData.tipo === "receita"
-                  ? categoriasReceita.map((cat) => (
-                      <SelectItem key={cat.value} value={cat.value}>
-                        {cat.label}
-                      </SelectItem>
-                    ))
-                  : formData.tipo === "despesa"
-                    ? categoriasDespesa.map((cat) => (
-                        <SelectItem key={cat.value} value={cat.value}>
-                          {cat.label}
-                        </SelectItem>
-                      ))
-                    : null}
+                {categoriasFiltradas.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: cat.cor || "#3B82F6" }}
+                      />
+                      {cat.nome}
+                    </div>
+                  </SelectItem>
+                ))}
+                {categoriasFiltradas.length === 0 && !carregandoCategorias && (
+                  <div className="p-2 text-sm text-muted-foreground">
+                    Nenhuma categoria encontrada para{" "}
+                    {formData.tipo === "receita" ? "receita" : "despesa"}
+                  </div>
+                )}
               </SelectContent>
             </Select>
           </div>
         </div>
 
+        {/* Descrição e Valor */}
         <div className="space-y-2">
           <Label htmlFor="descricao">Descrição *</Label>
           <Input
@@ -252,6 +535,7 @@ export default function NovoLancamentoPage() {
           />
         </div>
 
+        {/* Tipo de Transação e Lançamento */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label htmlFor="tipoTransacao">Tipo de Transação *</Label>
@@ -264,11 +548,11 @@ export default function NovoLancamentoPage() {
                 <SelectValue placeholder="Selecione o tipo" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
-                <SelectItem value="PIX">PIX</SelectItem>
-                <SelectItem value="CARTAO_DEBITO">Cartão Débito</SelectItem>
-                <SelectItem value="CARTAO_CREDITO">Cartão Crédito</SelectItem>
-                <SelectItem value="TRANSFERENCIA">Transferência</SelectItem>
+                {TIPOS_TRANSACAO.map((tipo) => (
+                  <SelectItem key={tipo.value} value={tipo.value}>
+                    {tipo.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -284,12 +568,140 @@ export default function NovoLancamentoPage() {
                 <SelectValue placeholder="Selecione o tipo" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="individual">Individual</SelectItem>
-                <SelectItem value="compartilhado">Compartilhado</SelectItem>
+                {TIPOS_LANCAMENTO.map((tipo) => (
+                  <SelectItem key={tipo.value} value={tipo.value}>
+                    {tipo.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
         </div>
+
+        {/* Seção de Compartilhamento */}
+        {formData.tipoLancamento === "compartilhado" && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="usuarioAlvoId">Compartilhar com *</Label>
+                <Select
+                  value={formData.usuarioAlvoId}
+                  onValueChange={(value) =>
+                    handleChange("usuarioAlvoId", value)
+                  }
+                  required
+                  disabled={carregandoUsuarios}
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={
+                        carregandoUsuarios
+                          ? "Carregando usuários..."
+                          : "Selecione o usuário"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {usuarios.map((usuario) => (
+                      <SelectItem key={usuario.id} value={usuario.id}>
+                        <div className="flex items-center gap-2">
+                          {usuario.image && (
+                            <img
+                              src={usuario.image}
+                              alt={usuario.name}
+                              className="w-4 h-4 rounded-full"
+                            />
+                          )}
+                          <div className="flex flex-col">
+                            <span className="font-medium">{usuario.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {usuario.email}
+                            </span>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Mostrar o usuário selecionado de forma separada */}
+                {formData.usuarioAlvoId && usuarioSelecionado && (
+                  <div className="flex items-center gap-2 p-2 bg-green-50 rounded border border-green-200 mt-2">
+                    {usuarioSelecionado.image && (
+                      <img
+                        src={usuarioSelecionado.image}
+                        alt={usuarioSelecionado.name}
+                        className="w-4 h-4 rounded-full"
+                      />
+                    )}
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-green-800">
+                        {usuarioSelecionado.name}
+                      </span>
+                      <span className="text-xs text-green-600">
+                        {usuarioSelecionado.email}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {usuarios.length === 0 && !carregandoUsuarios && (
+                  <p className="text-xs text-amber-600">
+                    Nenhum outro usuário encontrado para compartilhamento.
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="valorCompartilhado">
+                  Valor a ser compartilhado (R$)
+                </Label>
+                <Input
+                  id="valorCompartilhado"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max={formData.valor}
+                  value={formData.valorCompartilhado}
+                  onChange={(e) =>
+                    handleChange("valorCompartilhado", e.target.value)
+                  }
+                  placeholder="0,00"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Este valor será dividido entre você e{" "}
+                  {usuarioSelecionado?.name || "o usuário selecionado"}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800 font-medium">
+                💡 Lançamento Compartilhado
+              </p>
+              <p className="text-xs text-blue-700 mt-1">
+                <strong>
+                  Você criará um lançamento de R$ {formData.valor || "0,00"}
+                </strong>
+                .
+                <strong>
+                  {" "}
+                  {usuarioSelecionado?.name || "O usuário selecionado"}
+                </strong>{" "}
+                receberá uma solicitação para aceitar sua parte de{" "}
+                <strong>R$ {formData.valorCompartilhado || "0,00"}</strong>.
+                Quando aceito, um novo lançamento será criado na conta dele.
+              </p>
+              <p className="text-xs text-blue-600 mt-1">
+                <strong>Sua parte:</strong> R${" "}
+                {(
+                  parseFloat(formData.valor || "0") -
+                  parseFloat(formData.valorCompartilhado || "0")
+                ).toFixed(2)}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Seleção de Cartão (apenas para cartão de crédito) */}
         {formData.tipoTransacao === "CARTAO_CREDITO" && (
@@ -330,6 +742,7 @@ export default function NovoLancamentoPage() {
           </div>
         )}
 
+        {/* Responsável e Data de Vencimento */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label htmlFor="responsavel">Responsável *</Label>
@@ -342,14 +755,15 @@ export default function NovoLancamentoPage() {
                 <SelectValue placeholder="Selecione o responsável" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Claudenir">Claudenir</SelectItem>
-                <SelectItem value="Beatriz">Beatriz</SelectItem>
-                <SelectItem value="Compartilhado">Compartilhado</SelectItem>
+                {RESPONSAVEIS.map((resp) => (
+                  <SelectItem key={resp.value} value={resp.value}>
+                    {resp.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Data de Vencimento (apenas para cartão de crédito) */}
           {formData.tipoTransacao === "CARTAO_CREDITO" && (
             <div className="space-y-2">
               <Label>Data de Vencimento *</Label>
@@ -382,6 +796,7 @@ export default function NovoLancamentoPage() {
           )}
         </div>
 
+        {/* Data e Status de Pagamento */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label>Data da Compra/Transação *</Label>
@@ -436,7 +851,7 @@ export default function NovoLancamentoPage() {
           </div>
         </div>
 
-        {/* SEÇÃO DE RECORRÊNCIA/PARCELAMENTO */}
+        {/* Recorrência/Parcelamento */}
         <div className="border rounded-lg p-4 space-y-4">
           <div className="flex items-center space-x-2">
             <Checkbox
@@ -453,7 +868,6 @@ export default function NovoLancamentoPage() {
 
           {formData.recorrente && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pl-6">
-              {/* Tipo de Recorrência */}
               <div className="space-y-2">
                 <Label htmlFor="tipoRecorrencia">Tipo *</Label>
                 <Select
@@ -483,7 +897,6 @@ export default function NovoLancamentoPage() {
                 </Select>
               </div>
 
-              {/* Frequência (apenas para recorrência) */}
               {formData.tipoRecorrencia === "RECORRENCIA" && (
                 <div className="space-y-2">
                   <Label htmlFor="frequencia">Frequência *</Label>
@@ -496,15 +909,16 @@ export default function NovoLancamentoPage() {
                       <SelectValue placeholder="Selecione a frequência" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="mensal">Mensal</SelectItem>
-                      <SelectItem value="trimestral">Trimestral</SelectItem>
-                      <SelectItem value="anual">Anual</SelectItem>
+                      {FREQUENCIAS.map((freq) => (
+                        <SelectItem key={freq.value} value={freq.value}>
+                          {freq.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               )}
 
-              {/* Parcelas (apenas para parcelamento) */}
               {formData.tipoRecorrencia === "PARCELAMENTO" && (
                 <div className="space-y-2">
                   <Label htmlFor="parcelas">Número de Parcelas *</Label>
@@ -521,7 +935,6 @@ export default function NovoLancamentoPage() {
                 </div>
               )}
 
-              {/* Informações explicativas */}
               <div className="col-span-full">
                 {formData.tipoRecorrencia === "RECORRENCIA" && (
                   <p className="text-xs text-muted-foreground">
@@ -562,6 +975,7 @@ export default function NovoLancamentoPage() {
           </div>
         )}
 
+        {/* Observações */}
         <div className="space-y-2">
           <Label htmlFor="observacoes">Observações</Label>
           <Textarea
@@ -573,6 +987,7 @@ export default function NovoLancamentoPage() {
           />
         </div>
 
+        {/* Actions */}
         <div className="flex gap-4">
           <Button
             type="button"

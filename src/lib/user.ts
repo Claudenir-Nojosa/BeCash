@@ -12,7 +12,7 @@ export async function findUserByCredentials(
   email: string,
   password: string
 ): Promise<User | null> {
-  const user = await db.usuario.findFirst({
+  const user = await db.user.findFirst({
     where: {
       email: email,
     },

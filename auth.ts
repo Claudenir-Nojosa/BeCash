@@ -1,18 +1,20 @@
+// auth.ts
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { PrismaClient } from "@prisma/client";
+import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { findUserByCredentials } from "@/lib/user";
 import { AuthError } from "next-auth";
 
 const prisma = new PrismaClient();
-const ALLOWED_EMAIL = "clau.nojosaf@gmail.com";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  adapter: PrismaAdapter(prisma),
   providers: [
     Google({
-      clientId: process.env.AUTH_GOOGLE_ID,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET,
+      clientId: process.env.AUTH_GOOGLE_ID!,
+      clientSecret: process.env.AUTH_GOOGLE_SECRET!,
     }),
     Credentials({
       credentials: {
@@ -30,83 +32,115 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
-      console.log("SignIn callback:", { user, account, profile });
+      console.log("SignIn callback - email:", profile?.email || user.email);
 
-      // Restrição para login com Google
       if (account?.provider === "google") {
         const email = profile?.email || user.email;
 
         if (!email) {
-          return false;
+          throw new AuthError("O e-mail é obrigatório para login com Google.");
         }
 
-        // Verifica se o e-mail é o permitido
-        if (email !== ALLOWED_EMAIL) {
-          throw new AuthError(
-            "Apenas o e-mail específico pode fazer login com Google"
-          );
-        }
-
-        // Restante da lógica para criar/atualizar usuário
-        const existingUser = await prisma.usuario.findUnique({
-          where: { email },
-        });
-
-        if (!existingUser) {
-          const newUser = await prisma.usuario.create({
-            data: {
-              name: profile?.name || user.name || "",
-              email,
-              password: "",
-              image: profile?.picture || user.image || "",
-            },
+        try {
+          const existingUser = await prisma.user.findUnique({
+            where: { email },
           });
 
-          await prisma.account.create({
-            data: {
-              usuarioId: newUser.id,
-              type: account.type,
-              provider: account.provider,
-              providerAccountId: account.providerAccountId,
-            },
-          });
-        } else {
-          const existingAccount = await prisma.account.findFirst({
-            where: {
-              usuarioId: existingUser.id,
-              provider: account.provider,
-              providerAccountId: account.providerAccountId,
-            },
-          });
+          console.log("Usuário existente encontrado:", existingUser);
 
-          if (!existingAccount) {
-            await prisma.account.create({
-              data: {
-                usuarioId: existingUser.id,
-                type: account.type,
+          if (existingUser) {
+            user.id = existingUser.id;
+
+            const existingAccount = await prisma.account.findFirst({
+              where: {
+                userId: existingUser.id,
                 provider: account.provider,
                 providerAccountId: account.providerAccountId,
               },
             });
+
+            if (!existingAccount) {
+              console.log("Vinculando conta Google ao usuário existente");
+              await prisma.account.create({
+                data: {
+                  userId: existingUser.id,
+                  type: account.type,
+                  provider: account.provider,
+                  providerAccountId: account.providerAccountId,
+                },
+              });
+            }
           }
+
+          console.log("User ID final:", user.id);
+          return true;
+        } catch (error) {
+          console.error("Erro no signIn callback:", error);
+          return false;
         }
       }
+
       return true;
     },
-    async session({ session, token }) {
-      if (session.user) {
-        const usuario = await prisma.usuario.findUnique({
-          where: { email: session.user.email },
-        });
 
-        if (usuario) {
-          session.user.id = usuario.id;
-          session.user.name = usuario.name;
-          session.user.email = usuario.email;
-          session.user.image = usuario.image || undefined;
+    async jwt({ token, user, account, profile }) {
+      console.log("JWT callback - user:", user);
+
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
+
+    async session({ session, token }) {
+      console.log("Session callback - token.sub:", token.sub);
+      console.log("Session callback - session.user ANTES:", session.user);
+
+      // Garantir que temos um ID válido
+      const userId = token.sub || token.id;
+
+      if (session.user && userId) {
+        session.user.id = userId as string;
+
+        try {
+          const user = await prisma.user.findUnique({
+            where: { id: userId as string },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+              subscriptionStatus: true,
+            },
+          });
+
+          console.log("Usuário encontrado no banco:", user);
+
+          if (user) {
+            session.user.id = user.id;
+            session.user.name = user.name;
+            session.user.email = user.email;
+            session.user.image = user.image;
+            (session.user as any).subscriptionStatus = user.subscriptionStatus;
+          }
+        } catch (error) {
+          console.error("Erro ao buscar usuário na session:", error);
         }
       }
+
+      console.log("Session callback - session.user DEPOIS:", session.user);
       return session;
     },
   },
+  pages: {
+    signIn: "/login",
+    error: "/login",
+  },
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60,
+  },
+  // ADICIONE ESTAS CONFIGURAÇÕES:
+  trustHost: true,
+  debug: process.env.NODE_ENV === "development",
 });

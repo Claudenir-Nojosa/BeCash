@@ -1,3 +1,4 @@
+// app/api/lancamentos/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "../../../../auth";
 import db from "@/lib/db";
@@ -12,8 +13,8 @@ export async function GET() {
 
     const lancamentos = await db.lancamento.findMany({
       where: {
-        usuarioId: session.user.id,
-        lancamentoPaiId: null, // Buscar apenas lançamentos principais
+        userId: session.user.id,
+        lancamentoPaiId: null,
       },
       include: {
         categoria: true,
@@ -24,6 +25,18 @@ export async function GET() {
             cartao: true,
           },
           orderBy: { parcelaAtual: "asc" },
+        },
+        LancamentoCompartilhado: {
+          include: {
+            usuarioAlvo: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true,
+              },
+            },
+          },
         },
       },
       orderBy: { data: "desc" },
@@ -60,6 +73,9 @@ export async function POST(request: NextRequest) {
       parcelasTotal,
       recorrente,
       dataFimRecorrencia,
+      tipoLancamento,
+      usuarioAlvoId,
+      valorCompartilhado,
     } = body;
 
     if (!descricao || !valor || !tipo || !metodoPagamento || !categoriaId) {
@@ -84,7 +100,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Se for cartão de crédito, cartaoId é obrigatório
+    // Validações para lançamento compartilhado
+    if (tipoLancamento === "compartilhado") {
+      if (!usuarioAlvoId) {
+        return NextResponse.json(
+          {
+            error: "Usuário alvo é obrigatório para lançamentos compartilhados",
+          },
+          { status: 400 }
+        );
+      }
+
+      const usuarioAlvo = await db.user.findUnique({
+        where: { id: usuarioAlvoId },
+      });
+
+      if (!usuarioAlvo) {
+        return NextResponse.json(
+          { error: "Usuário alvo não encontrado" },
+          { status: 400 }
+        );
+      }
+
+      if (usuarioAlvo.id === session.user.id) {
+        return NextResponse.json(
+          { error: "Não é possível compartilhar um lançamento consigo mesmo" },
+          { status: 400 }
+        );
+      }
+    }
+
     if (metodoPagamento === "CREDITO" && !cartaoId) {
       return NextResponse.json(
         { error: "Cartão é obrigatório para pagamento com crédito" },
@@ -92,7 +137,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validações para crédito
     if (metodoPagamento === "CREDITO") {
       if (
         !tipoParcelamento ||
@@ -122,17 +166,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Criar lançamento principal
+    const valorTotal = parseFloat(valor);
+    const valorParaCompartilhar = valorCompartilhado
+      ? parseFloat(valorCompartilhado)
+      : valorTotal / 2;
+
+    const valorUsuarioCriador = valorTotal - valorParaCompartilhar;
+
+    // CORREÇÃO: Usar userId em vez de usuarioId
     const lancamentoBaseData: any = {
       descricao,
-      valor: parseFloat(valor),
+      valor: valorUsuarioCriador, // CORREÇÃO: Manter o valor total no lançamento principal
       tipo,
       metodoPagamento,
       data: data ? new Date(data) : new Date(),
       categoriaId,
       cartaoId: metodoPagamento === "CREDITO" ? cartaoId : null,
       observacoes: observacoes || null,
-      usuarioId: session.user.id,
+      userId: session.user.id,
       pago: metodoPagamento !== "CREDITO",
       tipoParcelamento: metodoPagamento === "CREDITO" ? tipoParcelamento : null,
       parcelasTotal:
@@ -147,21 +198,19 @@ export async function POST(request: NextRequest) {
           ? new Date(dataFimRecorrencia)
           : null,
     };
-
-    // Se for parcelado, criar as parcelas corretamente
     if (
       metodoPagamento === "CREDITO" &&
       tipoParcelamento === "PARCELADO" &&
       parcelasTotal > 1
     ) {
-      const valorParcela = parseFloat(valor) / parseInt(parcelasTotal);
+      const valorParcela = valorTotal / parseInt(parcelasTotal);
 
-      // Primeiro lançamento (parcela atual) - usar valor da parcela
+      // Primeiro lançamento (parcela atual)
       const lancamentoPrincipal = await db.lancamento.create({
         data: {
           ...lancamentoBaseData,
-          valor: valorParcela, // CORREÇÃO: usar valor da parcela
-          descricao: `${descricao} (1/${parcelasTotal})`, // Adicionar indicação de parcela
+          valor: valorParcela,
+          descricao: `${descricao} (1/${parcelasTotal})`,
         },
         include: {
           categoria: true,
@@ -169,7 +218,19 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Adicionar à fatura atual (apenas a primeira parcela)
+      // CORREÇÃO: Criar registro de compartilhamento apenas se for compartilhado
+      if (tipoLancamento === "compartilhado") {
+        await db.lancamentoCompartilhado.create({
+          data: {
+            lancamentoId: lancamentoPrincipal.id,
+            usuarioCriadorId: session.user.id,
+            usuarioAlvoId: usuarioAlvoId,
+            valorCompartilhado: valorParaCompartilhar / parseInt(parcelasTotal), // Dividir o valor compartilhado pelas parcelas
+          },
+        });
+      }
+
+      // Adicionar à fatura atual
       if (metodoPagamento === "CREDITO" && cartaoId) {
         await FaturaService.adicionarLancamentoAFatura(lancamentoPrincipal.id);
       }
@@ -181,7 +242,7 @@ export async function POST(request: NextRequest) {
         const dataParcela = new Date(data || new Date());
         dataParcela.setMonth(dataParcela.getMonth() + (i - 1));
 
-        parcelasFuturas.push({
+        const parcelaData = {
           descricao: `${descricao} (${i}/${parcelasTotal})`,
           valor: valorParcela,
           tipo,
@@ -190,14 +251,16 @@ export async function POST(request: NextRequest) {
           categoriaId,
           cartaoId,
           observacoes: observacoes || null,
-          usuarioId: session.user.id,
+          userId: session.user.id,
           pago: false,
           tipoParcelamento,
           parcelasTotal: parseInt(parcelasTotal),
           parcelaAtual: i,
           recorrente: false,
           lancamentoPaiId: lancamentoPrincipal.id,
-        });
+        };
+
+        parcelasFuturas.push(parcelaData);
       }
 
       if (parcelasFuturas.length > 0) {
@@ -206,7 +269,27 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Buscar o lançamento principal com as parcelas
+      // CORREÇÃO: Para parcelas futuras também criar compartilhamento se necessário
+      if (tipoLancamento === "compartilhado" && parcelasFuturas.length > 0) {
+        const parcelasCriadas = await db.lancamento.findMany({
+          where: {
+            lancamentoPaiId: lancamentoPrincipal.id,
+          },
+        });
+
+        for (const parcela of parcelasCriadas) {
+          await db.lancamentoCompartilhado.create({
+            data: {
+              lancamentoId: parcela.id,
+              usuarioCriadorId: session.user.id,
+              usuarioAlvoId: usuarioAlvoId,
+              valorCompartilhado:
+                valorParaCompartilhar / parseInt(parcelasTotal),
+            },
+          });
+        }
+      }
+
       const lancamentoComParcelas = await db.lancamento.findUnique({
         where: { id: lancamentoPrincipal.id },
         include: {
@@ -219,13 +302,25 @@ export async function POST(request: NextRequest) {
             },
             orderBy: { parcelaAtual: "asc" },
           },
+          LancamentoCompartilhado: {
+            include: {
+              usuarioAlvo: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  image: true,
+                },
+              },
+            },
+          },
         },
       });
 
       return NextResponse.json(lancamentoComParcelas, { status: 201 });
     }
 
-    // Se for à vista ou recorrente, criar apenas um lançamento
+    // CORREÇÃO: Se for à vista ou recorrente, criar apenas um lançamento
     const lancamento = await db.lancamento.create({
       data: lancamentoBaseData,
       include: {
@@ -234,12 +329,44 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // CORREÇÃO: Criar registro de compartilhamento apenas se for compartilhado
+    if (tipoLancamento === "compartilhado") {
+      await db.lancamentoCompartilhado.create({
+        data: {
+          lancamentoId: lancamento.id,
+          usuarioCriadorId: session.user.id,
+          usuarioAlvoId: usuarioAlvoId,
+          valorCompartilhado: valorParaCompartilhar,
+        },
+      });
+    }
+
     // Adicionar à fatura atual se for crédito
     if (metodoPagamento === "CREDITO" && cartaoId) {
       await FaturaService.adicionarLancamentoAFatura(lancamento.id);
     }
 
-    return NextResponse.json(lancamento, { status: 201 });
+    const lancamentoCompleto = await db.lancamento.findUnique({
+      where: { id: lancamento.id },
+      include: {
+        categoria: true,
+        cartao: true,
+        LancamentoCompartilhado: {
+          include: {
+            usuarioAlvo: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return NextResponse.json(lancamentoCompleto, { status: 201 });
   } catch (error) {
     console.error("Erro ao criar lançamento:", error);
     return NextResponse.json(

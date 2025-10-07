@@ -8,55 +8,83 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model Usuario {
-  id                   String   @id @default(cuid())
+// MODELOS DO NEXT AUTH (OBRIGATÓRIOS)
+model User {
+  id                   String    @id @default(cuid())
   name                 String
-  email                String   @unique
+  email                String    @unique
+  emailVerified        DateTime?
   password             String?
   image                String?
-  subscriptionStatus   String   @default("free")
+  subscriptionStatus   String    @default("free")
   stripeSubscriptionId String?
   stripeCustomerId     String?
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
-  Account            Account[]
-  Empresa            Empresa[]
-  Pendencia          Pendencia[]
-  BaseLegal          BaseLegal[]
-  Anotacao           Anotacao[]
-  Diagnostico        Diagnostico[]
-  BaseLegalFavorito  BaseLegalFavorito[]
-  AnaliseTributaria  AnaliseTributaria[]
-  MapeamentoTelefone MapeamentoTelefone[]
-  Pontos             Pontos[]
+  // NextAuth relationships
+  accounts Account[]
+  sessions Session[]
 
-  MetaPontos      MetaPontos[]
-  Categoria       Categoria[]
-  Cartao          Cartao[]
-  Lancamento      Lancamento[]
-  PagamentoFatura PagamentoFatura[]
+  // Seus relacionamentos existentes (atualizados)
+  empresas            Empresa[]
+  pendencias          Pendencia[]
+  baseLegais          BaseLegal[]
+  anotacoes           Anotacao[]
+  diagnosticos        Diagnostico[]
+  baseLegalFavoritos  BaseLegalFavorito[]
+  analisesTributarias AnaliseTributaria[]
+  mapeamentosTelefone MapeamentoTelefone[]
+  pontos              Pontos[]
+
+  metaPontos       MetaPontos[]
+  categorias       Categoria[]
+  cartoes          Cartao[]
+  lancamentos      Lancamento[]
+  pagamentosFatura PagamentoFatura[]
+
+  lancamentosCompartilhadosCriados   LancamentoCompartilhado[] @relation("LancamentosCompartilhadosCriados")
+  lancamentosCompartilhadosRecebidos LancamentoCompartilhado[] @relation("LancamentosCompartilhadosRecebidos")
+
+  Lancamento Lancamento[] @relation("LancamentosCompartilhadosCriados")
 }
 
 model Account {
   id                String  @id @default(cuid())
-  usuarioId         String
+  userId            String
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String?
-  access_token      String?
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String?
+  id_token          String? @db.Text
   session_state     String?
 
-  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
 
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// SEUS MODELOS EXISTENTES (ATUALIZADOS)
 model Empresa {
   id                String           @id @default(cuid())
   razaoSocial       String
@@ -70,10 +98,10 @@ model Empresa {
   observacoes       String?
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
-  usuarioId         String
+  userId            String
   status            StatusEmpresa?
 
-  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   AnaliseTributaria AnaliseTributaria[]
 }
@@ -124,8 +152,8 @@ model Pendencia {
   concluida    Boolean  @default(false)
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
-  usuario      Usuario  @relation(fields: [usuarioId], references: [id])
-  usuarioId    String
+  user         User     @relation(fields: [userId], references: [id])
+  userId       String
 }
 
 model BaseLegal {
@@ -138,16 +166,14 @@ model BaseLegal {
   dataPublicacao DateTime
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-  usuarioId      String
-  usuario        Usuario  @relation(fields: [usuarioId], references: [id])
-  tipoTributo    String? // Novo campo: tipo de tributo (ICMS, ISS, etc.)
-  tags           String[] // Novo campo: array de tags
-  anotacoes      String? // Novo campo: anotações iniciais
-  status         String? // Novo campo: status da legislação
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  tipoTributo    String?
+  tags           String[]
+  anotacoes      String?
+  status         String?
 
-  Anotacao Anotacao[]
-
-  // Relação com arquivos (se necessário)
+  Anotacao         Anotacao[]
   ArquivoBaseLegal ArquivoBaseLegal[]
   favoritos        BaseLegalFavorito[]
 }
@@ -155,13 +181,13 @@ model BaseLegal {
 model BaseLegalFavorito {
   id          String   @id @default(cuid())
   baseLegalId String
-  usuarioId   String
+  userId      String
   createdAt   DateTime @default(now())
 
-  usuario   Usuario   @relation(fields: [usuarioId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
   baseLegal BaseLegal @relation(fields: [baseLegalId], references: [id])
 
-  @@unique([baseLegalId, usuarioId])
+  @@unique([baseLegalId, userId])
 }
 
 model ArquivoBaseLegal {
@@ -179,14 +205,14 @@ model Anotacao {
   id          String   @id @default(cuid())
   conteudo    String   @db.Text
   baseLegalId String
-  usuarioId   String
+  userId      String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  usuario   Usuario   @relation(fields: [usuarioId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
   baseLegal BaseLegal @relation(fields: [baseLegalId], references: [id])
 
-  @@unique([baseLegalId, usuarioId])
+  @@unique([baseLegalId, userId])
 }
 
 model Diagnostico {
@@ -196,14 +222,14 @@ model Diagnostico {
   nomeEmpresa String
   status      String
   formData    Json
-  usuario     Usuario  @relation(fields: [usuarioId], references: [id])
-  usuarioId   String
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
 }
 
 model AnaliseTributaria {
   id            String   @id @default(cuid())
   empresaId     String
-  usuarioId     String
+  userId        String
   mesReferencia String
   dadosApuracao Json
   analiseTexto  String   @db.Text
@@ -212,7 +238,7 @@ model AnaliseTributaria {
   updatedAt     DateTime @updatedAt
 
   empresa Empresa @relation(fields: [empresaId], references: [id])
-  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
 
   @@unique([empresaId, mesReferencia])
 }
@@ -220,29 +246,29 @@ model AnaliseTributaria {
 model MapeamentoTelefone {
   id        String   @id @default(cuid())
   telefone  String   @unique
-  usuarioId String
+  userId    String
   nome      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   @@map("mapeamento_telefone")
 }
 
 model Pontos {
   id           String   @id @default(cuid())
-  programa     String // LIVELO, SMILES, etc.
+  programa     String
   quantidade   Int
   descricao    String
   data         DateTime
-  tipo         String // GANHO, RESGATE, EXPIRACAO
-  valorResgate Float? // Valor em reais se for resgate
-  usuarioId    String
+  tipo         String
+  valorResgate Float?
+  userId       String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   @@map("pontos")
 }
@@ -253,28 +279,28 @@ model MetaPontos {
   metaPontos Int
   descricao  String?
   dataAlvo   DateTime
-  usuarioId  String
+  userId     String
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([programa, usuarioId])
+  @@unique([programa, userId])
 }
 
 model Categoria {
   id        String   @id @default(cuid())
   nome      String
-  tipo      String // "RECEITA" ou "DESPESA"
+  tipo      String
   cor       String?  @default("#3B82F6")
-  usuarioId String
-  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   lancamentos Lancamento[]
 
-  @@unique([nome, usuarioId, tipo])
+  @@unique([nome, userId, tipo])
 }
 
 model Cartao {
@@ -282,12 +308,12 @@ model Cartao {
   nome          String
   bandeira      String
   limite        Float?
-  diaFechamento Int? // 1-31
-  diaVencimento Int? // 1-31
+  diaFechamento Int?
+  diaVencimento Int?
   cor           String   @default("#3B82F6")
   observacoes   String?
-  usuarioId     String
-  usuario       Usuario  @relation(fields: [usuarioId], references: [id])
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -299,13 +325,13 @@ model Lancamento {
   id              String    @id @default(cuid())
   descricao       String
   valor           Float
-  tipo            String // "RECEITA" ou "DESPESA"
-  metodoPagamento String // "PIX", "TRANSFERENCIA", "DEBITO", "CREDITO"
+  tipo            String
+  metodoPagamento String
   data            DateTime  @default(now())
   pago            Boolean   @default(true)
   observacoes     String?
-  usuarioId       String
-  usuario         Usuario   @relation(fields: [usuarioId], references: [id])
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
   categoriaId     String
   categoria       Categoria @relation(fields: [categoriaId], references: [id])
   cartaoId        String?
@@ -313,31 +339,35 @@ model Lancamento {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  // Novos campos para crédito
-  tipoParcelamento   String? // "AVISTA", "PARCELADO", "RECORRENTE"
-  parcelasTotal      Int? // Total de parcelas
-  parcelaAtual       Int? // Parcela atual (1, 2, 3...)
+  tipoParcelamento   String?
+  parcelasTotal      Int?
+  parcelaAtual       Int?
   recorrente         Boolean   @default(false)
-  dataFimRecorrencia DateTime? // Data final para recorrentes
+  dataFimRecorrencia DateTime?
 
-  // Relação para parcelas (auto-relacionamento)
   lancamentoPaiId   String?
   lancamentoPai     Lancamento?  @relation("LancamentoParcelas", fields: [lancamentoPaiId], references: [id])
   lancamentosFilhos Lancamento[] @relation("LancamentoParcelas")
   Fatura            Fatura?      @relation(fields: [faturaId], references: [id])
   faturaId          String?
+
+  // ADICIONE ESTES CAMPOS PARA COMPARTILHAMENTO
+  usuarioCriadorId   String?
+  usuarioCriador     User?       @relation("LancamentosCompartilhadosCriados", fields: [usuarioCriadorId], references: [id])
+  
+  LancamentoCompartilhado LancamentoCompartilhado[]
 }
 
 model Fatura {
   id              String            @id @default(cuid())
   cartaoId        String
   cartao          Cartao            @relation(fields: [cartaoId], references: [id])
-  mesReferencia   String // "2025-10" formato YYYY-MM
+  mesReferencia   String
   dataFechamento  DateTime
   dataVencimento  DateTime
   valorTotal      Float             @default(0)
   valorPago       Float             @default(0)
-  status          String            @default("ABERTA") // "ABERTA", "FECHADA", "PAGA", "ATRASADA"
+  status          String            @default("ABERTA")
   lancamentos     Lancamento[]
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
@@ -352,10 +382,34 @@ model PagamentoFatura {
   fatura      Fatura   @relation(fields: [faturaId], references: [id])
   valor       Float
   data        DateTime @default(now())
-  metodo      String // "PIX", "TRANSFERENCIA", "DEBITO"
+  metodo      String
   observacoes String?
-  usuarioId   String
-  usuario     Usuario  @relation(fields: [usuarioId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model LancamentoCompartilhado {
+  id                 String                        @id @default(cuid())
+  lancamentoId       String                        @unique
+  usuarioCriadorId   String
+  usuarioAlvoId      String
+  status             StatusLancamentoCompartilhado @default(PENDENTE)
+  valorCompartilhado Float
+  createdAt          DateTime                      @default(now())
+  updatedAt          DateTime                      @updatedAt
+
+  lancamento     Lancamento @relation(fields: [lancamentoId], references: [id], onDelete: Cascade)
+  usuarioCriador User       @relation("LancamentosCompartilhadosCriados", fields: [usuarioCriadorId], references: [id])
+  usuarioAlvo    User       @relation("LancamentosCompartilhadosRecebidos", fields: [usuarioAlvoId], references: [id])
+
+  @@unique([lancamentoId, usuarioAlvoId])
+}
+
+enum StatusLancamentoCompartilhado {
+  PENDENTE
+  ACEITO
+  RECUSADO
+  CANCELADO
 }

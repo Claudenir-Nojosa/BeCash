@@ -25,7 +25,7 @@ export default async function registerAction(
   }
 
   // Se um usuário já existe
-  const user = await db.usuario.findUnique({
+  const user = await db.user.findUnique({
     where: {
       email: data.email,
     },
@@ -39,7 +39,7 @@ export default async function registerAction(
   }
 
   // Se um usuário não existe
-  const newUser = await db.usuario.create({
+  const newUser = await db.user.create({
     data: {
       name: data.name,
       email: data.email,
