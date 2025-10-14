@@ -158,7 +158,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
           {/* MOBILE: Lançamentos como itens separados */}
           {isMobile ? (
             <>
-              {/* Lançamentos - Claudenir */}
               <li>
                 <Link
                   href="/dashboard/lancamentos"
@@ -172,59 +171,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
                   <HandCoins className="h-6 w-6" />
                   {!isCollapsed && (
                     <span className="ml-4 text-base">Lançamentos</span>
-                  )}
-                </Link>
-              </li>
-              {/* Lançamentos - Claudenir */}
-              <li>
-                <Link
-                  href="/dashboard/lancamentos/claudenir"
-                  className={`
-                    flex items-center rounded-lg hover:bg-blue-900/20 text-blue-100 transition-colors
-                    ${isCollapsed ? "justify-center p-4" : "p-4"}
-                    ${isActiveRoute("/dashboard/lancamentos/claudenir") ? "bg-blue-900/30 text-white" : ""}
-                  `}
-                  onClick={handleLinkClick}
-                >
-                  <User className="h-6 w-6" />
-                  {!isCollapsed && (
-                    <span className="ml-4 text-base">Claudenir</span>
-                  )}
-                </Link>
-              </li>
-
-              {/* Lançamentos - Beatriz */}
-              <li>
-                <Link
-                  href="/dashboard/lancamentos/beatriz"
-                  className={`
-                    flex items-center rounded-lg hover:bg-blue-900/20 text-blue-100 transition-colors
-                    ${isCollapsed ? "justify-center p-4" : "p-4"}
-                    ${isActiveRoute("/dashboard/lancamentos/beatriz") ? "bg-blue-900/30 text-white" : ""}
-                  `}
-                  onClick={handleLinkClick}
-                >
-                  <User className="h-6 w-6" />
-                  {!isCollapsed && (
-                    <span className="ml-4 text-base">Beatriz</span>
-                  )}
-                </Link>
-              </li>
-
-              {/* Lançamentos - Compartilhado */}
-              <li>
-                <Link
-                  href="/dashboard/lancamentos/compartilhado"
-                  className={`
-                    flex items-center rounded-lg hover:bg-blue-900/20 text-blue-100 transition-colors
-                    ${isCollapsed ? "justify-center p-4" : "p-4"}
-                    ${isActiveRoute("/dashboard/lancamentos/compartilhado") ? "bg-blue-900/30 text-white" : ""}
-                  `}
-                  onClick={handleLinkClick}
-                >
-                  <Users className="h-6 w-6" />
-                  {!isCollapsed && (
-                    <span className="ml-4 text-base">Compartilhado</span>
                   )}
                 </Link>
               </li>
@@ -246,57 +192,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
                   <span className="ml-4 text-base">Lançamentos</span>
                 )}
               </Link>
-
-              {/* Submenu desktop */}
-              {!isCollapsed && (
-                <ul className="ml-6 mt-2 space-y-2 border-l border-blue-800/30 pl-4">
-                  <li>
-                    <Link
-                      href="/dashboard/lancamentos/claudenir"
-                      className={`
-                        flex items-center p-3 rounded-lg hover:bg-blue-900/20 transition-colors text-base
-                        ${
-                          isActiveRoute("/dashboard/lancamentos/claudenir")
-                            ? "bg-blue-900/30 text-white"
-                            : "text-blue-300/80 hover:text-blue-200"
-                        }
-                      `}
-                    >
-                      <span>Claudenir</span>
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/dashboard/lancamentos/beatriz"
-                      className={`
-                        flex items-center p-3 rounded-lg hover:bg-blue-900/20 transition-colors text-base
-                        ${
-                          isActiveRoute("/dashboard/lancamentos/beatriz")
-                            ? "bg-blue-900/30 text-white"
-                            : "text-blue-300/80 hover:text-blue-200"
-                        }
-                      `}
-                    >
-                      <span>Beatriz</span>
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/dashboard/lancamentos/compartilhado"
-                      className={`
-                        flex items-center p-3 rounded-lg hover:bg-blue-900/20 transition-colors text-base
-                        ${
-                          isActiveRoute("/dashboard/lancamentos/compartilhado")
-                            ? "bg-blue-900/30 text-white"
-                            : "text-blue-300/80 hover:text-blue-200"
-                        }
-                      `}
-                    >
-                      <span>Compartilhado</span>
-                    </Link>
-                  </li>
-                </ul>
-              )}
             </li>
           )}
 
@@ -333,7 +228,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               {!isCollapsed && <span className="ml-4 text-base">Cartões</span>}
             </Link>
           </li>
-        {/* Categorias */}
+          {/* Categorias */}
           <li>
             <Link
               href="/dashboard/lancamentos/categorias"
@@ -345,11 +240,13 @@ export default function Sidebar({ onClose }: SidebarProps) {
               onClick={handleLinkClick}
             >
               <CreditCard className="h-6 w-6" />
-              {!isCollapsed && <span className="ml-4 text-base">Categorias</span>}
+              {!isCollapsed && (
+                <span className="ml-4 text-base">Categorias</span>
+              )}
             </Link>
           </li>
 
-           {/* Pontos */}
+          {/* Pontos */}
           <li>
             <Link
               href="/dashboard/pontos"
@@ -362,23 +259,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
             >
               <Coins className="h-6 w-6" />
               {!isCollapsed && <span className="ml-4 text-base">Pontos</span>}
-            </Link>
-          </li>
-          {/* Investimentos */}
-          <li>
-            <Link
-              href="/dashboard/investimentos"
-              className={`
-                flex items-center rounded-lg hover:bg-blue-900/20 text-blue-100 transition-colors
-                ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/investimentos") ? "bg-blue-900/30 text-white" : ""}
-              `}
-              onClick={handleLinkClick}
-            >
-              <Landmark className="h-6 w-6" />
-              {!isCollapsed && (
-                <span className="ml-4 text-base">Investimentos</span>
-              )}
             </Link>
           </li>
 

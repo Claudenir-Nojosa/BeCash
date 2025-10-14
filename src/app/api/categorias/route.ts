@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "../../../../auth";
 import db from "@/lib/db";
 
+// 🔹 Buscar todas as categorias do usuário
 export async function GET() {
   try {
     const session = await auth();
@@ -24,6 +25,7 @@ export async function GET() {
   }
 }
 
+// 🔹 Criar uma nova categoria
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
@@ -32,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { nome, tipo, cor } = body;
+    const { nome, tipo, cor, icone } = body; // <-- adicionamos `icone`
 
     if (!nome || !tipo) {
       return NextResponse.json(
@@ -53,6 +55,7 @@ export async function POST(request: NextRequest) {
         nome,
         tipo,
         cor: cor || "#3B82F6",
+        icone: icone || "Tag", // <-- salva o ícone (padrão: Tag)
         userId: session.user.id,
       },
     });

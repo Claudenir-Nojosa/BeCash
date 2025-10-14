@@ -293,6 +293,7 @@ model Categoria {
   nome      String
   tipo      String
   cor       String?  @default("#3B82F6")
+  icone     String?  // 🆕 novo campo
   userId    String
   user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())

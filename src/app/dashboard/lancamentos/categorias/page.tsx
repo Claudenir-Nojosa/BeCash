@@ -12,6 +12,7 @@ import {
   Search,
   Filter,
   Sparkles,
+  Trash,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -63,11 +64,14 @@ interface Categoria {
   nome: string;
   tipo: string;
   cor: string;
+  icone: string;
 }
 
 export default function CategoriasPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [tipoFiltro, setTipoFiltro] = useState<"all" | "DESPESA" | "RECEITA">(
     "all"
@@ -80,6 +84,7 @@ export default function CategoriasPage() {
     nome: "",
     tipo: "DESPESA",
     cor: "#3B82F6",
+    icone: "Tag", // valor padrão
   });
 
   const coresPredefinidas = [
@@ -117,60 +122,47 @@ export default function CategoriasPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const url = editingCategoria
-        ? `/api/categorias/${editingCategoria.id}`
-        : "/api/categorias";
 
-      const method = editingCategoria ? "PUT" : "POST";
+    const url = editingCategoria
+      ? `/api/categorias/${editingCategoria.id}` // 👈 edição
+      : "/api/categorias"; // 👈 criação
 
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+    const method = editingCategoria ? "PUT" : "POST";
+
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
+    });
+
+    if (res.ok) {
+      setFormData({
+        nome: "",
+        tipo: "DESPESA",
+        cor: "#3B82F6",
+        icone: "Tag",
       });
-
-      if (res.ok) {
-        setFormData({ nome: "", tipo: "DESPESA", cor: "#3B82F6" });
-        setEditingCategoria(null);
-        carregarCategorias();
-        toast.success(
-          editingCategoria
-            ? "Categoria atualizada com sucesso!"
-            : "Categoria criada com sucesso!"
-        );
-      } else {
-        throw new Error("Erro ao salvar categoria");
-      }
-    } catch (error) {
-      console.error("Erro ao salvar categoria:", error);
-      toast.error("Erro ao salvar categoria");
+      setEditingCategoria(null);
+      carregarCategorias();
+      setIsSheetOpen(false); // 👈 fecha o modal
+      toast.success(
+        editingCategoria
+          ? "Categoria atualizada com sucesso!"
+          : "Categoria criada com sucesso!"
+      );
+    } else {
+      toast.error("Erro ao salvar categoria.");
     }
   };
 
-  const handleDelete = async (categoria: Categoria) => {
-    if (
-      !confirm(
-        `Tem certeza que deseja excluir a categoria "${categoria.nome}"?`
-      )
-    ) {
-      return;
-    }
+  const handleDelete = async (id: string) => {
+    const res = await fetch(`/api/categorias/${id}`, { method: "DELETE" });
 
-    try {
-      const res = await fetch(`/api/categorias/${categoria.id}`, {
-        method: "DELETE",
-      });
-
-      if (res.ok) {
-        carregarCategorias();
-        toast.success("Categoria excluída com sucesso!");
-      } else {
-        throw new Error("Erro ao excluir categoria");
-      }
-    } catch (error) {
-      console.error("Erro ao excluir categoria:", error);
-      toast.error("Erro ao excluir categoria");
+    if (res.ok) {
+      carregarCategorias();
+      toast.success("Categoria deletada com sucesso!");
+    } else {
+      toast.error("Erro ao deletar categoria.");
     }
   };
 
@@ -179,7 +171,8 @@ export default function CategoriasPage() {
     setFormData({
       nome: categoria.nome,
       tipo: categoria.tipo,
-      cor: categoria.cor,
+      cor: categoria.cor || "#3B82F6",
+      icone: categoria.icone || "Tag",
     });
   };
 
@@ -233,9 +226,21 @@ export default function CategoriasPage() {
             </p>
           </div>
 
-          <Sheet>
+          <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
             <SheetTrigger asChild>
-              <Button className="gap-2">
+              <Button
+                className="gap-2"
+                onClick={() => {
+                  setEditingCategoria(null);
+                  setFormData({
+                    nome: "",
+                    tipo: "DESPESA",
+                    cor: "#3B82F6",
+                    icone: "Tag",
+                  });
+                  setIsSheetOpen(true);
+                }}
+              >
                 <Plus className="w-4 h-4" />
                 Nova Categoria
               </Button>
@@ -328,7 +333,43 @@ export default function CategoriasPage() {
                     ))}
                   </div>
                 </div>
-
+                <div className="space-y-2">
+                  <Label htmlFor="icone">Ícone</Label>
+                  <div className="grid grid-cols-6 gap-2">
+                    {[
+                      "Tag",
+                      "Utensils",
+                      "ShoppingCart",
+                      "Home",
+                      "Car",
+                      "CreditCard",
+                      "Briefcase",
+                      "Gift",
+                      "Heart",
+                      "DollarSign",
+                      "Coffee",
+                      "Wifi",
+                    ].map((iconName) => {
+                      const IconComponent = require("lucide-react")[iconName];
+                      return (
+                        <button
+                          key={iconName}
+                          type="button"
+                          onClick={() =>
+                            setFormData({ ...formData, icone: iconName })
+                          }
+                          className={`p-2 border rounded-lg flex items-center justify-center hover:bg-accent transition-all ${
+                            formData.icone === iconName
+                              ? "border-primary bg-accent"
+                              : "border-muted"
+                          }`}
+                        >
+                          <IconComponent className="w-5 h-5" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
                 <div className="flex gap-3 pt-4">
                   <Button type="submit" className="flex-1">
                     {editingCategoria ? "Atualizar" : "Criar"} Categoria
@@ -344,6 +385,7 @@ export default function CategoriasPage() {
                           nome: "",
                           tipo: "DESPESA",
                           cor: "#3B82F6",
+                          icone: "Tag",
                         });
                       }}
                     >
@@ -456,11 +498,17 @@ export default function CategoriasPage() {
                           className="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm"
                           style={{ backgroundColor: categoria.cor }}
                         >
-                          {categoria.tipo === "RECEITA" ? (
-                            <TrendingUp className="w-6 h-6 text-white" />
-                          ) : (
-                            <TrendingDown className="w-6 h-6 text-white" />
-                          )}
+                          {(() => {
+                            try {
+                              const Icon =
+                                require("lucide-react")[
+                                  categoria.icone || "Tag"
+                                ];
+                              return <Icon className="w-6 h-6 text-white" />;
+                            } catch {
+                              return <Tag className="w-6 h-6 text-white" />;
+                            }
+                          })()}
                         </div>
 
                         <div className="flex-1">
@@ -489,7 +537,10 @@ export default function CategoriasPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => startEdit(categoria)}
+                                onClick={() => {
+                                  startEdit(categoria);
+                                  setIsSheetOpen(true); // 👈 abre o sheet já no modo de edição
+                                }}
                               >
                                 <Edit3 className="w-4 h-4" />
                               </Button>
@@ -503,9 +554,16 @@ export default function CategoriasPage() {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Dialog>
+                              <Dialog
+                                open={isDialogOpen}
+                                onOpenChange={setIsDialogOpen}
+                              >
                                 <DialogTrigger asChild>
-                                  <Button variant="ghost" size="icon">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setIsDialogOpen(true)}
+                                  >
                                     <Trash2 className="w-4 h-4 text-red-500" />
                                   </Button>
                                 </DialogTrigger>
@@ -519,12 +577,18 @@ export default function CategoriasPage() {
                                     </DialogDescription>
                                   </DialogHeader>
                                   <div className="flex gap-3 justify-end">
-                                    <Button variant="outline">Cancelar</Button>
+                                    <Button
+                                      variant="outline"
+                                      onClick={() => setIsDialogOpen(false)} // 👈 fecha o diálogo
+                                    >
+                                      Cancelar
+                                    </Button>
                                     <Button
                                       variant="destructive"
-                                      onClick={() => handleDelete(categoria)}
+                                    
+                                      onClick={() => handleDelete(categoria.id)}
                                     >
-                                      Excluir
+                                     Confirmar
                                     </Button>
                                   </div>
                                 </DialogContent>
