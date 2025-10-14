@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     const cartao = await db.cartao.findFirst({
       where: {
         id: cartaoId,
-        usuarioId: session.user.id,
+        userId: session.user.id,
       },
       include: {
         lancamentos: {
@@ -104,7 +104,7 @@ export async function PUT(request: NextRequest) {
     const cartaoExistente = await db.cartao.findFirst({
       where: {
         id: cartaoId,
-        usuarioId: session.user.id,
+        userId: session.user.id,
       },
     });
 
@@ -183,7 +183,7 @@ export async function DELETE(request: NextRequest) {
     const cartao = await db.cartao.findFirst({
       where: {
         id: cartaoId,
-        usuarioId: session.user.id,
+        userId: session.user.id,
       },
       include: {
         lancamentos: {
