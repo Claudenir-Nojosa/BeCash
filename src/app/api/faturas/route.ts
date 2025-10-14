@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       faturas = await db.fatura.findMany({
         where: {
           cartaoId,
-          cartao: { usuarioId: session.user.id },
+          cartao: { userId: session.user.id },
         },
         include: {
           lancamentos: {
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     } else {
       faturas = await db.fatura.findMany({
         where: {
-          cartao: { usuarioId: session.user.id },
+          cartao: { userId: session.user.id },
         },
         include: {
           cartao: true,

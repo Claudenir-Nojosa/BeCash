@@ -21,7 +21,7 @@ export async function GET(
     const cartao = await db.cartao.findFirst({
       where: {
         id: cartaoId,
-        usuarioId: session.user.id,
+        userId: session.user.id,
       },
     });
 

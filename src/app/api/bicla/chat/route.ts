@@ -75,14 +75,14 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function buscarDadosFinanceiros(usuarioId: string) {
+async function buscarDadosFinanceiros(userId: string) {
   // Buscar dados dos últimos 6 meses
   const seisMesesAtras = new Date();
   seisMesesAtras.setMonth(seisMesesAtras.getMonth() - 6);
 
   const lancamentos = await db.lancamento.findMany({
     where: {
-      usuarioId,
+      userId,
       data: {
         gte: seisMesesAtras,
       },

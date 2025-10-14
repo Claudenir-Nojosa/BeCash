@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
-    const usuarioId = session.user.id;
+    const userId = session.user.id;
 
     // Validar mês e ano
     if (!mes || !ano) {
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
 
     // Construir filtros
     const where: any = {
-      usuarioId,
+      userId,
       data: {
         gte: inicioMes,
         lt: fimMes,
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
 
     // Calcular resumo
     const todosPontos = await db.pontos.findMany({
-      where: { usuarioId },
+      where: { userId },
     });
 
     const resumo = {
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
-    const usuarioId = session.user.id;
+    const userId = session.user.id;
 
     // Validações
     if (!programa || !quantidade || !descricao || !data || !tipo) {
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
         data: new Date(data),
         tipo,
         valorResgate: valorResgate ? parseFloat(valorResgate) : null,
-        usuarioId,
+        userId,
       },
     });
 

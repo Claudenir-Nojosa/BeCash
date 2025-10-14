@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     const recorrenciaOriginal = await db.lancamento.findFirst({
       where: {
         id: recorrenciaId,
-        usuarioId: session.user.id,
+        userId: session.user.id,
         recorrente: true,
       },
       include: {
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
 
       const lancamentoExistente = await db.lancamento.findFirst({
         where: {
-          usuarioId: session.user.id,
+          userId: session.user.id,
           lancamentoPaiId: recorrenciaOriginal.id,
           data: {
             gte: inicioMes,
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
           categoriaId: recorrenciaOriginal.categoriaId,
           cartaoId: recorrenciaOriginal.cartaoId,
           observacoes: recorrenciaOriginal.observacoes,
-          usuarioId: session.user.id,
+          userId: session.user.id,
           pago: false,
           tipoParcelamento: recorrenciaOriginal.tipoParcelamento,
           recorrente: true,

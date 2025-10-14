@@ -34,7 +34,7 @@ export async function POST(
       where: {
         id: faturaId,
         cartao: {
-          usuarioId: session.user.id,
+          userId: session.user.id,
         },
       },
       include: {
@@ -67,7 +67,7 @@ export async function POST(
           metodo,
           data: data ? new Date(data) : new Date(),
           observacoes: observacoes || null,
-          usuarioId: session.user.id,
+          userId: session.user.id,
         },
       });
 

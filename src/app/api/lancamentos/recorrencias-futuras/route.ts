@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     // Buscar TODOS os lançamentos recorrentes ativos
     const recorrenciasAtivas = await db.lancamento.findMany({
       where: {
-        usuarioId: session.user.id,
+        userId: session.user.id,
         recorrente: true,
         lancamentoPaiId: null, // Apenas os originais
       },
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
 
         const lancamentoExistente = await db.lancamento.findFirst({
           where: {
-            usuarioId: session.user.id,
+            userId: session.user.id,
             OR: [
               { id: mesCount === 0 ? recorrencia.id : undefined }, // O próprio original
               {
