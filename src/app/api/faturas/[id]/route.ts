@@ -22,7 +22,7 @@ export async function GET(
       where: {
         id: faturaId,
         cartao: {
-          usuarioId: session.user.id,
+          userId: session.user.id,
         },
       },
       include: {
