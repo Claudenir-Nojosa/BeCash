@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     const meta = await db.metaPontos.findUnique({
       where: {
         id: metaId,
-        usuarioId: session.user.id,
+        userId: session.user.id,
       },
     });
 
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     // Buscar todos os pontos do usuário para este programa
     const pontos = await db.pontos.findMany({
       where: {
-        usuarioId: session.user.id,
+        userId: session.user.id,
         programa: meta.programa,
       },
       orderBy: {
