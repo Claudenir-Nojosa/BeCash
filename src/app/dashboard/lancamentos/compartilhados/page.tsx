@@ -33,11 +33,18 @@ interface LancamentoCompartilhado {
       nome: string;
       cor: string;
     };
-    usuarioCriador?: {
+    user?: {
+      // ← CORRIGIDO: era usuarioCriador, mas na API é user
       name: string;
       email: string;
       image?: string;
     };
+  };
+  usuarioCriador?: {
+    // ← ADICIONADO: usuário que compartilhou
+    name: string;
+    email: string;
+    image?: string;
   };
 }
 
@@ -141,7 +148,9 @@ export default function LancamentosCompartilhadosPage() {
   const renderConteudoSeguro = (lancamento: LancamentoCompartilhado) => {
     // Verificações em cascata para evitar erros
     const nomeCriador =
-      lancamento.lancamento?.usuarioCriador?.name || "Usuário não encontrado";
+      lancamento.usuarioCriador?.name ||
+      lancamento.lancamento?.user?.name ||
+      "Usuário não encontrado";
     const descricao =
       lancamento.lancamento?.descricao || "Descrição não disponível";
     const valorTotal = lancamento.lancamento?.valor || 0;

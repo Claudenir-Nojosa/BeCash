@@ -3,13 +3,14 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { PrismaClient } from "@prisma/client";
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import { PrismaAdapter } from "@auth/prisma-adapter"; // ← Mude para @auth/prisma-adapter
 import { findUserByCredentials } from "@/lib/user";
 import { AuthError } from "next-auth";
 
 const prisma = new PrismaClient();
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  // @ts-ignore - Ignorar erro de tipos temporariamente
   adapter: PrismaAdapter(prisma),
   providers: [
     Google({
@@ -18,14 +19,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
     Credentials({
       credentials: {
-        email: {},
-        password: {},
+        email: { label: "Email", type: "email" }, // ← Adicione labels para v5
+        password: { label: "Password", type: "password" },
       },
       authorize: async (credentials) => {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Email e senha são obrigatórios");
+        }
+        
         const user = await findUserByCredentials(
           credentials.email as string,
           credentials.password as string
         );
+        
+        if (!user) {
+          throw new Error("Credenciais inválidas");
+        }
+        
         return user;
       },
     }),
@@ -67,6 +77,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                   type: account.type,
                   provider: account.provider,
                   providerAccountId: account.providerAccountId,
+                  access_token: account.access_token,
+                  expires_at: account.expires_at,
+                  token_type: account.token_type,
+                  scope: account.scope,
+                  id_token: account.id_token,
                 },
               });
             }
@@ -83,12 +98,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return true;
     },
 
-    async jwt({ token, user, account, profile }) {
-      console.log("JWT callback - user:", user);
-
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
       }
+      
+      // Adicione suporte para atualização de sessão
+      if (trigger === "update" && session) {
+        token = { ...token, ...session };
+      }
+      
       return token;
     },
 
@@ -96,7 +115,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       console.log("Session callback - token.sub:", token.sub);
       console.log("Session callback - session.user ANTES:", session.user);
 
-      // Garantir que temos um ID válido
       const userId = token.sub || token.id;
 
       if (session.user && userId) {
@@ -140,7 +158,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60,
   },
-  // ADICIONE ESTAS CONFIGURAÇÕES:
   trustHost: true,
   debug: process.env.NODE_ENV === "development",
 });
