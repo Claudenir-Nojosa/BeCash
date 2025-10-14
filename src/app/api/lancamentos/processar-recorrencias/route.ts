@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
             data: new Date(), // Data atual
             pago: false,
             observacoes: lancamento.observacoes,
-            usuarioId: lancamento.usuarioId,
+            userId: lancamento.userId,
             categoriaId: lancamento.categoriaId,
             cartaoId: lancamento.cartaoId,
             tipoParcelamento: lancamento.tipoParcelamento,

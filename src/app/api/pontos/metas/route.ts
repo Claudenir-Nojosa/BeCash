@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     }
 
     const metas = await db.metaPontos.findMany({
-      where: { usuarioId: session.user.id },
+      where: { userId: session.user.id },
       orderBy: { dataAlvo: "asc" },
     });
 
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     const metaExistente = await db.metaPontos.findFirst({
       where: {
         programa,
-        usuarioId: session.user.id,
+        userId: session.user.id,
       },
     });
 
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
           metaPontos: parseInt(metaPontos),
           descricao,
           dataAlvo: new Date(dataAlvo),
-          usuarioId: session.user.id,
+          userId: session.user.id,
         },
       });
     }
