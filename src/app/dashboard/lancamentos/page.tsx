@@ -145,6 +145,7 @@ export default function LancamentosPage() {
   const [mesSelecionado, setMesSelecionado] = useState(
     new Date().getMonth() + 1
   );
+  const [openFiltros, setOpenFiltros] = useState(false);
   const [mostrarSeletorMeses, setMostrarSeletorMeses] = useState(false);
   const [dataVencimento, setDataVencimento] = useState<Date | null>(null);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -157,6 +158,7 @@ export default function LancamentosPage() {
     status: "all",
     metodo: "all",
     compartilhamento: "all",
+    categoria: "all",
   });
   const getStatusCompartilhamento = (lancamento: Lancamento) => {
     if (!lancamento.LancamentoCompartilhado?.length) return null;
@@ -168,6 +170,9 @@ export default function LancamentosPage() {
       isAlvo: compartilhamento.usuarioAlvo?.id === lancamento.userId,
     };
   };
+  const handleChange = (field: string, value: string | boolean) => {
+  setFormData((prev) => ({ ...prev, [field]: value }));
+};
   const gerarOpcoesAnos = () => {
     const anoAtual = new Date().getFullYear();
     const anos = [];
@@ -225,6 +230,28 @@ export default function LancamentosPage() {
               <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="RECEITA">Receita</SelectItem>
               <SelectItem value="DESPESA">Despesa</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {/* Filtro por Categoria */}
+        <div className="space-y-2">
+          <Label>Categoria</Label>
+          <Select
+            value={filtros.categoria || "all"}
+            onValueChange={(value) =>
+              setFiltros({ ...filtros, categoria: value })
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Todas" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              {categorias.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>
+                  {cat.nome}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -608,6 +635,13 @@ export default function LancamentosPage() {
     )
       return false;
 
+    // ✅ filtro por categoria
+    if (
+      filtros.categoria !== "all" &&
+      lancamento.categoria.id !== filtros.categoria
+    )
+      return false;
+
     return true;
   });
 
@@ -808,14 +842,16 @@ export default function LancamentosPage() {
               />
             )}
 
-            <Sheet>
+            <Sheet open={openFiltros} onOpenChange={setOpenFiltros}>
               <SheetTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                  <Filter className="w-4 h-4" />
-                  Filtros
+                <Button variant="outline">
+                  <Filter className="w-4 h-4 mr-2" />
+                  Filtrar
                 </Button>
               </SheetTrigger>
-              <FiltrosSheet />
+              <SheetContent>
+                <FiltrosSheet />
+              </SheetContent>
             </Sheet>
 
             <Sheet>
@@ -838,7 +874,397 @@ export default function LancamentosPage() {
                   onSubmit={handleSubmit}
                   className="space-y-4 mt-6 max-h-[80vh] overflow-y-auto"
                 >
-                  {/* Conteúdo do formulário permanece igual */}
+                  {/* Tipo e Categoria */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="tipo">Tipo *</Label>
+                      <Select
+                        value={formData.tipo}
+                        onValueChange={(value) => handleChange("tipo", value)}
+                        required
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o tipo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="receita">Receita</SelectItem>
+                          <SelectItem value="despesa">Despesa</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="categoria">Categoria *</Label>
+                      <Select
+                        value={formData.categoria}
+                        onValueChange={(value) =>
+                          handleChange("categoria", value)
+                        }
+                        required
+                        disabled={!formData.tipo}
+                      >
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={
+                              !formData.tipo
+                                ? "Selecione o tipo primeiro"
+                                : "Selecione a categoria"
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categorias
+                            .filter(
+                              (cat) =>
+                                cat.tipo ===
+                                (formData.tipo === "receita"
+                                  ? "RECEITA"
+                                  : "DESPESA")
+                            )
+                            .map((cat) => (
+                              <SelectItem key={cat.id} value={cat.id}>
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: cat.cor }}
+                                  />
+                                  {cat.nome}
+                                </div>
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Descrição e Valor */}
+                  <div className="space-y-2">
+                    <Label htmlFor="descricao">Descrição *</Label>
+                    <Input
+                      id="descricao"
+                      value={formData.descricao}
+                      onChange={(e) =>
+                        handleChange("descricao", e.target.value)
+                      }
+                      placeholder="Ex: Salário, Aluguel, Mercado..."
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="valor">Valor *</Label>
+                    <Input
+                      id="valor"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.valor}
+                      onChange={(e) => handleChange("valor", e.target.value)}
+                      placeholder="0,00"
+                      required
+                    />
+                  </div>
+
+                  {/* Tipo de Transação e Lançamento */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="tipoTransacao">Tipo de Transação *</Label>
+                      <Select
+                        value={formData.tipoTransacao}
+                        onValueChange={(value) =>
+                          handleChange("tipoTransacao", value)
+                        }
+                        required
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o tipo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
+                          <SelectItem value="PIX">PIX</SelectItem>
+                          <SelectItem value="CARTAO_DEBITO">
+                            Cartão Débito
+                          </SelectItem>
+                          <SelectItem value="CARTAO_CREDITO">
+                            Cartão Crédito
+                          </SelectItem>
+                          <SelectItem value="TRANSFERENCIA">
+                            Transferência
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="tipoLancamento">
+                        Tipo de Lançamento *
+                      </Label>
+                      <Select
+                        value={formData.tipoLancamento}
+                        onValueChange={(value) =>
+                          handleChange("tipoLancamento", value)
+                        }
+                        required
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o tipo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="individual">Individual</SelectItem>
+                          <SelectItem value="compartilhado">
+                            Compartilhado
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Seção de Compartilhamento */}
+                  {formData.tipoLancamento === "compartilhado" && (
+                    <div className="space-y-4 p-3 rounded-lg border">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="usuarioAlvoId">
+                            Compartilhar com *
+                          </Label>
+                          <Select
+                            value={formData.usuarioAlvoId}
+                            onValueChange={(value) =>
+                              handleChange("usuarioAlvoId", value)
+                            }
+                            required
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o usuário" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {usuarios.map((usuario) => (
+                                <SelectItem key={usuario.id} value={usuario.id}>
+                                  <div className="flex items-center gap-2">
+                                    {usuario.image && (
+                                      <img
+                                        src={usuario.image}
+                                        alt={usuario.name}
+                                        className="w-4 h-4 rounded-full"
+                                      />
+                                    )}
+                                    {usuario.name}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="valorCompartilhado">
+                            Valor compartilhado (R$)
+                          </Label>
+                          <Input
+                            id="valorCompartilhado"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max={formData.valor}
+                            value={formData.valorCompartilhado}
+                            onChange={(e) =>
+                              handleChange("valorCompartilhado", e.target.value)
+                            }
+                            placeholder="0,00"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Cartão de Crédito */}
+                  {formData.tipoTransacao === "CARTAO_CREDITO" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="cartaoId">Cartão *</Label>
+                      <Select
+                        value={formData.cartaoId}
+                        onValueChange={(value) =>
+                          handleChange("cartaoId", value)
+                        }
+                        required
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o cartão" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {cartoes.map((cartao) => (
+                            <SelectItem key={cartao.id} value={cartao.id}>
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-3 h-3 rounded-full"
+                                  style={{ backgroundColor: cartao.cor }}
+                                />
+                                {cartao.nome}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {/* Responsável */}
+                  <div className="space-y-2">
+                    <Label htmlFor="responsavel">Responsável *</Label>
+                    <Select
+                      value={formData.responsavel}
+                      onValueChange={(value) =>
+                        handleChange("responsavel", value)
+                      }
+                      required
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o responsável" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Claudenir">Claudenir</SelectItem>
+                        <SelectItem value="Beatriz">Beatriz</SelectItem>
+                        <SelectItem value="Compartilhado">
+                          Compartilhado
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Data */}
+                  <div className="space-y-2">
+                    <Label htmlFor="data">Data *</Label>
+                    <Input
+                      type="date"
+                      value={formData.data}
+                      onChange={(e) => handleChange("data", e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  {/* Recorrência */}
+                  <div className="space-y-3 border rounded-lg p-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="recorrente"
+                        checked={formData.recorrente}
+                        onCheckedChange={(checked) =>
+                          handleChange("recorrente", checked === true)
+                        }
+                      />
+                      <Label htmlFor="recorrente" className="font-medium">
+                        Lançamento recorrente/parcelado
+                      </Label>
+                    </div>
+
+                    {formData.recorrente && (
+                      <div className="grid grid-cols-2 gap-4 pl-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="tipoRecorrencia">Tipo</Label>
+                          <Select
+                            value={formData.tipoRecorrencia}
+                            onValueChange={(value) =>
+                              handleChange("tipoRecorrencia", value)
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o tipo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="RECORRENCIA">
+                                Recorrência
+                              </SelectItem>
+                              <SelectItem value="PARCELAMENTO">
+                                Parcelamento
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {formData.tipoRecorrencia === "RECORRENCIA" && (
+                          <div className="space-y-2">
+                            <Label htmlFor="frequencia">Frequência</Label>
+                            <Select
+                              value={formData.frequencia}
+                              onValueChange={(value) =>
+                                handleChange("frequencia", value)
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione a frequência" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="mensal">Mensal</SelectItem>
+                                <SelectItem value="trimestral">
+                                  Trimestral
+                                </SelectItem>
+                                <SelectItem value="anual">Anual</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
+                        {formData.tipoRecorrencia === "PARCELAMENTO" && (
+                          <div className="space-y-2">
+                            <Label htmlFor="parcelas">Número de Parcelas</Label>
+                            <Input
+                              id="parcelas"
+                              type="number"
+                              min="2"
+                              max="24"
+                              value={formData.parcelas}
+                              onChange={(e) =>
+                                handleChange("parcelas", e.target.value)
+                              }
+                              placeholder="Ex: 3, 6, 12"
+                            />
+                          </div>
+                        )}
+
+                        {/* ADICIONE ESTE CAMPO AQUI */}
+                        {formData.tipoRecorrencia === "RECORRENCIA" && (
+                          <div className="space-y-2 col-span-2">
+                            <Label htmlFor="dataFimRecorrencia">
+                              Data Final da Recorrência *
+                            </Label>
+                            <Input
+                              id="dataFimRecorrencia"
+                              type="date"
+                              value={formData.dataFimRecorrencia}
+                              onChange={(e) =>
+                                handleChange(
+                                  "dataFimRecorrencia",
+                                  e.target.value
+                                )
+                              }
+                              required
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Até quando este lançamento se repetirá
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Observações */}
+                  <div className="space-y-2">
+                    <Label htmlFor="observacoes">Observações</Label>
+                    <Textarea
+                      id="observacoes"
+                      value={formData.observacoes}
+                      onChange={(e) =>
+                        handleChange("observacoes", e.target.value)
+                      }
+                      placeholder="Observações adicionais..."
+                      rows={3}
+                    />
+                  </div>
+
+                  <Button type="submit" className="w-full">
+                    Criar Lançamento
+                  </Button>
                 </form>
               </SheetContent>
             </Sheet>
@@ -905,26 +1331,6 @@ export default function LancamentosPage() {
                     <TrendingDown className="w-4 h-4 text-red-600" />
                   )}
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Novo Card para Compartilhamentos */}
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Compartilhados
-                  </p>
-                  <p className="text-2xl font-bold text-blue-600">
-                    {
-                      lancamentos.filter((l) => getStatusCompartilhamento(l))
-                        .length
-                    }
-                  </p>
-                </div>
-                <Users className="w-8 h-8 text-blue-600" />
               </div>
             </CardContent>
           </Card>
@@ -1111,7 +1517,7 @@ export default function LancamentosPage() {
                           </div>
 
                           {/* Conteúdo Principal */}
-                          <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex-1 min-w-0 space-y-2">
                             {/* Linha 1: Descrição e Badges */}
                             <div className="flex items-center gap-2 flex-wrap">
                               <p className="font-medium text-foreground truncate">
@@ -1122,7 +1528,7 @@ export default function LancamentosPage() {
                               <div className="flex items-center gap-1 flex-shrink-0">
                                 {compartilhamento && (
                                   <div
-                                    className="w-2 h-2 rounded-full bg-blue-500"
+                                    className="w-2 h-2 rounded-full bg-blue-500 dark:bg-blue-400"
                                     title="Compartilhado"
                                   />
                                 )}
@@ -1132,13 +1538,6 @@ export default function LancamentosPage() {
                                     aria-label="Recorrente"
                                   />
                                 )}
-                                {lancamento.parcelasTotal &&
-                                  lancamento.parcelasTotal > 1 && (
-                                    <span className="text-xs text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
-                                      {lancamento.parcelaAtual}/
-                                      {lancamento.parcelasTotal}
-                                    </span>
-                                  )}
                               </div>
                             </div>
 
@@ -1175,6 +1574,74 @@ export default function LancamentosPage() {
                                 )}
                               </span>
                             </div>
+
+                            {/* Grid de Parcelas - Apenas se tiver parcelas */}
+                            {lancamento.parcelasTotal &&
+                              lancamento.parcelasTotal > 1 && (
+                                <motion.div
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  className="pt-2"
+                                >
+                                  {/* Cabeçalho das parcelas */}
+                                  <div className="flex gap-1 text-xs text-muted-foreground mb-1">
+                                    {Array.from({
+                                      length: lancamento.parcelasTotal,
+                                    }).map((_, index) => (
+                                      <div
+                                        key={index}
+                                        className="w-6 h-4 flex items-center justify-center font-medium"
+                                      >
+                                        {index + 1}
+                                      </div>
+                                    ))}
+                                  </div>
+
+                                  {/* Status das parcelas */}
+                                  <div className="flex gap-1">
+                                    {/* Primeira parcela (lançamento principal) */}
+                                    <div
+                                      className={`w-6 h-6 rounded border flex items-center justify-center text-xs cursor-pointer transition-colors ${
+                                        lancamento.pago
+                                          ? "bg-green-500 border-green-500 text-white dark:bg-green-600 dark:border-green-600"
+                                          : "bg-red-100 border-red-300 text-red-700 dark:bg-red-900/50 dark:border-red-700 dark:text-red-300"
+                                      }`}
+                                      onClick={() =>
+                                        toggleStatus(
+                                          lancamento.id,
+                                          lancamento.pago
+                                        )
+                                      }
+                                      title={`${lancamento.descricao} - R$ ${lancamento.valor.toFixed(2)}`}
+                                    >
+                                      {lancamento.pago ? "✓" : ""}
+                                    </div>
+
+                                    {/* Parcelas filhas */}
+                                    {lancamento.lancamentosFilhos?.map(
+                                      (parcela) => (
+                                        <div
+                                          key={parcela.id}
+                                          className={`w-6 h-6 rounded border flex items-center justify-center text-xs cursor-pointer transition-colors ${
+                                            parcela.pago
+                                              ? "bg-green-500 border-green-500 text-white dark:bg-green-600 dark:border-green-600"
+                                              : "bg-red-100 border-red-300 text-red-700 dark:bg-red-900/50 dark:border-red-700 dark:text-red-300"
+                                          }`}
+                                          onClick={() =>
+                                            toggleStatus(
+                                              parcela.id,
+                                              parcela.pago
+                                            )
+                                          }
+                                          title={`${parcela.descricao} - R$ ${parcela.valor.toFixed(2)}`}
+                                        >
+                                          {parcela.pago ? "✓" : ""}
+                                        </div>
+                                      )
+                                    )}
+                                  </div>
+                                </motion.div>
+                              )}
 
                             {/* Informação de Compartilhamento Minimalista */}
                             {compartilhamento && (
@@ -1329,42 +1796,6 @@ export default function LancamentosPage() {
                             </Button>
                           </motion.div>
                         )}
-
-                      {/* Parcelas Filhas */}
-                      {lancamento.lancamentosFilhos?.map((parcela) => (
-                        <motion.div
-                          key={parcela.id}
-                          initial={{ opacity: 0, x: -8 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          className="ml-12 mt-2 p-2 bg-muted/30 dark:bg-muted/50 rounded-lg border"
-                        >
-                          <div className="flex items-center justify-between text-sm">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs bg-background px-1.5 py-0.5 rounded border">
-                                {parcela.parcelaAtual}/{parcela.parcelasTotal}
-                              </span>
-                              <span className="text-muted-foreground">
-                                {parcela.descricao}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">
-                                R$ {parcela.valor.toFixed(2)}
-                              </span>
-                              <Button
-                                variant={parcela.pago ? "default" : "outline"}
-                                size="sm"
-                                onClick={() =>
-                                  toggleStatus(parcela.id, parcela.pago)
-                                }
-                                className="h-6 px-2 text-xs"
-                              >
-                                {parcela.pago ? "✓" : "..."}
-                              </Button>
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
                     </motion.div>
                   );
                 })}
