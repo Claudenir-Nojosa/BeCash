@@ -5,7 +5,7 @@ import db from "@/lib/db";
 // 🔹 Atualizar categoria
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } // CORREÇÃO: Adicione Promise
 ) {
   try {
     const session = await auth();
@@ -13,7 +13,7 @@ export async function PUT(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params; // CORREÇÃO: Aguarde o params
     const body = await request.json();
     const { nome, tipo, cor, icone } = body;
 
@@ -58,7 +58,7 @@ export async function PUT(
 // 🔹 Deletar categoria
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } // CORREÇÃO: Adicione Promise
 ) {
   try {
     const session = await auth();
@@ -66,7 +66,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params; // CORREÇÃO: Aguarde o params
 
     const categoria = await db.categoria.findUnique({ where: { id } });
 

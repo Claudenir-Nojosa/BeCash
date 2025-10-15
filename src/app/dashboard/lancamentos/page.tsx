@@ -1707,8 +1707,7 @@ export default function LancamentosPage() {
                                   <>
                                     Sua parte: R${" "}
                                     {(
-                                      lancamento.valor -
-                                      compartilhamento.valorCompartilhado
+                                      lancamento.valor
                                     ).toFixed(2)}
                                   </>
                                 ) : (

@@ -205,16 +205,22 @@ export async function POST(request: NextRequest) {
     }
 
     const valorTotal = parseFloat(valor);
-    const valorParaCompartilhar = valorCompartilhado
-      ? parseFloat(valorCompartilhado)
-      : valorTotal / 2;
+    const valorParaCompartilhar =
+      tipoLancamento === "compartilhado"
+        ? valorCompartilhado
+          ? parseFloat(valorCompartilhado)
+          : valorTotal / 2
+        : 0;
 
-    const valorUsuarioCriador = valorTotal - valorParaCompartilhar;
+    const valorUsuarioCriador =
+      tipoLancamento === "compartilhado"
+        ? valorTotal - valorParaCompartilhar
+        : valorTotal;
 
     // CORREÇÃO: Usar userId em vez de usuarioId
     const lancamentoBaseData: any = {
       descricao,
-      valor: valorUsuarioCriador, // CORREÇÃO: Manter o valor total no lançamento principal
+      valor: valorUsuarioCriador, // Agora isso será o valor total para individuais
       tipo,
       metodoPagamento,
       data: data ? new Date(data) : new Date(),
@@ -243,23 +249,33 @@ export async function POST(request: NextRequest) {
       parcelasTotal > 1
     ) {
       const valorTotal = parseFloat(valor);
-      const valorParaCompartilhar = valorCompartilhado
-        ? parseFloat(valorCompartilhado)
-        : valorTotal / 2;
+
+      // CORREÇÃO: Só calcular valores de compartilhamento se for realmente compartilhado
+      const valorParaCompartilhar =
+        tipoLancamento === "compartilhado"
+          ? valorCompartilhado
+            ? parseFloat(valorCompartilhado)
+            : valorTotal / 2
+          : 0;
 
       const valorParcela = valorTotal / parseInt(parcelasTotal);
-      const valorUsuarioCriador = valorTotal - valorParaCompartilhar;
+      const valorUsuarioCriador =
+        tipoLancamento === "compartilhado"
+          ? valorTotal - valorParaCompartilhar
+          : valorTotal;
 
-      // CORREÇÃO: Dividir o valor do criador pelas parcelas
+      // CORREÇÃO: Dividir o valor correto pelas parcelas
       const valorParcelaCriador = valorUsuarioCriador / parseInt(parcelasTotal);
       const valorParcelaCompartilhada =
-        valorParaCompartilhar / parseInt(parcelasTotal);
+        tipoLancamento === "compartilhado"
+          ? valorParaCompartilhar / parseInt(parcelasTotal)
+          : 0;
 
       // Primeiro lançamento (parcela atual) - criador paga sua parte
       const lancamentoPrincipal = await db.lancamento.create({
         data: {
           ...lancamentoBaseData,
-          valor: valorParcelaCriador, // CORREÇÃO: Apenas a parte do criador
+          valor: valorParcelaCriador, // CORREÇÃO: Valor correto por parcela
           descricao: `${descricao} (1/${parcelasTotal})`,
         },
         include: {
@@ -369,12 +385,14 @@ export async function POST(request: NextRequest) {
     const lancamento = await db.lancamento.create({
       data: {
         ...lancamentoBaseData,
-        // CORREÇÃO: O valor deve ser o total menos o compartilhado
+        // CORREÇÃO: Só subtrai o valor compartilhado se for lançamento compartilhado
         valor:
-          valorTotal -
-          (valorCompartilhado
-            ? parseFloat(valorCompartilhado)
-            : valorTotal / 2),
+          tipoLancamento === "compartilhado"
+            ? valorTotal -
+              (valorCompartilhado
+                ? parseFloat(valorCompartilhado)
+                : valorTotal / 2)
+            : valorTotal, // Para lançamentos individuais, usa o valor total
       },
       include: {
         categoria: true,
