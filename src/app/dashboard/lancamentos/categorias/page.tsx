@@ -13,6 +13,7 @@ import {
   Filter,
   Sparkles,
   Trash,
+  ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -58,6 +59,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useRouter } from "next/navigation";
 
 interface Categoria {
   id: string;
@@ -68,6 +70,7 @@ interface Categoria {
 }
 
 export default function CategoriasPage() {
+  const router = useRouter();
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -79,12 +82,12 @@ export default function CategoriasPage() {
   const [editingCategoria, setEditingCategoria] = useState<Categoria | null>(
     null
   );
-
+  const [dialogAberto, setDialogAberto] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     nome: "",
     tipo: "DESPESA",
     cor: "#3B82F6",
-    icone: "Tag", // valor padrão
+    icone: "Tag",
   });
 
   const coresPredefinidas = [
@@ -124,8 +127,8 @@ export default function CategoriasPage() {
     e.preventDefault();
 
     const url = editingCategoria
-      ? `/api/categorias/${editingCategoria.id}` // 👈 edição
-      : "/api/categorias"; // 👈 criação
+      ? `/api/categorias/${editingCategoria.id}`
+      : "/api/categorias";
 
     const method = editingCategoria ? "PUT" : "POST";
 
@@ -144,7 +147,7 @@ export default function CategoriasPage() {
       });
       setEditingCategoria(null);
       carregarCategorias();
-      setIsSheetOpen(false); // 👈 fecha o modal
+      setIsSheetOpen(false);
       toast.success(
         editingCategoria
           ? "Categoria atualizada com sucesso!"
@@ -160,6 +163,7 @@ export default function CategoriasPage() {
 
     if (res.ok) {
       carregarCategorias();
+      setDialogAberto(null); // 👈 Fecha o diálogo após excluir
       toast.success("Categoria deletada com sucesso!");
     } else {
       toast.error("Erro ao deletar categoria.");
@@ -198,266 +202,276 @@ export default function CategoriasPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-muted-foreground">Carregando categorias...</p>
+          <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-gray-400">Carregando categorias...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 lg:p-6">
+    <div className="min-h-screen p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4"
-        >
-          <div>
-            <h1 className="text-3xl lg:text-4xl font-bold tracking-tight flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <Tag className="w-6 h-6 text-white" />
-              </div>
-              Categorias
-            </h1>
-            <p className="text-muted-foreground mt-2">
-              Organize suas receitas e despesas por categorias
-            </p>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div>
+              <h1 className="text-3xl font-bold text-white">Categorias</h1>
+              <p className="text-gray-300">
+                Organize suas receitas e despesas por categorias
+              </p>
+            </div>
           </div>
 
-          <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-            <SheetTrigger asChild>
-              <Button
-                className="gap-2"
-                onClick={() => {
-                  setEditingCategoria(null);
-                  setFormData({
-                    nome: "",
-                    tipo: "DESPESA",
-                    cor: "#3B82F6",
-                    icone: "Tag",
-                  });
-                  setIsSheetOpen(true);
-                }}
-              >
-                <Plus className="w-4 h-4" />
-                Nova Categoria
-              </Button>
-            </SheetTrigger>
-            <SheetContent>
-              <SheetHeader>
-                <SheetTitle>
-                  {editingCategoria ? "Editar Categoria" : "Nova Categoria"}
-                </SheetTitle>
-                <SheetDescription>
-                  {editingCategoria
-                    ? "Atualize os dados da categoria"
-                    : "Crie uma nova categoria para organizar seus lançamentos"}
-                </SheetDescription>
-              </SheetHeader>
+          <div className="flex gap-2">
+            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                  onClick={() => {
+                    setEditingCategoria(null);
+                    setFormData({
+                      nome: "",
+                      tipo: "DESPESA",
+                      cor: "#3B82F6",
+                      icone: "Tag",
+                    });
+                  }}
+                >
+                  <Plus className="w-4 h-4" />
+                  Nova Categoria
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="bg-gray-900 border-gray-800 text-white">
+                <SheetHeader>
+                  <SheetTitle className="text-white">
+                    {editingCategoria ? "Editar Categoria" : "Nova Categoria"}
+                  </SheetTitle>
+                  <SheetDescription className="text-gray-400">
+                    {editingCategoria
+                      ? "Atualize os dados da categoria"
+                      : "Crie uma nova categoria para organizar seus lançamentos"}
+                  </SheetDescription>
+                </SheetHeader>
 
-              <form onSubmit={handleSubmit} className="space-y-6 mt-6">
-                <div className="space-y-2">
-                  <Label htmlFor="nome">Nome da Categoria</Label>
-                  <Input
-                    id="nome"
-                    value={formData.nome}
-                    onChange={(e) =>
-                      setFormData({ ...formData, nome: e.target.value })
-                    }
-                    placeholder="Ex: Alimentação, Transporte, Salário..."
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="tipo">Tipo</Label>
-                  <Select
-                    value={formData.tipo}
-                    onValueChange={(value: "DESPESA" | "RECEITA") =>
-                      setFormData({ ...formData, tipo: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="DESPESA">
-                        <div className="flex items-center gap-2">
-                          <TrendingDown className="w-4 h-4 text-red-500" />
-                          Despesa
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="RECEITA">
-                        <div className="flex items-center gap-2">
-                          <TrendingUp className="w-4 h-4 text-green-500" />
-                          Receita
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-3">
-                  <Label>Cor de Identificação</Label>
-
-                  <div className="flex items-center gap-3 mb-3">
-                    <div
-                      className="w-10 h-10 rounded-lg border shadow-sm"
-                      style={{ backgroundColor: formData.cor }}
-                    />
+                <form onSubmit={handleSubmit} className="space-y-6 mt-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="nome" className="text-white">
+                      Nome da Categoria
+                    </Label>
                     <Input
-                      type="color"
-                      value={formData.cor}
+                      id="nome"
+                      value={formData.nome}
                       onChange={(e) =>
-                        setFormData({ ...formData, cor: e.target.value })
+                        setFormData({ ...formData, nome: e.target.value })
                       }
-                      className="w-20 h-10 p-1"
+                      placeholder="Ex: Alimentação, Transporte, Salário..."
+                      className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                      required
                     />
                   </div>
 
-                  <div className="grid grid-cols-5 gap-2">
-                    {coresPredefinidas.map((cor) => (
-                      <button
-                        key={cor}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, cor })}
-                        className={`w-8 h-8 rounded-lg border-2 transition-all hover:scale-110 ${
-                          formData.cor === cor
-                            ? "border-primary ring-2 ring-primary/20"
-                            : "border-muted"
-                        }`}
-                        style={{ backgroundColor: cor }}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="icone">Ícone</Label>
-                  <div className="grid grid-cols-6 gap-2">
-                    {[
-                      "Tag",
-                      "Utensils",
-                      "ShoppingCart",
-                      "Home",
-                      "Car",
-                      "CreditCard",
-                      "Briefcase",
-                      "Gift",
-                      "Heart",
-                      "DollarSign",
-                      "Coffee",
-                      "Wifi",
-                    ].map((iconName) => {
-                      const IconComponent = require("lucide-react")[iconName];
-                      return (
-                        <button
-                          key={iconName}
-                          type="button"
-                          onClick={() =>
-                            setFormData({ ...formData, icone: iconName })
-                          }
-                          className={`p-2 border rounded-lg flex items-center justify-center hover:bg-accent transition-all ${
-                            formData.icone === iconName
-                              ? "border-primary bg-accent"
-                              : "border-muted"
-                          }`}
-                        >
-                          <IconComponent className="w-5 h-5" />
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div className="flex gap-3 pt-4">
-                  <Button type="submit" className="flex-1">
-                    {editingCategoria ? "Atualizar" : "Criar"} Categoria
-                  </Button>
-
-                  {editingCategoria && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setEditingCategoria(null);
-                        setFormData({
-                          nome: "",
-                          tipo: "DESPESA",
-                          cor: "#3B82F6",
-                          icone: "Tag",
-                        });
-                      }}
+                  <div className="space-y-2">
+                    <Label htmlFor="tipo" className="text-white">
+                      Tipo
+                    </Label>
+                    <Select
+                      value={formData.tipo}
+                      onValueChange={(value: "DESPESA" | "RECEITA") =>
+                        setFormData({ ...formData, tipo: value })
+                      }
                     >
-                      Cancelar
+                      <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                        <SelectItem value="DESPESA">
+                          <div className="flex items-center gap-2">
+                            <TrendingDown className="w-4 h-4 text-red-400" />
+                            Despesa
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="RECEITA">
+                          <div className="flex items-center gap-2">
+                            <TrendingUp className="w-4 h-4 text-green-400" />
+                            Receita
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="text-white">Cor de Identificação</Label>
+
+                    <div className="flex items-center gap-3 mb-3">
+                      <div
+                        className="w-10 h-10 rounded-lg border border-gray-700 shadow-sm"
+                        style={{ backgroundColor: formData.cor }}
+                      />
+                      <Input
+                        type="color"
+                        value={formData.cor}
+                        onChange={(e) =>
+                          setFormData({ ...formData, cor: e.target.value })
+                        }
+                        className="w-20 h-10 p-1 bg-gray-800 border-gray-700"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-5 gap-2">
+                      {coresPredefinidas.map((cor) => (
+                        <button
+                          key={cor}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, cor })}
+                          className={`w-8 h-8 rounded-lg border-2 transition-all hover:scale-110 ${
+                            formData.cor === cor
+                              ? "border-white ring-2 ring-white/20"
+                              : "border-gray-700"
+                          }`}
+                          style={{ backgroundColor: cor }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="icone" className="text-white">
+                      Ícone
+                    </Label>
+                    <div className="grid grid-cols-6 gap-2">
+                      {[
+                        "Tag",
+                        "Utensils",
+                        "ShoppingCart",
+                        "Home",
+                        "Car",
+                        "CreditCard",
+                        "Briefcase",
+                        "Gift",
+                        "Heart",
+                        "DollarSign",
+                        "Coffee",
+                        "Wifi",
+                      ].map((iconName) => {
+                        const IconComponent = require("lucide-react")[iconName];
+                        return (
+                          <button
+                            key={iconName}
+                            type="button"
+                            onClick={() =>
+                              setFormData({ ...formData, icone: iconName })
+                            }
+                            className={`p-2 border rounded-lg flex items-center justify-center hover:bg-gray-800 transition-all ${
+                              formData.icone === iconName
+                                ? "border-white bg-gray-800"
+                                : "border-gray-700"
+                            }`}
+                          >
+                            <IconComponent className="w-5 h-5 text-white" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <Button
+                      type="submit"
+                      className="flex-1 bg-white text-gray-900 hover:bg-gray-100"
+                    >
+                      {editingCategoria ? "Atualizar" : "Criar"} Categoria
                     </Button>
-                  )}
-                </div>
-              </form>
-            </SheetContent>
-          </Sheet>
-        </motion.div>
+
+                    {editingCategoria && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setEditingCategoria(null);
+                          setFormData({
+                            nome: "",
+                            tipo: "DESPESA",
+                            cor: "#3B82F6",
+                            icone: "Tag",
+                          });
+                        }}
+                        className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                      >
+                        Cancelar
+                      </Button>
+                    )}
+                  </div>
+                </form>
+              </SheetContent>
+            </Sheet>
+          </div>
+        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
+          <Card className="bg-gray-900 border-gray-800">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Total
+                  <p className="text-sm font-medium text-gray-400">Total</p>
+                  <p className="text-2xl font-bold text-white">
+                    {categorias.length}
                   </p>
-                  <p className="text-2xl font-bold">{categorias.length}</p>
                 </div>
-                <Tag className="w-8 h-8 text-blue-600" />
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <Tag className="w-4 h-4 text-white" />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gray-900 border-gray-800">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Despesas
-                  </p>
-                  <p className="text-2xl font-bold text-red-600">
+                  <p className="text-sm font-medium text-gray-400">Despesas</p>
+                  <p className="text-2xl font-bold text-red-400">
                     {categoriasPorTipo.DESPESA.length}
                   </p>
                 </div>
-                <TrendingDown className="w-8 h-8 text-red-600" />
+                <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
+                  <TrendingDown className="w-4 h-4 text-white" />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gray-900 border-gray-800">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Receitas
-                  </p>
-                  <p className="text-2xl font-bold text-green-600">
+                  <p className="text-sm font-medium text-gray-400">Receitas</p>
+                  <p className="text-2xl font-bold text-green-400">
                     {categoriasPorTipo.RECEITA.length}
                   </p>
                 </div>
-                <TrendingUp className="w-8 h-8 text-green-600" />
+                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4 text-white" />
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Filtros e Busca */}
-        <Card>
+        <Card className="bg-gray-900 border-gray-800">
           <CardContent className="p-4">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Buscar categorias..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
                 />
               </div>
 
@@ -466,10 +480,25 @@ export default function CategoriasPage() {
                 onValueChange={(value) => setTipoFiltro(value as any)}
                 className="w-full sm:w-auto"
               >
-                <TabsList>
-                  <TabsTrigger value="all">Todas</TabsTrigger>
-                  <TabsTrigger value="DESPESA">Despesas</TabsTrigger>
-                  <TabsTrigger value="RECEITA">Receitas</TabsTrigger>
+                <TabsList className="bg-gray-800 border border-gray-700">
+                  <TabsTrigger
+                    value="all"
+                    className="text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white"
+                  >
+                    Todas
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="DESPESA"
+                    className="text-gray-300 data-[state=active]:bg-red-600 data-[state=active]:text-white"
+                  >
+                    Despesas
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="RECEITA"
+                    className="text-gray-300 data-[state=active]:bg-green-600 data-[state=active]:text-white"
+                  >
+                    Receitas
+                  </TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
@@ -487,10 +516,7 @@ export default function CategoriasPage() {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ delay: index * 0.1 }}
               >
-                <Card
-                  className="group hover:shadow-lg transition-all duration-300 border-l-4"
-                  style={{ borderLeftColor: categoria.cor }}
-                >
+                <Card className="bg-gray-900 border-gray-800 group hover:border-gray-700 transition-all duration-300">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3 flex-1">
@@ -512,16 +538,16 @@ export default function CategoriasPage() {
                         </div>
 
                         <div className="flex-1">
-                          <h3 className="font-semibold text-lg">
+                          <h3 className="font-semibold text-lg text-white">
                             {categoria.nome}
                           </h3>
                           <Badge
-                            variant={
+                            variant="outline"
+                            className={`mt-1 ${
                               categoria.tipo === "RECEITA"
-                                ? "default"
-                                : "destructive"
-                            }
-                            className="mt-1"
+                                ? "bg-green-900/50 text-green-400 border-green-700"
+                                : "bg-red-900/50 text-red-400 border-red-700"
+                            }`}
                           >
                             {categoria.tipo === "RECEITA"
                               ? "Receita"
@@ -539,13 +565,14 @@ export default function CategoriasPage() {
                                 size="icon"
                                 onClick={() => {
                                   startEdit(categoria);
-                                  setIsSheetOpen(true); // 👈 abre o sheet já no modo de edição
+                                  setIsSheetOpen(true);
                                 }}
+                                className="text-gray-400 hover:text-white hover:bg-gray-800"
                               >
                                 <Edit3 className="w-4 h-4" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>
+                            <TooltipContent className="bg-gray-800 text-white border-gray-700">
                               <p>Editar categoria</p>
                             </TooltipContent>
                           </Tooltip>
@@ -554,23 +581,28 @@ export default function CategoriasPage() {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
+                              {/* 👈 Agora cada diálogo tem seu próprio estado de abertura */}
                               <Dialog
-                                open={isDialogOpen}
-                                onOpenChange={setIsDialogOpen}
+                                open={dialogAberto === categoria.id}
+                                onOpenChange={(open) =>
+                                  setDialogAberto(open ? categoria.id : null)
+                                }
                               >
                                 <DialogTrigger asChild>
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => setIsDialogOpen(true)}
+                                    className="text-gray-400 hover:text-red-400 hover:bg-gray-800"
                                   >
-                                    <Trash2 className="w-4 h-4 text-red-500" />
+                                    <Trash2 className="w-4 h-4" />
                                   </Button>
                                 </DialogTrigger>
-                                <DialogContent>
+                                <DialogContent className="bg-gray-900 border-gray-800 text-white">
                                   <DialogHeader>
-                                    <DialogTitle>Excluir Categoria</DialogTitle>
-                                    <DialogDescription>
+                                    <DialogTitle className="text-white">
+                                      Excluir Categoria
+                                    </DialogTitle>
+                                    <DialogDescription className="text-gray-400">
                                       Tem certeza que deseja excluir a categoria
                                       "{categoria.nome}"? Esta ação não pode ser
                                       desfeita.
@@ -579,22 +611,22 @@ export default function CategoriasPage() {
                                   <div className="flex gap-3 justify-end">
                                     <Button
                                       variant="outline"
-                                      onClick={() => setIsDialogOpen(false)} // 👈 fecha o diálogo
+                                      onClick={() => setDialogAberto(null)}
+                                      className="border-gray-700 text-gray-300 hover:bg-gray-800"
                                     >
                                       Cancelar
                                     </Button>
                                     <Button
                                       variant="destructive"
-                                    
                                       onClick={() => handleDelete(categoria.id)}
                                     >
-                                     Confirmar
+                                      Confirmar
                                     </Button>
                                   </div>
                                 </DialogContent>
                               </Dialog>
                             </TooltipTrigger>
-                            <TooltipContent>
+                            <TooltipContent className="bg-gray-800 text-white border-gray-700">
                               <p>Excluir categoria</p>
                             </TooltipContent>
                           </Tooltip>
@@ -615,13 +647,13 @@ export default function CategoriasPage() {
             animate={{ opacity: 1, scale: 1 }}
             className="text-center py-12"
           >
-            <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-              <Tag className="w-10 h-10 text-muted-foreground" />
+            <div className="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Tag className="w-10 h-10 text-gray-600" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">
+            <h3 className="text-lg font-semibold text-white mb-2">
               Nenhuma categoria encontrada
             </h3>
-            <p className="text-muted-foreground mb-6">
+            <p className="text-gray-400 mb-6">
               {searchTerm || tipoFiltro !== "all"
                 ? "Tente ajustar os filtros ou termos de busca"
                 : "Comece criando sua primeira categoria"}
@@ -629,15 +661,17 @@ export default function CategoriasPage() {
             {!searchTerm && tipoFiltro === "all" && (
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button className="gap-2">
+                  <Button className="bg-white text-gray-900 hover:bg-gray-100 gap-2">
                     <Plus className="w-4 h-4" />
                     Criar Primeira Categoria
                   </Button>
                 </SheetTrigger>
-                <SheetContent>
+                <SheetContent className="bg-gray-900 border-gray-800 text-white">
                   <SheetHeader>
-                    <SheetTitle>Nova Categoria</SheetTitle>
-                    <SheetDescription>
+                    <SheetTitle className="text-white">
+                      Nova Categoria
+                    </SheetTitle>
+                    <SheetDescription className="text-gray-400">
                       Crie sua primeira categoria para organizar seus
                       lançamentos
                     </SheetDescription>
@@ -645,7 +679,9 @@ export default function CategoriasPage() {
 
                   <form onSubmit={handleSubmit} className="space-y-6 mt-6">
                     <div className="space-y-2">
-                      <Label htmlFor="nome">Nome da Categoria</Label>
+                      <Label htmlFor="nome" className="text-white">
+                        Nome da Categoria
+                      </Label>
                       <Input
                         id="nome"
                         value={formData.nome}
@@ -653,22 +689,25 @@ export default function CategoriasPage() {
                           setFormData({ ...formData, nome: e.target.value })
                         }
                         placeholder="Ex: Alimentação, Transporte, Salário..."
+                        className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
                         required
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="tipo">Tipo</Label>
+                      <Label htmlFor="tipo" className="text-white">
+                        Tipo
+                      </Label>
                       <Select
                         value={formData.tipo}
                         onValueChange={(value: "DESPESA" | "RECEITA") =>
                           setFormData({ ...formData, tipo: value })
                         }
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-gray-800 border-gray-700 text-white">
                           <SelectItem value="DESPESA">Despesa</SelectItem>
                           <SelectItem value="RECEITA">Receita</SelectItem>
                         </SelectContent>
@@ -676,7 +715,7 @@ export default function CategoriasPage() {
                     </div>
 
                     <div className="space-y-3">
-                      <Label>Cor de Identificação</Label>
+                      <Label className="text-white">Cor de Identificação</Label>
                       <div className="grid grid-cols-5 gap-2">
                         {coresPredefinidas.map((cor) => (
                           <button
@@ -685,8 +724,8 @@ export default function CategoriasPage() {
                             onClick={() => setFormData({ ...formData, cor })}
                             className={`w-8 h-8 rounded-lg border-2 transition-all hover:scale-110 ${
                               formData.cor === cor
-                                ? "border-primary ring-2 ring-primary/20"
-                                : "border-muted"
+                                ? "border-white ring-2 ring-white/20"
+                                : "border-gray-700"
                             }`}
                             style={{ backgroundColor: cor }}
                           />
@@ -694,7 +733,10 @@ export default function CategoriasPage() {
                       </div>
                     </div>
 
-                    <Button type="submit" className="w-full">
+                    <Button
+                      type="submit"
+                      className="w-full bg-white text-gray-900 hover:bg-gray-100"
+                    >
                       Criar Categoria
                     </Button>
                   </form>

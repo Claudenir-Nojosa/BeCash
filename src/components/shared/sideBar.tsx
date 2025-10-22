@@ -20,6 +20,7 @@ import {
   Pointer,
   ReceiptCent,
   Coins,
+  Target,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSession, signOut } from "next-auth/react";
@@ -57,7 +58,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     if (isCollapsed !== null) {
       const stateToSave = {
         isCollapsed,
-        openSubmenus: { lancamentos: false }, // Mantemos compatibilidade
+        openSubmenus: { lancamentos: false },
       };
       localStorage.setItem("sidebarState", JSON.stringify(stateToSave));
     }
@@ -93,13 +94,13 @@ export default function Sidebar({ onClose }: SidebarProps) {
   return (
     <div
       className={`
-        flex flex-col h-full bg-gray-950 border-r border-blue-900/30
+        flex flex-col h-full bg-gradient-to-b from-gray-900 to-gray-950 border-r border-gray-800
         ${isCollapsed ? "w-20" : "w-64"} 
         transition-all duration-300
       `}
     >
       {/* Topo da Sidebar */}
-      <div className="flex items-center justify-between p-4 border-b border-blue-900/30">
+      <div className="flex items-center justify-between p-4 border-b border-gray-800">
         {!isCollapsed && (
           <div className="flex items-center space-x-3">
             <Image
@@ -118,7 +119,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="lg:hidden hover:bg-blue-900/20 text-blue-200 h-10 w-10"
+            className="lg:hidden hover:bg-gray-800 text-gray-300 h-10 w-10"
           >
             <X className="h-5 w-5" />
           </Button>
@@ -127,7 +128,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
             variant="ghost"
             size="icon"
             onClick={toggleSidebar}
-            className="hidden lg:flex hover:bg-blue-900/20 text-blue-200 h-10 w-10"
+            className="hidden lg:flex hover:bg-gray-800 text-gray-300 h-10 w-10"
           >
             <Menu className="h-5 w-5" />
           </Button>
@@ -142,73 +143,69 @@ export default function Sidebar({ onClose }: SidebarProps) {
             <Link
               href="/dashboard"
               className={`
-                flex items-center rounded-lg hover:bg-blue-900/20 text-blue-100 transition-colors
+                flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard") ? "bg-blue-900/30 text-white" : ""}
+                ${isActiveRoute("/dashboard") ? "bg-gray-800 text-white border-l-2 border-gray-700" : ""}
               `}
               onClick={handleLinkClick}
             >
-              <Home className="h-6 w-6" />
+              <Home className="h-5 w-5" />
               {!isCollapsed && (
-                <span className="ml-4 text-base">Página Inicial</span>
+                <span className="ml-4 text-sm font-medium">Página Inicial</span>
               )}
             </Link>
           </li>
 
-          {/* MOBILE: Lançamentos como itens separados */}
-          {isMobile ? (
-            <>
-              <li>
-                <Link
-                  href="/dashboard/lancamentos"
-                  className={`
-                    flex items-center rounded-lg hover:bg-blue-900/20 text-blue-100 transition-colors
-                    ${isCollapsed ? "justify-center p-4" : "p-4"}
-                    ${isActiveRoute("/dashboard/lancamentos/") ? "bg-blue-900/30 text-white" : ""}
-                  `}
-                  onClick={handleLinkClick}
-                >
-                  <HandCoins className="h-6 w-6" />
-                  {!isCollapsed && (
-                    <span className="ml-4 text-base">Lançamentos</span>
-                  )}
-                </Link>
-              </li>
-            </>
-          ) : (
-            /* DESKTOP: Lançamentos como submenu */
-            <li>
-              <Link
-                href="/dashboard/lancamentos"
-                className={`
-                  flex items-center rounded-lg hover:bg-blue-900/20 text-blue-100 transition-colors
-                  ${isCollapsed ? "justify-center p-4" : "p-4"}
-                  ${pathname.includes("/dashboard/lancamentos") ? "bg-blue-900/30 text-white" : ""}
-                `}
-                onClick={handleLinkClick}
-              >
-                <HandCoins className="h-6 w-6" />
-                {!isCollapsed && (
-                  <span className="ml-4 text-base">Lançamentos</span>
-                )}
-              </Link>
-            </li>
-          )}
+          {/* Lançamentos */}
+          <li>
+            <Link
+              href="/dashboard/lancamentos"
+              className={`
+                flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
+                ${isCollapsed ? "justify-center p-4" : "p-4"}
+                ${pathname.includes("/dashboard/lancamentos") ? "bg-gray-800 text-white border-l-2 border-blue-500" : ""}
+              `}
+              onClick={handleLinkClick}
+            >
+              <HandCoins className="h-5 w-5" />
+              {!isCollapsed && (
+                <span className="ml-4 text-sm font-medium">Lançamentos</span>
+              )}
+            </Link>
+          </li>
+
+          {/* Limites */}
+          <li>
+            <Link
+              href="/dashboard/limites"
+              className={`
+                flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
+                ${isCollapsed ? "justify-center p-4" : "p-4"}
+                ${isActiveRoute("/dashboard/limites") ? "bg-gray-800 text-white border-l-2 border-blue-500" : ""}
+              `}
+              onClick={handleLinkClick}
+            >
+              <Target className="h-5 w-5" />
+              {!isCollapsed && (
+                <span className="ml-4 text-sm font-medium">Limites</span>
+              )}
+            </Link>
+          </li>
 
           {/* Relatórios */}
           <li>
             <Link
               href="/dashboard/relatorios"
               className={`
-                flex items-center rounded-lg hover:bg-blue-900/20 text-blue-100 transition-colors
+                flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/relatorios") ? "bg-blue-900/30 text-white" : ""}
+                ${isActiveRoute("/dashboard/relatorios") ? "bg-gray-800 text-white border-l-2 border-blue-500" : ""}
               `}
               onClick={handleLinkClick}
             >
-              <ChartNoAxesColumnIncreasing className="h-6 w-6" />
+              <ChartNoAxesColumnIncreasing className="h-5 w-5" />
               {!isCollapsed && (
-                <span className="ml-4 text-base">Relatórios</span>
+                <span className="ml-4 text-sm font-medium">Relatórios</span>
               )}
             </Link>
           </li>
@@ -218,30 +215,33 @@ export default function Sidebar({ onClose }: SidebarProps) {
             <Link
               href="/dashboard/cartoes"
               className={`
-                flex items-center rounded-lg hover:bg-blue-900/20 text-blue-100 transition-colors
+                flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/cartoes") ? "bg-blue-900/30 text-white" : ""}
+                ${isActiveRoute("/dashboard/cartoes") ? "bg-gray-800 text-white border-l-2 border-blue-500" : ""}
               `}
               onClick={handleLinkClick}
             >
-              <CreditCard className="h-6 w-6" />
-              {!isCollapsed && <span className="ml-4 text-base">Cartões</span>}
+              <CreditCard className="h-5 w-5" />
+              {!isCollapsed && (
+                <span className="ml-4 text-sm font-medium">Cartões</span>
+              )}
             </Link>
           </li>
+
           {/* Categorias */}
           <li>
             <Link
               href="/dashboard/lancamentos/categorias"
               className={`
-                flex items-center rounded-lg hover:bg-blue-900/20 text-blue-100 transition-colors
+                flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/lancamentos/categorias") ? "bg-blue-900/30 text-white" : ""}
+                ${isActiveRoute("/dashboard/lancamentos/categorias") ? "bg-gray-800 text-white border-l-2 border-blue-500" : ""}
               `}
               onClick={handleLinkClick}
             >
-              <CreditCard className="h-6 w-6" />
+              <ReceiptCent className="h-5 w-5" />
               {!isCollapsed && (
-                <span className="ml-4 text-base">Categorias</span>
+                <span className="ml-4 text-sm font-medium">Categorias</span>
               )}
             </Link>
           </li>
@@ -251,14 +251,16 @@ export default function Sidebar({ onClose }: SidebarProps) {
             <Link
               href="/dashboard/pontos"
               className={`
-                flex items-center rounded-lg hover:bg-blue-900/20 text-blue-100 transition-colors
+                flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/pontos") ? "bg-blue-900/30 text-white" : ""}
+                ${isActiveRoute("/dashboard/pontos") ? "bg-gray-800 text-white border-l-2 border-blue-500" : ""}
               `}
               onClick={handleLinkClick}
             >
-              <Coins className="h-6 w-6" />
-              {!isCollapsed && <span className="ml-4 text-base">Pontos</span>}
+              <Coins className="h-5 w-5" />
+              {!isCollapsed && (
+                <span className="ml-4 text-sm font-medium">Pontos</span>
+              )}
             </Link>
           </li>
 
@@ -267,14 +269,16 @@ export default function Sidebar({ onClose }: SidebarProps) {
             <Link
               href="/dashboard/metas"
               className={`
-                flex items-center rounded-lg hover:bg-blue-900/20 text-blue-100 transition-colors
+                flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/metas") ? "bg-blue-900/30 text-white" : ""}
+                ${isActiveRoute("/dashboard/metas") ? "bg-gray-800 text-white border-l-2 border-blue-500" : ""}
               `}
               onClick={handleLinkClick}
             >
-              <Goal className="h-6 w-6" />
-              {!isCollapsed && <span className="ml-4 text-base">Metas</span>}
+              <Goal className="h-5 w-5" />
+              {!isCollapsed && (
+                <span className="ml-4 text-sm font-medium">Metas</span>
+              )}
             </Link>
           </li>
 
@@ -283,21 +287,23 @@ export default function Sidebar({ onClose }: SidebarProps) {
             <Link
               href="/dashboard/bicla"
               className={`
-                flex items-center rounded-lg hover:bg-blue-900/20 text-blue-100 transition-colors
+                flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/bicla") ? "bg-blue-900/30 text-white" : ""}
+                ${isActiveRoute("/dashboard/bicla") ? "bg-gray-800 text-white border-l-2 border-blue-500" : ""}
               `}
               onClick={handleLinkClick}
             >
-              <WandSparkles className="h-6 w-6" />
-              {!isCollapsed && <span className="ml-4 text-base">Bicla</span>}
+              <WandSparkles className="h-5 w-5" />
+              {!isCollapsed && (
+                <span className="ml-4 text-sm font-medium">Bicla</span>
+              )}
             </Link>
           </li>
         </ul>
       </nav>
 
       {/* Rodapé da Sidebar */}
-      <div className="p-4 border-t border-blue-900/30">
+      <div className="p-4 border-t border-gray-800">
         <div className="space-y-3">
           {/* Perfil do Usuário */}
           <div
@@ -306,21 +312,21 @@ export default function Sidebar({ onClose }: SidebarProps) {
               ${isCollapsed ? "justify-center" : ""}
             `}
           >
-            <Avatar className="h-10 w-10">
+            <Avatar className="h-8 w-8 border border-gray-700">
               <AvatarImage
                 src={session?.user?.image || ""}
                 alt={session?.user?.name || "Usuário"}
               />
-              <AvatarFallback className="bg-blue-800 text-blue-200 text-base">
+              <AvatarFallback className="bg-gray-800 text-gray-300 text-sm">
                 {getInitials(session?.user?.name)}
               </AvatarFallback>
             </Avatar>
             {!isCollapsed && (
               <div className="ml-3 min-w-0 flex-1">
-                <p className="text-base font-medium text-blue-300 truncate">
+                <p className="text-sm font-medium text-white truncate">
                   {session?.user?.name}
                 </p>
-                <p className="text-sm text-blue-100 truncate">
+                <p className="text-xs text-gray-400 truncate">
                   {session?.user?.email}
                 </p>
               </div>
@@ -331,13 +337,13 @@ export default function Sidebar({ onClose }: SidebarProps) {
           <Button
             variant="ghost"
             className={`
-              w-full rounded-lg hover:bg-blue-900/20 text-blue-100 hover:text-blue-100 transition-colors
+              w-full rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition-all duration-200
               ${isCollapsed ? "justify-center p-3" : "justify-start p-3"}
             `}
             onClick={() => signOut()}
           >
-            <LogOut className="h-5 w-5" />
-            {!isCollapsed && <span className="ml-3 text-base">Sair</span>}
+            <LogOut className="h-4 w-4" />
+            {!isCollapsed && <span className="ml-3 text-sm">Sair</span>}
           </Button>
         </div>
       </div>

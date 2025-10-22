@@ -12,12 +12,12 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="flex h-screen bg-gray-950 overflow-hidden">
       <SessionProvider>
         {/* Overlay para mobile */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            className="fixed inset-0 bg-black/70 z-40 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
@@ -34,19 +34,19 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
 
         {/* Conteúdo principal */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
           {/* Header mobile */}
-          <header className="lg:hidden flex items-center justify-between p-4 border-b bg-background sticky top-0 z-30">
+          <header className="lg:hidden flex items-center justify-between p-4 border-b border-gray-800 bg-gray-900 sticky top-0 z-30">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden"
+              className="lg:hidden text-gray-300 hover:bg-gray-800 hover:text-white"
             >
               <Menu className="h-5 w-5" />
             </Button>
             <div className="flex-1 text-center">
-              <h1 className="text-lg font-semibold">BeCash</h1>
+              <h1 className="text-lg font-semibold text-white">BeCash</h1>
             </div>
             <div className="w-9">
               <ThemeToggle />

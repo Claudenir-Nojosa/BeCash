@@ -47,6 +47,10 @@ model User {
   lancamentosCompartilhadosRecebidos LancamentoCompartilhado[] @relation("LancamentosCompartilhadosRecebidos")
 
   Lancamento Lancamento[] @relation("LancamentosCompartilhadosCriados")
+
+  MetaPessoal MetaPessoal[]
+
+  LimiteCategoria LimiteCategoria[]
 }
 
 model Account {
@@ -302,6 +306,7 @@ model Categoria {
   lancamentos Lancamento[]
 
   @@unique([nome, userId, tipo])
+  LimiteCategoria LimiteCategoria[]
 }
 
 model Cartao {
@@ -413,4 +418,40 @@ enum StatusLancamentoCompartilhado {
   ACEITO
   RECUSADO
   CANCELADO
+}
+
+model MetaPessoal {
+  id          String   @id @default(cuid())
+  titulo      String
+  descricao   String?
+  valorAlvo   Float
+  valorAtual  Float    @default(0)
+  dataAlvo    DateTime
+  categoria   String   // Ex: "Viagem", "Eletrônicos", "Emergência", "Investimento"
+  cor         String   @default("#3B82F6")
+  icone       String   @default("🎯")
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// Modelo para Limites de Categoria
+model LimiteCategoria {
+  id            String   @id @default(cuid())
+  categoriaId   String
+  limiteMensal  Float
+  gastoAtual    Float    @default(0)
+  mesReferencia String   // Formato: "YYYY-MM"
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  categoria Categoria @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
+
+  @@unique([categoriaId, mesReferencia, userId])
+  @@index([userId, mesReferencia])
 }
