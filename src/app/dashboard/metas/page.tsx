@@ -55,10 +55,12 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { MetaPessoal } from "../../../../types/dashboard";
+import { UploadImage } from "@/components/shared/upload-image";
 
 export default function MetasPage() {
   const router = useRouter();
   const [metas, setMetas] = useState<MetaPessoal[]>([]);
+  const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [dialogAberto, setDialogAberto] = useState<string | null>(null);
@@ -76,6 +78,7 @@ export default function MetasPage() {
     categoria: "",
     cor: "#3B82F6",
     icone: "🏠",
+    imagemUrl: "",
   });
 
   const coresPredefinidas = [
@@ -171,6 +174,7 @@ export default function MetasPage() {
         categoria: "",
         cor: "#3B82F6",
         icone: "🏠",
+        imagemUrl: "",
       });
       setEditandoMeta(null);
       carregarMetas();
@@ -196,6 +200,7 @@ export default function MetasPage() {
       categoria: meta.categoria,
       cor: meta.cor || "#3B82F6",
       icone: meta.icone || "🏠",
+      imagemUrl: meta.imagemUrl || "", // 👈 NOVO
     });
     setIsSheetOpen(true);
   };
@@ -315,6 +320,7 @@ export default function MetasPage() {
                       categoria: "",
                       cor: "#3B82F6",
                       icone: "🏠",
+                      imagemUrl: "",
                     });
                   }}
                 >
@@ -494,7 +500,14 @@ export default function MetasPage() {
                       ))}
                     </div>
                   </div>
-
+                  <div className="space-y-2">
+                    <UploadImage
+                      onImageChange={(url) =>
+                        setFormData({ ...formData, imagemUrl: url || "" })
+                      }
+                      currentImage={formData.imagemUrl}
+                    />
+                  </div>
                   <div className="flex gap-3 pt-4">
                     <Button
                       type="submit"
@@ -518,6 +531,7 @@ export default function MetasPage() {
                             categoria: "",
                             cor: "#3B82F6",
                             icone: "🏠",
+                            imagemUrl: "", // 👈 ADICIONE ESTA LINHA
                           });
                         }}
                         className="border-gray-700 text-gray-300 hover:bg-gray-800"
@@ -577,6 +591,20 @@ export default function MetasPage() {
                   key={meta.id}
                   className="bg-gray-900 border-gray-800 group hover:border-gray-700 transition-colors"
                 >
+                  {" "}
+                  {/* Imagem de capa */}
+                  {meta.imagemUrl && (
+                    <div
+                      className="w-full h-32 overflow-hidden cursor-pointer"
+                      onClick={() => setFotoAmpliada(meta.imagemUrl!)}
+                    >
+                      <img
+                        src={meta.imagemUrl}
+                        alt={meta.titulo}
+                        className="w-full h-full object-cover transition-transform hover:scale-105"
+                      />
+                    </div>
+                  )}
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2">
@@ -828,6 +856,17 @@ export default function MetasPage() {
           )}
         </div>
       </div>
+      <Dialog open={!!fotoAmpliada} onOpenChange={() => setFotoAmpliada(null)}>
+        <DialogContent className="max-w-4xl bg-black border-0 p-0 overflow-hidden">
+          <div className="relative">
+            <img
+              src={fotoAmpliada || ""}
+              alt="Capa da meta"
+              className="w-full h-auto max-h-[80vh] object-contain"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

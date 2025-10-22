@@ -13,7 +13,7 @@ export async function PUT(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const { id } = await params; // Adicionar await aqui
+    const { id } = await params;
     const body = await request.json();
     const {
       titulo,
@@ -24,12 +24,13 @@ export async function PUT(
       categoria,
       cor,
       icone,
+      imagemUrl, // 👈 ADICIONE ESTE CAMPO
     } = body;
 
     // Verificar se a meta pertence ao usuário
     const metaExistente = await db.metaPessoal.findFirst({
       where: {
-        id: id, // Usar id desestruturado
+        id: id,
         userId: session.user.id,
       },
     });
@@ -64,10 +65,11 @@ export async function PUT(
       updateData.categoria = categoria;
       updateData.cor = cor || "#3B82F6";
       updateData.icone = icone || "🏠";
+      updateData.imagemUrl = imagemUrl || null; // 👈 ADICIONE ESTE CAMPO
     }
 
     const meta = await db.metaPessoal.update({
-      where: { id: id }, // Usar id desestruturado
+      where: { id: id },
       data: updateData,
     });
 
@@ -91,12 +93,12 @@ export async function DELETE(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const { id } = await params; // Adicionar await aqui
+    const { id } = await params;
 
     // Verificar se a meta pertence ao usuário
     const metaExistente = await db.metaPessoal.findFirst({
       where: {
-        id: id, // Usar id desestruturado
+        id: id,
         userId: session.user.id,
       },
     });
@@ -109,7 +111,7 @@ export async function DELETE(
     }
 
     await db.metaPessoal.delete({
-      where: { id: id }, // Usar id desestruturado
+      where: { id: id },
     });
 
     return NextResponse.json({ message: "Meta excluída com sucesso" });

@@ -35,8 +35,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { titulo, descricao, valorAlvo, dataAlvo, categoria, cor, icone } =
-      body;
+    const {
+      titulo,
+      descricao,
+      valorAlvo,
+      valorAtual,
+      dataAlvo,
+      categoria,
+      cor,
+      icone,
+      imagemUrl, // 👈 ADICIONE ESTE CAMPO
+    } = body;
 
     if (!titulo || !valorAlvo || !dataAlvo || !categoria) {
       return NextResponse.json(
@@ -57,10 +66,12 @@ export async function POST(request: NextRequest) {
         titulo,
         descricao: descricao || null,
         valorAlvo: parseFloat(valorAlvo),
+        valorAtual: parseFloat(valorAtual) || 0,
         dataAlvo: new Date(dataAlvo),
         categoria,
         cor: cor || "#3B82F6",
         icone: icone || "🎯",
+        imagemUrl: imagemUrl || null, // 👈 ADICIONE ESTE CAMPO
         userId: session.user.id,
       },
     });

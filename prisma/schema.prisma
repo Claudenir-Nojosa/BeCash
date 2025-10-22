@@ -427,9 +427,10 @@ model MetaPessoal {
   valorAlvo   Float
   valorAtual  Float    @default(0)
   dataAlvo    DateTime
-  categoria   String   // Ex: "Viagem", "Eletrônicos", "Emergência", "Investimento"
+  categoria   String
   cor         String   @default("#3B82F6")
   icone       String   @default("🎯")
+  imagemUrl   String?  // 👈 NOVO CAMPO
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())

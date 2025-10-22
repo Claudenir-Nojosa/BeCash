@@ -17,6 +17,7 @@ export interface MetaPessoal {
   categoria: string;
   cor: string;
   icone: string;
+  imagemUrl?: string; // 👈 ADICIONE ESTA LINHA
   userId: string;
   createdAt: Date;
   updatedAt: Date;
