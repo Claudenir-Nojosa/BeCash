@@ -61,6 +61,7 @@ interface Categoria {
 export default function LimitesPage() {
   const router = useRouter();
   const [limites, setLimites] = useState<LimiteCategoria[]>([]);
+  const [dropdownAberto, setDropdownAberto] = useState<string | null>(null);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [editando, setEditando] = useState<string | null>(null);
@@ -95,160 +96,158 @@ export default function LimitesPage() {
     carregarDados();
   }, []);
 
- const carregarDados = async () => {
-  try {
-    setCarregando(true);
-    const [limitesRes, categoriasRes] = await Promise.all([
-      fetch("/api/dashboard/limites"),
-      fetch("/api/categorias?tipo=DESPESA"),
-    ]);
+  const carregarDados = async () => {
+    try {
+      setCarregando(true);
+      const [limitesRes, categoriasRes] = await Promise.all([
+        fetch("/api/dashboard/limites"),
+        fetch("/api/categorias?tipo=DESPESA"),
+      ]);
 
-    if (!limitesRes.ok || !categoriasRes.ok) {
-      throw new Error("Erro ao carregar dados");
+      if (!limitesRes.ok || !categoriasRes.ok) {
+        throw new Error("Erro ao carregar dados");
+      }
+
+      const [limitesData, categoriasData] = await Promise.all([
+        limitesRes.json(),
+        categoriasRes.json(),
+      ]);
+
+      setLimites(limitesData);
+      setCategorias(categoriasData);
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
+      toast.error("Erro ao carregar limites e categorias");
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  const salvarLimite = async (categoriaId: string) => {
+    if (!novoLimite || parseFloat(novoLimite) <= 0) {
+      toast.error("Digite um valor válido");
+      return;
     }
 
-    const [limitesData, categoriasData] = await Promise.all([
-      limitesRes.json(),
-      categoriasRes.json(),
-    ]);
+    setSalvando(categoriaId);
 
-    setLimites(limitesData);
-    setCategorias(categoriasData);
-  } catch (error) {
-    console.error("Erro ao carregar dados:", error);
-    toast.error("Erro ao carregar limites e categorias");
-  } finally {
-    setCarregando(false);
-  }
-};
+    try {
+      const response = await fetch("/api/dashboard/limites", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          categoriaId,
+          limiteMensal: parseFloat(novoLimite),
+        }),
+      });
 
-const salvarLimite = async (categoriaId: string) => {
-  if (!novoLimite || parseFloat(novoLimite) <= 0) {
-    toast.error("Digite um valor válido");
-    return;
-  }
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Erro ao salvar limite");
+      }
 
-  setSalvando(categoriaId);
+      const limiteSalvo = await response.json();
 
-  try {
-    const response = await fetch("/api/dashboard/limites", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        categoriaId,
-        limiteMensal: parseFloat(novoLimite),
-      }),
-    });
+      // Adiciona o novo limite à lista sem recarregar
+      setLimites((prev) => [...prev, limiteSalvo]);
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Erro ao salvar limite");
+      toast.success("Limite definido com sucesso");
+      setEditando(null);
+      setNovoLimite("");
+    } catch (error) {
+      console.error("Erro ao salvar limite:", error);
+      toast.error("Erro ao salvar limite");
+      // Em caso de erro, recarrega os dados
+      carregarDados();
+    } finally {
+      setSalvando(null);
     }
-
-    const limiteSalvo = await response.json();
-    
-    // Adiciona o novo limite à lista sem recarregar
-    setLimites(prev => [...prev, limiteSalvo]);
-    
-    toast.success("Limite definido com sucesso");
-    setEditando(null);
-    setNovoLimite("");
-  } catch (error) {
-    console.error("Erro ao salvar limite:", error);
-    toast.error("Erro ao salvar limite");
-    // Em caso de erro, recarrega os dados
-    carregarDados();
-  } finally {
-    setSalvando(null);
-  }
-};
+  };
 
   // No seu componente, atualize as funções:
 
-const ajustarLimite = async (limiteId: string, novoValor: number) => {
-  if (!novoValor || novoValor <= 0) {
-    toast.error("Digite um valor válido");
-    return;
-  }
-
-  setSalvando(limiteId);
-
-  try {
-    const response = await fetch(`/api/dashboard/limites/${limiteId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        limiteMensal: novoValor,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Erro ao ajustar limite");
+  const ajustarLimite = async (limiteId: string, novoValor: number) => {
+    if (!novoValor || novoValor <= 0) {
+      toast.error("Digite um valor válido");
+      return;
     }
 
-    const limiteAtualizado = await response.json();
-    
-    // Atualiza o limite na lista sem recarregar
-    setLimites(prev => 
-      prev.map(limite => 
-        limite.id === limiteId ? limiteAtualizado : limite
-      )
-    );
-    
-    toast.success("Limite ajustado com sucesso");
-    setEditando(null);
-    setNovoLimite("");
-  } catch (error) {
-    console.error("Erro ao ajustar limite:", error);
-    toast.error("Erro ao ajustar limite");
-    // Em caso de erro, recarrega os dados
-    carregarDados();
-  } finally {
-    setSalvando(null);
-  }
-};
+    setSalvando(limiteId);
 
-const excluirLimite = async (limiteId: string) => {
-  setExcluindoLimite(limiteId);
-  
-  // Salva o limite para possível rollback
-  const limiteParaExcluir = limites.find(limite => limite.id === limiteId);
-  
-  try {
-    // Remove da lista imediatamente
-    setLimites(prev => prev.filter(limite => limite.id !== limiteId));
-    setDialogExclusaoAberto(null);
-    
-    const response = await fetch(`/api/dashboard/limites/${limiteId}`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    try {
+      const response = await fetch(`/api/dashboard/limites/${limiteId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          limiteMensal: novoValor,
+        }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Erro ao excluir limite");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Erro ao ajustar limite");
+      }
+
+      const limiteAtualizado = await response.json();
+
+      // Atualiza o limite na lista sem recarregar
+      setLimites((prev) =>
+        prev.map((limite) =>
+          limite.id === limiteId ? limiteAtualizado : limite
+        )
+      );
+
+      toast.success("Limite ajustado com sucesso");
+      setEditando(null);
+      setNovoLimite("");
+    } catch (error) {
+      console.error("Erro ao ajustar limite:", error);
+      toast.error("Erro ao ajustar limite");
+      // Em caso de erro, recarrega os dados
+      carregarDados();
+    } finally {
+      setSalvando(null);
     }
+  };
 
-    toast.success("Limite excluído com sucesso");
-  } catch (error) {
-    console.error("Erro ao excluir limite:", error);
-    toast.error("Erro ao excluir limite");
-    
-    // Reverte se der erro
-    if (limiteParaExcluir) {
-      setLimites(prev => [...prev, limiteParaExcluir]);
+  const excluirLimite = async (limiteId: string) => {
+    setExcluindoLimite(limiteId);
+
+    const limiteParaExcluir = limites.find((limite) => limite.id === limiteId);
+
+    try {
+      // Fecha o dialog primeiro
+      setDialogExclusaoAberto(null);
+
+      // Remove da lista
+      setLimites((prev) => prev.filter((limite) => limite.id !== limiteId));
+
+      const response = await fetch(`/api/dashboard/limites/${limiteId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Erro ao excluir limite");
+      }
+
+      toast.success("Limite excluído com sucesso");
+    } catch (error) {
+      console.error("Erro ao excluir limite:", error);
+      toast.error("Erro ao excluir limite");
+
+      // Reverte se der erro
+      if (limiteParaExcluir) {
+        setLimites((prev) => [...prev, limiteParaExcluir]);
+      }
+    } finally {
+      setExcluindoLimite(null);
     }
-  } finally {
-    setExcluindoLimite(null);
-  }
-};
+  };
 
   const formatarMoeda = (valor: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -310,6 +309,9 @@ const excluirLimite = async (limiteId: string) => {
     ];
     return mesesAbreviados[Number(mes) - 1] || "Mês";
   };
+
+  console.log("Estado editando:", editando);
+  console.log("Estado dialogExclusaoAberto:", dialogExclusaoAberto);
 
   return (
     <div className="min-h-screen p-6">
@@ -510,40 +512,54 @@ const excluirLimite = async (limiteId: string) => {
                         </div>
                       </div>
 
-                      {/* Menu de três pontos */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-800"
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                          align="end"
-                          className="bg-gray-800 border-gray-700 text-white"
-                        >
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setEditando(limite.id);
-                              setNovoLimite(limite.limiteMensal.toString());
-                            }}
-                            className="flex items-center gap-2 hover:bg-gray-700 cursor-pointer"
-                          >
-                            <Edit className="h-4 w-4" />
-                            Ajustar Limite
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setDialogExclusaoAberto(limite.id)}
-                            className="flex items-center gap-2 text-red-400 hover:bg-red-950 hover:text-red-300 cursor-pointer"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Excluir Limite
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                    {/* Menu de três pontos */}
+<DropdownMenu 
+  open={dropdownAberto === limite.id} 
+  onOpenChange={(open) => {
+    if (!open) {
+      setDropdownAberto(null);
+    }
+  }}
+>
+  <DropdownMenuTrigger asChild>
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => setDropdownAberto(limite.id)}
+      className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-800"
+    >
+      <MoreVertical className="h-4 w-4" />
+    </Button>
+  </DropdownMenuTrigger>
+  <DropdownMenuContent
+    align="end"
+    className="bg-gray-800 border-gray-700 text-white"
+    onInteractOutside={() => setDropdownAberto(null)}
+    onEscapeKeyDown={() => setDropdownAberto(null)}
+  >
+    <DropdownMenuItem
+      onClick={() => {
+        setEditando(limite.id);
+        setNovoLimite(limite.limiteMensal.toString());
+        setDropdownAberto(null); // 👈 FECHA O DROPDOWN
+      }}
+      className="flex items-center gap-2 hover:bg-gray-700 cursor-pointer"
+    >
+      <Edit className="h-4 w-4" />
+      Ajustar Limite
+    </DropdownMenuItem>
+    <DropdownMenuItem
+      onClick={() => {
+        setDialogExclusaoAberto(limite.id);
+        setDropdownAberto(null); // 👈 FECHA O DROPDOWN
+      }}
+      className="flex items-center gap-2 text-red-400 hover:bg-red-950 hover:text-red-300 cursor-pointer"
+    >
+      <Trash2 className="h-4 w-4" />
+      Excluir Limite
+    </DropdownMenuItem>
+  </DropdownMenuContent>
+</DropdownMenu>
                     </div>
 
                     {/* Modal de edição inline */}
@@ -692,7 +708,11 @@ const excluirLimite = async (limiteId: string) => {
       {/* Dialog de Confirmação de Exclusão */}
       <Dialog
         open={!!dialogExclusaoAberto}
-        onOpenChange={() => setDialogExclusaoAberto(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDialogExclusaoAberto(null);
+          }
+        }}
       >
         <DialogContent className="bg-gray-900 border-gray-800 text-white">
           <DialogHeader>
