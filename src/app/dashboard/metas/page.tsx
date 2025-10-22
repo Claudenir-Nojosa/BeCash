@@ -132,8 +132,17 @@ export default function MetasPage() {
   };
 
   const excluirMeta = async (id: string) => {
-    setExcluindo(id); // 👈 ADICIONE ESTA LINHA
+    setExcluindo(id);
+
+    // Salva a meta para possível rollback
+    const metaParaExcluir = metas.find((meta) => meta.id === id);
+
     try {
+      // Exclusão otimista - remove da UI imediatamente
+      setMetas((prev) => prev.filter((meta) => meta.id !== id));
+      setDialogAberto(null);
+
+      // Faz a exclusão real no banco
       const response = await fetch(`/api/dashboard/metas/${id}`, {
         method: "DELETE",
       });
@@ -141,37 +150,60 @@ export default function MetasPage() {
       if (!response.ok) throw new Error("Erro ao excluir meta");
 
       toast.success("Meta excluída com sucesso");
-      setDialogAberto(null);
-      carregarMetas();
     } catch (error) {
       console.error("Erro ao excluir meta:", error);
+
+      // Revert se der erro - adiciona a meta de volta
+      if (metaParaExcluir) {
+        setMetas((prev) => [...prev, metaParaExcluir]);
+      }
+
       toast.error("Erro ao excluir meta");
     } finally {
-      setExcluindo(null); // 👈 ADICIONE ESTA LINHA
+      setExcluindo(null);
     }
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setEnviando(true); // 👈 ADICIONE ESTA LINHA
+    setEnviando(true);
 
-    const url = editandoMeta
-      ? `/api/dashboard/metas/${editandoMeta.id}`
-      : "/api/dashboard/metas";
+    try {
+      const url = editandoMeta
+        ? `/api/dashboard/metas/${editandoMeta.id}`
+        : "/api/dashboard/metas";
 
-    const method = editandoMeta ? "PUT" : "POST";
+      const method = editandoMeta ? "PUT" : "POST";
 
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...formData,
-        valorAlvo: parseFloat(formData.valorAlvo),
-        valorAtual: parseFloat(formData.valorAtual),
-      }),
-    });
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          valorAlvo: parseFloat(formData.valorAlvo),
+          valorAtual: parseFloat(formData.valorAtual),
+        }),
+      });
 
-    if (res.ok) {
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Erro ao salvar meta");
+      }
+
+      const metaSalva = await res.json();
+      console.log("Meta salva:", metaSalva);
+
+      if (editandoMeta) {
+        // Atualização otimista
+        setMetas((prev) =>
+          prev.map((meta) => (meta.id === editandoMeta.id ? metaSalva : meta))
+        );
+        toast.success("Meta atualizada com sucesso!");
+      } else {
+        // Criação otimista
+        setMetas((prev) => [...prev, metaSalva]);
+        toast.success("Meta criada com sucesso!");
+      }
+
       setFormData({
         titulo: "",
         descricao: "",
@@ -184,18 +216,15 @@ export default function MetasPage() {
         imagemUrl: "",
       });
       setEditandoMeta(null);
-      carregarMetas();
       setIsSheetOpen(false);
-      toast.success(
-        editandoMeta
-          ? "Meta atualizada com sucesso!"
-          : "Meta criada com sucesso!"
-      );
-    } else {
+    } catch (error) {
+      console.error("Erro ao salvar meta:", error);
       toast.error("Erro ao salvar meta.");
+      // Em caso de erro, recarrega os dados do servidor
+      carregarMetas();
+    } finally {
+      setEnviando(false);
     }
-
-    setEnviando(false); // 👈 ADICIONE ESTA LINHA
   };
 
   const startEdit = (meta: MetaPessoal) => {

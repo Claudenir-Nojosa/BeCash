@@ -71,7 +71,9 @@ interface Categoria {
 
 export default function CategoriasPage() {
   const router = useRouter();
+  const [excluindo, setExcluindo] = useState<string | null>(null);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [enviando, setEnviando] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -123,9 +125,11 @@ export default function CategoriasPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setEnviando(true);
 
+  try {
     const url = editingCategoria
       ? `/api/categorias/${editingCategoria.id}`
       : "/api/categorias";
@@ -138,37 +142,75 @@ export default function CategoriasPage() {
       body: JSON.stringify(formData),
     });
 
-    if (res.ok) {
-      setFormData({
-        nome: "",
-        tipo: "DESPESA",
-        cor: "#3B82F6",
-        icone: "Tag",
-      });
-      setEditingCategoria(null);
-      carregarCategorias();
-      setIsSheetOpen(false);
-      toast.success(
-        editingCategoria
-          ? "Categoria atualizada com sucesso!"
-          : "Categoria criada com sucesso!"
-      );
-    } else {
-      toast.error("Erro ao salvar categoria.");
-    }
-  };
+    if (!res.ok) throw new Error("Erro ao salvar categoria");
 
-  const handleDelete = async (id: string) => {
+    const categoriaSalva = await res.json();
+
+    if (editingCategoria) {
+      // Atualização otimista
+      setCategorias(prev => 
+        prev.map(cat => 
+          cat.id === editingCategoria.id ? categoriaSalva : cat
+        )
+      );
+      toast.success("Categoria atualizada com sucesso!");
+    } else {
+      // Criação otimista
+      setCategorias(prev => [...prev, categoriaSalva]);
+      toast.success("Categoria criada com sucesso!");
+    }
+
+    setFormData({
+      nome: "",
+      tipo: "DESPESA",
+      cor: "#3B82F6",
+      icone: "Tag",
+    });
+    setEditingCategoria(null);
+    setIsSheetOpen(false);
+
+  } catch (error) {
+    console.error("Erro ao salvar categoria:", error);
+    toast.error("Erro ao salvar categoria.");
+    // Em caso de erro, recarrega os dados do servidor
+    carregarCategorias();
+  } finally {
+    setEnviando(false);
+  }
+};
+
+const handleDelete = async (id: string) => {
+  setExcluindo(id);
+  
+  // Declara a variável fora do try para poder usar no catch
+  const categoriaParaExcluir = categorias.find(cat => cat.id === id);
+  
+  try {
+    // Exclusão otimista - remove da UI imediatamente
+    setCategorias(prev => prev.filter(cat => cat.id !== id));
+    setDialogAberto(null);
+    
+    // Faz a exclusão real no banco
     const res = await fetch(`/api/categorias/${id}`, { method: "DELETE" });
 
-    if (res.ok) {
-      carregarCategorias();
-      setDialogAberto(null); // 👈 Fecha o diálogo após excluir
-      toast.success("Categoria deletada com sucesso!");
-    } else {
-      toast.error("Erro ao deletar categoria.");
+    if (!res.ok) {
+      throw new Error("Erro ao deletar categoria");
     }
-  };
+    
+    toast.success("Categoria deletada com sucesso!");
+  } catch (error) {
+    console.error("Erro ao deletar categoria:", error);
+    
+    // Revert se der erro - adiciona a categoria de volta
+    if (categoriaParaExcluir) {
+      setCategorias(prev => [...prev, categoriaParaExcluir]);
+    }
+    
+    toast.error("Erro ao deletar categoria.");
+  } finally {
+    setExcluindo(null);
+  }
+};
 
   const startEdit = (categoria: Categoria) => {
     setEditingCategoria(categoria);
@@ -381,8 +423,15 @@ export default function CategoriasPage() {
                     <Button
                       type="submit"
                       className="flex-1 bg-white text-gray-900 hover:bg-gray-100"
+                      disabled={enviando} // 👈 ADICIONE ESTA LINHA
                     >
-                      {editingCategoria ? "Atualizar" : "Criar"} Categoria
+                      {enviando
+                        ? editingCategoria
+                          ? "Atualizando..."
+                          : "Criando..."
+                        : editingCategoria
+                          ? "Atualizar"
+                          : "Criar Categoria"}
                     </Button>
 
                     {editingCategoria && (
@@ -397,6 +446,7 @@ export default function CategoriasPage() {
                             cor: "#3B82F6",
                             icone: "Tag",
                           });
+                          setIsSheetOpen(false); // 👈 ADICIONE ESTA LINHA
                         }}
                         className="border-gray-700 text-gray-300 hover:bg-gray-800"
                       >
@@ -619,8 +669,11 @@ export default function CategoriasPage() {
                                     <Button
                                       variant="destructive"
                                       onClick={() => handleDelete(categoria.id)}
+                                      disabled={excluindo === categoria.id} // 👈 ADICIONE ESTA LINHA
                                     >
-                                      Confirmar
+                                      {excluindo === categoria.id
+                                        ? "Excluindo..."
+                                        : "Confirmar"}
                                     </Button>
                                   </div>
                                 </DialogContent>
@@ -669,11 +722,12 @@ export default function CategoriasPage() {
                 <SheetContent className="bg-gray-900 border-gray-800 text-white">
                   <SheetHeader>
                     <SheetTitle className="text-white">
-                      Nova Categoria
+                      {editingCategoria ? "Editar Categoria" : "Nova Categoria"}
                     </SheetTitle>
                     <SheetDescription className="text-gray-400">
-                      Crie sua primeira categoria para organizar seus
-                      lançamentos
+                      {editingCategoria
+                        ? "Atualize os dados da categoria"
+                        : "Crie uma nova categoria para organizar seus lançamentos"}
                     </SheetDescription>
                   </SheetHeader>
 
@@ -708,14 +762,40 @@ export default function CategoriasPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                          <SelectItem value="DESPESA">Despesa</SelectItem>
-                          <SelectItem value="RECEITA">Receita</SelectItem>
+                          <SelectItem value="DESPESA">
+                            <div className="flex items-center gap-2">
+                              <TrendingDown className="w-4 h-4 text-red-400" />
+                              Despesa
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="RECEITA">
+                            <div className="flex items-center gap-2">
+                              <TrendingUp className="w-4 h-4 text-green-400" />
+                              Receita
+                            </div>
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
                     <div className="space-y-3">
                       <Label className="text-white">Cor de Identificação</Label>
+
+                      <div className="flex items-center gap-3 mb-3">
+                        <div
+                          className="w-10 h-10 rounded-lg border border-gray-700 shadow-sm"
+                          style={{ backgroundColor: formData.cor }}
+                        />
+                        <Input
+                          type="color"
+                          value={formData.cor}
+                          onChange={(e) =>
+                            setFormData({ ...formData, cor: e.target.value })
+                          }
+                          className="w-20 h-10 p-1 bg-gray-800 border-gray-700"
+                        />
+                      </div>
+
                       <div className="grid grid-cols-5 gap-2">
                         {coresPredefinidas.map((cor) => (
                           <button
@@ -733,12 +813,82 @@ export default function CategoriasPage() {
                       </div>
                     </div>
 
-                    <Button
-                      type="submit"
-                      className="w-full bg-white text-gray-900 hover:bg-gray-100"
-                    >
-                      Criar Categoria
-                    </Button>
+                    <div className="space-y-2">
+                      <Label htmlFor="icone" className="text-white">
+                        Ícone
+                      </Label>
+                      <div className="grid grid-cols-6 gap-2">
+                        {[
+                          "Tag",
+                          "Utensils",
+                          "ShoppingCart",
+                          "Home",
+                          "Car",
+                          "CreditCard",
+                          "Briefcase",
+                          "Gift",
+                          "Heart",
+                          "DollarSign",
+                          "Coffee",
+                          "Wifi",
+                        ].map((iconName) => {
+                          const IconComponent =
+                            require("lucide-react")[iconName];
+                          return (
+                            <button
+                              key={iconName}
+                              type="button"
+                              onClick={() =>
+                                setFormData({ ...formData, icone: iconName })
+                              }
+                              className={`p-2 border rounded-lg flex items-center justify-center hover:bg-gray-800 transition-all ${
+                                formData.icone === iconName
+                                  ? "border-white bg-gray-800"
+                                  : "border-gray-700"
+                              }`}
+                            >
+                              <IconComponent className="w-5 h-5 text-white" />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 pt-4">
+                      <Button
+                        type="submit"
+                        className="flex-1 bg-white text-gray-900 hover:bg-gray-100"
+                        disabled={enviando} // 👈 ADICIONE ESTA LINHA
+                      >
+                        {enviando
+                          ? editingCategoria
+                            ? "Atualizando..."
+                            : "Criando..."
+                          : editingCategoria
+                            ? "Atualizar"
+                            : "Criar Categoria"}
+                      </Button>
+
+                      {editingCategoria && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setEditingCategoria(null);
+                            setFormData({
+                              nome: "",
+                              tipo: "DESPESA",
+                              cor: "#3B82F6",
+                              icone: "Tag",
+                            });
+                            setIsSheetOpen(false); // 👈 ADICIONE ESTA LINHA
+                          }}
+                          className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                        >
+                          Cancelar
+                        </Button>
+                      )}
+                    </div>
                   </form>
                 </SheetContent>
               </Sheet>
