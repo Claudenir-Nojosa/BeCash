@@ -1,4 +1,4 @@
-// app/api/dashboard/metas/[id]/route.ts
+// app/api/dashboard/limites/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "../../../../../../auth";
 import db from "@/lib/db";
@@ -9,13 +9,17 @@ interface RouteParams {
   };
 }
 
-export async function PUT(request: NextRequest, { params }: RouteParams) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
+    const { id } = await params; // Desestruturar após await
     const body = await request.json();
     const {
       titulo,
@@ -31,7 +35,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // Verificar se a meta pertence ao usuário
     const metaExistente = await db.metaPessoal.findFirst({
       where: {
-        id: params.id,
+        id: id, // Usar id desestruturado
         userId: session.user.id,
       },
     });
@@ -69,7 +73,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     const meta = await db.metaPessoal.update({
-      where: { id: params.id },
+      where: { id: id }, // Usar id desestruturado
       data: updateData,
     });
 
@@ -83,17 +87,22 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
+    const { id } = await params; // Desestruturar após await
+
     // Verificar se a meta pertence ao usuário
     const metaExistente = await db.metaPessoal.findFirst({
       where: {
-        id: params.id,
+        id: id, // Usar id desestruturado
         userId: session.user.id,
       },
     });
@@ -106,7 +115,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     await db.metaPessoal.delete({
-      where: { id: params.id },
+      where: { id: id }, // Usar id desestruturado
     });
 
     return NextResponse.json({ message: "Meta excluída com sucesso" });
