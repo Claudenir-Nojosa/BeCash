@@ -1,13 +1,7 @@
-// app/api/dashboard/limites/[id]/route.ts
+// app/api/dashboard/metas/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "../../../../../../auth";
 import db from "@/lib/db";
-
-interface RouteParams {
-  params: {
-    id: string;
-  };
-}
 
 export async function PUT(
   request: NextRequest,
@@ -19,7 +13,7 @@ export async function PUT(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const { id } = await params; // Desestruturar após await
+    const { id } = await params; // Adicionar await aqui
     const body = await request.json();
     const {
       titulo,
@@ -97,7 +91,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const { id } = await params; // Desestruturar após await
+    const { id } = await params; // Adicionar await aqui
 
     // Verificar se a meta pertence ao usuário
     const metaExistente = await db.metaPessoal.findFirst({
