@@ -56,9 +56,12 @@ import {
 } from "lucide-react";
 import { MetaPessoal } from "../../../../types/dashboard";
 import { UploadImage } from "@/components/shared/upload-image";
+import { useSession } from "next-auth/react";
 
 export default function MetasPage() {
   const router = useRouter();
+  const [excluindo, setExcluindo] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
   const [metas, setMetas] = useState<MetaPessoal[]>([]);
   const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
@@ -129,6 +132,7 @@ export default function MetasPage() {
   };
 
   const excluirMeta = async (id: string) => {
+    setExcluindo(id); // 👈 ADICIONE ESTA LINHA
     try {
       const response = await fetch(`/api/dashboard/metas/${id}`, {
         method: "DELETE",
@@ -142,11 +146,14 @@ export default function MetasPage() {
     } catch (error) {
       console.error("Erro ao excluir meta:", error);
       toast.error("Erro ao excluir meta");
+    } finally {
+      setExcluindo(null); // 👈 ADICIONE ESTA LINHA
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setEnviando(true); // 👈 ADICIONE ESTA LINHA
 
     const url = editandoMeta
       ? `/api/dashboard/metas/${editandoMeta.id}`
@@ -187,6 +194,8 @@ export default function MetasPage() {
     } else {
       toast.error("Erro ao salvar meta.");
     }
+
+    setEnviando(false); // 👈 ADICIONE ESTA LINHA
   };
 
   const startEdit = (meta: MetaPessoal) => {
@@ -264,31 +273,8 @@ export default function MetasPage() {
     return "em_andamento";
   };
 
-  const adicionarValor = async (id: string, valorAdicional: number) => {
-    try {
-      const meta = metas.find((m) => m.id === id);
-      if (!meta) return;
+  const session = useSession();
 
-      const novoValor = meta.valorAtual + valorAdicional;
-      const response = await fetch(`/api/dashboard/metas/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          valorAtual: novoValor,
-        }),
-      });
-
-      if (!response.ok) throw new Error("Erro ao atualizar meta");
-
-      toast.success("Valor adicionado com sucesso");
-      carregarMetas();
-    } catch (error) {
-      console.error("Erro ao adicionar valor:", error);
-      toast.error("Erro ao adicionar valor");
-    }
-  };
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -506,14 +492,23 @@ export default function MetasPage() {
                         setFormData({ ...formData, imagemUrl: url || "" })
                       }
                       currentImage={formData.imagemUrl}
+                      userId={session?.data?.user?.id || ""}
+                      metaId={editandoMeta?.id || "new"}
                     />
                   </div>
                   <div className="flex gap-3 pt-4">
                     <Button
                       type="submit"
                       className="flex-1 bg-white text-gray-900 hover:bg-gray-100"
+                      disabled={enviando}
                     >
-                      {editandoMeta ? "Atualizar" : "Criar"} Meta
+                      {enviando
+                        ? editandoMeta
+                          ? "Atualizando..."
+                          : "Criando..."
+                        : editandoMeta
+                          ? "Atualizar"
+                          : "Criar Meta"}
                     </Button>
 
                     {editandoMeta && (
@@ -531,8 +526,9 @@ export default function MetasPage() {
                             categoria: "",
                             cor: "#3B82F6",
                             icone: "🏠",
-                            imagemUrl: "", // 👈 ADICIONE ESTA LINHA
+                            imagemUrl: "",
                           });
+                          setIsSheetOpen(false); // 👈 ADICIONE ESTA LINHA PARA FECHAR O SHEET
                         }}
                         className="border-gray-700 text-gray-300 hover:bg-gray-800"
                       >
@@ -833,8 +829,11 @@ export default function MetasPage() {
                                         <Button
                                           variant="destructive"
                                           onClick={() => excluirMeta(meta.id)}
+                                          disabled={excluindo === meta.id} // 👈 ADICIONE ESTA LINHA
                                         >
-                                          Confirmar
+                                          {excluindo === meta.id
+                                            ? "Excluindo..."
+                                            : "Confirmar"}
                                         </Button>
                                       </div>
                                     </DialogContent>

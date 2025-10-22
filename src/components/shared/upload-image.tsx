@@ -5,15 +5,23 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Image, X, Upload } from "lucide-react";
+import { X, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supaBaseClient";
 
 interface UploadImageProps {
   onImageChange: (url: string | null) => void;
   currentImage?: string | null;
+  userId: string;
+  metaId?: string;
 }
 
-export function UploadImage({ onImageChange, currentImage }: UploadImageProps) {
+export function UploadImage({
+  onImageChange,
+  currentImage,
+  userId,
+  metaId,
+}: UploadImageProps) {
   const [isUploading, setIsUploading] = useState(false);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -22,7 +30,7 @@ export function UploadImage({ onImageChange, currentImage }: UploadImageProps) {
 
     // Validar tipo de arquivo
     if (!file.type.startsWith("image/")) {
-      toast.error("Por favor, selecione uma imagem válida");
+      toast.error("Por favor, selecione uma imagem válida (PNG, JPG, JPEG)");
       return;
     }
 
@@ -35,10 +43,30 @@ export function UploadImage({ onImageChange, currentImage }: UploadImageProps) {
     setIsUploading(true);
 
     try {
-      // Aqui você precisará implementar o upload para o Supabase
-      // Por enquanto, vamos criar uma URL local para preview
-      const objectUrl = URL.createObjectURL(file);
-      onImageChange(objectUrl);
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${userId}/${metaId || "temp"}/${Date.now()}.${fileExt}`;
+
+      console.log("Fazendo upload do arquivo:", fileName);
+
+      const { data, error } = await supabase.storage
+        .from("metas-images")
+        .upload(fileName, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (error) {
+        console.error("Erro no upload:", error);
+        throw new Error(`Erro ao fazer upload: ${error.message}`);
+      }
+
+      // Obter URL pública
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("metas-images").getPublicUrl(data.path);
+
+      console.log("Upload realizado com sucesso:", publicUrl);
+      onImageChange(publicUrl);
       toast.success("Imagem carregada com sucesso");
     } catch (error) {
       console.error("Erro ao fazer upload:", error);
@@ -48,8 +76,27 @@ export function UploadImage({ onImageChange, currentImage }: UploadImageProps) {
     }
   };
 
-  const removeImage = () => {
-    onImageChange(null);
+  const removeImage = async () => {
+    if (!currentImage) return;
+
+    try {
+      // Extrair nome do arquivo da URL
+      const url = new URL(currentImage);
+      const pathParts = url.pathname.split("/");
+      const fileName = pathParts.slice(-3).join("/");
+
+      const { error } = await supabase.storage
+        .from("metas-images")
+        .remove([fileName]);
+
+      if (error) {
+        console.error("Erro ao deletar imagem:", error);
+      }
+    } catch (error) {
+      console.error("Erro ao deletar imagem:", error);
+    } finally {
+      onImageChange(null);
+    }
   };
 
   return (

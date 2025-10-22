@@ -100,7 +100,7 @@ export default function MetasCard({ metas, carregando }: MetasCardProps) {
                 <div
                   key={meta.id}
                   className="p-3 border border-gray-700 rounded-lg hover:border-gray-600 transition-colors cursor-pointer"
-                  onClick={() => router.push(`/dashboard/metas/${meta.id}`)}
+                  onClick={() => router.push(`/dashboard/metas/`)}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">

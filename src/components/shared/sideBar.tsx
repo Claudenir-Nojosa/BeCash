@@ -231,11 +231,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
           {/* Categorias */}
           <li>
             <Link
-              href="/dashboard/lancamentos/categorias"
+              href="/dashboard/categorias"
               className={`
                 flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/lancamentos/categorias") ? "bg-gray-800 text-white border-l-2 border-blue-500" : ""}
+                ${isActiveRoute("/dashboard/categorias") ? "bg-gray-800 text-white border-l-2 border-blue-500" : ""}
               `}
               onClick={handleLinkClick}
             >
