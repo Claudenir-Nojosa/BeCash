@@ -2,10 +2,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Brain, Sparkles, RotateCcw } from "lucide-react";
+import { Send, Brain, Sparkles, RotateCcw, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 interface Message {
@@ -16,6 +17,7 @@ interface Message {
 }
 
 export default function BiclaPage() {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -42,10 +44,7 @@ export default function BiclaPage() {
     return content.split("\n").map((line, index) => {
       if (line.startsWith("## ")) {
         return (
-          <h3
-            key={index}
-            className="font-bold text-lg mt-4 mb-2 text-foreground"
-          >
+          <h3 key={index} className="font-bold text-lg mt-4 mb-2 text-white">
             {line.replace("## ", "")}
           </h3>
         );
@@ -54,7 +53,7 @@ export default function BiclaPage() {
         return (
           <h4
             key={index}
-            className="font-semibold text-base mt-3 mb-1 text-foreground"
+            className="font-semibold text-base mt-3 mb-1 text-white"
           >
             {line.replace("### ", "")}
           </h4>
@@ -64,10 +63,8 @@ export default function BiclaPage() {
       if (line.startsWith("- ") || line.startsWith("• ")) {
         return (
           <div key={index} className="flex items-start gap-2 my-1">
-            <span className="flex-shrink-0">•</span>
-            <span className="text-foreground">
-              {line.replace(/^[-•] /, "")}
-            </span>
+            <span className="flex-shrink-0 text-gray-300">•</span>
+            <span className="text-gray-300">{line.replace(/^[-•] /, "")}</span>
           </div>
         );
       }
@@ -75,10 +72,10 @@ export default function BiclaPage() {
       if (line.includes("**")) {
         const parts = line.split("**");
         return (
-          <p key={index} className="my-2 text-foreground">
+          <p key={index} className="my-2 text-gray-300">
             {parts.map((part, i) =>
               i % 2 === 1 ? (
-                <strong key={i} className="font-semibold">
+                <strong key={i} className="font-semibold text-white">
                   {part}
                 </strong>
               ) : (
@@ -94,7 +91,7 @@ export default function BiclaPage() {
       }
 
       return (
-        <p key={index} className="my-2 text-foreground">
+        <p key={index} className="my-2 text-gray-300">
           {line}
         </p>
       );
@@ -179,153 +176,152 @@ export default function BiclaPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background p-4 mt-16">
-      <div className="max-w-4xl mx-auto h-[calc(100vh-8rem)] flex flex-col">
-        {/* Header Fixo */}
-        <div className="flex items-center justify-between mb-6 flex-shrink-0">
+    <div className="min-h-screen p-6">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Brain className="h-6 w-6 text-primary" />
+            <div className="w-10 h-10 bg-gradient-to-br from-gray-500 to-gray-600 rounded-lg flex items-center justify-center">
+              <Brain className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                Bicla
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Assistente Financeira IA
+              <h1 className="text-3xl font-bold text-white">Bicla</h1>
+              <p className="text-gray-300">
+                Sua assistente financeira inteligente
               </p>
             </div>
           </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={clearChat}
-            className="gap-2"
-          >
-            <RotateCcw className="h-4 w-4" />
-            Limpar
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={clearChat}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Limpar Chat
+            </Button>
+          </div>
         </div>
 
-        {/* Área de Chat com Scroll Interno */}
-        <Card className="border shadow-sm flex flex-col flex-1 min-h-0">
+        {/* Área de Chat */}
+        <Card className="bg-gray-900 border-gray-800 flex flex-col h-[calc(100vh-12rem)]">
           <CardContent className="p-0 flex flex-col h-full">
             {/* Mensagens com Scroll */}
             <div
               ref={messagesContainerRef}
-              className="flex-1 overflow-y-auto p-4 bg-background"
-              style={{ maxHeight: "calc(100vh - 20rem)" }}
+              className="flex-1 overflow-y-auto p-6 space-y-6"
             >
-              <div className="space-y-4">
-                {messages.map((message) => (
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
+                >
                   <div
-                    key={message.id}
-                    className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
+                    className={`max-w-[80%] rounded-2xl p-4 ${
+                      message.sender === "user"
+                        ? "bg-gray-600 text-white"
+                        : "bg-gray-800 border border-gray-700 text-gray-300"
+                    }`}
                   >
+                    <div className="text-sm whitespace-pre-wrap">
+                      {message.sender === "bicla"
+                        ? formatMessage(message.content)
+                        : message.content}
+                    </div>
                     <div
-                      className={`max-w-[85%] rounded-2xl p-4 ${
+                      className={`text-xs mt-2 ${
                         message.sender === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted/50 border"
+                          ? "text-gray-200"
+                          : "text-gray-500"
                       }`}
                     >
-                      <div className="text-sm whitespace-pre-wrap">
-                        {message.sender === "bicla"
-                          ? formatMessage(message.content)
-                          : message.content}
-                      </div>
-                      <div
-                        className={`text-xs mt-2 ${
-                          message.sender === "user"
-                            ? "text-primary-foreground/70"
-                            : "text-muted-foreground"
-                        }`}
-                      >
-                        {message.timestamp.toLocaleTimeString("pt-BR", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </div>
+                      {message.timestamp.toLocaleTimeString("pt-BR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </div>
                   </div>
-                ))}
+                </div>
+              ))}
 
-                {isTyping && (
-                  <div className="flex justify-start">
-                    <div className="bg-muted/50 border rounded-2xl p-4">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <div className="flex space-x-1">
-                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
-                          <div
-                            className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
-                            style={{ animationDelay: "0.1s" }}
-                          ></div>
-                          <div
-                            className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
-                            style={{ animationDelay: "0.2s" }}
-                          ></div>
-                        </div>
-                        Bicla está pensando...
+              {isTyping && (
+                <div className="flex justify-start">
+                  <div className="bg-gray-800 border border-gray-700 rounded-2xl p-4 max-w-[80%]">
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                        <div
+                          className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                          style={{ animationDelay: "0.1s" }}
+                        ></div>
+                        <div
+                          className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                          style={{ animationDelay: "0.2s" }}
+                        ></div>
                       </div>
+                      Bicla está pensando...
                     </div>
                   </div>
-                )}
+                </div>
+              )}
 
-                <div ref={messagesEndRef} />
-              </div>
+              <div ref={messagesEndRef} />
             </div>
 
-            {/* Área de Input Fixa */}
-            <div className="border-t p-4 bg-muted/20 flex-shrink-0">
-              {/* Quick Prompts */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                {quickPrompts.map((prompt, index) => (
-                  <Button
-                    key={index}
-                    variant="outline"
-                    size="sm"
-                    className="text-xs h-8 border-muted-foreground/20 hover:border-muted-foreground/40"
-                    onClick={() => {
-                      setInputMessage(prompt);
-                      setTimeout(handleSendMessage, 100);
-                    }}
-                  >
-                    {prompt}
-                  </Button>
-                ))}
+            {/* Quick Prompts */}
+            {messages.length <= 1 && (
+              <div className="border-t border-gray-800 p-4 bg-gray-800/50">
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {quickPrompts.map((prompt, index) => (
+                    <Button
+                      key={index}
+                      variant="outline"
+                      size="sm"
+                      className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white text-xs"
+                      onClick={() => {
+                        setInputMessage(prompt);
+                        setTimeout(handleSendMessage, 100);
+                      }}
+                    >
+                      {prompt}
+                    </Button>
+                  ))}
+                </div>
               </div>
+            )}
 
-              {/* Input */}
-              <div className="flex gap-2">
+            {/* Input Area */}
+            <div className="border-t border-gray-800 p-4 bg-gray-800/30">
+              <div className="flex gap-3">
                 <Input
                   placeholder="Pergunte sobre suas finanças..."
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  className="flex-1 bg-background border-muted-foreground/20 focus:border-primary"
+                  className="flex-1 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 focus:border-blue-500"
                   disabled={isTyping}
                 />
                 <Button
                   onClick={handleSendMessage}
                   disabled={!inputMessage.trim() || isTyping}
                   size="icon"
-                  className="bg-primary hover:bg-primary/90"
+                  className="bg-white text-gray-900 hover:bg-gray-100 disabled:bg-gray-700 disabled:text-gray-500"
                 >
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
+
+              {/* Footer */}
+              <div className="text-center mt-3">
+                <p className="text-xs text-gray-500">
+                  💡 Dica: Pergunte sobre gastos, investimentos, economia ou
+                  análise geral
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
-
-        {/* Footer Fixo */}
-        <div className="text-center mt-4 flex-shrink-0">
-          <p className="text-xs text-muted-foreground">
-            💡 Dica: Pergunte sobre gastos, investimentos, economia ou análise
-            geral
-          </p>
-        </div>
       </div>
     </div>
   );

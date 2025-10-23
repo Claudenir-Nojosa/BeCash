@@ -1,8 +1,7 @@
-// app/dashboard/cartoes/novo/page.tsx
+// Crie um novo componente FormEditarCartao.tsx
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,8 +13,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft } from "lucide-react";
+import { Save, X } from "lucide-react";
 import { toast } from "sonner";
+
+interface Cartao {
+  id: string;
+  nome: string;
+  bandeira: string;
+  limite: number;
+  diaFechamento: number;
+  diaVencimento: number;
+  cor: string;
+  ativo: boolean;
+  observacoes?: string;
+}
 
 const BANDEIRAS = [
   { value: "VISA", label: "Visa" },
@@ -33,29 +44,38 @@ const CORES = [
   { value: "#F59E0B", label: "Amarelo" },
   { value: "#8B5CF6", label: "Roxo" },
   { value: "#EC4899", label: "Rosa" },
+  { value: "#6B7280", label: "Cinza" },
 ];
 
-export default function NovoCartaoPage() {
-  const router = useRouter();
-  const [carregando, setCarregando] = useState(false);
+interface FormEditarCartaoProps {
+  cartao: Cartao;
+  onSalvo: () => void;
+  onCancelar: () => void;
+}
 
+export function FormEditarCartao({
+  cartao,
+  onSalvo,
+  onCancelar,
+}: FormEditarCartaoProps) {
+  const [salvando, setSalvando] = useState(false);
   const [formData, setFormData] = useState({
-    nome: "",
-    bandeira: "",
-    limite: "",
-    diaFechamento: "",
-    diaVencimento: "",
-    cor: "#3B82F6",
-    observacoes: "",
+    nome: cartao.nome,
+    bandeira: cartao.bandeira,
+    limite: cartao.limite.toString(),
+    diaFechamento: cartao.diaFechamento.toString(),
+    diaVencimento: cartao.diaVencimento.toString(),
+    cor: cartao.cor,
+    observacoes: cartao.observacoes || "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setCarregando(true);
+    setSalvando(true);
 
     try {
-      const response = await fetch("/api/cartoes", {
-        method: "POST",
+      const response = await fetch(`/api/cartoes/${cartao.id}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
@@ -67,17 +87,16 @@ export default function NovoCartaoPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Erro ao criar cartão");
+        throw new Error(errorData.error || "Erro ao atualizar cartão");
       }
 
-      toast.success("Cartão criado com sucesso!");
-      router.push("/dashboard/cartoes");
-      router.refresh();
+      toast.success("Cartão atualizado com sucesso!");
+      onSalvo();
     } catch (error: any) {
-      toast.error(error.message || "Erro ao criar cartão");
+      toast.error(error.message || "Erro ao atualizar cartão");
       console.error(error);
     } finally {
-      setCarregando(false);
+      setSalvando(false);
     }
   };
 
@@ -86,38 +105,38 @@ export default function NovoCartaoPage() {
   };
 
   return (
-    <div className="container mx-auto p-6 mt-20 max-w-2xl">
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="outline" size="icon" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-3xl font-bold">Novo Cartão</h1>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Informações Básicas */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium text-white">Informações Básicas</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="nome">Nome do Cartão *</Label>
+            <Label htmlFor="nome" className="text-white">
+              Nome do Cartão *
+            </Label>
             <Input
               id="nome"
               value={formData.nome}
               onChange={(e) => handleChange("nome", e.target.value)}
               placeholder="Ex: Nubank, Itaú Platinum..."
+              className="bg-gray-800 border-gray-700 text-white"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="bandeira">Bandeira *</Label>
+            <Label htmlFor="bandeira" className="text-white">
+              Bandeira *
+            </Label>
             <Select
               value={formData.bandeira}
               onValueChange={(value) => handleChange("bandeira", value)}
               required
             >
-              <SelectTrigger>
+              <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                 <SelectValue placeholder="Selecione a bandeira" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-gray-800 border-gray-700 text-white">
                 {BANDEIRAS.map((bandeira) => (
                   <SelectItem key={bandeira.value} value={bandeira.value}>
                     {bandeira.label}
@@ -129,7 +148,9 @@ export default function NovoCartaoPage() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="limite">Limite do Cartão *</Label>
+          <Label htmlFor="limite" className="text-white">
+            Limite do Cartão *
+          </Label>
           <Input
             id="limite"
             type="number"
@@ -138,13 +159,20 @@ export default function NovoCartaoPage() {
             value={formData.limite}
             onChange={(e) => handleChange("limite", e.target.value)}
             placeholder="0,00"
+            className="bg-gray-800 border-gray-700 text-white"
             required
           />
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Datas do Cartão */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium text-white">Datas do Cartão</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="diaFechamento">Dia de Fechamento *</Label>
+            <Label htmlFor="diaFechamento" className="text-white">
+              Dia de Fechamento *
+            </Label>
             <Input
               id="diaFechamento"
               type="number"
@@ -153,15 +181,16 @@ export default function NovoCartaoPage() {
               value={formData.diaFechamento}
               onChange={(e) => handleChange("diaFechamento", e.target.value)}
               placeholder="1-31"
+              className="bg-gray-800 border-gray-700 text-white"
               required
             />
-            <p className="text-xs text-muted-foreground">
-              Dia que a fatura fecha
-            </p>
+            <p className="text-xs text-gray-400">Dia que a fatura fecha</p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="diaVencimento">Dia de Vencimento *</Label>
+            <Label htmlFor="diaVencimento" className="text-white">
+              Dia de Vencimento *
+            </Label>
             <Input
               id="diaVencimento"
               type="number"
@@ -170,29 +199,35 @@ export default function NovoCartaoPage() {
               value={formData.diaVencimento}
               onChange={(e) => handleChange("diaVencimento", e.target.value)}
               placeholder="1-31"
+              className="bg-gray-800 border-gray-700 text-white"
               required
             />
-            <p className="text-xs text-muted-foreground">
-              Dia que a fatura vence
-            </p>
+            <p className="text-xs text-gray-400">Dia que a fatura vence</p>
           </div>
         </div>
+      </div>
+
+      {/* Personalização */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium text-white">Personalização</h3>
 
         <div className="space-y-2">
-          <Label htmlFor="cor">Cor de Identificação</Label>
+          <Label htmlFor="cor" className="text-white">
+            Cor de Identificação
+          </Label>
           <Select
             value={formData.cor}
             onValueChange={(value) => handleChange("cor", value)}
           >
-            <SelectTrigger>
+            <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
               <SelectValue placeholder="Selecione uma cor" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-gray-800 border-gray-700 text-white">
               {CORES.map((cor) => (
                 <SelectItem key={cor.value} value={cor.value}>
                   <div className="flex items-center gap-2">
-                    <div 
-                      className="w-4 h-4 rounded-full"
+                    <div
+                      className="w-4 h-4 rounded-full border border-gray-600"
                       style={{ backgroundColor: cor.value }}
                     />
                     {cor.label}
@@ -204,30 +239,40 @@ export default function NovoCartaoPage() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="observacoes">Observações</Label>
+          <Label htmlFor="observacoes" className="text-white">
+            Observações
+          </Label>
           <Textarea
             id="observacoes"
             value={formData.observacoes}
             onChange={(e) => handleChange("observacoes", e.target.value)}
             placeholder="Observações sobre o cartão..."
             rows={3}
+            className="bg-gray-800 border-gray-700 text-white"
           />
         </div>
+      </div>
 
-        <div className="flex gap-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.back()}
-            className="flex-1"
-          >
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={carregando} className="flex-1">
-            {carregando ? "Criando..." : "Criar Cartão"}
-          </Button>
-        </div>
-      </form>
-    </div>
+      {/* Botões */}
+      <div className="flex gap-3 pt-6 border-t border-gray-800">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancelar}
+          className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+        >
+          <X className="h-4 w-4 mr-2" />
+          Cancelar
+        </Button>
+        <Button
+          type="submit"
+          disabled={salvando}
+          className="flex-1 bg-white text-gray-900 hover:bg-gray-100"
+        >
+          <Save className="h-4 w-4 mr-2" />
+          {salvando ? "Salvando..." : "Salvar Alterações"}
+        </Button>
+      </div>
+    </form>
   );
 }

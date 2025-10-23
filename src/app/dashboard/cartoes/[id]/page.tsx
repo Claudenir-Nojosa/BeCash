@@ -22,8 +22,33 @@ import {
   TrendingUp,
   FileText,
   Eye,
+  Plus,
+  MoreVertical,
+  Tag,
 } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { toast } from "sonner";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { FormEditarCartao } from "@/components/shared/FormEditarCartao";
 
 interface Cartao {
   id: string;
@@ -41,6 +66,14 @@ interface Cartao {
     valor: number;
     data: string;
     pago: boolean;
+    tipo: string; // 👈 ADICIONAR
+    categoria?: {
+      // 👈 ADICIONAR (opcional porque pode ser null)
+      id: string;
+      nome: string;
+      cor: string;
+      icone: string;
+    };
     Fatura: {
       status: string;
       mesReferencia: string;
@@ -62,7 +95,7 @@ export default function DetalhesCartaoPage() {
   const router = useRouter();
   const [cartao, setCartao] = useState<Cartao | null>(null);
   const [carregando, setCarregando] = useState(true);
-
+  const [sheetEditarAberto, setSheetEditarAberto] = useState(false);
   const cartaoId = params.id as string;
 
   useEffect(() => {
@@ -88,26 +121,17 @@ export default function DetalhesCartaoPage() {
     }
   };
 
-  const getBandeiraIcon = (bandeira: string) => {
-    const icons = {
-      VISA: "💳",
-      MASTERCARD: "🔴",
-      ELO: "🟡",
-      AMERICAN_EXPRESS: "🔵",
-      HIPERCARD: "🟣",
-      OUTROS: "💳",
-    };
-    return icons[bandeira as keyof typeof icons] || "💳";
-  };
-
   const getStatusColor = (status: string) => {
     const colors = {
-      ABERTA: "bg-blue-100 text-blue-800",
-      FECHADA: "bg-orange-100 text-orange-800",
-      PAGA: "bg-green-100 text-green-800",
-      VENCIDA: "bg-red-100 text-red-800",
+      ABERTA: "bg-blue-900/50 text-blue-300 border-blue-700",
+      FECHADA: "bg-orange-900/50 text-orange-300 border-orange-700",
+      PAGA: "bg-green-900/50 text-green-300 border-green-700",
+      VENCIDA: "bg-red-900/50 text-red-300 border-red-700",
     };
-    return colors[status as keyof typeof colors] || "bg-gray-100 text-gray-800";
+    return (
+      colors[status as keyof typeof colors] ||
+      "bg-gray-900/50 text-gray-300 border-gray-700"
+    );
   };
 
   const calcularUtilizacao = () => {
@@ -125,19 +149,40 @@ export default function DetalhesCartaoPage() {
     return faturaAberta ? faturaAberta.valorTotal : 0;
   };
 
+  const formatarMoeda = (valor: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(valor);
+  };
+
+  const formatarData = (dataString: string) => {
+    if (!dataString || dataString === "Invalid Date") return "Data inválida";
+
+    // Extrair ANO, MÊS, DIA diretamente da string SEM conversão de timezone
+    const dataPart = dataString.substring(0, 10); // "2025-11-07"
+    const [ano, mes, dia] = dataPart.split("-");
+
+    // Retornar NO MESMO FORMATO que está no banco
+    return `${dia}/${mes}/${ano}`;
+  };
+
   if (carregando) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+      <div className="min-h-screen p-6">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <div className="flex items-center gap-4">
+            <div className="h-8 w-8 bg-gray-800 rounded-lg animate-pulse" />
+            <div className="h-8 bg-gray-800 rounded w-64 animate-pulse" />
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-4">
-              <div className="h-40 bg-gray-200 rounded"></div>
-              <div className="h-64 bg-gray-200 rounded"></div>
+              <div className="h-40 bg-gray-800 rounded-lg animate-pulse" />
+              <div className="h-96 bg-gray-800 rounded-lg animate-pulse" />
             </div>
             <div className="space-y-4">
-              <div className="h-32 bg-gray-200 rounded"></div>
-              <div className="h-32 bg-gray-200 rounded"></div>
+              <div className="h-48 bg-gray-800 rounded-lg animate-pulse" />
+              <div className="h-32 bg-gray-800 rounded-lg animate-pulse" />
             </div>
           </div>
         </div>
@@ -147,10 +192,15 @@ export default function DetalhesCartaoPage() {
 
   if (!cartao) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Cartão não encontrado</h1>
-          <Button onClick={() => router.push("/dashboard/cartoes")}>
+      <div className="min-h-screen p-6">
+        <div className="max-w-7xl mx-auto text-center">
+          <h1 className="text-2xl font-bold text-white mb-4">
+            Cartão não encontrado
+          </h1>
+          <Button
+            onClick={() => router.push("/dashboard/cartoes")}
+            className="bg-white text-gray-900 hover:bg-gray-100"
+          >
             Voltar para Cartões
           </Button>
         </div>
@@ -161,106 +211,169 @@ export default function DetalhesCartaoPage() {
   const utilizacao = calcularUtilizacao();
   const totalFaturaAtual = calcularTotalFaturaAtual();
   const faturaAberta = cartao.Fatura.find((f) => f.status === "ABERTA");
-  const proximasFaturas = cartao.Fatura.filter((f) => f.status === "FECHADA");
+  const lancamentosRecentes = cartao.lancamentos.slice(0, 10);
+  const hoje = new Date();
+
+  // Encontrar a próxima fatura que ainda não venceu
+  const proximaFatura = cartao.Fatura.filter(
+    (fatura) => new Date(fatura.dataVencimento) >= hoje
+  ) // Só faturas futuras
+    .sort(
+      (a, b) =>
+        new Date(a.dataVencimento).getTime() -
+        new Date(b.dataVencimento).getTime()
+    )[0]; // Ordenar por vencimento
 
   return (
-    <div className="container mx-auto p-6">
-      {/* Cabeçalho */}
-      <div className="flex items-center gap-4 mb-6">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => router.push("/dashboard/cartoes")}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-3 h-8 rounded"
-              style={{ backgroundColor: cartao.cor }}
-            />
-            <div>
-              <h1 className="text-3xl font-bold flex items-center gap-2">
-                {getBandeiraIcon(cartao.bandeira)}
-                {cartao.nome}
-              </h1>
-              <p className="text-muted-foreground capitalize">
-                {cartao.bandeira.toLowerCase()} •{" "}
-                {cartao.ativo ? "Ativo" : "Inativo"}
-              </p>
+    <div className="min-h-screen p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => router.push("/dashboard/cartoes")}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex items-center gap-3">
+              <div
+                className="w-3 h-8 rounded"
+                style={{ backgroundColor: cartao.cor }}
+              />
+              <div>
+                <h1 className="text-3xl font-bold text-white">{cartao.nome}</h1>
+              </div>
             </div>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() =>
-              router.push(`/dashboard/cartoes/${cartaoId}/faturas`)
-            }
-          >
-            <Eye className="h-4 w-4 mr-2" />
-            Ver Faturas
-          </Button>
-          <Button
-            onClick={() => router.push(`/dashboard/cartoes/${cartaoId}/editar`)}
-          >
-            <Edit className="h-4 w-4 mr-2" />
-            Editar
-          </Button>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Coluna principal */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Card de Resumo */}
-          <Card>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() =>
+                router.push(`/dashboard/cartoes/${cartaoId}/faturas`)
+              }
+              className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              Ver Faturas
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setSheetEditarAberto(true)}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Editar Cartão
+            </Button>
+          </div>
+        </div>
+
+        {/* Grid de Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Card 1: Informações do Cartão */}
+          <Card className="bg-gray-900 border-gray-800">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-white">
+                <CreditCard className="h-5 w-5" />
+                Informações do Cartão
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-gray-400">Bandeira</p>
+                  <p className="text-white capitalize">
+                    {cartao.bandeira.toLowerCase()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-400">Limite Total</p>
+                  <p className="text-xl font-bold text-white">
+                    {formatarMoeda(cartao.limite)}
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-400">Fechamento</p>
+                    <p className="text-white flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      Dia {cartao.diaFechamento}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-400">Vencimento</p>
+                    <p className="text-white flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      Dia {cartao.diaVencimento}
+                    </p>
+                  </div>
+                </div>
+                {cartao.observacoes && (
+                  <div>
+                    <p className="text-sm text-gray-400">Observações</p>
+                    <p className="text-sm text-gray-300">
+                      {cartao.observacoes}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-4 border-t border-gray-800">
+                <Button
+                  className="w-full bg-white text-gray-900 hover:bg-gray-100"
+                  onClick={() => router.push("/dashboard/lancamentos/")}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Novo Lançamento
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card 2: Status do Limite */}
+          <Card className="bg-gray-900 border-gray-800">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-white">
                 <TrendingUp className="h-5 w-5" />
-                Resumo do Cartão
+                Status do Limite
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Limite Total</p>
-                  <p className="text-2xl font-bold">
-                    {cartao.limite.toLocaleString("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    })}
+                  <p className="text-sm text-gray-400">Utilizado</p>
+                  <p className="text-2xl font-bold text-white">
+                    {formatarMoeda(totalFaturaAtual)}
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Utilizado</p>
-                  <p className="text-2xl font-bold">
-                    {totalFaturaAtual.toLocaleString("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    })}
+                  <p className="text-sm text-gray-400">Disponível</p>
+                  <p className="text-2xl font-bold text-white">
+                    {formatarMoeda(cartao.limite - totalFaturaAtual)}
                   </p>
                 </div>
               </div>
 
               {/* Barra de progresso */}
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span>Utilização do limite</span>
+                  <span className="text-gray-400">Utilização do limite</span>
                   <span
                     className={`font-medium ${
                       utilizacao >= 90
-                        ? "text-red-500"
+                        ? "text-red-400"
                         : utilizacao >= 70
-                          ? "text-orange-500"
-                          : "text-green-500"
+                          ? "text-orange-400"
+                          : "text-green-400"
                     }`}
                   >
                     {utilizacao.toFixed(1)}%
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
+                <div className="w-full bg-gray-800 rounded-full h-3">
                   <div
                     className={`h-3 rounded-full ${
                       utilizacao >= 90
@@ -278,8 +391,8 @@ export default function DetalhesCartaoPage() {
                 <div
                   className={`flex items-center gap-2 p-3 rounded-lg ${
                     utilizacao >= 90
-                      ? "bg-red-50 text-red-700"
-                      : "bg-orange-50 text-orange-700"
+                      ? "bg-red-900/50 text-red-300 border border-red-800"
+                      : "bg-orange-900/50 text-orange-300 border border-orange-800"
                   }`}
                 >
                   <AlertTriangle className="h-4 w-4" />
@@ -290,232 +403,299 @@ export default function DetalhesCartaoPage() {
                   </span>
                 </div>
               )}
-            </CardContent>
-          </Card>
 
-          {/* Fatura Atual */}
-          {faturaAberta && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Fatura Atual
-                </CardTitle>
-                <CardDescription>
-                  Próximo fechamento:{" "}
-                  {new Date(faturaAberta.dataFechamento).toLocaleDateString(
-                    "pt-BR"
-                  )}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
+              {/* Fatura Atual */}
+              {proximaFatura && (
+                <div className="pt-4 border-t border-gray-800 space-y-3">
                   <div className="flex justify-between items-center">
-                    <span>Valor atual:</span>
-                    <span className="text-lg font-bold">
-                      {faturaAberta.valorTotal.toLocaleString("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      })}
+                    <span className="text-gray-400">Próxima fatura:</span>
+                    <span className="text-lg font-bold text-white">
+                      {formatarMoeda(proximaFatura.valorTotal)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span>Status:</span>
-                    <Badge className={getStatusColor(faturaAberta.status)}>
-                      {faturaAberta.status === "ABERTA"
+                    <span className="text-gray-400">Vencimento:</span>
+                    <span className="text-white">
+                      {formatarData(proximaFatura.dataVencimento)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400">Status:</span>
+                    <Badge className={getStatusColor(proximaFatura.status)}>
+                      {proximaFatura.status === "ABERTA"
                         ? "Em aberto"
-                        : faturaAberta.status === "FECHADA"
+                        : proximaFatura.status === "FECHADA"
                           ? "Fechada"
-                          : faturaAberta.status === "PAGA"
+                          : proximaFatura.status === "PAGA"
                             ? "Paga"
                             : "Vencida"}
                     </Badge>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span>Vencimento:</span>
-                    <span>
-                      {new Date(faturaAberta.dataVencimento).toLocaleDateString(
-                        "pt-BR"
-                      )}
-                    </span>
-                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Últimas Compras */}
-          <Card>
+              )}
+            </CardContent>
+          </Card>
+          {/* Card 3: Ranking de Despesas por Categoria */}
+          <Card className="bg-gray-900 border-gray-800">
             <CardHeader>
-              <CardTitle>Últimas Compras</CardTitle>
-              <CardDescription>
-                {cartao.lancamentos.length} compras realizadas
+              <CardTitle className="text-white">
+                Despesas por Categoria
+              </CardTitle>
+              <CardDescription className="text-gray-400">
+                Distribuição dos gastos por categoria
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              {cartao.lancamentos.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">
-                  Nenhuma compra encontrada
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {cartao.lancamentos.slice(0, 5).map((lancamento) => (
-                    <div
-                      key={lancamento.id}
-                      className="flex justify-between items-center p-3 border rounded-lg"
+            <CardContent className="space-y-4">
+              {(() => {
+                // Calcular despesas por categoria
+                const despesasPorCategoria = cartao.lancamentos
+                  .filter((lancamento) => lancamento.tipo === "DESPESA") // Apenas despesas
+                  .reduce(
+                    (acc, lancamento) => {
+                      const categoriaNome =
+                        lancamento.categoria?.nome || "Sem Categoria";
+                      if (!acc[categoriaNome]) {
+                        acc[categoriaNome] = {
+                          total: 0,
+                          cor: lancamento.categoria?.cor || "#6B7280",
+                          icone: lancamento.categoria?.icone || "Tag",
+                        };
+                      }
+                      acc[categoriaNome].total += lancamento.valor;
+                      return acc;
+                    },
+                    {} as Record<
+                      string,
+                      { total: number; cor: string; icone: string }
                     >
-                      <div>
-                        <p className="font-medium">{lancamento.descricao}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(lancamento.data).toLocaleDateString(
-                            "pt-BR"
-                          )}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium">
-                          {lancamento.valor.toLocaleString("pt-BR", {
-                            style: "currency",
-                            currency: "BRL",
-                          })}
-                        </p>
-                        <Badge
-                          variant={lancamento.pago ? "default" : "secondary"}
-                          className="text-xs"
-                        >
-                          {lancamento.pago ? "Pago" : "Pendente"}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {cartao.lancamentos.length > 5 && (
-                <Button
-                  variant="outline"
-                  className="w-full mt-4"
-                  onClick={() =>
-                    router.push(`/dashboard/lancamentos?cartaoId=${cartaoId}`)
-                  }
-                >
-                  Ver todas as compras
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                  );
 
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Informações do Cartão */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Informações
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <p className="text-sm text-muted-foreground">Bandeira</p>
-                <p className="capitalize">{cartao.bandeira.toLowerCase()}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Dia de Fechamento
-                </p>
-                <p className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Dia {cartao.diaFechamento}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Dia de Vencimento
-                </p>
-                <p className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Dia {cartao.diaVencimento}
-                </p>
-              </div>
-              {cartao.observacoes && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Observações</p>
-                  <p className="text-sm">{cartao.observacoes}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                // Converter para array e ordenar do maior para o menor
+                const rankingCategorias = Object.entries(despesasPorCategoria)
+                  .sort(([, a], [, b]) => b.total - a.total)
+                  .slice(0, 5); // Top 5 categorias
 
-          {/* Ações Rápidas */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Ações Rápidas</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button
-                className="w-full"
-                onClick={() =>
-                  router.push(
-                    `/dashboard/lancamentos/novo?cartaoId=${cartaoId}`
-                  )
-                }
-              >
-                <DollarSign className="h-4 w-4 mr-2" />
-                Nova Compra
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() =>
-                  router.push(`/dashboard/cartoes/${cartaoId}/faturas`)
-                }
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Ver Todas as Faturas
-              </Button>
-            </CardContent>
-          </Card>
+                const totalDespesas = rankingCategorias.reduce(
+                  (sum, [, categoria]) => sum + categoria.total,
+                  0
+                );
 
-          {/* Próximas Faturas */}
-          {proximasFaturas.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Próximas Faturas</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {proximasFaturas.slice(0, 3).map((fatura) => (
-                    <div key={fatura.id} className="p-2 border rounded">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">
-                          {new Date(
-                            fatura.mesReferencia + "-01"
-                          ).toLocaleDateString("pt-BR", {
-                            month: "long",
-                            year: "numeric",
-                          })}
-                        </span>
-                        <Badge className={getStatusColor(fatura.status)}>
-                          {fatura.status === "FECHADA"
-                            ? "Fechada"
-                            : fatura.status.toLowerCase()}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {fatura.valorTotal.toLocaleString("pt-BR", {
-                          style: "currency",
-                          currency: "BRL",
-                        })}
+                if (rankingCategorias.length === 0) {
+                  return (
+                    <div className="text-center py-4">
+                      <p className="text-gray-400">
+                        Nenhuma despesa encontrada
                       </p>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                  );
+                }
+
+                return (
+                  <div className="space-y-3">
+                    {rankingCategorias.map(
+                      ([categoriaNome, categoriaData], index) => {
+                        const porcentagem =
+                          totalDespesas > 0
+                            ? (categoriaData.total / totalDespesas) * 100
+                            : 0;
+
+                        // Função para obter o ícone da categoria
+                        const getIcone = (icone: string) => {
+                          try {
+                            const IconComponent =
+                              require("lucide-react")[icone];
+                            return (
+                              <IconComponent className="w-3 h-3 text-white" />
+                            );
+                          } catch {
+                            return <Tag className="w-3 h-3 text-white" />;
+                          }
+                        };
+
+                        return (
+                          <div
+                            key={categoriaNome}
+                            className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50 hover:bg-gray-800/70 transition-colors"
+                          >
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <div
+                                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                                style={{ backgroundColor: categoriaData.cor }}
+                              >
+                                {getIcone(categoriaData.icone)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-white text-sm font-medium truncate">
+                                  {categoriaNome}
+                                </p>
+                                <div className="w-full bg-gray-700 rounded-full h-1.5 mt-1">
+                                  <div
+                                    className="h-1.5 rounded-full"
+                                    style={{
+                                      backgroundColor: categoriaData.cor,
+                                      width: `${porcentagem}%`,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right flex-shrink-0 ml-2">
+                              <p className="text-white font-medium">
+                                {formatarMoeda(categoriaData.total)}
+                              </p>
+                              <p className="text-xs text-gray-400">
+                                {porcentagem.toFixed(1)}%
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      }
+                    )}
+
+                    {/* Total geral */}
+                    <div className="pt-3 border-t border-gray-800">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400 text-sm">Total:</span>
+                        <span className="text-white font-bold">
+                          {formatarMoeda(totalDespesas)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="pt-3 border-t border-gray-800">
+                <Button
+                  variant="outline"
+                  className="w-full border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                  onClick={() =>
+                    router.push(`/dashboard/relatorios?cartaoId=${cartaoId}`)
+                  }
+                >
+                  Ver Relatório Completo
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Card 4: Lançamentos Recentes */}
+        <Card className="bg-gray-900 border-gray-800">
+          <CardHeader>
+            <CardTitle className="text-white">Lançamentos Recentes</CardTitle>
+            <CardDescription className="text-gray-400">
+              {cartao.lancamentos.length} lançamentos realizados
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {cartao.lancamentos.length === 0 ? (
+              <div className="text-center py-8">
+                <CreditCard className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-400">Nenhum lançamento encontrado</p>
+                <Button
+                  className="mt-4 bg-white text-gray-900 hover:bg-gray-100"
+                  onClick={() =>
+                    router.push(
+                      `/dashboard/lancamentos/novo?cartaoId=${cartaoId}`
+                    )
+                  }
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Primeiro Lançamento
+                </Button>
+              </div>
+            ) : (
+              <div className="border border-gray-800 rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-gray-800 hover:bg-gray-800/50">
+                      <TableHead className="text-gray-300">Descrição</TableHead>
+                      <TableHead className="text-gray-300">Data</TableHead>
+                      <TableHead className="text-gray-300">Valor</TableHead>
+                      <TableHead className="text-gray-300">Status</TableHead>
+                      <TableHead className="text-gray-300">Fatura</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {lancamentosRecentes.map((lancamento) => (
+                      <TableRow
+                        key={lancamento.id}
+                        className="border-gray-800 hover:bg-gray-800/50"
+                      >
+                        <TableCell className="font-medium text-white">
+                          {lancamento.descricao}
+                        </TableCell>
+                        <TableCell className="text-gray-300">
+                          {formatarData(lancamento.data)}
+                        </TableCell>
+                        <TableCell className="text-white">
+                          {formatarMoeda(lancamento.valor)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={lancamento.pago ? "default" : "secondary"}
+                            className={
+                              lancamento.pago
+                                ? "bg-green-900/50 text-green-300 border-green-700"
+                                : "bg-yellow-900/50 text-yellow-300 border-yellow-700"
+                            }
+                          >
+                            {lancamento.pago ? "Pago" : "Pendente"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-gray-300">
+                          {lancamento.Fatura ? (
+                            <Badge
+                              className={getStatusColor(
+                                lancamento.Fatura.status
+                              )}
+                            >
+                              {lancamento.Fatura.mesReferencia}
+                            </Badge>
+                          ) : (
+                            <span className="text-gray-500">-</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+            {cartao.lancamentos.length > 10 && (
+              <Button
+                variant="outline"
+                className="w-full mt-4 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                onClick={() =>
+                  router.push(`/dashboard/lancamentos?cartaoId=${cartaoId}`)
+                }
+              >
+                Ver todos os lançamentos
+              </Button>
+            )}
+          </CardContent>
+        </Card>
       </div>
+      <Sheet open={sheetEditarAberto} onOpenChange={setSheetEditarAberto}>
+        <SheetContent className="bg-gray-900 border-gray-800 text-white overflow-y-auto w-full sm:max-w-2xl">
+          <SheetHeader className="mb-6">
+            <SheetTitle className="text-white">Editar Cartão</SheetTitle>
+            <SheetDescription className="text-gray-400">
+              Atualize as informações do seu cartão
+            </SheetDescription>
+          </SheetHeader>
+
+          <FormEditarCartao
+            cartao={cartao}
+            onSalvo={() => {
+              setSheetEditarAberto(false);
+              carregarCartao(); // Recarrega os dados
+            }}
+            onCancelar={() => setSheetEditarAberto(false)}
+          />
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

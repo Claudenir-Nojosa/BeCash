@@ -163,7 +163,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               className={`
                 flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${pathname.includes("/dashboard/lancamentos") ? "bg-gray-800 text-white border-l-2 border-blue-500" : ""}
+                ${pathname.includes("/dashboard/lancamentos") ? "bg-gray-800 text-white border-l-2 border-gray-700" : ""}
               `}
               onClick={handleLinkClick}
             >
@@ -181,7 +181,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               className={`
                 flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/limites") ? "bg-gray-800 text-white border-l-2 border-blue-500" : ""}
+                ${isActiveRoute("/dashboard/limites") ? "bg-gray-800 text-white border-l-2 border-gray-700" : ""}
               `}
               onClick={handleLinkClick}
             >
@@ -199,7 +199,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               className={`
                 flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/relatorios") ? "bg-gray-800 text-white border-l-2 border-blue-500" : ""}
+                ${isActiveRoute("/dashboard/relatorios") ? "bg-gray-800 text-white border-l-2 border-gray-700" : ""}
               `}
               onClick={handleLinkClick}
             >
@@ -217,7 +217,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               className={`
                 flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/cartoes") ? "bg-gray-800 text-white border-l-2 border-blue-500" : ""}
+                ${isActiveRoute("/dashboard/cartoes") ? "bg-gray-800 text-white border-l-2 border-gray-700" : ""}
               `}
               onClick={handleLinkClick}
             >
@@ -235,7 +235,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               className={`
                 flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/categorias") ? "bg-gray-800 text-white border-l-2 border-blue-500" : ""}
+                ${isActiveRoute("/dashboard/categorias") ? "bg-gray-800 text-white border-l-2 border-gray-700" : ""}
               `}
               onClick={handleLinkClick}
             >
@@ -253,7 +253,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               className={`
                 flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/pontos") ? "bg-gray-800 text-white border-l-2 border-blue-500" : ""}
+                ${isActiveRoute("/dashboard/pontos") ? "bg-gray-800 text-white border-l-2 border-gray-700" : ""}
               `}
               onClick={handleLinkClick}
             >
@@ -271,7 +271,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               className={`
                 flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/metas") ? "bg-gray-800 text-white border-l-2 border-blue-500" : ""}
+                ${isActiveRoute("/dashboard/metas") ? "bg-gray-800 text-white border-l-2 border-gray-700" : ""}
               `}
               onClick={handleLinkClick}
             >
@@ -289,7 +289,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               className={`
                 flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/bicla") ? "bg-gray-800 text-white border-l-2 border-blue-500" : ""}
+                ${isActiveRoute("/dashboard/bicla") ? "bg-gray-800 text-white border-l-2 border-gray-700" : ""}
               `}
               onClick={handleLinkClick}
             >

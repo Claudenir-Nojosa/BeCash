@@ -13,7 +13,6 @@ interface CartaoComFaturasELancamentos {
   createdAt: Date;
   updatedAt: Date;
   Fatura: Array<{
-    // CORREÇÃO: Fatura com F maiúsculo
     id: string;
     mesReferencia: string;
     status: string;
@@ -25,14 +24,128 @@ interface CartaoComFaturasELancamentos {
     valor: number;
     pago: boolean;
     Fatura: {
-      // CORREÇÃO: Fatura com F maiúsculo
       status: string;
     } | null;
   }>;
 }
 
 export class FaturaService {
-  // Obter ou criar fatura do mês atual para um cartão
+  // 🔥 CORREÇÃO: Obter fatura correta baseada no dia de fechamento
+  static async obterFaturaParaLancamento(lancamentoId: string) {
+    const lancamento = await db.lancamento.findUnique({
+      where: { id: lancamentoId },
+      include: { cartao: true },
+    });
+
+    if (!lancamento || !lancamento.cartaoId || !lancamento.cartao) {
+      throw new Error("Lançamento ou cartão não encontrado");
+    }
+
+    // 🔥 CALCULAR MES REFERENCIA CORRETO baseado no dia de fechamento
+    const mesReferencia = this.calcularMesReferencia(
+      lancamento.data,
+      lancamento.cartao.diaFechamento
+    );
+
+    // Calcular datas de fechamento e vencimento
+    const dataFechamento = this.calcularDataFechamento(
+      lancamento.cartao.diaFechamento,
+      mesReferencia
+    );
+    const dataVencimento = this.calcularDataVencimento(
+      lancamento.cartao.diaVencimento,
+      mesReferencia
+    );
+
+    return await db.fatura.upsert({
+      where: {
+        cartaoId_mesReferencia: {
+          cartaoId: lancamento.cartaoId,
+          mesReferencia,
+        },
+      },
+      create: {
+        cartaoId: lancamento.cartaoId,
+        mesReferencia,
+        dataFechamento,
+        dataVencimento,
+        status: "ABERTA",
+      },
+      update: {},
+    });
+  }
+  // NO FaturaService - CORRIJA A FUNÇÃO calcularMesReferencia:
+
+  static calcularMesReferencia(
+    dataLancamento: Date,
+    diaFechamento: number | null
+  ): string {
+    if (!diaFechamento) diaFechamento = 1;
+
+    // Extrair do formato ISO string para evitar problemas de timezone
+    const dataISO = dataLancamento.toISOString(); // "2025-11-04T03:00:00.000Z"
+    const dataPart = dataISO.substring(0, 10); // "2025-11-04"
+    const [anoStr, mesStr, diaStr] = dataPart.split("-");
+
+    const ano = parseInt(anoStr);
+    const mes = parseInt(mesStr);
+    const dia = parseInt(diaStr);
+
+    console.log(
+      `📅 Lançamento: ${dia}/${mes}/${ano}, Fechamento: ${diaFechamento}`
+    );
+
+    if (dia > diaFechamento) {
+      let proximoMes = mes + 1;
+      let proximoAno = ano;
+
+      if (proximoMes > 12) {
+        proximoMes = 1;
+        proximoAno = ano + 1;
+      }
+
+      const resultado = `${proximoAno}-${String(proximoMes).padStart(2, "0")}`;
+      console.log(`➡️ Vai para PRÓXIMA fatura: ${resultado}`);
+      return resultado;
+    } else {
+      const resultado = `${ano}-${String(mes).padStart(2, "0")}`;
+      console.log(`⬅️ Fica na fatura ATUAL: ${resultado}`);
+      return resultado;
+    }
+  }
+
+  // 🔥 ATUALIZAR: Método adicionarLancamentoAFatura para usar a nova função
+  static async adicionarLancamentoAFatura(lancamentoId: string) {
+    const lancamento = await db.lancamento.findUnique({
+      where: { id: lancamentoId },
+      include: { cartao: true },
+    });
+
+    if (
+      !lancamento ||
+      !lancamento.cartaoId ||
+      lancamento.metodoPagamento !== "CREDITO"
+    ) {
+      return;
+    }
+
+    // 🔥 USAR A NOVA FUNÇÃO que considera o dia de fechamento
+    const fatura = await this.obterFaturaParaLancamento(lancamentoId);
+
+    await db.lancamento.update({
+      where: { id: lancamentoId },
+      data: { faturaId: fatura.id },
+    });
+
+    // Atualizar valor total da fatura
+    await this.atualizarValorFatura(fatura.id);
+
+    console.log(
+      `✅ Lançamento ${lancamentoId} adicionado à fatura ${fatura.mesReferencia}`
+    );
+  }
+
+  // Obter fatura do mês atual para um cartão (para outros usos)
   static async obterFaturaAtual(cartaoId: string) {
     const cartao = await db.cartao.findUnique({
       where: { id: cartaoId },
@@ -87,48 +200,23 @@ export class FaturaService {
     return new Date(ano, mes - 1, dia);
   }
 
-  // Calcular data de vencimento
-  static calcularDataVencimento(
-    diaVencimento: number | null,
-    mesReferencia: string
-  ) {
-    if (!diaVencimento) diaVencimento = 10;
+static calcularDataVencimento(
+  diaVencimento: number | null,
+  mesReferencia: string
+) {
+  if (!diaVencimento) diaVencimento = 10;
 
-    const [ano, mes] = mesReferencia.split("-").map(Number);
-    const mesVencimento = mes === 12 ? 1 : mes + 1;
-    const anoVencimento = mes === 12 ? ano + 1 : ano;
+  const [ano, mes] = mesReferencia.split("-").map(Number);
+  
+  // 🔥 Vencimento no MESMO mês da referência
+  const mesVencimento = mes;
+  const anoVencimento = ano;
 
-    const ultimoDiaMes = new Date(anoVencimento, mesVencimento, 0).getDate();
-    const dia = Math.min(diaVencimento, ultimoDiaMes);
+  const ultimoDiaMes = new Date(anoVencimento, mesVencimento, 0).getDate();
+  const dia = Math.min(diaVencimento, ultimoDiaMes);
 
-    return new Date(anoVencimento, mesVencimento - 1, dia);
-  }
-
-  // Adicionar lançamento à fatura
-  static async adicionarLancamentoAFatura(lancamentoId: string) {
-    const lancamento = await db.lancamento.findUnique({
-      where: { id: lancamentoId },
-      include: { cartao: true },
-    });
-
-    if (
-      !lancamento ||
-      !lancamento.cartaoId ||
-      lancamento.metodoPagamento !== "CREDITO"
-    ) {
-      return;
-    }
-
-    const fatura = await this.obterFaturaAtual(lancamento.cartaoId);
-
-    await db.lancamento.update({
-      where: { id: lancamentoId },
-      data: { faturaId: fatura.id },
-    });
-
-    // Atualizar valor total da fatura
-    await this.atualizarValorFatura(fatura.id);
-  }
+  return new Date(anoVencimento, mesVencimento - 1, dia);
+}
 
   // Atualizar valor total da fatura
   static async atualizarValorFatura(faturaId: string) {
@@ -228,9 +316,9 @@ export class FaturaService {
     }
 
     return fatura;
-  } // FIM do método pagarFatura
+  }
 
-  // Obter resumo do cartão - CORRIGIDO
+  // Obter resumo do cartão
   static async obterResumoCartao(cartaoId: string) {
     const cartao = await db.cartao.findUnique({
       where: { id: cartaoId },

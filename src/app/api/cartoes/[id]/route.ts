@@ -30,8 +30,8 @@ export async function GET(request: NextRequest) {
       include: {
         lancamentos: {
           include: {
+            categoria: true, // 👈 ADICIONAR ESTA LINHA
             Fatura: {
-              // CORREÇÃO: Fatura com F maiúsculo
               select: {
                 status: true,
                 mesReferencia: true,
@@ -43,7 +43,6 @@ export async function GET(request: NextRequest) {
           },
         },
         Fatura: {
-          // CORREÇÃO: Fatura com F maiúsculo
           orderBy: {
             mesReferencia: "desc",
           },
