@@ -5,16 +5,16 @@ import { auth } from "../../../../../../auth";
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: metaId } = await params;
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
     const userId = session.user.id;
-    const metaId = params.id;
 
     // Verificar se a meta existe e pertence ao usuário
     const meta = await db.metaPontos.findUnique({
@@ -49,9 +49,10 @@ export async function DELETE(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: metaId } = await params;
     const body = await request.json();
     const { programa, metaPontos, descricao, dataAlvo } = body;
 
@@ -61,7 +62,6 @@ export async function PUT(
     }
 
     const userId = session.user.id;
-    const metaId = params.id;
 
     // Verificar se a meta existe e pertence ao usuário
     const metaExistente = await db.metaPontos.findUnique({
@@ -110,16 +110,16 @@ export async function PUT(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: metaId } = await params;
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
     const userId = session.user.id;
-    const metaId = params.id;
 
     // Buscar meta específica
     const meta = await db.metaPontos.findUnique({

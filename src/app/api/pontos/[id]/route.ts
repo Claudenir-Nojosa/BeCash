@@ -5,16 +5,16 @@ import { auth } from "../../../../../auth";
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: pontoId } = await params;
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
     const userId = session.user.id;
-    const pontoId = params.id;
 
     // Verificar se o ponto existe e pertence ao usuário
     const ponto = await db.pontos.findUnique({
@@ -49,9 +49,10 @@ export async function DELETE(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: pontoId } = await params;
     const body = await request.json();
     const { programa, quantidade, descricao, data, tipo, valorResgate } = body;
 
@@ -61,7 +62,6 @@ export async function PUT(
     }
 
     const userId = session.user.id;
-    const pontoId = params.id;
 
     // Verificar se o ponto existe e pertence ao usuário
     const pontoExistente = await db.pontos.findUnique({
@@ -112,16 +112,16 @@ export async function PUT(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: pontoId } = await params;
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
     const userId = session.user.id;
-    const pontoId = params.id;
 
     // Buscar ponto específico
     const ponto = await db.pontos.findUnique({
