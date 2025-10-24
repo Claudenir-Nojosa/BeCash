@@ -3,7 +3,29 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Plus,
+  Search,
+  Filter,
+  Coins,
+  TrendingUp,
+  Gift,
+  Clock,
+  Target,
+  Edit3,
+  Trash2,
+} from "lucide-react";
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -13,37 +35,40 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Plus,
-  Filter,
-  Search,
-  TrendingUp,
-  Gift,
-  Clock,
-  Calendar,
-  Coins,
-  Target,
-} from "lucide-react";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "sonner";
 
 interface Ponto {
   id: string;
@@ -68,7 +93,9 @@ interface ResumoPontos {
 
 export default function PontosPage() {
   const router = useRouter();
+  const [editandoPonto, setEditandoPonto] = useState<Ponto | null>(null);
   const [pontos, setPontos] = useState<Ponto[]>([]);
+  const [todosPontos, setTodosPontos] = useState<Ponto[]>([]); // ← Adicionei isso
   const [resumo, setResumo] = useState<ResumoPontos>({
     totalPontos: 0,
     pontosGanhos: 0,
@@ -77,6 +104,11 @@ export default function PontosPage() {
     valorTotalResgatado: 0,
   });
   const [carregando, setCarregando] = useState(true);
+  const [excluindo, setExcluindo] = useState<string | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [dialogAberto, setDialogAberto] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
+
   const [filtros, setFiltros] = useState({
     programa: "todos",
     tipo: "todos",
@@ -85,37 +117,253 @@ export default function PontosPage() {
     busca: "",
   });
 
-  useEffect(() => {
-    buscarPontos();
-  }, [filtros.mes, filtros.ano, filtros.programa, filtros.tipo]);
+  const [formData, setFormData] = useState({
+    programa: "LIVELO",
+    quantidade: "",
+    descricao: "",
+    tipo: "GANHO",
+    valorResgate: "",
+    data: new Date(),
+  });
 
-  const buscarPontos = async () => {
+  // Carrega todos os dados uma vez
+  useEffect(() => {
+    buscarTodosPontos();
+  }, []); // ← Remove as dependências dos filtros
+
+  const buscarTodosPontos = async () => {
     try {
       setCarregando(true);
-      const toastId = toast.loading("Carregando pontos...");
 
-      const params = new URLSearchParams({
-        mes: filtros.mes.toString(),
-        ano: filtros.ano.toString(),
-        programa: filtros.programa,
-        tipo: filtros.tipo,
-      });
-
-      const response = await fetch(`/api/pontos?${params}`);
+      const response = await fetch(
+        `/api/pontos?mes=${filtros.mes}&ano=${filtros.ano}&programa=todos&tipo=todos`
+      );
 
       if (!response.ok) throw new Error("Erro ao buscar pontos");
 
       const data = await response.json();
 
-      setPontos(data.pontos);
+      setTodosPontos(data.pontos); // ← Salva todos os pontos
+      setPontos(data.pontos); // ← Pontos iniciais
       setResumo(data.resumo);
-
-      toast.success("Pontos carregados", { id: toastId });
     } catch (error) {
       console.error("Erro ao buscar pontos:", error);
       toast.error("Erro ao carregar pontos");
     } finally {
       setCarregando(false);
+    }
+  };
+
+  // Filtra localmente sem recarregar
+  const aplicarFiltros = () => {
+    let pontosFiltrados = todosPontos;
+
+    // Filtro por tipo
+    if (filtros.tipo !== "todos") {
+      pontosFiltrados = pontosFiltrados.filter(
+        (ponto) => ponto.tipo === filtros.tipo
+      );
+    }
+
+    // Filtro por programa
+    if (filtros.programa !== "todos") {
+      pontosFiltrados = pontosFiltrados.filter(
+        (ponto) => ponto.programa === filtros.programa
+      );
+    }
+
+    // Filtro por busca
+    if (filtros.busca) {
+      pontosFiltrados = pontosFiltrados.filter((ponto) =>
+        ponto.descricao.toLowerCase().includes(filtros.busca.toLowerCase())
+      );
+    }
+
+    // Filtro por mês/ano (já vem do servidor)
+    pontosFiltrados = pontosFiltrados.filter((ponto) => {
+      const dataPonto = new Date(ponto.data);
+      return (
+        dataPonto.getMonth() + 1 === filtros.mes &&
+        dataPonto.getFullYear() === filtros.ano
+      );
+    });
+
+    setPontos(pontosFiltrados);
+  };
+
+  // Aplica filtros quando eles mudam
+  useEffect(() => {
+    if (todosPontos.length > 0) {
+      aplicarFiltros();
+    }
+  }, [filtros, todosPontos]);
+
+  // Função para iniciar edição
+  const iniciarEdicao = (ponto: Ponto) => {
+    setEditandoPonto(ponto);
+    setFormData({
+      programa: ponto.programa,
+      quantidade: ponto.quantidade.toString(),
+      descricao: ponto.descricao,
+      tipo: ponto.tipo,
+      valorResgate: ponto.valorResgate?.toString() || "",
+      data: new Date(ponto.data),
+    });
+    setIsSheetOpen(true);
+  };
+
+  // Função para cancelar edição
+  const cancelarEdicao = () => {
+    setEditandoPonto(null);
+    setFormData({
+      programa: "LIVELO",
+      quantidade: "",
+      descricao: "",
+      tipo: "GANHO",
+      valorResgate: "",
+      data: new Date(),
+    });
+    setIsSheetOpen(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEnviando(true);
+
+    try {
+      const payload = {
+        ...formData,
+        quantidade: parseInt(formData.quantidade),
+        valorResgate: formData.valorResgate
+          ? parseFloat(formData.valorResgate)
+          : null,
+        data: formData.data.toISOString(),
+      };
+
+      const url = editandoPonto
+        ? `/api/pontos/${editandoPonto.id}`
+        : "/api/pontos";
+
+      const method = editandoPonto ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erro ao salvar ponto");
+      }
+
+      const pontoSalvo = await response.json();
+
+      if (editandoPonto) {
+        // Atualização otimista
+        setTodosPontos((prev) =>
+          prev.map((ponto) =>
+            ponto.id === editandoPonto.id ? pontoSalvo : ponto
+          )
+        );
+        toast.success("Ponto atualizado com sucesso!");
+      } else {
+        // Criação otimista
+        setTodosPontos((prev) => [...prev, pontoSalvo]);
+
+        // Recalcular resumo localmente
+        setResumo((prev) => ({
+          ...prev,
+          totalPontos:
+            prev.totalPontos +
+            (pontoSalvo.tipo === "GANHO"
+              ? pontoSalvo.quantidade
+              : -pontoSalvo.quantidade),
+          pontosGanhos:
+            prev.pontosGanhos +
+            (pontoSalvo.tipo === "GANHO" ? pontoSalvo.quantidade : 0),
+          pontosResgatados:
+            prev.pontosResgatados +
+            (pontoSalvo.tipo === "RESGATE" ? pontoSalvo.quantidade : 0),
+          pontosExpirados:
+            prev.pontosExpirados +
+            (pontoSalvo.tipo === "EXPIRACAO" ? pontoSalvo.quantidade : 0),
+          valorTotalResgatado:
+            prev.valorTotalResgatado + (pontoSalvo.valorResgate || 0),
+        }));
+
+        toast.success("Ponto registrado com sucesso!");
+      }
+
+      cancelarEdicao();
+    } catch (error: any) {
+      console.error("Erro ao salvar ponto:", error);
+      toast.error(error.message || "Erro ao salvar ponto");
+      buscarTodosPontos(); // Recarrega em caso de erro
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    setExcluindo(id);
+
+    const pontoParaExcluir = pontos.find((ponto) => ponto.id === id);
+
+    try {
+      // Exclusão otimista
+      setTodosPontos((prev) => prev.filter((ponto) => ponto.id !== id));
+      setDialogAberto(null);
+
+      // Recalcular resumo localmente
+      if (pontoParaExcluir) {
+        setResumo((prev) => ({
+          ...prev,
+          totalPontos:
+            prev.totalPontos -
+            (pontoParaExcluir.tipo === "GANHO"
+              ? pontoParaExcluir.quantidade
+              : -pontoParaExcluir.quantidade),
+          pontosGanhos:
+            prev.pontosGanhos -
+            (pontoParaExcluir.tipo === "GANHO"
+              ? pontoParaExcluir.quantidade
+              : 0),
+          pontosResgatados:
+            prev.pontosResgatados -
+            (pontoParaExcluir.tipo === "RESGATE"
+              ? pontoParaExcluir.quantidade
+              : 0),
+          pontosExpirados:
+            prev.pontosExpirados -
+            (pontoParaExcluir.tipo === "EXPIRACAO"
+              ? pontoParaExcluir.quantidade
+              : 0),
+          valorTotalResgatado:
+            prev.valorTotalResgatado - (pontoParaExcluir.valorResgate || 0),
+        }));
+      }
+
+      // Chamada para a API de delete (você precisa criar essa rota)
+      const res = await fetch(`/api/pontos/${id}`, { method: "DELETE" });
+
+      if (!res.ok) {
+        throw new Error("Erro ao deletar ponto");
+      }
+
+      toast.success("Ponto deletado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao deletar ponto:", error);
+
+      // Revert se der erro
+      if (pontoParaExcluir) {
+        setTodosPontos((prev) => [...prev, pontoParaExcluir]);
+        buscarTodosPontos(); // Recarrega os dados corretos
+      }
+
+      toast.error("Erro ao deletar ponto.");
+    } finally {
+      setExcluindo(null);
     }
   };
 
@@ -139,26 +387,26 @@ export default function PontosPage() {
   const obterCorTipo = (tipo: string) => {
     switch (tipo) {
       case "GANHO":
-        return "bg-green-100 text-green-800 hover:bg-green-100";
+        return "bg-green-900/50 text-green-400 border-green-700";
       case "RESGATE":
-        return "bg-blue-100 text-blue-800 hover:bg-blue-100";
+        return "bg-blue-900/50 text-blue-400 border-blue-700";
       case "EXPIRACAO":
-        return "bg-red-100 text-red-800 hover:bg-red-100";
+        return "bg-red-900/50 text-red-400 border-red-700";
       default:
-        return "bg-gray-100 text-gray-800 hover:bg-gray-100";
+        return "bg-gray-900/50 text-gray-400 border-gray-700";
     }
   };
 
   const obterIconeTipo = (tipo: string) => {
     switch (tipo) {
       case "GANHO":
-        return <TrendingUp className="h-4 w-4" />;
+        return <TrendingUp className="w-4 h-4" />;
       case "RESGATE":
-        return <Gift className="h-4 w-4" />;
+        return <Gift className="w-4 h-4" />;
       case "EXPIRACAO":
-        return <Clock className="h-4 w-4" />;
+        return <Clock className="w-4 h-4" />;
       default:
-        return <Coins className="h-4 w-4" />;
+        return <Coins className="w-4 h-4" />;
     }
   };
 
@@ -215,313 +463,807 @@ export default function PontosPage() {
     ponto.descricao.toLowerCase().includes(filtros.busca.toLowerCase())
   );
 
+  if (carregando && pontos.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-gray-400">Carregando pontos...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto p-6 mt-20">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <Coins className="h-6 w-6 text-blue-600" />
+    <div className="min-h-screen p-6">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div>
+              <h1 className="text-3xl font-bold text-white">Meus Pontos</h1>
+              <p className="text-gray-300">
+                Controle seus pontos de fidelidade
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-3xl font-bold">Meus Pontos</h1>
-            <p className="text-muted-foreground">
-              Controle seus pontos de fidelidade
-            </p>
+
+          <div className="flex gap-2">
+            <Button
+              variant={"outline"}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+              onClick={() => router.push("/dashboard/pontos/metas")}
+            >
+              <Target className="w-4 h-4" />
+              Metas
+            </Button>
+
+            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant={"outline"}
+                 className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                >
+                  <Plus className="w-4 h-4" />
+                  Novo Ponto
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="bg-gray-900 border-gray-800 text-white">
+                <SheetHeader>
+                  <SheetTitle className="text-white">
+                    {editandoPonto ? "Editar Ponto" : "Novo Ponto"}
+                  </SheetTitle>
+                  <SheetDescription className="text-gray-400">
+                    Registre seus ganhos, resgates ou expirações de pontos
+                  </SheetDescription>
+                </SheetHeader>
+
+                <form onSubmit={handleSubmit} className="space-y-6 mt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="programa" className="text-white">
+                        Programa *
+                      </Label>
+                      <Select
+                        value={formData.programa}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, programa: value })
+                        }
+                        required
+                      >
+                        <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                          <SelectValue placeholder="Selecione o programa" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                          {programas.slice(1).map((programa) => (
+                            <SelectItem
+                              key={programa.value}
+                              value={programa.value}
+                            >
+                              {programa.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="tipo" className="text-white">
+                        Tipo *
+                      </Label>
+                      <Select
+                        value={formData.tipo}
+                        onValueChange={(
+                          value: "GANHO" | "RESGATE" | "EXPIRACAO"
+                        ) => setFormData({ ...formData, tipo: value })}
+                        required
+                      >
+                        <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                          <SelectValue placeholder="Selecione o tipo" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                          <SelectItem value="GANHO">
+                            <div className="flex items-center gap-2">
+                              <TrendingUp className="w-4 h-4 text-green-400" />
+                              Ganho
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="RESGATE">
+                            <div className="flex items-center gap-2">
+                              <Gift className="w-4 h-4 text-blue-400" />
+                              Resgate
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="EXPIRACAO">
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4 text-red-400" />
+                              Expiração
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="quantidade" className="text-white">
+                      Quantidade de Pontos *
+                    </Label>
+                    <Input
+                      id="quantidade"
+                      type="number"
+                      min="1"
+                      value={formData.quantidade}
+                      onChange={(e) =>
+                        setFormData({ ...formData, quantidade: e.target.value })
+                      }
+                      placeholder="Ex: 1000"
+                      className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="descricao" className="text-white">
+                      Descrição *
+                    </Label>
+                    <Textarea
+                      id="descricao"
+                      value={formData.descricao}
+                      onChange={(e) =>
+                        setFormData({ ...formData, descricao: e.target.value })
+                      }
+                      placeholder="Ex: Compra no Supermercado, Resgate de passagem, Expiração anual..."
+                      className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                      required
+                      rows={3}
+                    />
+                  </div>
+
+                  {formData.tipo === "RESGATE" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="valorResgate" className="text-white">
+                        Valor do Resgate (R$)
+                      </Label>
+                      <Input
+                        id="valorResgate"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.valorResgate}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            valorResgate: e.target.value,
+                          })
+                        }
+                        placeholder="Ex: 150,00"
+                        className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                      />
+                      <p className="text-xs text-gray-400">
+                        Valor em reais que você resgatou com os pontos
+                        (opcional)
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label className="text-white">Data *</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal bg-gray-800 border-gray-700 text-white hover:bg-gray-700"
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {formData.data
+                            ? format(formData.data, "PPP", { locale: ptBR })
+                            : "Selecione a data"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0 bg-gray-800 border-gray-700">
+                        <Calendar
+                          mode="single"
+                          selected={formData.data}
+                          onSelect={(date) =>
+                            date && setFormData({ ...formData, data: date })
+                          }
+                          initialFocus
+                          locale={ptBR}
+                          className="bg-gray-800 text-white"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <Button
+                      type="submit"
+                      className="flex-1 bg-white text-gray-900 hover:bg-gray-100"
+                      disabled={enviando}
+                    >
+                      {enviando ? "Registrando..." : "Registrar Ponto"}
+                    </Button>
+                  </div>
+                </form>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => router.push("/dashboard/pontos/metas")}
-        >
-          <Target className="mr-2 h-4 w-4" />
-          Metas
-        </Button>
-        <Button onClick={() => router.push("/dashboard/pontos/novo")}>
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Lançamento
-        </Button>
-      </div>
 
-      {/* Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Coins className="h-5 w-5 text-blue-600" />
-              Total de Pontos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-blue-600">
-              {formatarPontos(resumo.totalPontos)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">Saldo atual</p>
-          </CardContent>
-        </Card>
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="bg-gray-900 border-gray-800">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-400">
+                    Total de Pontos
+                  </p>
+                  <p className="text-2xl font-bold text-blue-400">
+                    {formatarPontos(resumo.totalPontos)}
+                  </p>
+                </div>
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <Coins className="w-4 h-4 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-green-600" />
-              Pontos Ganhos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-green-600">
-              +{formatarPontos(resumo.pontosGanhos)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">No período</p>
-          </CardContent>
-        </Card>
+          <Card className="bg-gray-900 border-gray-800">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-400">
+                    Pontos Ganhos
+                  </p>
+                  <p className="text-2xl font-bold text-green-400">
+                    +{formatarPontos(resumo.pontosGanhos)}
+                  </p>
+                </div>
+                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Gift className="h-5 w-5 text-blue-600" />
-              Pontos Resgatados
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-blue-600">
-              -{formatarPontos(resumo.pontosResgatados)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">No período</p>
-          </CardContent>
-        </Card>
+          <Card className="bg-gray-900 border-gray-800">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-400">
+                    Pontos Resgatados
+                  </p>
+                  <p className="text-2xl font-bold text-blue-400">
+                    -{formatarPontos(resumo.pontosResgatados)}
+                  </p>
+                </div>
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <Gift className="w-4 h-4 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Clock className="h-5 w-5 text-red-600" />
-              Valor Resgatado
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-red-600">
-              {formatarMoeda(resumo.valorTotalResgatado)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">Em reais</p>
-          </CardContent>
-        </Card>
-      </div>
+          <Card className="bg-gray-900 border-gray-800">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-400">
+                    Valor Resgatado
+                  </p>
+                  <p className="text-2xl font-bold text-red-400">
+                    {formatarMoeda(resumo.valorTotalResgatado)}
+                  </p>
+                </div>
+                <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
+                  <Clock className="w-4 h-4 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Filtros */}
-      <Card className="mb-6">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Filter className="h-5 w-5" />
-              Filtros
-            </CardTitle>
-            <Button variant="outline" size="sm" onClick={buscarPontos}>
-              Aplicar Filtros
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="mes">Mês</Label>
-              <Select
-                value={filtros.mes.toString()}
-                onValueChange={(value) =>
-                  setFiltros({ ...filtros, mes: parseInt(value) })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o mês" />
-                </SelectTrigger>
-                <SelectContent>
-                  {meses.map((mes) => (
-                    <SelectItem key={mes.value} value={mes.value.toString()}>
-                      {mes.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        {/* Filtros e Busca */}
+        <Card className="bg-gray-900 border-gray-800">
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Buscar por descrição..."
+                  value={filtros.busca}
+                  onChange={(e) =>
+                    setFiltros({ ...filtros, busca: e.target.value })
+                  }
+                  className="pl-9 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="ano">Ano</Label>
-              <Select
-                value={filtros.ano.toString()}
-                onValueChange={(value) =>
-                  setFiltros({ ...filtros, ano: parseInt(value) })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o ano" />
-                </SelectTrigger>
-                <SelectContent>
-                  {anos.map((ano) => (
-                    <SelectItem key={ano} value={ano.toString()}>
-                      {ano}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="programa">Programa</Label>
-              <Select
-                value={filtros.programa}
-                onValueChange={(value) =>
-                  setFiltros({ ...filtros, programa: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos os programas" />
-                </SelectTrigger>
-                <SelectContent>
-                  {programas.map((programa) => (
-                    <SelectItem key={programa.value} value={programa.value}>
-                      {programa.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="tipo">Tipo</Label>
-              <Select
+              <Tabs
                 value={filtros.tipo}
                 onValueChange={(value) =>
-                  setFiltros({ ...filtros, tipo: value })
+                  setFiltros({ ...filtros, tipo: value as any })
                 }
+                className="w-full sm:w-auto"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos os tipos" />
-                </SelectTrigger>
-                <SelectContent>
-                  {tipos.map((tipo) => (
-                    <SelectItem key={tipo.value} value={tipo.value}>
-                      {tipo.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <TabsList className="bg-gray-800 border border-gray-700">
+                  <TabsTrigger
+                    value="todos"
+                    className="text-gray-300 data-[state=active]:bg-gray-700 data-[state=active]:text-white"
+                  >
+                    Todos
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="GANHO"
+                    className="text-gray-300 data-[state=active]:bg-green-600 data-[state=active]:text-white"
+                  >
+                    Ganhos
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="RESGATE"
+                    className="text-gray-300 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+                  >
+                    Resgates
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="EXPIRACAO"
+                    className="text-gray-300 data-[state=active]:bg-red-600 data-[state=active]:text-white"
+                  >
+                    Expirações
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
-          </div>
 
-          <div className="mt-4 space-y-2">
-            <Label htmlFor="busca">Buscar</Label>
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="busca"
-                placeholder="Buscar por descrição..."
-                className="pl-8"
-                value={filtros.busca}
-                onChange={(e) =>
-                  setFiltros({ ...filtros, busca: e.target.value })
-                }
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+              <div className="space-y-2">
+                <Label className="text-gray-400 text-sm">Mês</Label>
+                <Select
+                  value={filtros.mes.toString()}
+                  onValueChange={(value) =>
+                    setFiltros({ ...filtros, mes: parseInt(value) })
+                  }
+                >
+                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                    <SelectValue placeholder="Selecione o mês" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                    {meses.map((mes) => (
+                      <SelectItem key={mes.value} value={mes.value.toString()}>
+                        {mes.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-      {/* Tabela de Pontos */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Histórico de Pontos</CardTitle>
-          <CardDescription>
-            {pontosFiltrados.length} lançamento(s) encontrado(s)
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {carregando ? (
-            <div className="space-y-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
+              <div className="space-y-2">
+                <Label className="text-gray-400 text-sm">Ano</Label>
+                <Select
+                  value={filtros.ano.toString()}
+                  onValueChange={(value) =>
+                    setFiltros({ ...filtros, ano: parseInt(value) })
+                  }
+                >
+                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                    <SelectValue placeholder="Selecione o ano" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                    {anos.map((ano) => (
+                      <SelectItem key={ano} value={ano.toString()}>
+                        {ano}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-gray-400 text-sm">Programa</Label>
+                <Select
+                  value={filtros.programa}
+                  onValueChange={(value) =>
+                    setFiltros({ ...filtros, programa: value })
+                  }
+                >
+                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                    <SelectValue placeholder="Todos os programas" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                    {programas.map((programa) => (
+                      <SelectItem key={programa.value} value={programa.value}>
+                        {programa.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          ) : pontosFiltrados.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Coins className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p>Nenhum ponto encontrado</p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={() => router.push("/dashboard/pontos/novo")}
+          </CardContent>
+        </Card>
+
+        {/* Lista de Pontos */}
+        <div className="grid grid-cols-1 gap-4">
+          <AnimatePresence>
+            {pontosFiltrados.map((ponto, index) => (
+              <motion.div
+                key={ponto.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ delay: index * 0.1 }}
               >
-                <Plus className="mr-2 h-4 w-4" />
-                Adicionar Primeiro Ponto
-              </Button>
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-center">Data</TableHead>
-                    <TableHead className="text-center">Programa</TableHead>
-                    <TableHead className="text-center">Descrição</TableHead>
-                    <TableHead className="text-center">Tipo</TableHead>
-                    <TableHead className="text-center">Pontos</TableHead>
-                    <TableHead className="text-center">Valor Resgate</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pontosFiltrados.map((ponto) => (
-                    <TableRow key={ponto.id}>
-                      <TableCell className="text-center">
-                        <div className="flex flex-col items-center">
-                          {formatarData(ponto.data)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center font-medium">
-                        <Badge variant="outline">
-                          {ponto.programa}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {ponto.descricao}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge
-                          variant="secondary"
-                          className={obterCorTipo(ponto.tipo)}
-                        >
-                          <div className="flex items-center gap-1">
-                            {obterIconeTipo(ponto.tipo)}
-                            {obterLabelTipo(ponto.tipo)}
-                          </div>
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
+                <Card className="bg-gray-900 border-gray-800 group hover:border-gray-700 transition-all duration-300">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-4 flex-1">
                         <div
-                          className={`font-bold ${
+                          className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                             ponto.tipo === "GANHO"
-                              ? "text-green-600"
+                              ? "bg-green-600"
                               : ponto.tipo === "RESGATE"
-                                ? "text-blue-600"
-                                : "text-red-600"
+                                ? "bg-blue-600"
+                                : "bg-red-600"
                           }`}
                         >
-                          {ponto.tipo === "GANHO" ? "+" : "-"}
-                          {formatarPontos(ponto.quantidade)}
+                          {obterIconeTipo(ponto.tipo)}
                         </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {ponto.valorResgate ? (
-                          <div className="font-medium text-green-600">
-                            {formatarMoeda(ponto.valorResgate)}
+
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-semibold text-lg text-white">
+                              {ponto.descricao}
+                            </h3>
+                            <Badge
+                              variant="outline"
+                              className="bg-gray-800 text-gray-300 border-gray-700"
+                            >
+                              {ponto.programa}
+                            </Badge>
                           </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+
+                          <div className="flex items-center gap-4">
+                            <Badge
+                              variant="outline"
+                              className={obterCorTipo(ponto.tipo)}
+                            >
+                              <div className="flex items-center gap-1">
+                                {obterIconeTipo(ponto.tipo)}
+                                {obterLabelTipo(ponto.tipo)}
+                              </div>
+                            </Badge>
+
+                            <span className="text-gray-400 text-sm">
+                              {formatarData(ponto.data)}
+                            </span>
+
+                            <div
+                              className={`text-lg font-bold ${
+                                ponto.tipo === "GANHO"
+                                  ? "text-green-400"
+                                  : ponto.tipo === "RESGATE"
+                                    ? "text-blue-400"
+                                    : "text-red-400"
+                              }`}
+                            >
+                              {ponto.tipo === "GANHO" ? "+" : "-"}
+                              {formatarPontos(ponto.quantidade)} pontos
+                            </div>
+
+                            {ponto.valorResgate && (
+                              <div className="text-green-400 font-medium">
+                                {formatarMoeda(ponto.valorResgate)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => iniciarEdicao(ponto)}
+                                className="text-gray-400 hover:text-white hover:bg-gray-800"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent className="bg-gray-800 text-white border-gray-700">
+                              <p>Editar ponto</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Dialog
+                                open={dialogAberto === ponto.id}
+                                onOpenChange={(open) =>
+                                  setDialogAberto(open ? ponto.id : null)
+                                }
+                              >
+                                <DialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-gray-400 hover:text-red-400 hover:bg-gray-800"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="bg-gray-900 border-gray-800 text-white">
+                                  <DialogHeader>
+                                    <DialogTitle className="text-white">
+                                      Excluir Ponto
+                                    </DialogTitle>
+                                    <DialogDescription className="text-gray-400">
+                                      Tem certeza que deseja excluir este ponto?
+                                      Esta ação não pode ser desfeita.
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  <div className="flex gap-3 justify-end">
+                                    <Button
+                                      variant="outline"
+                                      onClick={() => setDialogAberto(null)}
+                                      className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                                    >
+                                      Cancelar
+                                    </Button>
+                                    <Button
+                                      variant="destructive"
+                                      onClick={() => handleDelete(ponto.id)}
+                                      disabled={excluindo === ponto.id}
+                                    >
+                                      {excluindo === ponto.id
+                                        ? "Excluindo..."
+                                        : "Confirmar"}
+                                    </Button>
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
+                            </TooltipTrigger>
+                            <TooltipContent className="bg-gray-800 text-white border-gray-700">
+                              <p>Excluir ponto</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+
+        {/* Estado Vazio */}
+        {pontosFiltrados.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center py-12"
+          >
+            <div className="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Coins className="w-10 h-10 text-gray-600" />
             </div>
-          )}
-        </CardContent>
-      </Card>
+            <h3 className="text-lg font-semibold text-white mb-2">
+              Nenhum ponto encontrado
+            </h3>
+            <p className="text-gray-400 mb-6">
+              {filtros.busca ||
+              filtros.tipo !== "todos" ||
+              filtros.programa !== "todos"
+                ? "Tente ajustar os filtros ou termos de busca"
+                : "Comece registrando seu primeiro ponto"}
+            </p>
+            {!filtros.busca &&
+              filtros.tipo === "todos" &&
+              filtros.programa === "todos" && (
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button className="bg-white text-gray-900 hover:bg-gray-100 gap-2">
+                      <Plus className="w-4 h-4" />
+                      Registrar Primeiro Ponto
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent className="bg-gray-900 border-gray-800 text-white">
+                    <SheetHeader>
+                      <SheetTitle className="text-white">
+                        {editandoPonto ? "Editar Ponto" : "Novo Ponto"}
+                      </SheetTitle>
+                      <SheetDescription className="text-gray-400">
+                        Registre seus ganhos, resgates ou expirações de pontos
+                      </SheetDescription>
+                    </SheetHeader>
+
+                    <form onSubmit={handleSubmit} className="space-y-6 mt-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="programa" className="text-white">
+                            Programa *
+                          </Label>
+                          <Select
+                            value={formData.programa}
+                            onValueChange={(value) =>
+                              setFormData({ ...formData, programa: value })
+                            }
+                            required
+                          >
+                            <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                              <SelectValue placeholder="Selecione o programa" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                              {programas.slice(1).map((programa) => (
+                                <SelectItem
+                                  key={programa.value}
+                                  value={programa.value}
+                                >
+                                  {programa.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="tipo" className="text-white">
+                            Tipo *
+                          </Label>
+                          <Select
+                            value={formData.tipo}
+                            onValueChange={(
+                              value: "GANHO" | "RESGATE" | "EXPIRACAO"
+                            ) => setFormData({ ...formData, tipo: value })}
+                            required
+                          >
+                            <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                              <SelectValue placeholder="Selecione o tipo" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                              <SelectItem value="GANHO">
+                                <div className="flex items-center gap-2">
+                                  <TrendingUp className="w-4 h-4 text-green-400" />
+                                  Ganho
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="RESGATE">
+                                <div className="flex items-center gap-2">
+                                  <Gift className="w-4 h-4 text-blue-400" />
+                                  Resgate
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="EXPIRACAO">
+                                <div className="flex items-center gap-2">
+                                  <Clock className="w-4 h-4 text-red-400" />
+                                  Expiração
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="quantidade" className="text-white">
+                          Quantidade de Pontos *
+                        </Label>
+                        <Input
+                          id="quantidade"
+                          type="number"
+                          min="1"
+                          value={formData.quantidade}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              quantidade: e.target.value,
+                            })
+                          }
+                          placeholder="Ex: 1000"
+                          className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="descricao" className="text-white">
+                          Descrição *
+                        </Label>
+                        <Textarea
+                          id="descricao"
+                          value={formData.descricao}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              descricao: e.target.value,
+                            })
+                          }
+                          placeholder="Ex: Compra no Supermercado, Resgate de passagem, Expiração anual..."
+                          className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                          required
+                          rows={3}
+                        />
+                      </div>
+
+                      {formData.tipo === "RESGATE" && (
+                        <div className="space-y-2">
+                          <Label htmlFor="valorResgate" className="text-white">
+                            Valor do Resgate (R$)
+                          </Label>
+                          <Input
+                            id="valorResgate"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={formData.valorResgate}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                valorResgate: e.target.value,
+                              })
+                            }
+                            placeholder="Ex: 150,00"
+                            className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                          />
+                          <p className="text-xs text-gray-400">
+                            Valor em reais que você resgatou com os pontos
+                            (opcional)
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <Label className="text-white">Data *</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start text-left font-normal bg-gray-800 border-gray-700 text-white hover:bg-gray-700"
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {formData.data
+                                ? format(formData.data, "PPP", { locale: ptBR })
+                                : "Selecione a data"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0 bg-gray-800 border-gray-700">
+                            <Calendar
+                              mode="single"
+                              selected={formData.data}
+                              onSelect={(date) =>
+                                date && setFormData({ ...formData, data: date })
+                              }
+                              initialFocus
+                              locale={ptBR}
+                              className="bg-gray-800 text-white"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+
+                      <div className="flex gap-3 pt-4">
+                        <Button
+                          type="submit"
+                          className="flex-1 bg-white text-gray-900 hover:bg-gray-100"
+                          disabled={enviando}
+                        >
+                          {enviando ? "Registrando..." : "Registrar Ponto"}
+                        </Button>
+                      </div>
+                    </form>
+                  </SheetContent>
+                </Sheet>
+              )}
+          </motion.div>
+        )}
+      </div>
     </div>
   );
 }
