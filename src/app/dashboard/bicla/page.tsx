@@ -133,17 +133,17 @@ export default function BiclaPage() {
       setMessages((prev) => [...prev, biclaMessage]);
     } catch (error) {
       console.error("Erro:", error);
-      toast.error("Erro ao conversar com a Bicla");
 
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         content:
-          "Desculpe, tive um problema. Tente novamente em alguns instantes.",
+          "Desculpe, estou com problemas técnicos no momento. Tente novamente em alguns instantes.",
         sender: "bicla",
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, errorMessage]);
+      toast.error("Erro ao conversar com a Bicla");
     } finally {
       setIsTyping(false);
     }

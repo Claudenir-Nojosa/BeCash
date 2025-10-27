@@ -42,13 +42,15 @@ export async function POST(request: NextRequest) {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+       model: "claude-sonnet-4-20250514",
         max_tokens: 2000,
         messages: [{ role: "user", content: prompt }],
       }),
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Erro da API Anthropic:", errorText);
       throw new Error(`Erro na API Anthropic: ${response.status}`);
     }
 
@@ -87,18 +89,41 @@ async function buscarDadosFinanceiros(userId: string) {
         gte: seisMesesAtras,
       },
     },
+    include: {
+      categoria: true,
+    },
     orderBy: {
       data: "desc",
     },
   });
 
   // Calcular métricas básicas
-  const receitas = lancamentos.filter((l) => l.tipo === "receita");
-  const despesas = lancamentos.filter((l) => l.tipo === "despesa");
+  const receitas = lancamentos.filter((l) => l.tipo === "RECEITA");
+  const despesas = lancamentos.filter((l) => l.tipo === "DESPESA");
 
   const totalReceitas = receitas.reduce((sum, l) => sum + l.valor, 0);
   const totalDespesas = despesas.reduce((sum, l) => sum + l.valor, 0);
   const saldo = totalReceitas - totalDespesas;
+
+  // Agrupar despesas por categoria
+  const categoriasDespesas = despesas.reduce(
+    (acc, lancamento) => {
+      const categoriaNome = lancamento.categoria.nome;
+      if (!acc[categoriaNome]) {
+        acc[categoriaNome] = 0;
+      }
+      acc[categoriaNome] += lancamento.valor;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
+
+  // Buscar metas do usuário
+  const metas = await db.metaPessoal.findMany({
+    where: {
+      userId,
+    },
+  });
 
   return {
     lancamentos,
@@ -107,6 +132,10 @@ async function buscarDadosFinanceiros(userId: string) {
       despesas: totalDespesas,
       saldo,
     },
+    categorias: {
+      despesas: categoriasDespesas,
+    },
+    metas,
     periodo: {
       inicio: seisMesesAtras,
       fim: new Date(),
@@ -115,15 +144,19 @@ async function buscarDadosFinanceiros(userId: string) {
 }
 
 function criarPromptFinanceiro(pergunta: string, dados: any) {
+  const { receitas, despesas, saldo } = dados.totais;
+  const categoriasDespesas = dados.categorias.despesas;
+  const numMetas = dados.metas.length;
+
   return `
 Você é a Bicla, uma assistente financeira inteligente e especialista em análise de dados financeiros pessoais. Seu papel é analisar os dados financeiros do usuário e fornecer insights valiosos, recomendações práticas e respostas claras.
 
 DADOS FINANCEIROS DO USUÁRIO (últimos 6 meses):
-- Receitas totais: R$ ${dados.totais.receitas.toFixed(2)}
-- Despesas totais: R$ ${dados.totais.despesas.toFixed(2)}
-- Saldo: R$ ${dados.totais.saldo.toFixed(2)}
-- Categorias de despesas: ${JSON.stringify(dados.categorias.despesas, null, 2)}
-- Metas ativas: ${dados.metas.length}
+- Receitas totais: R$ ${receitas.toFixed(2)}
+- Despesas totais: R$ ${despesas.toFixed(2)}
+- Saldo: R$ ${saldo.toFixed(2)}
+- Categorias de despesas: ${Object.keys(categoriasDespesas).join(", ")}
+- Metas ativas: ${numMetas}
 
 PERGUNTA DO USUÁRIO: "${pergunta}"
 

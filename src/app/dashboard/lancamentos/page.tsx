@@ -25,10 +25,12 @@ import {
   Crown,
   Split,
   ArrowRight,
-  Edit,
+  Edit3,
   Trash2,
   ChevronLeft,
   ChevronRight,
+  Eye,
+  Tag,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -75,7 +77,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Link } from "@radix-ui/react-navigation-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 
 interface Categoria {
@@ -83,6 +92,7 @@ interface Categoria {
   nome: string;
   tipo: string;
   cor: string;
+  icone: string;
 }
 
 interface Cartao {
@@ -126,201 +136,51 @@ interface Lancamento {
   LancamentoCompartilhado?: LancamentoCompartilhado[];
   userId: string;
   user?: Usuario;
+  observacoes?: string;
 }
 
 export default function LancamentosPage() {
+  const [carregandoVisualizacao, setCarregandoVisualizacao] = useState<
+    string | null
+  >(null);
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
-  const [mostrarPrevisoes, setMostrarPrevisoes] = useState(false);
-  const [previsoesFuturas, setPrevisoesFuturas] = useState<any[]>([]);
-  const [mesPrevisao, setMesPrevisao] = useState(
-    new Date().toISOString().slice(0, 7)
-  );
-  const [date, setDate] = useState<Date>(new Date());
-  const [competencia, setCompetencia] = useState(
-    new Date().toISOString().slice(0, 7) // Formato YYYY-MM
-  );
+  const [lancamentoSelecionado, setLancamentoSelecionado] =
+    useState<Lancamento | null>(null);
+  const [mostrarDialogVisualizar, setMostrarDialogVisualizar] = useState(false);
+  const [mostrarDialogEditar, setMostrarDialogEditar] = useState(false);
+  const [editando, setEditando] = useState(false);
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [cartoes, setCartoes] = useState<Cartao[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [dialogAberto, setDialogAberto] = useState<string | null>(null);
+  const [excluindo, setExcluindo] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
+
+  // Filtros
+  const [filtros, setFiltros] = useState({
+    categoria: "all",
+    tipoLancamento: "all",
+    tipo: "all",
+    status: "all",
+    metodoPagamento: "all",
+  });
+
   const [anoSelecionado, setAnoSelecionado] = useState(
     new Date().getFullYear()
   );
   const [mesSelecionado, setMesSelecionado] = useState(
     new Date().getMonth() + 1
   );
-  const [openFiltros, setOpenFiltros] = useState(false);
   const [mostrarSeletorMeses, setMostrarSeletorMeses] = useState(false);
-  const [dataVencimento, setDataVencimento] = useState<Date | null>(null);
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [cartoes, setCartoes] = useState<Cartao[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filtros, setFiltros] = useState({
-    tipo: "all",
-    status: "all",
-    metodo: "all",
-    compartilhamento: "all",
-    categoria: "all",
-  });
-  const getStatusCompartilhamento = (lancamento: Lancamento) => {
-    if (!lancamento.LancamentoCompartilhado?.length) return null;
-
-    const compartilhamento = lancamento.LancamentoCompartilhado[0];
-    return {
-      ...compartilhamento,
-      isCriador: compartilhamento.usuarioCriador?.id === lancamento.userId,
-      isAlvo: compartilhamento.usuarioAlvo?.id === lancamento.userId,
-    };
-  };
-  const handleChange = (field: string, value: string | boolean) => {
-  setFormData((prev) => ({ ...prev, [field]: value }));
-};
-  const gerarOpcoesAnos = () => {
-    const anoAtual = new Date().getFullYear();
-    const anos = [];
-
-    // Últimos 2 anos, ano atual e próximos 2 anos
-    for (let i = -2; i <= 2; i++) {
-      anos.push(anoAtual + i);
-    }
-
-    return anos;
-  };
-
-  const gerarMesesDoAno = (ano: number) => {
-    const meses = [
-      { numero: 1, nome: "Janeiro", abreviacao: "Jan" },
-      { numero: 2, nome: "Fevereiro", abreviacao: "Fev" },
-      { numero: 3, nome: "Março", abreviacao: "Mar" },
-      { numero: 4, nome: "Abril", abreviacao: "Abr" },
-      { numero: 5, nome: "Maio", abreviacao: "Mai" },
-      { numero: 6, nome: "Junho", abreviacao: "Jun" },
-      { numero: 7, nome: "Julho", abreviacao: "Jul" },
-      { numero: 8, nome: "Agosto", abreviacao: "Ago" },
-      { numero: 9, nome: "Setembro", abreviacao: "Set" },
-      { numero: 10, nome: "Outubro", abreviacao: "Out" },
-      { numero: 11, nome: "Novembro", abreviacao: "Nov" },
-      { numero: 12, nome: "Dezembro", abreviacao: "Dez" },
-    ];
-
-    return meses.map((mes) => ({
-      ...mes,
-      competencia: `${ano}-${mes.numero.toString().padStart(2, "0")}`,
-    }));
-  };
-
-  // Atualize a parte dos filtros no Sheet para incluir o filtro de compartilhamento
-  const FiltrosSheet = () => (
-    <SheetContent>
-      <SheetHeader>
-        <SheetTitle>Filtrar Lançamentos</SheetTitle>
-        <SheetDescription>
-          Aplique filtros para encontrar lançamentos específicos
-        </SheetDescription>
-      </SheetHeader>
-      <div className="space-y-4 mt-6">
-        <div className="space-y-2">
-          <Label>Tipo</Label>
-          <Select
-            value={filtros.tipo}
-            onValueChange={(value) => setFiltros({ ...filtros, tipo: value })}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="RECEITA">Receita</SelectItem>
-              <SelectItem value="DESPESA">Despesa</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        {/* Filtro por Categoria */}
-        <div className="space-y-2">
-          <Label>Categoria</Label>
-          <Select
-            value={filtros.categoria || "all"}
-            onValueChange={(value) =>
-              setFiltros({ ...filtros, categoria: value })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Todas" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
-              {categorias.map((cat) => (
-                <SelectItem key={cat.id} value={cat.id}>
-                  {cat.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Status</Label>
-          <Select
-            value={filtros.status}
-            onValueChange={(value) => setFiltros({ ...filtros, status: value })}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="pago">Pago</SelectItem>
-              <SelectItem value="pendente">Pendente</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Método de Pagamento</Label>
-          <Select
-            value={filtros.metodo}
-            onValueChange={(value) => setFiltros({ ...filtros, metodo: value })}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="PIX">PIX</SelectItem>
-              <SelectItem value="CREDITO">Cartão de Crédito</SelectItem>
-              <SelectItem value="DEBITO">Cartão de Débito</SelectItem>
-              <SelectItem value="TRANSFERENCIA">Transferência</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Novo Filtro para Compartilhamento */}
-        <div className="space-y-2">
-          <Label>Compartilhamento</Label>
-          <Select
-            value={filtros.compartilhamento}
-            onValueChange={(value) =>
-              setFiltros({ ...filtros, compartilhamento: value })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="compartilhados">Compartilhados</SelectItem>
-              <SelectItem value="recebidos">Compartilhados comigo</SelectItem>
-              <SelectItem value="enviados">Compartilhados por mim</SelectItem>
-              <SelectItem value="individuais">Individuais</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-    </SheetContent>
-  );
 
   const [formData, setFormData] = useState({
     descricao: "",
     valor: "",
-    tipo: "despesa", // mudar para lowercase
+    tipo: "despesa",
     categoria: "",
     tipoLancamento: "individual",
     tipoTransacao: "DINHEIRO",
@@ -337,60 +197,17 @@ export default function LancamentosPage() {
     data: new Date().toISOString().split("T")[0],
     dataFimRecorrencia: "",
   });
+
+  // Carregar dados
   useEffect(() => {
-    const carregarUsuarios = async () => {
-      try {
-        const response = await fetch("/api/usuarios");
-        if (response.ok) {
-          const data = await response.json();
-          // Filtrar usuário atual se necessário
-          setUsuarios(data);
-        }
-      } catch (error) {
-        console.error("Erro ao carregar usuários:", error);
-      }
-    };
+    carregarDados();
+  }, []);
 
-    if (formData.tipoLancamento === "compartilhado") {
-      carregarUsuarios();
-    }
-  }, [formData.tipoLancamento]);
-
-  // Atualize o useEffect para usar a competência formatada
-  /*   useEffect(() => {
-    const competenciaFormatada = `${anoSelecionado}-${mesSelecionado.toString().padStart(2, "0")}`;
-    carregarDados(competenciaFormatada);
-  }, [anoSelecionado, mesSelecionado]); */
-
-  const carregarPrevisoes = async () => {
-    try {
-      const res = await fetch(
-        `/api/lancamentos/recorrencias-futuras?mes=${mesPrevisao}`
-      );
-      if (res.ok) {
-        const data = await res.json();
-        setPrevisoesFuturas(data);
-      }
-    } catch (error) {
-      console.error("Erro ao carregar previsões:", error);
-    }
-  };
-
-  useEffect(() => {
-    if (mostrarPrevisoes) {
-      carregarPrevisoes();
-    }
-  }, [mostrarPrevisoes, mesPrevisao]);
-
-  const carregarDados = async (competencia?: string) => {
+  const carregarDados = async () => {
     try {
       setLoading(true);
-      const url = competencia
-        ? `/api/lancamentos?competencia=${competencia}`
-        : "/api/lancamentos";
-
       const [lancamentosRes, categoriasRes, cartoesRes] = await Promise.all([
-        fetch(url),
+        fetch("/api/lancamentos"),
         fetch("/api/categorias"),
         fetch("/api/cartoes"),
       ]);
@@ -411,60 +228,103 @@ export default function LancamentosPage() {
       }
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
-      setLancamentos([]);
-      setCategorias([]);
-      setCartoes([]);
+      toast.error("Erro ao carregar dados");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    carregarDados();
-  }, []);
-
-  // Função para selecionar mês
-  const selecionarMes = (mes: number) => {
-    setMesSelecionado(mes);
-    setMostrarSeletorMeses(false);
+  const getStatusCompartilhamento = (lancamento: Lancamento) => {
+    if (!lancamento.LancamentoCompartilhado?.length) return null;
+    const compartilhamento = lancamento.LancamentoCompartilhado[0];
+    return {
+      ...compartilhamento,
+      isCriador: compartilhamento.usuarioCriador?.id === lancamento.userId,
+      isAlvo: compartilhamento.usuarioAlvo?.id === lancamento.userId,
+    };
   };
 
-  const criarTodasRecorrencias = async (recorrenciaId: string) => {
+  const handleChange = (field: string, value: string | boolean) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // Filtrar lançamentos
+  const lancamentosFiltrados = lancamentos.filter((lancamento) => {
+    const dataStr = lancamento.data.includes("T")
+      ? lancamento.data
+      : lancamento.data.replace(" ", "T");
+    const dataLancamento = new Date(dataStr);
+    const ano = dataLancamento.getFullYear();
+    const mes = dataLancamento.getMonth() + 1;
+
+    // Filtro por mês/ano
+    if (ano !== anoSelecionado || mes !== mesSelecionado) return false;
+
+    // Filtro por busca
     if (
-      !confirm(
-        "Deseja criar TODOS os lançamentos futuros desta recorrência de uma vez?"
-      )
-    ) {
-      return;
+      searchTerm &&
+      !lancamento.descricao.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+      return false;
+
+    // Filtro por categoria
+    if (
+      filtros.categoria !== "all" &&
+      lancamento.categoria.id !== filtros.categoria
+    )
+      return false;
+
+    // Filtro por tipo de lançamento (individual/compartilhado)
+    if (filtros.tipoLancamento !== "all") {
+      const compartilhamento = getStatusCompartilhamento(lancamento);
+      if (filtros.tipoLancamento === "individual" && compartilhamento)
+        return false;
+      if (filtros.tipoLancamento === "compartilhado" && !compartilhamento)
+        return false;
     }
 
-    try {
-      const res = await fetch("/api/lancamentos/criar-todas-recorrencias", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recorrenciaId }),
-      });
+    // Filtro por tipo (receita/despesa)
+    if (filtros.tipo !== "all" && lancamento.tipo !== filtros.tipo)
+      return false;
 
-      if (res.ok) {
-        const result = await res.json();
-        toast.success(result.message);
-        carregarDados();
-        carregarPrevisoes();
-      } else {
-        const error = await res.json();
-        toast.error(error.error);
-      }
-    } catch (error) {
-      console.error("Erro ao criar recorrências:", error);
-      toast.error("Erro ao criar recorrências");
+    // Filtro por status
+    if (filtros.status !== "all") {
+      if (filtros.status === "pago" && !lancamento.pago) return false;
+      if (filtros.status === "pendente" && lancamento.pago) return false;
     }
-  };
 
+    // Filtro por método de pagamento
+    if (
+      filtros.metodoPagamento !== "all" &&
+      lancamento.metodoPagamento !== filtros.metodoPagamento
+    )
+      return false;
+
+    return true;
+  });
+
+  // Calcular totais
+  const receitas = lancamentosFiltrados.filter((l) => l.tipo === "RECEITA");
+  const despesas = lancamentosFiltrados.filter((l) => l.tipo === "DESPESA");
+
+  const totalReceitas = receitas.reduce((sum, l) => sum + l.valor, 0);
+  const totalDespesas = despesas.reduce((sum, l) => sum + l.valor, 0);
+
+  const receitasPagas = receitas
+    .filter((l) => l.pago)
+    .reduce((sum, l) => sum + l.valor, 0);
+  const despesasPagas = despesas
+    .filter((l) => l.pago)
+    .reduce((sum, l) => sum + l.valor, 0);
+
+  const saldo = totalReceitas - totalDespesas;
+
+  // Função para criar lançamento
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setEnviando(true);
 
     try {
-      // Mapear os valores para o formato que a API espera
       const mapearMetodoPagamento = (valor: string) => {
         const mapeamento: { [key: string]: string } = {
           DINHEIRO: "PIX",
@@ -476,18 +336,13 @@ export default function LancamentosPage() {
         return mapeamento[valor] || valor;
       };
 
-      // Determinar o tipoParcelamento
       const determinarTipoParcelamento = () => {
-        if (formData.tipoTransacao !== "CARTAO_CREDITO") {
-          return null;
-        }
-
+        if (formData.tipoTransacao !== "CARTAO_CREDITO") return null;
         if (formData.recorrente) {
           return formData.tipoRecorrencia === "RECORRENCIA"
             ? "RECORRENTE"
             : "PARCELADO";
         }
-
         return "AVISTA";
       };
 
@@ -535,7 +390,10 @@ export default function LancamentosPage() {
       });
 
       if (res.ok) {
-        // Resetar para o estado inicial correto
+        const lancamentoSalvo = await res.json();
+        setLancamentos((prev) => [...prev, lancamentoSalvo]);
+        toast.success("Lançamento criado com sucesso!");
+        setIsSheetOpen(false);
         setFormData({
           descricao: "",
           valor: "",
@@ -554,10 +412,8 @@ export default function LancamentosPage() {
           usuarioAlvoId: "",
           valorCompartilhado: "",
           data: new Date().toISOString().split("T")[0],
-          dataFimRecorrencia: "", // Mude null para string vazia
+          dataFimRecorrencia: "",
         });
-        carregarDados();
-        toast.success("Lançamento criado com sucesso!");
       } else {
         const errorData = await res.json();
         toast.error(errorData.error || "Erro ao criar lançamento");
@@ -565,9 +421,210 @@ export default function LancamentosPage() {
     } catch (error) {
       console.error("Erro ao criar lançamento:", error);
       toast.error("Erro ao criar lançamento");
+    } finally {
+      setEnviando(false);
     }
   };
 
+  // Função para excluir lançamento
+  const handleDelete = async (id: string) => {
+    setExcluindo(id);
+    const lancamentoParaExcluir = lancamentos.find((lanc) => lanc.id === id);
+
+    try {
+      setLancamentos((prev) => prev.filter((lanc) => lanc.id !== id));
+      setDialogAberto(null);
+
+      const res = await fetch(`/api/lancamentos/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Erro ao deletar lançamento");
+
+      toast.success("Lançamento deletado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao deletar lançamento:", error);
+      if (lancamentoParaExcluir) {
+        setLancamentos((prev) => [...prev, lancamentoParaExcluir]);
+      }
+      toast.error("Erro ao deletar lançamento.");
+    } finally {
+      setExcluindo(null);
+    }
+  };
+  // Função para visualizar lançamento
+  const handleVisualizar = async (lancamentoId: string) => {
+    try {
+      setCarregandoVisualizacao(lancamentoId); // Define qual lançamento está carregando
+      console.log("Buscando lançamento:", lancamentoId);
+
+      const response = await fetch(
+        `/api/lancamentos/${lancamentoId}/visualizar`
+      );
+
+      console.log("Resposta da API:", {
+        status: response.status,
+        ok: response.ok,
+      });
+
+      if (response.ok) {
+        const lancamento = await response.json();
+        console.log("Lançamento encontrado:", lancamento);
+        setLancamentoSelecionado(lancamento);
+        setMostrarDialogVisualizar(true);
+      } else {
+        const errorData = await response.json();
+        console.error("Erro na resposta:", errorData);
+        toast.error(errorData.error || "Erro ao carregar dados do lançamento");
+      }
+    } catch (error) {
+      console.error("Erro ao visualizar lançamento:", error);
+      toast.error("Erro ao carregar dados do lançamento");
+    } finally {
+      setCarregandoVisualizacao(null); // Limpa o estado de loading
+    }
+  };
+
+  // E atualize o useEffect de limpeza:
+  useEffect(() => {
+    if (!mostrarDialogVisualizar) {
+      setLancamentoSelecionado(null);
+      setCarregandoVisualizacao(null); // Limpa também aqui
+    }
+  }, [mostrarDialogVisualizar]);
+
+  // Função para editar lançamento
+  const handleEditar = (lancamento: Lancamento) => {
+    setLancamentoSelecionado(lancamento);
+    // Preencher o formulário com os dados existentes
+    setFormData({
+      descricao: lancamento.descricao,
+      valor: lancamento.valor.toString(),
+      tipo: lancamento.tipo.toLowerCase(),
+      categoria: lancamento.categoria.id,
+      tipoLancamento: lancamento.LancamentoCompartilhado?.length
+        ? "compartilhado"
+        : "individual",
+      tipoTransacao: lancamento.metodoPagamento,
+      cartaoId: lancamento.cartao?.id || "",
+      responsavel: "Claudenir", // Você precisará ajustar isso conforme seu modelo
+      pago: lancamento.pago,
+      recorrente: lancamento.recorrente || false,
+      tipoRecorrencia:
+        lancamento.tipoParcelamento === "RECORRENTE"
+          ? "RECORRENCIA"
+          : "PARCELAMENTO",
+      frequencia: "mensal",
+      parcelas: lancamento.parcelasTotal?.toString() || "",
+      observacoes: lancamento.observacoes || "",
+      usuarioAlvoId:
+        lancamento.LancamentoCompartilhado?.[0]?.usuarioAlvo?.id || "",
+      valorCompartilhado:
+        lancamento.LancamentoCompartilhado?.[0]?.valorCompartilhado?.toString() ||
+        "",
+      data: new Date(lancamento.data).toISOString().split("T")[0],
+      dataFimRecorrencia: lancamento.dataFimRecorrencia
+        ? new Date(lancamento.dataFimRecorrencia).toISOString().split("T")[0]
+        : "",
+    });
+    setMostrarDialogEditar(true);
+  };
+
+  // Função para atualizar lançamento
+  const handleAtualizar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEditando(true);
+
+    try {
+      if (!lancamentoSelecionado) return;
+
+      const mapearMetodoPagamento = (valor: string) => {
+        const mapeamento: { [key: string]: string } = {
+          DINHEIRO: "PIX",
+          PIX: "PIX",
+          CARTAO_DEBITO: "DEBITO",
+          CARTAO_CREDITO: "CREDITO",
+          TRANSFERENCIA: "TRANSFERENCIA",
+        };
+        return mapeamento[valor] || valor;
+      };
+
+      const determinarTipoParcelamento = () => {
+        if (formData.tipoTransacao !== "CARTAO_CREDITO") {
+          return null;
+        }
+        if (formData.recorrente) {
+          return formData.tipoRecorrencia === "RECORRENCIA"
+            ? "RECORRENTE"
+            : "PARCELADO";
+        }
+        return "AVISTA";
+      };
+
+      const payload = {
+        descricao: formData.descricao,
+        valor: parseFloat(formData.valor),
+        tipo: formData.tipo.toUpperCase(),
+        metodoPagamento: mapearMetodoPagamento(formData.tipoTransacao),
+        data: new Date(formData.data).toISOString(),
+        categoriaId: formData.categoria,
+        cartaoId:
+          formData.tipoTransacao === "CARTAO_CREDITO"
+            ? formData.cartaoId
+            : null,
+        observacoes: formData.observacoes,
+        tipoParcelamento:
+          formData.tipoTransacao === "CARTAO_CREDITO"
+            ? determinarTipoParcelamento()
+            : null,
+        parcelasTotal:
+          formData.tipoTransacao === "CARTAO_CREDITO" && formData.parcelas
+            ? parseInt(formData.parcelas)
+            : null,
+        recorrente:
+          formData.tipoTransacao === "CARTAO_CREDITO"
+            ? formData.recorrente
+            : false,
+        tipoLancamento: formData.tipoLancamento,
+        usuarioAlvoId:
+          formData.tipoLancamento === "compartilhado"
+            ? formData.usuarioAlvoId
+            : null,
+        valorCompartilhado:
+          formData.tipoLancamento === "compartilhado" &&
+          formData.valorCompartilhado
+            ? parseFloat(formData.valorCompartilhado)
+            : null,
+        dataFimRecorrencia: formData.dataFimRecorrencia || null,
+        pago: formData.pago,
+      };
+
+      const res = await fetch(`/api/lancamentos/${lancamentoSelecionado.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const lancamentoAtualizado = await res.json();
+        // Atualizar a lista de lançamentos
+        setLancamentos((prev) =>
+          prev.map((lanc) =>
+            lanc.id === lancamentoSelecionado.id ? lancamentoAtualizado : lanc
+          )
+        );
+        toast.success("Lançamento atualizado com sucesso!");
+        setMostrarDialogEditar(false);
+        setLancamentoSelecionado(null);
+      } else {
+        const errorData = await res.json();
+        toast.error(errorData.error || "Erro ao atualizar lançamento");
+      }
+    } catch (error) {
+      console.error("Erro ao atualizar lançamento:", error);
+      toast.error("Erro ao atualizar lançamento");
+    } finally {
+      setEditando(false);
+    }
+  };
+  // Função para alternar status
   const toggleStatus = async (lancamentoId: string, atualStatus: boolean) => {
     try {
       const response = await fetch(`/api/lancamentos/${lancamentoId}`, {
@@ -577,351 +634,109 @@ export default function LancamentosPage() {
       });
 
       if (response.ok) {
+        setLancamentos((prev) =>
+          prev.map((lanc) =>
+            lanc.id === lancamentoId ? { ...lanc, pago: !atualStatus } : lanc
+          )
+        );
         toast.success("Status atualizado com sucesso!");
-        carregarDados();
       } else {
         throw new Error("Erro ao atualizar status");
       }
     } catch (error) {
       console.error("Erro ao alterar status:", error);
       toast.error("Erro ao alterar status");
+      carregarDados();
     }
   };
 
-  const getMetodoPagamentoIcon = (metodo: string) => {
-    switch (metodo) {
-      case "PIX":
-        return <Sparkles className="w-4 h-4" />;
-      case "CREDITO":
-        return <CreditCard className="w-4 h-4" />;
-      case "DEBITO":
-        return <CreditCard className="w-4 h-4" />;
-      default:
-        return <Wallet className="w-4 h-4" />;
-    }
-  };
-
-  const lancamentosFiltrados = lancamentos.filter((lancamento) => {
-    // tenta criar um objeto Date confiável a partir de 'data'
-    const dataStr = lancamento.data.includes("T")
-      ? lancamento.data
-      : lancamento.data.replace(" ", "T"); // garante formato ISO compatível
-
-    const dataLancamento = new Date(dataStr);
-    const ano = dataLancamento.getFullYear();
-    const mes = dataLancamento.getMonth() + 1;
-
-    // 🔥 filtro principal por competência
-    if (ano !== anoSelecionado || mes !== mesSelecionado) return false;
-
-    // filtros adicionais
-    if (
-      searchTerm &&
-      !lancamento.descricao.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-      return false;
-
-    if (filtros.tipo !== "all" && lancamento.tipo !== filtros.tipo)
-      return false;
-
-    if (filtros.status !== "all") {
-      if (filtros.status === "pago" && !lancamento.pago) return false;
-      if (filtros.status === "pendente" && lancamento.pago) return false;
-    }
-
-    if (
-      filtros.metodo !== "all" &&
-      lancamento.metodoPagamento !== filtros.metodo
-    )
-      return false;
-
-    // ✅ filtro por categoria
-    if (
-      filtros.categoria !== "all" &&
-      lancamento.categoria.id !== filtros.categoria
-    )
-      return false;
-
-    return true;
-  });
-
-  const totalReceitas = lancamentosFiltrados
-    .filter((l) => l.tipo === "RECEITA")
-    .reduce((sum, l) => sum + l.valor, 0);
-
-  const totalDespesas = lancamentosFiltrados
-    .filter((l) => l.tipo === "DESPESA")
-    .reduce((sum, l) => sum + l.valor, 0);
-
-  if (loading) {
+  if (loading && lancamentos.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-muted-foreground">Carregando lançamentos...</p>
+          <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-gray-400">Carregando lançamentos...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 lg:p-6">
+    <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4"
-        >
+        <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl lg:text-4xl font-bold tracking-tight">
-              Lançamentos
-            </h1>
-            <p className="text-muted-foreground mt-2">
-              Gerencie suas receitas e despesas
-            </p>
+            <h1 className="text-3xl font-bold text-white">Lançamentos</h1>
+            <p className="text-gray-300">Gerencie suas receitas e despesas</p>
           </div>
 
-          <div className="flex gap-3 w-full lg:w-auto">
-            {/* Seletor de Competência Minimalista */}
-            <div className="flex items-center space-x-1 bg-background/50 border border-border/50 rounded-full px-3 py-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  const novoMes =
-                    mesSelecionado === 1 ? 12 : mesSelecionado - 1;
-                  const novoAno =
-                    mesSelecionado === 1 ? anoSelecionado - 1 : anoSelecionado;
-                  if (gerarOpcoesAnos().includes(novoAno)) {
-                    setMesSelecionado(novoMes);
-                    setAnoSelecionado(novoAno);
-                  }
-                }}
-                className="hover:bg-primary/10 rounded-full p-1 h-6 w-6"
-                disabled={
-                  !gerarOpcoesAnos().includes(
-                    anoSelecionado - (mesSelecionado === 1 ? 1 : 0)
-                  )
-                }
-              >
-                <ChevronLeft className="h-3 w-3 text-muted-foreground" />
-              </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setMostrarFiltros(!mostrarFiltros)}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white gap-2"
+            >
+              <Filter className="w-4 h-4" />
+              Filtros
+            </Button>
 
-              <Button
-                variant="ghost"
-                onClick={() => setMostrarSeletorMeses(!mostrarSeletorMeses)}
-                className="px-2 hover:bg-transparent font-medium text-sm"
-              >
-                <span className="min-w-[100px] text-center">
-                  {new Date(anoSelecionado, mesSelecionado - 1)
-                    .toLocaleDateString("pt-BR", {
-                      month: "long",
-                      year: "numeric",
-                    })
-                    .replace(/^\w/, (c) => c.toUpperCase())}
-                </span>
-              </Button>
+            <Button
+              variant={"outline"}
+              onClick={() => setIsSheetOpen(true)}
+              className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+            >
+              <Plus className="w-4 h-4" />
+              Novo Lançamento
+            </Button>
+          </div>
+        </div>
 
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  const novoMes =
-                    mesSelecionado === 12 ? 1 : mesSelecionado + 1;
-                  const novoAno =
-                    mesSelecionado === 12 ? anoSelecionado + 1 : anoSelecionado;
-                  if (gerarOpcoesAnos().includes(novoAno)) {
-                    setMesSelecionado(novoMes);
-                    setAnoSelecionado(novoAno);
-                  }
-                }}
-                className="hover:bg-primary/10 rounded-full p-1 h-6 w-6"
-                disabled={
-                  !gerarOpcoesAnos().includes(
-                    anoSelecionado + (mesSelecionado === 12 ? 1 : 0)
-                  )
-                }
-              >
-                <ChevronRight className="h-3 w-3 text-muted-foreground" />
-              </Button>
-            </div>
-
-            {/* Dropdown de Seleção de Mês/Ano */}
-            <AnimatePresence>
-              {mostrarSeletorMeses && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                  className="absolute top-12 left-0 z-50 bg-background/95 backdrop-blur-md border border-border/50 rounded-xl shadow-xl p-4 w-64"
-                >
-                  {/* Seletor de Ano Minimalista */}
-                  <div className="flex items-center justify-between mb-3 px-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setAnoSelecionado((ano) => ano - 1)}
-                      disabled={!gerarOpcoesAnos().includes(anoSelecionado - 1)}
-                      className="h-7 w-7 p-0 hover:bg-muted/50 rounded-full"
-                    >
-                      <ChevronLeft className="w-3 h-3" />
-                    </Button>
-
-                    <span className="text-sm font-medium text-foreground px-3 py-1 rounded-md bg-muted/30">
-                      {anoSelecionado}
-                    </span>
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setAnoSelecionado((ano) => ano + 1)}
-                      disabled={!gerarOpcoesAnos().includes(anoSelecionado + 1)}
-                      className="h-7 w-7 p-0 hover:bg-muted/50 rounded-full"
-                    >
-                      <ChevronRight className="w-3 h-3" />
-                    </Button>
-                  </div>
-
-                  {/* Grid de Meses Minimalista */}
-                  <div className="grid grid-cols-3 gap-1">
-                    {gerarMesesDoAno(anoSelecionado).map((mes) => {
-                      const isMesAtual =
-                        mes.numero === new Date().getMonth() + 1 &&
-                        anoSelecionado === new Date().getFullYear();
-                      const isSelecionado = mes.numero === mesSelecionado;
-
-                      return (
-                        <button
-                          key={mes.numero}
-                          onClick={() => selecionarMes(mes.numero)}
-                          className={`
-                    relative p-2 rounded-lg transition-all duration-200 text-center text-xs font-medium
-                    ${
-                      isSelecionado
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "hover:bg-muted/50 text-foreground"
-                    }
-                    ${isMesAtual && !isSelecionado ? "ring-1 ring-primary/30 bg-primary/5" : ""}
-                  `}
-                        >
-                          {mes.abreviacao}
-
-                          {/* Indicador sutil do mês atual */}
-                          {isMesAtual && !isSelecionado && (
-                            <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-primary rounded-full opacity-80" />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Botão para voltar ao mês atual */}
-                  <div className="mt-3 pt-3 border-t border-border/30">
-                    <button
-                      onClick={() => {
-                        const agora = new Date();
-                        setAnoSelecionado(agora.getFullYear());
-                        setMesSelecionado(agora.getMonth() + 1);
-                        setMostrarSeletorMeses(false);
-                      }}
-                      className="w-full text-xs text-muted-foreground hover:text-foreground transition-colors py-1.5 rounded-md hover:bg-muted/30"
-                    >
-                      Voltar para atual
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Overlay para fechar */}
-            {mostrarSeletorMeses && (
-              <div
-                className="fixed inset-0 z-40 bg-background/10 backdrop-blur-[1px]"
-                onClick={() => setMostrarSeletorMeses(false)}
-              />
-            )}
-
-            <Sheet open={openFiltros} onOpenChange={setOpenFiltros}>
-              <SheetTrigger asChild>
-                <Button variant="outline">
-                  <Filter className="w-4 h-4 mr-2" />
-                  Filtrar
-                </Button>
-              </SheetTrigger>
-              <SheetContent>
-                <FiltrosSheet />
-              </SheetContent>
-            </Sheet>
-
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button className="gap-2">
-                  <Plus className="w-4 h-4" />
-                  Novo Lançamento
-                </Button>
-              </SheetTrigger>
-              <SheetContent className="sm:max-w-md">
-                <SheetHeader>
-                  <SheetTitle>Novo Lançamento</SheetTitle>
-                  <SheetDescription>
-                    Adicione uma nova receita ou despesa ao seu controle
-                    financeiro
-                  </SheetDescription>
-                </SheetHeader>
-
-                <form
-                  onSubmit={handleSubmit}
-                  className="space-y-4 mt-6 max-h-[80vh] overflow-y-auto"
-                >
-                  {/* Tipo e Categoria */}
-                  <div className="grid grid-cols-2 gap-4">
+        {/* Filtros Expandidos */}
+        <AnimatePresence>
+          {mostrarFiltros && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <Card className="bg-gray-900 border-gray-800">
+                <CardContent className="p-4">
+                  <div className="space-y-4">
+                    {/* Pesquisar - Ocupa toda a largura */}
                     <div className="space-y-2">
-                      <Label htmlFor="tipo">Tipo *</Label>
-                      <Select
-                        value={formData.tipo}
-                        onValueChange={(value) => handleChange("tipo", value)}
-                        required
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o tipo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="receita">Receita</SelectItem>
-                          <SelectItem value="despesa">Despesa</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label className="text-gray-300 text-sm">Pesquisar</Label>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <Input
+                          placeholder="Buscar lançamentos por descrição..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-9 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 w-full"
+                        />
+                      </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="categoria">Categoria *</Label>
-                      <Select
-                        value={formData.categoria}
-                        onValueChange={(value) =>
-                          handleChange("categoria", value)
-                        }
-                        required
-                        disabled={!formData.tipo}
-                      >
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              !formData.tipo
-                                ? "Selecione o tipo primeiro"
-                                : "Selecione a categoria"
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {categorias
-                            .filter(
-                              (cat) =>
-                                cat.tipo ===
-                                (formData.tipo === "receita"
-                                  ? "RECEITA"
-                                  : "DESPESA")
-                            )
-                            .map((cat) => (
+                    {/* Demais filtros em grid abaixo */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                      {/* Categoria */}
+                      <div className="space-y-2">
+                        <Label className="text-gray-300 text-sm">
+                          Categoria
+                        </Label>
+                        <Select
+                          value={filtros.categoria}
+                          onValueChange={(value) =>
+                            setFiltros({ ...filtros, categoria: value })
+                          }
+                        >
+                          <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                            <SelectValue placeholder="Todas" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                            <SelectItem value="all">Todas</SelectItem>
+                            {categorias.map((cat) => (
                               <SelectItem key={cat.id} value={cat.id}>
                                 <div className="flex items-center gap-2">
                                   <div
@@ -932,877 +747,1433 @@ export default function LancamentosPage() {
                                 </div>
                               </SelectItem>
                             ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Descrição e Valor */}
-                  <div className="space-y-2">
-                    <Label htmlFor="descricao">Descrição *</Label>
-                    <Input
-                      id="descricao"
-                      value={formData.descricao}
-                      onChange={(e) =>
-                        handleChange("descricao", e.target.value)
-                      }
-                      placeholder="Ex: Salário, Aluguel, Mercado..."
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="valor">Valor *</Label>
-                    <Input
-                      id="valor"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={formData.valor}
-                      onChange={(e) => handleChange("valor", e.target.value)}
-                      placeholder="0,00"
-                      required
-                    />
-                  </div>
-
-                  {/* Tipo de Transação e Lançamento */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="tipoTransacao">Tipo de Transação *</Label>
-                      <Select
-                        value={formData.tipoTransacao}
-                        onValueChange={(value) =>
-                          handleChange("tipoTransacao", value)
-                        }
-                        required
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o tipo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
-                          <SelectItem value="PIX">PIX</SelectItem>
-                          <SelectItem value="CARTAO_DEBITO">
-                            Cartão Débito
-                          </SelectItem>
-                          <SelectItem value="CARTAO_CREDITO">
-                            Cartão Crédito
-                          </SelectItem>
-                          <SelectItem value="TRANSFERENCIA">
-                            Transferência
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="tipoLancamento">
-                        Tipo de Lançamento *
-                      </Label>
-                      <Select
-                        value={formData.tipoLancamento}
-                        onValueChange={(value) =>
-                          handleChange("tipoLancamento", value)
-                        }
-                        required
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o tipo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="individual">Individual</SelectItem>
-                          <SelectItem value="compartilhado">
-                            Compartilhado
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Seção de Compartilhamento */}
-                  {formData.tipoLancamento === "compartilhado" && (
-                    <div className="space-y-4 p-3 rounded-lg border">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="usuarioAlvoId">
-                            Compartilhar com *
-                          </Label>
-                          <Select
-                            value={formData.usuarioAlvoId}
-                            onValueChange={(value) =>
-                              handleChange("usuarioAlvoId", value)
-                            }
-                            required
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione o usuário" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {usuarios.map((usuario) => (
-                                <SelectItem key={usuario.id} value={usuario.id}>
-                                  <div className="flex items-center gap-2">
-                                    {usuario.image && (
-                                      <img
-                                        src={usuario.image}
-                                        alt={usuario.name}
-                                        className="w-4 h-4 rounded-full"
-                                      />
-                                    )}
-                                    {usuario.name}
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="valorCompartilhado">
-                            Valor compartilhado (R$)
-                          </Label>
-                          <Input
-                            id="valorCompartilhado"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            max={formData.valor}
-                            value={formData.valorCompartilhado}
-                            onChange={(e) =>
-                              handleChange("valorCompartilhado", e.target.value)
-                            }
-                            placeholder="0,00"
-                          />
-                        </div>
+                          </SelectContent>
+                        </Select>
                       </div>
-                    </div>
-                  )}
 
-                  {/* Cartão de Crédito */}
-                  {formData.tipoTransacao === "CARTAO_CREDITO" && (
-                    <div className="space-y-2">
-                      <Label htmlFor="cartaoId">Cartão *</Label>
-                      <Select
-                        value={formData.cartaoId}
-                        onValueChange={(value) =>
-                          handleChange("cartaoId", value)
-                        }
-                        required
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o cartão" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {cartoes.map((cartao) => (
-                            <SelectItem key={cartao.id} value={cartao.id}>
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="w-3 h-3 rounded-full"
-                                  style={{ backgroundColor: cartao.cor }}
-                                />
-                                {cartao.nome}
-                              </div>
+                      {/* Individual ou Compartilhado */}
+                      <div className="space-y-2">
+                        <Label className="text-gray-300 text-sm">Tipo</Label>
+                        <Select
+                          value={filtros.tipoLancamento}
+                          onValueChange={(value) =>
+                            setFiltros({ ...filtros, tipoLancamento: value })
+                          }
+                        >
+                          <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                            <SelectValue placeholder="Todos" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                            <SelectItem value="all">Todos</SelectItem>
+                            <SelectItem value="individual">
+                              Individual
                             </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
-                  {/* Responsável */}
-                  <div className="space-y-2">
-                    <Label htmlFor="responsavel">Responsável *</Label>
-                    <Select
-                      value={formData.responsavel}
-                      onValueChange={(value) =>
-                        handleChange("responsavel", value)
-                      }
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o responsável" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Claudenir">Claudenir</SelectItem>
-                        <SelectItem value="Beatriz">Beatriz</SelectItem>
-                        <SelectItem value="Compartilhado">
-                          Compartilhado
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Data */}
-                  <div className="space-y-2">
-                    <Label htmlFor="data">Data *</Label>
-                    <Input
-                      type="date"
-                      value={formData.data}
-                      onChange={(e) => handleChange("data", e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  {/* Recorrência */}
-                  <div className="space-y-3 border rounded-lg p-3">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="recorrente"
-                        checked={formData.recorrente}
-                        onCheckedChange={(checked) =>
-                          handleChange("recorrente", checked === true)
-                        }
-                      />
-                      <Label htmlFor="recorrente" className="font-medium">
-                        Lançamento recorrente/parcelado
-                      </Label>
-                    </div>
-
-                    {formData.recorrente && (
-                      <div className="grid grid-cols-2 gap-4 pl-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="tipoRecorrencia">Tipo</Label>
-                          <Select
-                            value={formData.tipoRecorrencia}
-                            onValueChange={(value) =>
-                              handleChange("tipoRecorrencia", value)
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione o tipo" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="RECORRENCIA">
-                                Recorrência
-                              </SelectItem>
-                              <SelectItem value="PARCELAMENTO">
-                                Parcelamento
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {formData.tipoRecorrencia === "RECORRENCIA" && (
-                          <div className="space-y-2">
-                            <Label htmlFor="frequencia">Frequência</Label>
-                            <Select
-                              value={formData.frequencia}
-                              onValueChange={(value) =>
-                                handleChange("frequencia", value)
-                              }
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione a frequência" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="mensal">Mensal</SelectItem>
-                                <SelectItem value="trimestral">
-                                  Trimestral
-                                </SelectItem>
-                                <SelectItem value="anual">Anual</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
-
-                        {formData.tipoRecorrencia === "PARCELAMENTO" && (
-                          <div className="space-y-2">
-                            <Label htmlFor="parcelas">Número de Parcelas</Label>
-                            <Input
-                              id="parcelas"
-                              type="number"
-                              min="2"
-                              max="24"
-                              value={formData.parcelas}
-                              onChange={(e) =>
-                                handleChange("parcelas", e.target.value)
-                              }
-                              placeholder="Ex: 3, 6, 12"
-                            />
-                          </div>
-                        )}
-
-                        {/* ADICIONE ESTE CAMPO AQUI */}
-                        {formData.tipoRecorrencia === "RECORRENCIA" && (
-                          <div className="space-y-2 col-span-2">
-                            <Label htmlFor="dataFimRecorrencia">
-                              Data Final da Recorrência *
-                            </Label>
-                            <Input
-                              id="dataFimRecorrencia"
-                              type="date"
-                              value={formData.dataFimRecorrencia}
-                              onChange={(e) =>
-                                handleChange(
-                                  "dataFimRecorrencia",
-                                  e.target.value
-                                )
-                              }
-                              required
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Até quando este lançamento se repetirá
-                            </p>
-                          </div>
-                        )}
+                            <SelectItem value="compartilhado">
+                              Compartilhado
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
-                    )}
-                  </div>
 
-                  {/* Observações */}
-                  <div className="space-y-2">
-                    <Label htmlFor="observacoes">Observações</Label>
-                    <Textarea
-                      id="observacoes"
-                      value={formData.observacoes}
-                      onChange={(e) =>
-                        handleChange("observacoes", e.target.value)
-                      }
-                      placeholder="Observações adicionais..."
-                      rows={3}
-                    />
-                  </div>
+                      {/* Receita ou Despesa */}
+                      <div className="space-y-2">
+                        <Label className="text-gray-300 text-sm">
+                          Receita/Despesa
+                        </Label>
+                        <Select
+                          value={filtros.tipo}
+                          onValueChange={(value) =>
+                            setFiltros({ ...filtros, tipo: value })
+                          }
+                        >
+                          <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                            <SelectValue placeholder="Todos" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                            <SelectItem value="all">Todos</SelectItem>
+                            <SelectItem value="RECEITA">Receita</SelectItem>
+                            <SelectItem value="DESPESA">Despesa</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                  <Button type="submit" className="w-full">
-                    Criar Lançamento
+                      {/* Status */}
+                      <div className="space-y-2">
+                        <Label className="text-gray-300 text-sm">Status</Label>
+                        <Select
+                          value={filtros.status}
+                          onValueChange={(value) =>
+                            setFiltros({ ...filtros, status: value })
+                          }
+                        >
+                          <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                            <SelectValue placeholder="Todos" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                            <SelectItem value="all">Todos</SelectItem>
+                            <SelectItem value="pago">Pago/Recebido</SelectItem>
+                            <SelectItem value="pendente">Pendente</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Método de Pagamento */}
+                      <div className="space-y-2">
+                        <Label className="text-gray-300 text-sm">
+                          Pagamento
+                        </Label>
+                        <Select
+                          value={filtros.metodoPagamento}
+                          onValueChange={(value) =>
+                            setFiltros({ ...filtros, metodoPagamento: value })
+                          }
+                        >
+                          <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                            <SelectValue placeholder="Todos" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                            <SelectItem value="all">Todos</SelectItem>
+                            <SelectItem value="PIX">PIX</SelectItem>
+                            <SelectItem value="CREDITO">
+                              Cartão Crédito
+                            </SelectItem>
+                            <SelectItem value="DEBITO">
+                              Cartão Débito
+                            </SelectItem>
+                            <SelectItem value="TRANSFERENCIA">
+                              Transferência
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Cards de Resumo */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Seletor de Mês */}
+          <Card className="bg-gray-900 border-gray-800">
+            <CardContent className="p-4">
+              <div className="space-y-3">
+                <Label className="text-gray-300 text-sm">Período</Label>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const novoMes =
+                        mesSelecionado === 1 ? 12 : mesSelecionado - 1;
+                      const novoAno =
+                        mesSelecionado === 1
+                          ? anoSelecionado - 1
+                          : anoSelecionado;
+                      setMesSelecionado(novoMes);
+                      setAnoSelecionado(novoAno);
+                    }}
+                    className="hover:bg-gray-800 text-gray-300"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
                   </Button>
-                </form>
-              </SheetContent>
-            </Sheet>
-          </div>
-        </motion.div>{" "}
-        {/* Fechamento correto do motion.div */}
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="p-6">
+
+                  <div className="flex-1 text-center">
+                    <p className="text-white font-medium">
+                      {new Date(anoSelecionado, mesSelecionado - 1)
+                        .toLocaleDateString("pt-BR", {
+                          month: "long",
+                          year: "numeric",
+                        })
+                        .replace(/^\w/, (c) => c.toUpperCase())}
+                    </p>
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const novoMes =
+                        mesSelecionado === 12 ? 1 : mesSelecionado + 1;
+                      const novoAno =
+                        mesSelecionado === 12
+                          ? anoSelecionado + 1
+                          : anoSelecionado;
+                      setMesSelecionado(novoMes);
+                      setAnoSelecionado(novoAno);
+                    }}
+                    className="hover:bg-gray-800 text-gray-300"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Receita */}
+          <Card className="bg-gray-900 border-gray-800">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Total Receitas
-                  </p>
-                  <p className="text-2xl font-bold text-green-600">
+                  <p className="text-sm font-medium text-gray-400">Receita</p>
+                  <p className="text-2xl font-bold text-green-400">
                     R$ {totalReceitas.toFixed(2)}
                   </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Falta receber: R${" "}
+                    {(totalReceitas - receitasPagas).toFixed(2)}
+                  </p>
                 </div>
-                <TrendingUp className="w-8 h-8 text-green-600" />
+                <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-white" />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-6">
+          {/* Despesa */}
+          <Card className="bg-gray-900 border-gray-800">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Total Despesas
-                  </p>
-                  <p className="text-2xl font-bold text-red-600">
+                  <p className="text-sm font-medium text-gray-400">Despesa</p>
+                  <p className="text-2xl font-bold text-red-400">
                     R$ {totalDespesas.toFixed(2)}
                   </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Falta pagar: R$ {(totalDespesas - despesasPagas).toFixed(2)}
+                  </p>
                 </div>
-                <TrendingDown className="w-8 h-8 text-red-600" />
+                <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
+                  <TrendingDown className="w-5 h-5 text-white" />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-6">
+          {/* Saldo */}
+          <Card className="bg-gray-900 border-gray-800">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Saldo
-                  </p>
+                  <p className="text-sm font-medium text-gray-400">Saldo</p>
                   <p
-                    className={`text-2xl font-bold ${totalReceitas - totalDespesas >= 0 ? "text-green-600" : "text-red-600"}`}
+                    className={`text-2xl font-bold ${saldo >= 0 ? "text-green-400" : "text-red-400"}`}
                   >
-                    R$ {(totalReceitas - totalDespesas).toFixed(2)}
+                    R$ {saldo.toFixed(2)}
                   </p>
                 </div>
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    totalReceitas - totalDespesas >= 0
-                      ? "bg-green-100"
-                      : "bg-red-100"
-                  }`}
+                  className={`w-10 h-10 rounded-lg flex items-center justify-center ${saldo >= 0 ? "bg-green-600" : "bg-red-600"}`}
                 >
-                  {totalReceitas - totalDespesas >= 0 ? (
-                    <TrendingUp className="w-4 h-4 text-green-600" />
+                  {saldo >= 0 ? (
+                    <TrendingUp className="w-5 h-5 text-white" />
                   ) : (
-                    <TrendingDown className="w-4 h-4 text-red-600" />
+                    <TrendingDown className="w-5 h-5 text-white" />
                   )}
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
-        {/* Search e Filtros */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar lançamentos..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
 
-              <Button
-                variant="outline"
-                onClick={() => setMostrarPrevisoes(!mostrarPrevisoes)}
-                className="gap-2"
-              >
-                <Repeat className="w-4 h-4" />
-                Previsões
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-        {/* Previsões */}
-        <AnimatePresence>
-          {mostrarPrevisoes && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-            >
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Repeat className="w-5 h-5" />
-                    Previsões de Recorrências
-                  </CardTitle>
-                  <CardDescription>
-                    Lançamentos recorrentes previstos para o mês selecionado
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-4 mb-4">
-                    <Input
-                      type="month"
-                      value={mesPrevisao}
-                      onChange={(e) => setMesPrevisao(e.target.value)}
-                      className="max-w-[200px]"
-                    />
-                  </div>
-
-                  <ScrollArea className="h-[300px]">
-                    <div className="space-y-3">
-                      {previsoesFuturas.map((previsao) => (
-                        <div
-                          key={previsao.id}
-                          className="flex items-center justify-between p-3 border rounded-lg"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`w-2 h-8 rounded-full ${
-                                previsao.tipo === "RECEITA"
-                                  ? "bg-green-500"
-                                  : "bg-red-500"
-                              }`}
-                            />
-                            <div>
-                              <p className="font-medium">
-                                {previsao.descricao}
-                              </p>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Badge variant="outline" className="text-xs">
-                                  {previsao.categoria.nome}
-                                </Badge>
-                                <span>{previsao.cartao?.nome || "-"}</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-3">
-                            <span
-                              className={`font-medium ${
-                                previsao.tipo === "RECEITA"
-                                  ? "text-green-600"
-                                  : "text-red-600"
-                              }`}
-                            >
-                              R$ {previsao.valor.toFixed(2)}
-                            </span>
-
-                            <Badge
-                              variant={
-                                previsao.jaExiste ? "default" : "secondary"
-                              }
-                            >
-                              {previsao.jaExiste ? "Criado" : "Pendente"}
-                            </Badge>
-
-                            {!previsao.jaExiste && previsao.ehOriginal && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  criarTodasRecorrencias(
-                                    previsao.lancamentoPaiId
-                                  )
-                                }
-                              >
-                                Criar Todos
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        {/* Lançamentos - Design Minimalista */}
-        <Card>
+        {/* Tabela de Lançamentos */}
+        <Card className="bg-gray-900 border-gray-800">
           <CardHeader>
-            <CardTitle>Lançamentos</CardTitle>
-            <CardDescription>
-              {lancamentosFiltrados.length} lançamentos
-              {filtros.compartilhamento !== "all" && (
-                <span className="ml-2 text-muted-foreground">
-                  •{" "}
-                  {
-                    {
-                      compartilhados: "Compartilhados",
-                      recebidos: "Compartilhados comigo",
-                      enviados: "Compartilhados por mim",
-                      individuais: "Individuais",
-                    }[filtros.compartilhamento]
-                  }
-                </span>
-              )}
+            <CardTitle className="text-white">Lançamentos</CardTitle>
+            <CardDescription className="text-gray-400">
+              {lancamentosFiltrados.length} lançamentos encontrados
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="h-[600px]">
-              <div className="space-y-2">
-                {lancamentosFiltrados.map((lancamento) => {
-                  const compartilhamento =
-                    getStatusCompartilhamento(lancamento);
+            <div className="rounded-lg border border-gray-700 overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-800 border-b border-gray-700">
+                    <th className="text-left py-3 px-4 text-gray-300 font-medium">
+                      Tipo
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-300 font-medium">
+                      Categoria
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-300 font-medium">
+                      Descrição
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-300 font-medium">
+                      Valor
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-300 font-medium">
+                      Status
+                    </th>
+                    <th className="text-left py-3 px-4 text-gray-300 font-medium">
+                      Ações
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lancamentosFiltrados.map((lancamento) => {
+                    const compartilhamento =
+                      getStatusCompartilhamento(lancamento);
 
-                  return (
-                    <motion.div
-                      key={lancamento.id}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className={`group p-4 rounded-xl border transition-all duration-200 hover:shadow-sm ${
-                        compartilhamento
-                          ? "bg-gradient-to-r from-blue-50/30 to-indigo-50/30 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200/50 dark:border-blue-800/30"
-                          : "bg-background border-border"
-                      }`}
-                    >
-                      {/* Layout Principal */}
-                      <div className="flex items-start justify-between">
-                        {/* Lado Esquerdo - Informações */}
-                        <div className="flex items-start gap-3 flex-1 min-w-0">
-                          {/* Ícone do Tipo */}
-                          <div
-                            className={`p-2 rounded-lg flex-shrink-0 ${
+                    return (
+                      <tr
+                        key={lancamento.id}
+                        className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
+                      >
+                        {/* Tipo */}
+                        <td className="py-3 px-4">
+                          <Badge
+                            variant="outline"
+                            className={
                               lancamento.tipo === "RECEITA"
-                                ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
-                                : "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
-                            }`}
+                                ? "bg-green-900/50 text-green-400 border-green-700"
+                                : "bg-red-900/50 text-red-400 border-red-700"
+                            }
                           >
-                            {lancamento.tipo === "RECEITA" ? (
-                              <TrendingUp className="w-4 h-4" />
-                            ) : (
-                              <TrendingDown className="w-4 h-4" />
-                            )}
-                          </div>
+                            {lancamento.tipo === "RECEITA"
+                              ? "Receita"
+                              : "Despesa"}
+                          </Badge>
+                        </td>
 
-                          {/* Conteúdo Principal */}
-                          <div className="flex-1 min-w-0 space-y-2">
-                            {/* Linha 1: Descrição e Badges */}
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="font-medium text-foreground truncate">
-                                {lancamento.descricao}
-                              </p>
-
-                              {/* Badges */}
-                              <div className="flex items-center gap-1 flex-shrink-0">
-                                {compartilhamento && (
-                                  <div
-                                    className="w-2 h-2 rounded-full bg-blue-500 dark:bg-blue-400"
-                                    title="Compartilhado"
-                                  />
-                                )}
-                                {lancamento.recorrente && (
-                                  <Repeat
-                                    className="w-3 h-3 text-muted-foreground"
-                                    aria-label="Recorrente"
-                                  />
-                                )}
-                              </div>
+                        {/* Categoria */}
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-8 h-8 rounded-lg flex items-center justify-center"
+                              style={{
+                                backgroundColor: lancamento.categoria.cor,
+                              }}
+                            >
+                              {(() => {
+                                // Tenta carregar o ícone da categoria
+                                try {
+                                  const IconComponent =
+                                    require("lucide-react")[
+                                      lancamento.categoria.icone || "Tag"
+                                    ];
+                                  return (
+                                    <IconComponent className="w-4 h-4 text-white" />
+                                  );
+                                } catch {
+                                  // Fallback para um ícone padrão se o ícone não existir
+                                  return <Tag className="w-4 h-4 text-white" />;
+                                }
+                              })()}
                             </div>
+                            <span className="text-white">
+                              {lancamento.categoria.nome}
+                            </span>
+                          </div>
+                        </td>
 
-                            {/* Linha 2: Metadados */}
-                            <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
-                              <span
-                                className="px-2 py-0.5 rounded-full text-xs border"
-                                style={{
-                                  backgroundColor: `${lancamento.categoria.cor}15`,
-                                  color: lancamento.categoria.cor,
-                                  borderColor: `${lancamento.categoria.cor}30`,
-                                }}
-                              >
-                                {lancamento.categoria.nome}
-                              </span>
-
-                              <span className="flex items-center gap-1">
-                                {getMetodoPagamentoIcon(
-                                  lancamento.metodoPagamento
-                                )}
-                                {lancamento.metodoPagamento}
-                              </span>
-
-                              {lancamento.cartao && (
-                                <span className="text-xs bg-muted px-2 py-0.5 rounded">
-                                  {lancamento.cartao.nome}
-                                </span>
-                              )}
-
-                              <span className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
+                        {/* Descrição */}
+                        <td className="py-3 px-4">
+                          <div>
+                            <p className="text-white font-medium">
+                              {lancamento.descricao}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-gray-400">
                                 {new Date(lancamento.data).toLocaleDateString(
                                   "pt-BR"
                                 )}
                               </span>
-                            </div>
-
-                            {/* Grid de Parcelas - Apenas se tiver parcelas */}
-                            {lancamento.parcelasTotal &&
-                              lancamento.parcelasTotal > 1 && (
-                                <motion.div
-                                  initial={{ opacity: 0 }}
-                                  animate={{ opacity: 1 }}
-                                  className="pt-2"
+                              {compartilhamento && (
+                                <Badge
+                                  variant="outline"
+                                  className="bg-blue-900/50 text-blue-400 border-blue-700 text-xs"
                                 >
-                                  {/* Cabeçalho das parcelas */}
-                                  <div className="flex gap-1 text-xs text-muted-foreground mb-1">
-                                    {Array.from({
-                                      length: lancamento.parcelasTotal,
-                                    }).map((_, index) => (
-                                      <div
-                                        key={index}
-                                        className="w-6 h-4 flex items-center justify-center font-medium"
-                                      >
-                                        {index + 1}
-                                      </div>
-                                    ))}
-                                  </div>
-
-                                  {/* Status das parcelas */}
-                                  <div className="flex gap-1">
-                                    {/* Primeira parcela (lançamento principal) */}
-                                    <div
-                                      className={`w-6 h-6 rounded border flex items-center justify-center text-xs cursor-pointer transition-colors ${
-                                        lancamento.pago
-                                          ? "bg-green-500 border-green-500 text-white dark:bg-green-600 dark:border-green-600"
-                                          : "bg-red-100 border-red-300 text-red-700 dark:bg-red-900/50 dark:border-red-700 dark:text-red-300"
-                                      }`}
-                                      onClick={() =>
-                                        toggleStatus(
-                                          lancamento.id,
-                                          lancamento.pago
-                                        )
-                                      }
-                                      title={`${lancamento.descricao} - R$ ${lancamento.valor.toFixed(2)}`}
-                                    >
-                                      {lancamento.pago ? "✓" : ""}
-                                    </div>
-
-                                    {/* Parcelas filhas */}
-                                    {lancamento.lancamentosFilhos?.map(
-                                      (parcela) => (
-                                        <div
-                                          key={parcela.id}
-                                          className={`w-6 h-6 rounded border flex items-center justify-center text-xs cursor-pointer transition-colors ${
-                                            parcela.pago
-                                              ? "bg-green-500 border-green-500 text-white dark:bg-green-600 dark:border-green-600"
-                                              : "bg-red-100 border-red-300 text-red-700 dark:bg-red-900/50 dark:border-red-700 dark:text-red-300"
-                                          }`}
-                                          onClick={() =>
-                                            toggleStatus(
-                                              parcela.id,
-                                              parcela.pago
-                                            )
-                                          }
-                                          title={`${parcela.descricao} - R$ ${parcela.valor.toFixed(2)}`}
-                                        >
-                                          {parcela.pago ? "✓" : ""}
-                                        </div>
-                                      )
-                                    )}
-                                  </div>
-                                </motion.div>
+                                  Compartilhado
+                                </Badge>
                               )}
-
-                            {/* Informação de Compartilhamento Minimalista */}
-                            {compartilhamento && (
-                              <div className="flex items-center gap-2 pt-1">
-                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                  <Users className="w-3 h-3" />
-                                  <span>
-                                    {compartilhamento.isCriador ? (
-                                      <>
-                                        Compartilhado com{" "}
-                                        <strong className="text-foreground">
-                                          {compartilhamento.usuarioAlvo?.name}
-                                        </strong>
-                                      </>
-                                    ) : (
-                                      <>
-                                        Compartilhado por{" "}
-                                        <strong className="text-foreground">
-                                          {
-                                            compartilhamento.usuarioCriador
-                                              ?.name
-                                          }
-                                        </strong>
-                                      </>
-                                    )}
-                                  </span>
-
-                                  <div
-                                    className={`w-1.5 h-1.5 rounded-full ${
-                                      compartilhamento.status === "ACEITO"
-                                        ? "bg-green-500"
-                                        : compartilhamento.status === "PENDENTE"
-                                          ? "bg-yellow-500"
-                                          : "bg-red-500"
-                                    }`}
-                                  />
-
-                                  <span className="text-xs capitalize">
-                                    {compartilhamento.status.toLowerCase()}
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Lado Direito - Valor e Ações */}
-                        <div className="flex items-center gap-3 pl-4 flex-shrink-0">
-                          {/* Valor */}
-                          <div className="text-right">
-                            <div
-                              className={`text-lg font-semibold ${
-                                lancamento.tipo === "RECEITA"
-                                  ? "text-green-600 dark:text-green-400"
-                                  : "text-red-600 dark:text-red-400"
-                              }`}
-                            >
-                              R$ {lancamento.valor.toFixed(2)}
                             </div>
-                            {compartilhamento && (
-                              <div className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
-                                {compartilhamento.isCriador ? (
-                                  <>
-                                    Sua parte: R${" "}
-                                    {(
-                                      lancamento.valor
-                                    ).toFixed(2)}
-                                  </>
-                                ) : (
-                                  <>
-                                    Compartilhado: R${" "}
-                                    {compartilhamento.valorCompartilhado.toFixed(
-                                      2
-                                    )}
-                                  </>
-                                )}
-                              </div>
-                            )}
                           </div>
+                        </td>
 
-                          {/* Status */}
+                        {/* Valor */}
+                        <td className="py-3 px-4">
+                          <span
+                            className={`font-semibold ${
+                              lancamento.tipo === "RECEITA"
+                                ? "text-green-400"
+                                : "text-red-400"
+                            }`}
+                          >
+                            R$ {lancamento.valor.toFixed(2)}
+                          </span>
+                        </td>
+
+                        {/* Status */}
+                        <td className="py-3 px-4">
                           <Button
                             variant={lancamento.pago ? "default" : "outline"}
                             size="sm"
                             onClick={() =>
                               toggleStatus(lancamento.id, lancamento.pago)
                             }
-                            className="h-8 px-3"
+                            className={
+                              lancamento.pago
+                                ? "bg-green-600 hover:bg-green-700"
+                                : "border-gray-600 text-gray-300 hover:bg-gray-800"
+                            }
                           >
                             {lancamento.pago ? (
-                              <CheckCircle className="w-4 h-4" />
+                              <>
+                                <CheckCircle className="w-4 h-4 mr-1" />
+                                {lancamento.tipo === "RECEITA"
+                                  ? "Recebido"
+                                  : "Pago"}
+                              </>
                             ) : (
-                              <Clock className="w-4 h-4" />
+                              <>
+                                <Clock className="w-4 h-4 mr-1" />
+                                {lancamento.tipo === "RECEITA"
+                                  ? "A receber"
+                                  : "A pagar"}
+                              </>
                             )}
                           </Button>
+                        </td>
 
-                          {/* Menu */}
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
-                              <DropdownMenuItem className="flex items-center gap-2">
-                                <Edit className="w-4 h-4" />
-                                Editar
-                              </DropdownMenuItem>
-                              {!compartilhamento && (
-                                <DropdownMenuItem className="flex items-center gap-2">
-                                  <Share2 className="w-4 h-4" />
-                                  Compartilhar
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem className="flex items-center gap-2 text-destructive">
-                                <Trash2 className="w-4 h-4" />
-                                Excluir
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </div>
+                        {/* Ações */}
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() =>
+                                      handleVisualizar(lancamento.id)
+                                    }
+                                    disabled={
+                                      carregandoVisualizacao === lancamento.id
+                                    } // Desabilita apenas este
+                                    className="text-gray-400 hover:text-blue-400 hover:bg-gray-800"
+                                  >
+                                    {carregandoVisualizacao ===
+                                    lancamento.id ? (
+                                      <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                      <Eye className="w-4 h-4" />
+                                    )}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent className="bg-gray-800 text-white border-gray-700">
+                                  <p>Visualizar dados</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
 
-                      {/* Ações para Compartilhamento Pendente */}
-                      {compartilhamento?.status === "PENDENTE" &&
-                        compartilhamento.isAlvo && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            className="mt-3 pt-3 border-t border-border flex justify-end gap-2"
-                          >
-                            <Button
-                              size="sm"
-                              variant="default"
-                              className="gap-2 h-8"
-                            >
-                              <UserCheck className="w-3 h-3" />
-                              Aceitar
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="gap-2 h-8"
-                            >
-                              <UserX className="w-3 h-3" />
-                              Recusar
-                            </Button>
-                          </motion.div>
-                        )}
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </ScrollArea>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleEditar(lancamento)}
+                                    className="text-gray-400 hover:text-yellow-400 hover:bg-gray-800"
+                                  >
+                                    <Edit3 className="w-4 h-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent className="bg-gray-800 text-white border-gray-700">
+                                  <p>Editar</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Dialog
+                                    open={dialogAberto === lancamento.id}
+                                    onOpenChange={(open) =>
+                                      setDialogAberto(
+                                        open ? lancamento.id : null
+                                      )
+                                    }
+                                  >
+                                    <DialogTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="text-gray-400 hover:text-red-400 hover:bg-gray-800"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="bg-gray-900 border-gray-800 text-white">
+                                      <DialogHeader>
+                                        <DialogTitle className="text-white">
+                                          Excluir Lançamento
+                                        </DialogTitle>
+                                        <DialogDescription className="text-gray-400">
+                                          Tem certeza que deseja excluir este
+                                          lançamento? Esta ação não pode ser
+                                          desfeita.
+                                        </DialogDescription>
+                                      </DialogHeader>
+                                      <div className="flex gap-3 justify-end">
+                                        <Button
+                                          variant="outline"
+                                          onClick={() => setDialogAberto(null)}
+                                          className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                                        >
+                                          Cancelar
+                                        </Button>
+                                        <Button
+                                          variant="destructive"
+                                          onClick={() =>
+                                            handleDelete(lancamento.id)
+                                          }
+                                          disabled={excluindo === lancamento.id}
+                                        >
+                                          {excluindo === lancamento.id
+                                            ? "Excluindo..."
+                                            : "Confirmar"}
+                                        </Button>
+                                      </div>
+                                    </DialogContent>
+                                  </Dialog>
+                                </TooltipTrigger>
+                                <TooltipContent className="bg-gray-800 text-white border-gray-700">
+                                  <p>Excluir</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+
+              {lancamentosFiltrados.length === 0 && (
+                <div className="text-center py-8 text-gray-400">
+                  <p>Nenhum lançamento encontrado</p>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
+
+        {/* Sheet para Novo Lançamento */}
+        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+          <SheetContent className="bg-gray-900 border-gray-800 text-white sm:max-w-md">
+            <SheetHeader>
+              <SheetTitle className="text-white">Novo Lançamento</SheetTitle>
+              <SheetDescription className="text-gray-400">
+                Adicione uma nova receita ou despesa
+              </SheetDescription>
+            </SheetHeader>
+
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-4 mt-6 max-h-[80vh] overflow-y-auto"
+            >
+              {/* Tipo e Categoria */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="tipo">Tipo *</Label>
+                  <Select
+                    value={formData.tipo}
+                    onValueChange={(value) => handleChange("tipo", value)}
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="receita">Receita</SelectItem>
+                      <SelectItem value="despesa">Despesa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="categoria">Categoria *</Label>
+                  <Select
+                    value={formData.categoria}
+                    onValueChange={(value) => handleChange("categoria", value)}
+                    required
+                    disabled={!formData.tipo}
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={
+                          !formData.tipo
+                            ? "Selecione o tipo primeiro"
+                            : "Selecione a categoria"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categorias
+                        .filter(
+                          (cat) =>
+                            cat.tipo ===
+                            (formData.tipo === "receita"
+                              ? "RECEITA"
+                              : "DESPESA")
+                        )
+                        .map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: cat.cor }}
+                              />
+                              {cat.nome}
+                            </div>
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Descrição e Valor */}
+              <div className="space-y-2">
+                <Label htmlFor="descricao">Descrição *</Label>
+                <Input
+                  id="descricao"
+                  value={formData.descricao}
+                  onChange={(e) => handleChange("descricao", e.target.value)}
+                  placeholder="Ex: Salário, Aluguel, Mercado..."
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="valor">Valor *</Label>
+                <Input
+                  id="valor"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.valor}
+                  onChange={(e) => handleChange("valor", e.target.value)}
+                  placeholder="0,00"
+                  required
+                />
+              </div>
+
+              {/* Tipo de Transação e Lançamento */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="tipoTransacao">Tipo de Transação *</Label>
+                  <Select
+                    value={formData.tipoTransacao}
+                    onValueChange={(value) =>
+                      handleChange("tipoTransacao", value)
+                    }
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
+                      <SelectItem value="PIX">PIX</SelectItem>
+                      <SelectItem value="CARTAO_DEBITO">
+                        Cartão Débito
+                      </SelectItem>
+                      <SelectItem value="CARTAO_CREDITO">
+                        Cartão Crédito
+                      </SelectItem>
+                      <SelectItem value="TRANSFERENCIA">
+                        Transferência
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="tipoLancamento">Tipo de Lançamento *</Label>
+                  <Select
+                    value={formData.tipoLancamento}
+                    onValueChange={(value) =>
+                      handleChange("tipoLancamento", value)
+                    }
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="individual">Individual</SelectItem>
+                      <SelectItem value="compartilhado">
+                        Compartilhado
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Seção de Compartilhamento */}
+              {formData.tipoLancamento === "compartilhado" && (
+                <div className="space-y-4 p-3 rounded-lg border">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="usuarioAlvoId">Compartilhar com *</Label>
+                      <Select
+                        value={formData.usuarioAlvoId}
+                        onValueChange={(value) =>
+                          handleChange("usuarioAlvoId", value)
+                        }
+                        required
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o usuário" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {usuarios.map((usuario) => (
+                            <SelectItem key={usuario.id} value={usuario.id}>
+                              <div className="flex items-center gap-2">
+                                {usuario.image && (
+                                  <img
+                                    src={usuario.image}
+                                    alt={usuario.name}
+                                    className="w-4 h-4 rounded-full"
+                                  />
+                                )}
+                                {usuario.name}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="valorCompartilhado">
+                        Valor compartilhado (R$)
+                      </Label>
+                      <Input
+                        id="valorCompartilhado"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max={formData.valor}
+                        value={formData.valorCompartilhado}
+                        onChange={(e) =>
+                          handleChange("valorCompartilhado", e.target.value)
+                        }
+                        placeholder="0,00"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Cartão de Crédito */}
+              {formData.tipoTransacao === "CARTAO_CREDITO" && (
+                <div className="space-y-2">
+                  <Label htmlFor="cartaoId">Cartão *</Label>
+                  <Select
+                    value={formData.cartaoId}
+                    onValueChange={(value) => handleChange("cartaoId", value)}
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o cartão" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cartoes.map((cartao) => (
+                        <SelectItem key={cartao.id} value={cartao.id}>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: cartao.cor }}
+                            />
+                            {cartao.nome}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Responsável */}
+              <div className="space-y-2">
+                <Label htmlFor="responsavel">Responsável *</Label>
+                <Select
+                  value={formData.responsavel}
+                  onValueChange={(value) => handleChange("responsavel", value)}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o responsável" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Claudenir">Claudenir</SelectItem>
+                    <SelectItem value="Beatriz">Beatriz</SelectItem>
+                    <SelectItem value="Compartilhado">Compartilhado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Data */}
+              <div className="space-y-2">
+                <Label htmlFor="data">Data *</Label>
+                <Input
+                  type="date"
+                  value={formData.data}
+                  onChange={(e) => handleChange("data", e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Recorrência */}
+              <div className="space-y-3 border rounded-lg p-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="recorrente"
+                    checked={formData.recorrente}
+                    onCheckedChange={(checked) =>
+                      handleChange("recorrente", checked === true)
+                    }
+                  />
+                  <Label htmlFor="recorrente" className="font-medium">
+                    Lançamento recorrente/parcelado
+                  </Label>
+                </div>
+
+                {formData.recorrente && (
+                  <div className="grid grid-cols-2 gap-4 pl-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="tipoRecorrencia">Tipo</Label>
+                      <Select
+                        value={formData.tipoRecorrencia}
+                        onValueChange={(value) =>
+                          handleChange("tipoRecorrencia", value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o tipo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="RECORRENCIA">
+                            Recorrência
+                          </SelectItem>
+                          <SelectItem value="PARCELAMENTO">
+                            Parcelamento
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {formData.tipoRecorrencia === "RECORRENCIA" && (
+                      <div className="space-y-2">
+                        <Label htmlFor="frequencia">Frequência</Label>
+                        <Select
+                          value={formData.frequencia}
+                          onValueChange={(value) =>
+                            handleChange("frequencia", value)
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a frequência" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="mensal">Mensal</SelectItem>
+                            <SelectItem value="trimestral">
+                              Trimestral
+                            </SelectItem>
+                            <SelectItem value="anual">Anual</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {formData.tipoRecorrencia === "PARCELAMENTO" && (
+                      <div className="space-y-2">
+                        <Label htmlFor="parcelas">Número de Parcelas</Label>
+                        <Input
+                          id="parcelas"
+                          type="number"
+                          min="2"
+                          max="24"
+                          value={formData.parcelas}
+                          onChange={(e) =>
+                            handleChange("parcelas", e.target.value)
+                          }
+                          placeholder="Ex: 3, 6, 12"
+                        />
+                      </div>
+                    )}
+
+                    {/* ADICIONE ESTE CAMPO AQUI */}
+                    {formData.tipoRecorrencia === "RECORRENCIA" && (
+                      <div className="space-y-2 col-span-2">
+                        <Label htmlFor="dataFimRecorrencia">
+                          Data Final da Recorrência *
+                        </Label>
+                        <Input
+                          id="dataFimRecorrencia"
+                          type="date"
+                          value={formData.dataFimRecorrencia}
+                          onChange={(e) =>
+                            handleChange("dataFimRecorrencia", e.target.value)
+                          }
+                          required
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Até quando este lançamento se repetirá
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Observações */}
+              <div className="space-y-2">
+                <Label htmlFor="observacoes">Observações</Label>
+                <Textarea
+                  id="observacoes"
+                  value={formData.observacoes}
+                  onChange={(e) => handleChange("observacoes", e.target.value)}
+                  placeholder="Observações adicionais..."
+                  rows={3}
+                />
+              </div>
+
+              <Button
+                variant={"outline"}
+                type="submit"
+                className="w-full border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                disabled={enviando}
+              >
+                {enviando ? "Criando..." : "Criar Lançamento"}
+              </Button>
+            </form>
+          </SheetContent>
+        </Sheet>
       </div>
+      {/* Dialog para Visualizar Lançamento */}
+      <Dialog
+        open={mostrarDialogVisualizar}
+        onOpenChange={setMostrarDialogVisualizar}
+      >
+        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white">
+              Detalhes do Lançamento
+            </DialogTitle>
+          </DialogHeader>
+          {lancamentoSelecionado && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-gray-400 text-sm">Descrição</Label>
+                  <p className="text-white font-medium mt-1">
+                    {lancamentoSelecionado.descricao}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-gray-400 text-sm">Valor</Label>
+                  <p
+                    className={`text-lg font-bold mt-1 ${lancamentoSelecionado.tipo === "RECEITA" ? "text-green-400" : "text-red-400"}`}
+                  >
+                    R$ {lancamentoSelecionado.valor.toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-gray-400 text-sm">Tipo</Label>
+                  <div className="mt-1">
+                    <Badge
+                      variant="outline"
+                      className={
+                        lancamentoSelecionado.tipo === "RECEITA"
+                          ? "bg-green-900/50 text-green-400 border-green-700"
+                          : "bg-red-900/50 text-red-400 border-red-700"
+                      }
+                    >
+                      {lancamentoSelecionado.tipo === "RECEITA"
+                        ? "Receita"
+                        : "Despesa"}
+                    </Badge>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-gray-400 text-sm">Status</Label>
+                  <p
+                    className={`mt-1 ${lancamentoSelecionado.pago ? "text-green-400" : "text-yellow-400"}`}
+                  >
+                    {lancamentoSelecionado.pago ? "Pago/Recebido" : "Pendente"}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-gray-400 text-sm">Data</Label>
+                  <p className="text-white mt-1">
+                    {new Date(lancamentoSelecionado.data).toLocaleDateString(
+                      "pt-BR"
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-gray-400 text-sm">
+                    Método de Pagamento
+                  </Label>
+                  <p className="text-white mt-1">
+                    {lancamentoSelecionado.metodoPagamento}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-gray-400 text-sm">Categoria</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{
+                        backgroundColor: lancamentoSelecionado.categoria.cor,
+                      }}
+                    />
+                    <p className="text-white">
+                      {lancamentoSelecionado.categoria.nome}
+                    </p>
+                  </div>
+                </div>
+                {lancamentoSelecionado.cartao && (
+                  <div>
+                    <Label className="text-gray-400 text-sm">Cartão</Label>
+                    <p className="text-white mt-1">
+                      {lancamentoSelecionado.cartao.nome}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {lancamentoSelecionado.observacoes && (
+                <div>
+                  <Label className="text-gray-400 text-sm">Observações</Label>
+                  <p className="text-white bg-gray-800 p-3 rounded-md mt-1">
+                    {lancamentoSelecionado.observacoes}
+                  </p>
+                </div>
+              )}
+
+              {lancamentoSelecionado.recorrente && (
+                <div className="p-3 border border-gray-700 rounded-lg">
+                  <Label className="text-gray-400 text-sm">
+                    Informações de Recorrência
+                  </Label>
+                  <div className="grid grid-cols-2 gap-4 mt-2">
+                    <div>
+                      <p className="text-gray-400 text-sm">Tipo</p>
+                      <p className="text-white mt-1">
+                        {lancamentoSelecionado.tipoParcelamento}
+                      </p>
+                    </div>
+                    {lancamentoSelecionado.parcelasTotal && (
+                      <div>
+                        <p className="text-gray-400 text-sm">Parcelas</p>
+                        <p className="text-white mt-1">
+                          {lancamentoSelecionado.parcelaAtual}/
+                          {lancamentoSelecionado.parcelasTotal}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para Editar Lançamento */}
+      <Dialog open={mostrarDialogEditar} onOpenChange={setMostrarDialogEditar}>
+        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-white">Editar Lançamento</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAtualizar} className="space-y-4">
+            {/* Tipo e Categoria */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="tipo">Tipo *</Label>
+                <Select
+                  value={formData.tipo}
+                  onValueChange={(value) => handleChange("tipo", value)}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="receita">Receita</SelectItem>
+                    <SelectItem value="despesa">Despesa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="categoria">Categoria *</Label>
+                <Select
+                  value={formData.categoria}
+                  onValueChange={(value) => handleChange("categoria", value)}
+                  required
+                  disabled={!formData.tipo}
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={
+                        !formData.tipo
+                          ? "Selecione o tipo primeiro"
+                          : "Selecione a categoria"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categorias
+                      .filter(
+                        (cat) =>
+                          cat.tipo ===
+                          (formData.tipo === "receita" ? "RECEITA" : "DESPESA")
+                      )
+                      .map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: cat.cor }}
+                            />
+                            {cat.nome}
+                          </div>
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Descrição e Valor */}
+            <div className="space-y-2">
+              <Label htmlFor="descricao">Descrição *</Label>
+              <Input
+                id="descricao"
+                value={formData.descricao}
+                onChange={(e) => handleChange("descricao", e.target.value)}
+                placeholder="Ex: Salário, Aluguel, Mercado..."
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="valor">Valor *</Label>
+              <Input
+                id="valor"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.valor}
+                onChange={(e) => handleChange("valor", e.target.value)}
+                placeholder="0,00"
+                required
+              />
+            </div>
+
+            {/* Tipo de Transação e Lançamento */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="tipoTransacao">Tipo de Transação *</Label>
+                <Select
+                  value={formData.tipoTransacao}
+                  onValueChange={(value) =>
+                    handleChange("tipoTransacao", value)
+                  }
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
+                    <SelectItem value="PIX">PIX</SelectItem>
+                    <SelectItem value="CARTAO_DEBITO">Cartão Débito</SelectItem>
+                    <SelectItem value="CARTAO_CREDITO">
+                      Cartão Crédito
+                    </SelectItem>
+                    <SelectItem value="TRANSFERENCIA">Transferência</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tipoLancamento">Tipo de Lançamento *</Label>
+                <Select
+                  value={formData.tipoLancamento}
+                  onValueChange={(value) =>
+                    handleChange("tipoLancamento", value)
+                  }
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="individual">Individual</SelectItem>
+                    <SelectItem value="compartilhado">Compartilhado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Seção de Compartilhamento */}
+            {formData.tipoLancamento === "compartilhado" && (
+              <div className="space-y-4 p-3 rounded-lg border">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="usuarioAlvoId">Compartilhar com *</Label>
+                    <Select
+                      value={formData.usuarioAlvoId}
+                      onValueChange={(value) =>
+                        handleChange("usuarioAlvoId", value)
+                      }
+                      required
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o usuário" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {usuarios.map((usuario) => (
+                          <SelectItem key={usuario.id} value={usuario.id}>
+                            <div className="flex items-center gap-2">
+                              {usuario.image && (
+                                <img
+                                  src={usuario.image}
+                                  alt={usuario.name}
+                                  className="w-4 h-4 rounded-full"
+                                />
+                              )}
+                              {usuario.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="valorCompartilhado">
+                      Valor compartilhado (R$)
+                    </Label>
+                    <Input
+                      id="valorCompartilhado"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max={formData.valor}
+                      value={formData.valorCompartilhado}
+                      onChange={(e) =>
+                        handleChange("valorCompartilhado", e.target.value)
+                      }
+                      placeholder="0,00"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Cartão de Crédito */}
+            {formData.tipoTransacao === "CARTAO_CREDITO" && (
+              <div className="space-y-2">
+                <Label htmlFor="cartaoId">Cartão *</Label>
+                <Select
+                  value={formData.cartaoId}
+                  onValueChange={(value) => handleChange("cartaoId", value)}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o cartão" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cartoes.map((cartao) => (
+                      <SelectItem key={cartao.id} value={cartao.id}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: cartao.cor }}
+                          />
+                          {cartao.nome}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Responsável */}
+            <div className="space-y-2">
+              <Label htmlFor="responsavel">Responsável *</Label>
+              <Select
+                value={formData.responsavel}
+                onValueChange={(value) => handleChange("responsavel", value)}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o responsável" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Claudenir">Claudenir</SelectItem>
+                  <SelectItem value="Beatriz">Beatriz</SelectItem>
+                  <SelectItem value="Compartilhado">Compartilhado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Data */}
+            <div className="space-y-2">
+              <Label htmlFor="data">Data *</Label>
+              <Input
+                type="date"
+                value={formData.data}
+                onChange={(e) => handleChange("data", e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Recorrência */}
+            <div className="space-y-3 border rounded-lg p-3">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="recorrente"
+                  checked={formData.recorrente}
+                  onCheckedChange={(checked) =>
+                    handleChange("recorrente", checked === true)
+                  }
+                />
+                <Label htmlFor="recorrente" className="font-medium">
+                  Lançamento recorrente/parcelado
+                </Label>
+              </div>
+
+              {formData.recorrente && (
+                <div className="grid grid-cols-2 gap-4 pl-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="tipoRecorrencia">Tipo</Label>
+                    <Select
+                      value={formData.tipoRecorrencia}
+                      onValueChange={(value) =>
+                        handleChange("tipoRecorrencia", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="RECORRENCIA">Recorrência</SelectItem>
+                        <SelectItem value="PARCELAMENTO">
+                          Parcelamento
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {formData.tipoRecorrencia === "RECORRENCIA" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="frequencia">Frequência</Label>
+                      <Select
+                        value={formData.frequencia}
+                        onValueChange={(value) =>
+                          handleChange("frequencia", value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a frequência" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="mensal">Mensal</SelectItem>
+                          <SelectItem value="trimestral">Trimestral</SelectItem>
+                          <SelectItem value="anual">Anual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {formData.tipoRecorrencia === "PARCELAMENTO" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="parcelas">Número de Parcelas</Label>
+                      <Input
+                        id="parcelas"
+                        type="number"
+                        min="2"
+                        max="24"
+                        value={formData.parcelas}
+                        onChange={(e) =>
+                          handleChange("parcelas", e.target.value)
+                        }
+                        placeholder="Ex: 3, 6, 12"
+                      />
+                    </div>
+                  )}
+
+                  {/* ADICIONE ESTE CAMPO AQUI */}
+                  {formData.tipoRecorrencia === "RECORRENCIA" && (
+                    <div className="space-y-2 col-span-2">
+                      <Label htmlFor="dataFimRecorrencia">
+                        Data Final da Recorrência *
+                      </Label>
+                      <Input
+                        id="dataFimRecorrencia"
+                        type="date"
+                        value={formData.dataFimRecorrencia}
+                        onChange={(e) =>
+                          handleChange("dataFimRecorrencia", e.target.value)
+                        }
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Até quando este lançamento se repetirá
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Observações */}
+            <div className="space-y-2">
+              <Label htmlFor="observacoes">Observações</Label>
+              <Textarea
+                id="observacoes"
+                value={formData.observacoes}
+                onChange={(e) => handleChange("observacoes", e.target.value)}
+                placeholder="Observações adicionais..."
+                rows={3}
+              />
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setMostrarDialogEditar(false)}
+                className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                className="flex-1 bg-white text-gray-900 hover:bg-gray-100"
+                disabled={editando}
+              >
+                {editando ? "Atualizando..." : "Atualizar Lançamento"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

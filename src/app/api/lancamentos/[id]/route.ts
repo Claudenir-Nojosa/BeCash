@@ -186,3 +186,107 @@ export async function DELETE(
     );
   }
 }
+export async function PUT(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
+    const params = await context.params;
+    const lancamentoId = params.id;
+    const body = await request.json();
+
+    const {
+      descricao,
+      valor,
+      tipo,
+      metodoPagamento,
+      data,
+      categoriaId,
+      cartaoId,
+      observacoes,
+      tipoParcelamento,
+      parcelasTotal,
+      recorrente,
+      dataFimRecorrencia,
+      pago,
+    } = body;
+
+    // Verificar se o lançamento pertence ao usuário
+    const lancamentoExistente = await db.lancamento.findFirst({
+      where: {
+        id: lancamentoId,
+        userId: session.user.id,
+      },
+    });
+
+    if (!lancamentoExistente) {
+      return NextResponse.json(
+        { error: "Lançamento não encontrado" },
+        { status: 404 }
+      );
+    }
+
+    // Atualizar o lançamento
+    const lancamentoAtualizado = await db.lancamento.update({
+      where: { id: lancamentoId },
+      data: {
+        descricao,
+        valor,
+        tipo,
+        metodoPagamento,
+        data: new Date(data),
+        categoriaId,
+        cartaoId,
+        observacoes,
+        tipoParcelamento,
+        parcelasTotal,
+        recorrente,
+        dataFimRecorrencia: dataFimRecorrencia ? new Date(dataFimRecorrencia) : null,
+        pago,
+      },
+      include: {
+        categoria: true,
+        cartao: true,
+        lancamentosFilhos: {
+          include: {
+            categoria: true,
+            cartao: true,
+          },
+        },
+        LancamentoCompartilhado: {
+          include: {
+            usuarioAlvo: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true,
+              },
+            },
+            usuarioCriador: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return NextResponse.json(lancamentoAtualizado);
+  } catch (error) {
+    console.error("Erro ao atualizar lançamento:", error);
+    return NextResponse.json(
+      { error: "Erro interno do servidor" },
+      { status: 500 }
+    );
+  }
+}
