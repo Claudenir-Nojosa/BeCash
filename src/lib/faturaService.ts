@@ -219,21 +219,31 @@ static calcularDataVencimento(
 }
 
   // Atualizar valor total da fatura
-  static async atualizarValorFatura(faturaId: string) {
-    const lancamentos = await db.lancamento.findMany({
-      where: {
-        faturaId,
-        pago: false,
-      },
-    });
+// Atualizar valor total da fatura
+static async atualizarValorFatura(faturaId: string) {
+  const lancamentos = await db.lancamento.findMany({
+    where: {
+      faturaId,
+      pago: false,
+    },
+  });
 
-    const valorTotal = lancamentos.reduce((sum, lanc) => sum + lanc.valor, 0);
+  // 🔥 CORREÇÃO: Considerar RECEITAS como negativas e DESPESAS como positivas
+  const valorTotal = lancamentos.reduce((sum, lanc) => {
+    if (lanc.tipo === "RECEITA") {
+      return sum - lanc.valor; // Receitas diminuem o total da fatura
+    } else {
+      return sum + lanc.valor; // Despesas aumentam o total da fatura
+    }
+  }, 0);
 
-    await db.fatura.update({
-      where: { id: faturaId },
-      data: { valorTotal },
-    });
-  }
+  await db.fatura.update({
+    where: { id: faturaId },
+    data: { valorTotal },
+  });
+
+  console.log(`💰 Fatura ${faturaId} atualizada: ${valorTotal}`);
+}
 
   // Fechar fatura do mês anterior e criar nova
   static async fecharFaturasVencidas() {
