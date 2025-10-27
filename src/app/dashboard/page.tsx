@@ -35,6 +35,7 @@ import {
   Eye,
   ArrowRight,
   Calendar,
+  RefreshCw,
 } from "lucide-react";
 import DashboardTable from "@/components/dashboard/DashboardTable";
 import MetasCard from "@/components/dashboard/MetasCard";
@@ -44,6 +45,8 @@ import {
   LimiteCategoria,
 } from "../../../types/dashboard";
 import { useSession } from "next-auth/react";
+import NotificacoesCompartilhamento from "@/components/dashboard/NotificacoesCompartilhamento";
+import NotificacoesSino from "@/components/dashboard/NotificacoesCompartilhamento";
 
 // Array de meses para o seletor
 const MESES = [
@@ -83,7 +86,7 @@ export default function DashboardPage() {
   const [anoSelecionado, setAnoSelecionado] = useState<string>(
     new Date().getFullYear().toString()
   );
-
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   // Gerar array de anos (últimos 5 anos + próximo ano)
   const anos = Array.from({ length: 6 }, (_, i) => {
     const ano = new Date().getFullYear() - 2 + i;
@@ -181,7 +184,12 @@ export default function DashboardPage() {
   // Recarregar dashboard quando mês/ano mudar
   useEffect(() => {
     carregarDashboard();
-  }, [mesSelecionado, anoSelecionado]);
+  }, [mesSelecionado, anoSelecionado, refreshTrigger]);
+
+  const handleRefresh = () => {
+    setRefreshTrigger((prev) => prev + 1);
+    toast.info("Atualizando dados...");
+  };
 
   const formatarMoeda = (valor: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -275,8 +283,10 @@ export default function DashboardPage() {
             </h1>
             <p className="text-gray-300 mt-2">{obterFraseMotivacional()}</p>
           </div>
-          {/* Seletor de Mês no Header */}
-          <div className="flex items-center gap-4">
+
+          {/* 👈 ATUALIZE ESTA SEÇÃO - Controles do Header */}
+          <div className="flex items-center gap-3">
+            {/* Seletor de Mês */}
             <div className="flex items-center gap-2 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2">
               {/* Seta esquerda */}
               <Button
@@ -347,6 +357,23 @@ export default function DashboardPage() {
                 </svg>
               </Button>
             </div>
+
+            {/* 👈 BOTÃO DE REFRESH */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleRefresh}
+              disabled={carregando}
+              className="h-9 w-9 border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 disabled:opacity-50"
+              title="Atualizar dados"
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${carregando ? "animate-spin" : ""}`}
+              />
+            </Button>
+
+            {/* Sino de Notificações */}
+            <NotificacoesSino />
           </div>
         </div>
 
@@ -459,7 +486,11 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Tabela de Lançamentos */}
           <div className="lg:col-span-2">
-            <DashboardTable mes={mesSelecionado} ano={anoSelecionado} />
+            <DashboardTable
+              mes={mesSelecionado}
+              ano={anoSelecionado}
+              refreshTrigger={refreshTrigger} 
+            />
           </div>
 
           {/* Sidebar - Metas e Limites */}

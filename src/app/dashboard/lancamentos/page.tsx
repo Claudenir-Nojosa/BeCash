@@ -143,6 +143,7 @@ export default function LancamentosPage() {
   const [carregandoVisualizacao, setCarregandoVisualizacao] = useState<
     string | null
   >(null);
+  const [carregandoUsuarios, setCarregandoUsuarios] = useState(true);
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
   const [lancamentoSelecionado, setLancamentoSelecionado] =
     useState<Lancamento | null>(null);
@@ -175,7 +176,27 @@ export default function LancamentosPage() {
   const [mesSelecionado, setMesSelecionado] = useState(
     new Date().getMonth() + 1
   );
-  const [mostrarSeletorMeses, setMostrarSeletorMeses] = useState(false);
+  const carregarUsuarios = async () => {
+    setCarregandoUsuarios(true);
+    try {
+      const response = await fetch("/api/usuarios");
+      if (response.ok) {
+        const data = await response.json();
+        setUsuarios(data);
+        console.log("Usuários carregados:", data);
+      } else {
+        console.error("Erro ao carregar usuários:", response.status);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar usuários:", error);
+    } finally {
+      setCarregandoUsuarios(false);
+    }
+  };
+
+  useEffect(() => {
+    carregarUsuarios();
+  }, []);
 
   const [formData, setFormData] = useState({
     descricao: "",
@@ -1083,12 +1104,12 @@ export default function LancamentosPage() {
                                 )}
                               </span>
                               {compartilhamento && (
-                                <Badge
-                                  variant="outline"
-                                  className="bg-blue-900/50 text-blue-400 border-blue-700 text-xs"
-                                >
-                                  Compartilhado
-                                </Badge>
+                                <div className="group relative">
+                                  <Users className="h-3 w-3 text-blue-400" />
+                                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                    Lançamento compartilhado
+                                  </div>
+                                </div>
                               )}
                             </div>
                           </div>
@@ -1429,25 +1450,42 @@ export default function LancamentosPage() {
                           handleChange("usuarioAlvoId", value)
                         }
                         required
+                        disabled={carregandoUsuarios}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione o usuário" />
+                          <SelectValue
+                            placeholder={
+                              carregandoUsuarios
+                                ? "Carregando usuários..."
+                                : "Selecione o usuário"
+                            }
+                          />
                         </SelectTrigger>
                         <SelectContent>
-                          {usuarios.map((usuario) => (
-                            <SelectItem key={usuario.id} value={usuario.id}>
-                              <div className="flex items-center gap-2">
-                                {usuario.image && (
-                                  <img
-                                    src={usuario.image}
-                                    alt={usuario.name}
-                                    className="w-4 h-4 rounded-full"
-                                  />
-                                )}
-                                {usuario.name}
-                              </div>
+                          {carregandoUsuarios ? (
+                            <SelectItem value="loading" disabled>
+                              Carregando usuários...
                             </SelectItem>
-                          ))}
+                          ) : usuarios && usuarios.length > 0 ? (
+                            usuarios.map((usuario) => (
+                              <SelectItem key={usuario.id} value={usuario.id}>
+                                <div className="flex items-center gap-2">
+                                  {usuario.image && (
+                                    <img
+                                      src={usuario.image}
+                                      alt={usuario.name}
+                                      className="w-4 h-4 rounded-full"
+                                    />
+                                  )}
+                                  {usuario.name}
+                                </div>
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="no-users" disabled>
+                              Nenhum usuário disponível
+                            </SelectItem>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>

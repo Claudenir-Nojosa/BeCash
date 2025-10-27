@@ -143,11 +143,18 @@ export default function DetalhesCartaoPage() {
     return (total / cartao.limite) * 100;
   };
 
-  const calcularTotalFaturaAtual = () => {
-    if (!cartao) return 0;
-    const faturaAberta = cartao.Fatura.find((f) => f.status === "ABERTA");
-    return faturaAberta ? faturaAberta.valorTotal : 0;
-  };
+const calcularTotalFaturaAtual = () => {
+  if (!cartao) return 0;
+  
+  // 🔥 CORREÇÃO: Considerar TODOS os lançamentos não pagos do cartão
+  // (não apenas os da fatura atual)
+  const lancamentosAtivos = cartao.lancamentos.filter(
+    (l) => !l.pago && l.Fatura?.status !== "PAGA"
+  );
+  
+  const total = lancamentosAtivos.reduce((sum, l) => sum + l.valor, 0);
+  return total;
+};
 
   const formatarMoeda = (valor: number) => {
     return new Intl.NumberFormat("pt-BR", {

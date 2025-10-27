@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-      const valorTotal = parseFloat(valor);
+    const valorTotal = parseFloat(valor);
     const valorParaCompartilhar =
       tipoLancamento === "compartilhado"
         ? valorCompartilhado
@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
       tipoLancamento === "compartilhado"
         ? valorTotal - valorParaCompartilhar
         : valorTotal;
-    
+
     // CORREÇÃO: Usar userId em vez de usuarioId
     const lancamentoBaseData: any = {
       descricao,
@@ -294,7 +294,7 @@ export async function POST(request: NextRequest) {
           tipo
         );
       }
-      
+
       // CORREÇÃO: Criar registro de compartilhamento com o valor correto por parcela
       if (tipoLancamento === "compartilhado") {
         await db.lancamentoCompartilhado.create({
@@ -314,7 +314,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Criar parcelas futuras para o criador
-   const parcelasFuturas = [];
+      const parcelasFuturas = [];
       for (let i = 2; i <= parseInt(parcelasTotal); i++) {
         const dataParcela = new Date(data || new Date());
         dataParcela.setMonth(dataParcela.getMonth() + (i - 1));
@@ -345,9 +345,15 @@ export async function POST(request: NextRequest) {
           data: parcelasFuturas,
         });
 
-        // CORREÇÃO: Para parcelas futuras também criar compartilhamento
-        if (tipoLancamento === "compartilhado") {
-          for (const parcela of parcelasCriadas) {
+        // 🔥 CORREÇÃO: Associar cada parcela futura à sua fatura correspondente
+        for (const parcela of parcelasCriadas) {
+          // Adicionar à fatura correspondente à data da parcela
+          if (metodoPagamento === "CREDITO" && cartaoId) {
+            await FaturaService.adicionarLancamentoAFatura(parcela.id);
+          }
+
+          // CORREÇÃO: Para parcelas futuras também criar compartilhamento
+          if (tipoLancamento === "compartilhado") {
             await db.lancamentoCompartilhado.create({
               data: {
                 lancamentoId: parcela.id,
@@ -391,7 +397,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(lancamentoComParcelas, { status: 201 });
     }
 
-  // ✅ CORREÇÃO: Lançamento único (à vista ou recorrente)
+    // ✅ CORREÇÃO: Lançamento único (à vista ou recorrente)
     const lancamento = await db.lancamento.create({
       data: {
         ...lancamentoBaseData,
@@ -409,11 +415,15 @@ export async function POST(request: NextRequest) {
       },
     });
 
-     // ✅ ATUALIZAR LIMITE para lançamento único (se for despesa)
+    // ✅ ATUALIZAR LIMITE para lançamento único (se for despesa)
     if (tipo === "DESPESA") {
-      const valorParaAtualizar = tipoLancamento === "compartilhado"
-        ? valorTotal - (valorCompartilhado ? parseFloat(valorCompartilhado) : valorTotal / 2)
-        : valorTotal;
+      const valorParaAtualizar =
+        tipoLancamento === "compartilhado"
+          ? valorTotal -
+            (valorCompartilhado
+              ? parseFloat(valorCompartilhado)
+              : valorTotal / 2)
+          : valorTotal;
 
       await LimiteService.atualizarGastoLimite(
         session.user.id,

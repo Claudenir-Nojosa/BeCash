@@ -96,7 +96,11 @@ export async function PATCH(request: NextRequest) {
         status: "PENDENTE",
       },
       include: {
-        lancamento: true,
+        lancamento: {
+          include: {
+            cartao: true,
+          },
+        },
       },
     });
 
@@ -117,7 +121,36 @@ export async function PATCH(request: NextRequest) {
     if (status === "ACEITO") {
       const lancamentoOriginal = lancamentoCompartilhado.lancamento;
 
-      await db.lancamento.create({
+      // 🔥 NOVA LÓGICA: Encontrar ou criar fatura para o lançamento compartilhado
+      let faturaId = lancamentoOriginal.faturaId;
+
+      // Se o lançamento original não tem fatura, encontrar a fatura correta
+      if (!faturaId && lancamentoOriginal.cartaoId) {
+        const mesReferencia = new Date(lancamentoOriginal.data)
+          .toISOString()
+          .slice(0, 7); // YYYY-MM
+
+        const faturaCorreta = await db.fatura.findFirst({
+          where: {
+            cartaoId: lancamentoOriginal.cartaoId,
+            mesReferencia: mesReferencia,
+          },
+        });
+
+        if (faturaCorreta) {
+          faturaId = faturaCorreta.id;
+        } else {
+          // Se não encontrou fatura, criar uma nova
+          const novaFatura = await criarFaturaParaCartao(
+            lancamentoOriginal.cartaoId,
+            new Date(lancamentoOriginal.data)
+          );
+          faturaId = novaFatura.id;
+        }
+      }
+
+      // Criar o lançamento para o usuário alvo COM FATURA
+      const novoLancamento = await db.lancamento.create({
         data: {
           descricao: `${lancamentoOriginal.descricao} (Compartilhado)`,
           valor: lancamentoCompartilhado.valorCompartilhado,
@@ -134,8 +167,14 @@ export async function PATCH(request: NextRequest) {
           parcelaAtual: lancamentoOriginal.parcelaAtual,
           recorrente: lancamentoOriginal.recorrente,
           dataFimRecorrencia: lancamentoOriginal.dataFimRecorrencia,
+          faturaId: faturaId, // 👈 AGORA COM FATURA ASSOCIADA
         },
       });
+
+      // Atualizar o valor total da fatura
+      if (faturaId) {
+        await atualizarValorFatura(faturaId);
+      }
     }
 
     return NextResponse.json(updated);
@@ -146,4 +185,98 @@ export async function PATCH(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// 🔥 FUNÇÕES AUXILIARES PARA GERENCIAR FATURAS
+
+// Função para criar fatura para um cartão em um determinado mês
+async function criarFaturaParaCartao(cartaoId: string, dataLancamento: Date) {
+  const cartao = await db.cartao.findUnique({
+    where: { id: cartaoId },
+  });
+
+  if (!cartao) {
+    throw new Error("Cartão não encontrado");
+  }
+
+  const mesReferencia = dataLancamento.toISOString().slice(0, 7); // YYYY-MM
+
+  // Verificar se já existe fatura para este mês
+  const faturaExistente = await db.fatura.findFirst({
+    where: {
+      cartaoId,
+      mesReferencia,
+    },
+  });
+
+  if (faturaExistente) {
+    return faturaExistente;
+  }
+
+  // Calcular datas de fechamento e vencimento
+  const dataFechamento = calcularDataFechamento(
+    cartao.diaFechamento,
+    mesReferencia
+  );
+  const dataVencimento = calcularDataVencimento(
+    cartao.diaVencimento,
+    mesReferencia
+  );
+
+  // Criar nova fatura
+  return await db.fatura.create({
+    data: {
+      cartaoId,
+      mesReferencia,
+      dataFechamento,
+      dataVencimento,
+      valorTotal: 0, // Será atualizado depois com os lançamentos
+      valorPago: 0,
+      status: "ABERTA",
+    },
+  });
+}
+
+// Função para atualizar o valor total da fatura
+async function atualizarValorFatura(faturaId: string) {
+  const lancamentos = await db.lancamento.findMany({
+    where: { faturaId },
+  });
+
+  const valorTotal = lancamentos.reduce((sum, lanc) => sum + lanc.valor, 0);
+
+  await db.fatura.update({
+    where: { id: faturaId },
+    data: { valorTotal },
+  });
+}
+
+// Funções para calcular datas de fechamento e vencimento
+function calcularDataFechamento(
+  diaFechamento: number | null,
+  mesReferencia: string
+) {
+  if (!diaFechamento) diaFechamento = 1;
+
+  const [ano, mes] = mesReferencia.split("-").map(Number);
+  const ultimoDiaMes = new Date(ano, mes, 0).getDate();
+  const dia = Math.min(diaFechamento, ultimoDiaMes);
+
+  return new Date(ano, mes - 1, dia);
+}
+
+function calcularDataVencimento(
+  diaVencimento: number | null,
+  mesReferencia: string
+) {
+  if (!diaVencimento) diaVencimento = 10;
+
+  const [ano, mes] = mesReferencia.split("-").map(Number);
+  const mesVencimento = mes === 12 ? 1 : mes + 1;
+  const anoVencimento = mes === 12 ? ano + 1 : ano;
+
+  const ultimoDiaMes = new Date(anoVencimento, mesVencimento, 0).getDate();
+  const dia = Math.min(diaVencimento, ultimoDiaMes);
+
+  return new Date(anoVencimento, mesVencimento - 1, dia);
 }

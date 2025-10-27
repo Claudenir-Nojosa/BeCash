@@ -43,16 +43,21 @@ interface Lancamento {
 interface DashboardTableProps {
   mes?: string;
   ano?: string;
+  refreshTrigger?: number;
 }
 
-export default function DashboardTable({ mes, ano }: DashboardTableProps) {
+export default function DashboardTable({
+  mes,
+  ano,
+  refreshTrigger,
+}: DashboardTableProps) {
   const router = useRouter();
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
     carregarUltimosLancamentos();
-  }, [mes, ano]); // Recarregar quando mês/ano mudar
+  }, [mes, ano, refreshTrigger]); // Recarregar quando mês/ano mudar
 
   const carregarUltimosLancamentos = async () => {
     try {
