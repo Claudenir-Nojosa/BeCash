@@ -5,7 +5,7 @@ import { auth } from "../../../../../../auth";
 // Correção: Use esta assinatura para rotas dinâmicas no App Router
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> } // params é uma Promise
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -13,21 +13,23 @@ export async function GET(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    // Aguarde os params serem resolvidos
     const params = await context.params;
     const cartaoId = params.id;
 
-    // Verificar se o cartão pertence ao usuário
+    // Verificar se o usuário tem acesso ao cartão (dono OU colaborador)
     const cartao = await db.cartao.findFirst({
       where: {
         id: cartaoId,
-        userId: session.user.id,
+        OR: [
+          { userId: session.user.id },
+          { ColaboradorCartao: { some: { userId: session.user.id } } },
+        ],
       },
     });
 
     if (!cartao) {
       return NextResponse.json(
-        { error: "Cartão não encontrado" },
+        { error: "Cartão não encontrado ou você não tem acesso" },
         { status: 404 }
       );
     }

@@ -10,14 +10,47 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
+    // Buscar metas onde o usuário é dono OU colaborador
     const metas = await db.metaPessoal.findMany({
       where: {
-        userId: session.user.id,
+        OR: [
+          { userId: session.user.id }, // Metas do usuário
+          { ColaboradorMeta: { some: { userId: session.user.id } } }, // Metas compartilhadas
+        ],
+      },
+      include: {
+        // Incluir informações do dono para identificar metas compartilhadas
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        // Incluir informações de colaboradores
+        ColaboradorMeta: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true,
+              },
+            },
+          },
+        },
       },
       orderBy: [{ dataAlvo: "asc" }, { createdAt: "desc" }],
     });
 
-    return NextResponse.json(metas);
+    // Adicionar flag para identificar se é meta compartilhada
+    const metasComInfo = metas.map(meta => ({
+      ...meta,
+      ehCompartilhada: meta.userId !== session.user.id,
+    }));
+
+    return NextResponse.json(metasComInfo);
   } catch (error) {
     console.error("Erro ao buscar metas:", error);
     return NextResponse.json(

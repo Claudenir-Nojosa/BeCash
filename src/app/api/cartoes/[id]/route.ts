@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    // Extrair o ID da URL manualmente (mesmo método que funciona na outra rota)
+    // Extrair o ID da URL manualmente
     const url = new URL(request.url);
     const pathParts = url.pathname.split("/");
     const cartaoId = pathParts[pathParts.length - 1];
@@ -22,15 +22,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Verificar se o usuário tem acesso ao cartão (dono OU colaborador)
     const cartao = await db.cartao.findFirst({
       where: {
         id: cartaoId,
-        userId: session.user.id,
+        OR: [
+          { userId: session.user.id },
+          { ColaboradorCartao: { some: { userId: session.user.id } } },
+        ],
       },
       include: {
         lancamentos: {
           include: {
-            categoria: true, // 👈 ADICIONAR ESTA LINHA
+            categoria: true,
             Fatura: {
               select: {
                 status: true,
@@ -43,8 +47,45 @@ export async function GET(request: NextRequest) {
           },
         },
         Fatura: {
+          include: {
+            lancamentos: {
+              include: {
+                categoria: true,
+              },
+            },
+            PagamentoFatura: {
+              orderBy: {
+                data: "desc",
+              },
+            },
+          },
           orderBy: {
             mesReferencia: "desc",
+          },
+        },
+        ColaboradorCartao: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true, // 👈 Já está aqui
+              },
+            },
+          },
+        },
+        ConviteCartao: {
+          where: {
+            status: "PENDENTE",
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true, // 👈 ADICIONE ESTA LINHA
           },
         },
       },
@@ -52,7 +93,7 @@ export async function GET(request: NextRequest) {
 
     if (!cartao) {
       return NextResponse.json(
-        { error: "Cartão não encontrado" },
+        { error: "Cartão não encontrado ou você não tem acesso" },
         { status: 404 }
       );
     }

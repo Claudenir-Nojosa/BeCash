@@ -25,6 +25,12 @@ import {
   Plus,
   MoreVertical,
   Tag,
+  Users,
+  UserPlus,
+  Mail,
+  User,
+  Trash2,
+  Bell,
 } from "lucide-react";
 import {
   Sheet,
@@ -33,6 +39,14 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
   Table,
@@ -42,13 +56,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FormEditarCartao } from "@/components/shared/FormEditarCartao";
+import { useSession } from "next-auth/react";
+import { ConviteColaboradorDialog } from "@/components/shared/ConviteColaboradorDialog";
 
 interface Cartao {
   id: string;
@@ -60,15 +73,26 @@ interface Cartao {
   cor: string;
   ativo: boolean;
   observacoes?: string;
+  userId: string;
+
+  // Informações do dono (para cartões compartilhados)
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+    image?: string; // 👈 ADICIONE image AQUI
+  };
+
+  // ... resto da interface permanece igual
+  ehCompartilhado?: boolean;
   lancamentos: Array<{
     id: string;
     descricao: string;
     valor: number;
     data: string;
     pago: boolean;
-    tipo: string; // 👈 ADICIONAR
+    tipo: string;
     categoria?: {
-      // 👈 ADICIONAR (opcional porque pode ser null)
       id: string;
       nome: string;
       cor: string;
@@ -79,6 +103,7 @@ interface Cartao {
       mesReferencia: string;
     } | null;
   }>;
+
   Fatura: Array<{
     id: string;
     valorTotal: number;
@@ -87,6 +112,42 @@ interface Cartao {
     mesReferencia: string;
     dataFechamento: string;
     dataVencimento: string;
+    lancamentos: Array<{
+      id: string;
+      descricao: string;
+      valor: number;
+      data: string;
+      categoria?: {
+        id: string;
+        nome: string;
+        cor: string;
+      };
+    }>;
+    PagamentoFatura: Array<{
+      id: string;
+      valor: number;
+      data: string;
+      metodo: string;
+      observacoes?: string;
+    }>;
+  }>;
+
+  ColaboradorCartao: Array<{
+    id: string;
+    user: {
+      id: string;
+      name: string;
+      email: string;
+      image?: string; // 👈 Já está aqui
+    };
+    permissao: string;
+  }>;
+
+  ConviteCartao: Array<{
+    id: string;
+    emailConvidado: string;
+    status: string;
+    expiraEm: string;
   }>;
 }
 
@@ -96,13 +157,23 @@ export default function DetalhesCartaoPage() {
   const [cartao, setCartao] = useState<Cartao | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [sheetEditarAberto, setSheetEditarAberto] = useState(false);
+  const [enviandoConvite, setEnviandoConvite] = useState(false);
+  const [emailConvidado, setEmailConvidado] = useState("");
+  const [dialogConvidarAberto, setDialogConvidarAberto] = useState(false);
   const cartaoId = params.id as string;
+
+  const session = useSession();
 
   useEffect(() => {
     if (cartaoId) {
       carregarCartao();
     }
   }, [cartaoId]);
+
+  // Função para quando o convite for enviado com sucesso
+  const handleConviteEnviado = () => {
+    carregarCartao(); // Recarrega os dados
+  };
 
   const carregarCartao = async () => {
     try {
@@ -118,6 +189,84 @@ export default function DetalhesCartaoPage() {
       toast.error("Erro ao carregar cartão");
     } finally {
       setCarregando(false);
+    }
+  };
+
+  const handleConvidarColaborador = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!emailConvidado.trim()) {
+      toast.error("Digite um email válido");
+      return;
+    }
+
+    // Validação básica de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailConvidado)) {
+      toast.error("Digite um email válido");
+      return;
+    }
+
+    setEnviandoConvite(true);
+    try {
+      const response = await fetch(`/api/cartoes/${cartaoId}/colaboradores`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emailConvidado: emailConvidado.trim() }),
+      });
+
+      if (response.ok) {
+        toast.success("Convite enviado com sucesso!");
+        setEmailConvidado(""); // Limpa o input
+        setDialogConvidarAberto(false); // Fecha o dialog
+        carregarCartao(); // Recarrega os dados para mostrar o convite pendente
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erro ao enviar convite");
+      }
+    } catch (error: any) {
+      console.error("Erro ao enviar convite:", error);
+      toast.error(error.message || "Erro ao enviar convite");
+    } finally {
+      setEnviandoConvite(false);
+    }
+  };
+
+  const handleRemoverColaborador = async (userId: string) => {
+    try {
+      console.log(
+        `Tentando remover colaborador ${userId} do cartão ${cartaoId}`
+      );
+
+      const response = await fetch(
+        `/api/cartoes/${cartaoId}/colaboradores/${userId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      console.log("Status da resposta:", response.status);
+      console.log("Content-Type:", response.headers.get("content-type"));
+
+      // Verificar se a resposta é JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const textResponse = await response.text();
+        console.error("Resposta não é JSON:", textResponse.substring(0, 200));
+        throw new Error("Resposta inválida do servidor");
+      }
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Erro ao remover colaborador");
+      }
+
+      toast.success("Colaborador removido com sucesso!");
+      carregarCartao(); // Recarrega os dados
+    } catch (error: any) {
+      console.error("Erro completo ao remover colaborador:", error);
+      toast.error(error.message || "Erro ao remover colaborador");
     }
   };
 
@@ -143,18 +292,14 @@ export default function DetalhesCartaoPage() {
     return (total / cartao.limite) * 100;
   };
 
-const calcularTotalFaturaAtual = () => {
-  if (!cartao) return 0;
-  
-  // 🔥 CORREÇÃO: Considerar TODOS os lançamentos não pagos do cartão
-  // (não apenas os da fatura atual)
-  const lancamentosAtivos = cartao.lancamentos.filter(
-    (l) => !l.pago && l.Fatura?.status !== "PAGA"
-  );
-  
-  const total = lancamentosAtivos.reduce((sum, l) => sum + l.valor, 0);
-  return total;
-};
+  const calcularTotalFaturaAtual = () => {
+    if (!cartao) return 0;
+    const lancamentosAtivos = cartao.lancamentos.filter(
+      (l) => !l.pago && l.Fatura?.status !== "PAGA"
+    );
+    const total = lancamentosAtivos.reduce((sum, l) => sum + l.valor, 0);
+    return total;
+  };
 
   const formatarMoeda = (valor: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -165,13 +310,212 @@ const calcularTotalFaturaAtual = () => {
 
   const formatarData = (dataString: string) => {
     if (!dataString || dataString === "Invalid Date") return "Data inválida";
-
-    // Extrair ANO, MÊS, DIA diretamente da string SEM conversão de timezone
-    const dataPart = dataString.substring(0, 10); // "2025-11-07"
+    const dataPart = dataString.substring(0, 10);
     const [ano, mes, dia] = dataPart.split("-");
-
-    // Retornar NO MESMO FORMATO que está no banco
     return `${dia}/${mes}/${ano}`;
+  };
+
+  // Componente para mostrar colaboradores
+  const ColaboradoresSection = () => {
+    if (!cartao) return null;
+
+    // Verificar se o usuário atual é o dono do cartão
+    const usuarioAtualEhDono = cartao.userId === session?.data?.user?.id;
+    const usuarioAtualEhColaborador = cartao.ColaboradorCartao.some(
+      (colab) => colab.user.id === session?.data?.user?.id
+    );
+
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-400">Colaboradores</p>
+          {/* Só mostrar botão de convidar se for o dono do cartão */}
+          {usuarioAtualEhDono && (
+            <Dialog
+              open={dialogConvidarAberto}
+              onOpenChange={setDialogConvidarAberto}
+            >
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-2 text-xs border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                >
+                  <UserPlus className="h-3 w-3 mr-1" />
+                  Convidar
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-gray-900 border-gray-800 text-white">
+                <DialogHeader>
+                  <DialogTitle>Convidar Colaborador</DialogTitle>
+                  <DialogDescription className="text-gray-400">
+                    Envie um convite para alguém acessar este cartão
+                  </DialogDescription>
+                </DialogHeader>
+                <form
+                  onSubmit={handleConvidarColaborador}
+                  className="space-y-4"
+                >
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-white">
+                      Email do Colaborador
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={emailConvidado}
+                      onChange={(e) => setEmailConvidado(e.target.value)}
+                      placeholder="colaborador@email.com"
+                      className="bg-gray-800 border-gray-700 text-white"
+                      required
+                    />
+                  </div>
+                  <div className="flex gap-3 justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setDialogConvidarAberto(false)}
+                      className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={enviandoConvite}
+                      className="bg-white text-gray-900 hover:bg-gray-100"
+                    >
+                      {enviandoConvite ? "Enviando..." : "Enviar Convite"}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
+
+        {/* Lista de Colaboradores */}
+        <div className="space-y-2">
+          {/* Dono do Cartão */}
+          <div className="flex items-center justify-between p-2 rounded-lg bg-gray-800/30">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={cartao.user?.image || ""} />
+                <AvatarFallback className="bg-blue-600 text-white text-xs">
+                  {cartao.user?.name
+                    ?.split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase() || "U"}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="text-sm font-medium text-white">
+                  {cartao.user?.name || "Usuário"}
+                  {usuarioAtualEhDono && " (Você)"}
+                </p>
+                <p className="text-xs text-gray-400">{cartao.user?.email}</p>
+              </div>
+            </div>
+            <Badge className="bg-blue-900/50 text-blue-300 border-blue-700">
+              Dono
+            </Badge>
+          </div>
+
+          {/* Colaboradores */}
+          {cartao.ColaboradorCartao.map((colaborador) => {
+            const ehUsuarioAtual =
+              colaborador.user.id === session?.data?.user?.id;
+            return (
+              <div
+                key={colaborador.id}
+                className="flex items-center justify-between p-2 rounded-lg bg-gray-800/30 hover:bg-gray-800/50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={colaborador.user.image || ""} />
+                    <AvatarFallback className="bg-green-600 text-white text-xs">
+                      {colaborador.user.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="text-sm font-medium text-white">
+                      {colaborador.user.name}
+                      {ehUsuarioAtual && " (Você)"}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {colaborador.user.email}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-green-900/50 text-green-300 border-green-700">
+                    {colaborador.permissao === "LEITURA"
+                      ? "Colaborador"
+                      : "Escrita"}
+                  </Badge>
+                  {/* Só mostrar botão de remover se for o dono do cartão */}
+                  {usuarioAtualEhDono && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        handleRemoverColaborador(colaborador.user.id)
+                      }
+                      className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-900/50"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Convites Pendentes - Só mostrar para o dono */}
+          {usuarioAtualEhDono &&
+            cartao.ConviteCartao.map((convite) => (
+              <div
+                key={convite.id}
+                className="flex items-center justify-between p-2 rounded-lg bg-yellow-900/20 border border-yellow-800/50"
+              >
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-yellow-600 text-white text-xs">
+                      <Bell className="h-4 w-4" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="text-sm font-medium text-yellow-300">
+                      {convite.emailConvidado}
+                    </p>
+                    <p className="text-xs text-yellow-400">
+                      Convite pendente - Expira {formatarData(convite.expiraEm)}
+                    </p>
+                  </div>
+                </div>
+                <Badge className="bg-yellow-900/50 text-yellow-300 border-yellow-700">
+                  Pendente
+                </Badge>
+              </div>
+            ))}
+
+          {cartao.ColaboradorCartao.length === 0 &&
+            (!usuarioAtualEhDono || cartao.ConviteCartao.length === 0) && (
+              <div className="text-center py-4 text-gray-500">
+                <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Nenhum colaborador</p>
+                {usuarioAtualEhDono && (
+                  <p className="text-xs">Convide alguém para colaborar</p>
+                )}
+              </div>
+            )}
+        </div>
+      </div>
+    );
   };
 
   if (carregando) {
@@ -224,12 +568,11 @@ const calcularTotalFaturaAtual = () => {
   // Encontrar a próxima fatura que ainda não venceu
   const proximaFatura = cartao.Fatura.filter(
     (fatura) => new Date(fatura.dataVencimento) >= hoje
-  ) // Só faturas futuras
-    .sort(
-      (a, b) =>
-        new Date(a.dataVencimento).getTime() -
-        new Date(b.dataVencimento).getTime()
-    )[0]; // Ordenar por vencimento
+  ).sort(
+    (a, b) =>
+      new Date(a.dataVencimento).getTime() -
+      new Date(b.dataVencimento).getTime()
+  )[0];
 
   return (
     <div className="min-h-screen p-6">
@@ -252,6 +595,11 @@ const calcularTotalFaturaAtual = () => {
               />
               <div>
                 <h1 className="text-3xl font-bold text-white">{cartao.nome}</h1>
+                {cartao.ehCompartilhado && cartao.user && (
+                  <p className="text-sm text-gray-400">
+                    Compartilhado por {cartao.user.name}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -318,6 +666,12 @@ const calcularTotalFaturaAtual = () => {
                     </p>
                   </div>
                 </div>
+
+                {/* 👇 SEÇÃO DE COLABORADORES ADICIONADA AQUI */}
+                <div className="pt-3 border-t border-gray-800">
+                  <ColaboradoresSection />
+                </div>
+
                 {cartao.observacoes && (
                   <div>
                     <p className="text-sm text-gray-400">Observações</p>
@@ -684,6 +1038,7 @@ const calcularTotalFaturaAtual = () => {
           </CardContent>
         </Card>
       </div>
+
       <Sheet open={sheetEditarAberto} onOpenChange={setSheetEditarAberto}>
         <SheetContent className="bg-gray-900 border-gray-800 text-white overflow-y-auto w-full sm:max-w-2xl">
           <SheetHeader className="mb-6">
@@ -703,6 +1058,12 @@ const calcularTotalFaturaAtual = () => {
           />
         </SheetContent>
       </Sheet>
+      <ConviteColaboradorDialog
+        open={dialogConvidarAberto}
+        onOpenChange={setDialogConvidarAberto}
+        cartaoId={cartaoId}
+        onConviteEnviado={handleConviteEnviado}
+      />
     </div>
   );
 }

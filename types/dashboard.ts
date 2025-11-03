@@ -17,10 +17,34 @@ export interface MetaPessoal {
   categoria: string;
   cor: string;
   icone: string;
-  imagemUrl?: string; // 👈 ADICIONE ESTA LINHA
+  imagemUrl?: string;
   userId: string;
   createdAt: Date;
   updatedAt: Date;
+  
+  // Novos campos para colaboradores
+  ehCompartilhada?: boolean;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  ColaboradorMeta?: Array<{
+    id: string;
+    user: {
+      id: string;
+      name: string;
+      email: string;
+      image?: string;
+    };
+    permissao: string;
+  }>;
+  ConviteMeta?: Array<{
+    id: string;
+    emailConvidado: string;
+    status: string;
+    expiraEm: string;
+  }>;
 }
 
 export interface LimiteCategoria {

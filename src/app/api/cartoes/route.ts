@@ -10,13 +10,27 @@ export async function GET() {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
+    // Buscar cartões onde o usuário é dono OU colaborador
     const cartoes = await db.cartao.findMany({
-      where: { userId: session.user.id },
+      where: {
+        OR: [
+          { userId: session.user.id }, // Cartões do usuário
+          { ColaboradorCartao: { some: { userId: session.user.id } } }, // Cartões compartilhados
+        ],
+      },
       include: {
         lancamentos: {
           where: {
             pago: false,
             metodoPagamento: "CREDITO",
+          },
+        },
+        // Incluir informações do dono para identificar cartões compartilhados
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
           },
         },
       },
@@ -37,7 +51,7 @@ export async function GET() {
           ? (totalUtilizado / limite) * 100
           : totalUtilizado > 0
             ? 100
-            : 0; // Se não tem limite mas tem gastos, mostra 100%
+            : 0;
 
       return {
         ...cartao,
@@ -47,6 +61,9 @@ export async function GET() {
         totalGasto: totalUtilizado,
         utilizacaoLimite: utilizacaoPercentual,
         limiteDisponivel: limite - totalUtilizado,
+        // Adicionar flag para identificar se é cartão compartilhado
+        ehCompartilhado: cartao.userId !== session.user.id,
+        dono: cartao.user,
       };
     });
 

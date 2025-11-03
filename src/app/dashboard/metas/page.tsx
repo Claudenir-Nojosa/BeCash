@@ -57,9 +57,14 @@ import {
 import { MetaPessoal } from "../../../../types/dashboard";
 import { UploadImage } from "@/components/shared/upload-image";
 import { useSession } from "next-auth/react";
+import { ColaboradoresMeta } from "@/components/shared/ColaboradoresMeta";
 
 export default function MetasPage() {
   const router = useRouter();
+  const { data: session } = useSession();
+  const [colaboradoresCarregando, setColaboradoresCarregando] = useState<
+    Set<string>
+  >(new Set());
   const [excluindo, setExcluindo] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [metas, setMetas] = useState<MetaPessoal[]>([]);
@@ -113,6 +118,45 @@ export default function MetasPage() {
   useEffect(() => {
     carregarMetas();
   }, []);
+
+  // Adicione esta função para carregar colaboradores de uma meta específica
+  const carregarColaboradoresMeta = async (metaId: string) => {
+    try {
+      setColaboradoresCarregando((prev) => new Set(prev).add(metaId));
+
+      const response = await fetch(`/api/metas/${metaId}/colaboradores`);
+      if (response.ok) {
+        const data = await response.json();
+
+        // Atualizar a meta específica com os colaboradores
+        setMetas((prev) =>
+          prev.map((meta) =>
+            meta.id === metaId
+              ? {
+                  ...meta,
+                  ColaboradorMeta: data.colaboradores,
+                  ConviteMeta: data.convites,
+                }
+              : meta
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Erro ao carregar colaboradores:", error);
+      toast.error("Erro ao carregar colaboradores");
+    } finally {
+      setColaboradoresCarregando((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(metaId);
+        return newSet;
+      });
+    }
+  };
+
+  // Adicione esta função para quando os colaboradores forem atualizados
+  const handleColaboradoresAtualizados = (metaId: string) => {
+    carregarColaboradoresMeta(metaId);
+  };
 
   const carregarMetas = async () => {
     try {
@@ -301,8 +345,6 @@ export default function MetasPage() {
     if (progresso >= 75) return "proxima";
     return "em_andamento";
   };
-
-  const session = useSession();
 
   return (
     <div className="min-h-screen p-6">
@@ -521,7 +563,7 @@ export default function MetasPage() {
                         setFormData({ ...formData, imagemUrl: url || "" })
                       }
                       currentImage={formData.imagemUrl}
-                      userId={session?.data?.user?.id || ""}
+                      userId={session?.user?.id || ""}
                       metaId={editandoMeta?.id || "new"}
                     />
                   </div>
@@ -611,12 +653,14 @@ export default function MetasPage() {
                   (1000 * 60 * 60 * 24)
               );
 
+              // 👇 ADICIONE ESTA LINHA para verificar se o usuário atual é o dono
+              const usuarioAtualEhDono = meta.userId === session?.user?.id;
+
               return (
                 <Card
                   key={meta.id}
                   className="bg-gray-900 border-gray-800 group hover:border-gray-700 transition-colors"
                 >
-                  {" "}
                   {/* Imagem de capa */}
                   {meta.imagemUrl && (
                     <div
@@ -630,13 +674,21 @@ export default function MetasPage() {
                       />
                     </div>
                   )}
+
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-xl">{meta.icone}</span>
-                        <CardTitle className="text-lg text-white">
-                          {meta.titulo}
-                        </CardTitle>
+                        <div>
+                          <CardTitle className="text-lg text-white">
+                            {meta.titulo}
+                          </CardTitle>
+                          {meta.ehCompartilhada && meta.user && (
+                            <p className="text-xs text-gray-400">
+                              Compartilhada por {meta.user.name}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <Badge
                         variant="outline"
@@ -663,6 +715,7 @@ export default function MetasPage() {
                       {meta.descricao}
                     </CardDescription>
                   </CardHeader>
+
                   <CardContent className="space-y-4">
                     {/* Progresso */}
                     <div className="space-y-2">
@@ -686,7 +739,6 @@ export default function MetasPage() {
                         <span>{formatarMoeda(meta.valorAlvo)}</span>
                       </div>
                     </div>
-
                     {/* Informações */}
                     <div className="flex justify-between items-center text-sm text-gray-400">
                       <div className="flex items-center gap-1">
@@ -695,8 +747,6 @@ export default function MetasPage() {
                       </div>
                       <span>{diasRestantes} dias</span>
                     </div>
-
-                    {/* Categoria e Ações */}
                     <div className="flex items-center justify-between">
                       <Badge
                         variant="outline"
@@ -708,7 +758,7 @@ export default function MetasPage() {
                       {/* Ações */}
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         {mostrarInputValor === meta.id ? (
-                          // Modo de edição de valor - mostra apenas input e botões de confirmação/cancelar
+                          // Modo de edição de valor - VISÍVEL PARA DONO E COLABORADORES
                           <div className="flex items-center gap-1 bg-gray-800 rounded-lg border border-gray-700 p-1">
                             <div className="relative">
                               <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs">
@@ -776,8 +826,9 @@ export default function MetasPage() {
                             </Button>
                           </div>
                         ) : (
-                          // Modo normal - mostra apenas o botão +, editar e excluir
+                          // Modo normal - botões de ação
                           <>
+                            {/* Botão + - VISÍVEL PARA DONO E COLABORADORES */}
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -799,84 +850,108 @@ export default function MetasPage() {
                               </Tooltip>
                             </TooltipProvider>
 
-                            {/* Botões de editar e excluir */}
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => startEdit(meta)}
-                                    className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-800"
-                                  >
-                                    <Edit3 className="h-3 w-3" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent className="bg-gray-800 text-white border-gray-700">
-                                  <p>Editar meta</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Dialog
-                                    open={dialogAberto === meta.id}
-                                    onOpenChange={(open) =>
-                                      setDialogAberto(open ? meta.id : null)
-                                    }
-                                  >
-                                    <DialogTrigger asChild>
+                            {/* Botões de Editar e Excluir - APENAS PARA DONO */}
+                            {usuarioAtualEhDono && (
+                              <>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
                                       <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-900/50"
+                                        onClick={() => startEdit(meta)}
+                                        className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-800"
                                       >
-                                        <Trash2 className="h-3 w-3" />
+                                        <Edit3 className="h-3 w-3" />
                                       </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="bg-gray-900 border-gray-800 text-white">
-                                      <DialogHeader>
-                                        <DialogTitle className="text-white">
-                                          Excluir Meta
-                                        </DialogTitle>
-                                        <DialogDescription className="text-gray-400">
-                                          Tem certeza que deseja excluir a meta
-                                          "{meta.titulo}"? Esta ação não pode
-                                          ser desfeita.
-                                        </DialogDescription>
-                                      </DialogHeader>
-                                      <div className="flex gap-3 justify-end">
-                                        <Button
-                                          variant="outline"
-                                          onClick={() => setDialogAberto(null)}
-                                          className="border-gray-700 text-gray-300 hover:bg-gray-800"
-                                        >
-                                          Cancelar
-                                        </Button>
-                                        <Button
-                                          variant="destructive"
-                                          onClick={() => excluirMeta(meta.id)}
-                                          disabled={excluindo === meta.id} // 👈 ADICIONE ESTA LINHA
-                                        >
-                                          {excluindo === meta.id
-                                            ? "Excluindo..."
-                                            : "Confirmar"}
-                                        </Button>
-                                      </div>
-                                    </DialogContent>
-                                  </Dialog>
-                                </TooltipTrigger>
-                                <TooltipContent className="bg-gray-800 text-white border-gray-700">
-                                  <p>Excluir meta</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="bg-gray-800 text-white border-gray-700">
+                                      <p>Editar meta</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Dialog
+                                        open={dialogAberto === meta.id}
+                                        onOpenChange={(open) =>
+                                          setDialogAberto(open ? meta.id : null)
+                                        }
+                                      >
+                                        <DialogTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-900/50"
+                                          >
+                                            <Trash2 className="h-3 w-3" />
+                                          </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="bg-gray-900 border-gray-800 text-white">
+                                          <DialogHeader>
+                                            <DialogTitle className="text-white">
+                                              Excluir Meta
+                                            </DialogTitle>
+                                            <DialogDescription className="text-gray-400">
+                                              Tem certeza que deseja excluir a
+                                              meta "{meta.titulo}"? Esta ação
+                                              não pode ser desfeita.
+                                            </DialogDescription>
+                                          </DialogHeader>
+                                          <div className="flex gap-3 justify-end">
+                                            <Button
+                                              variant="outline"
+                                              onClick={() =>
+                                                setDialogAberto(null)
+                                              }
+                                              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                                            >
+                                              Cancelar
+                                            </Button>
+                                            <Button
+                                              variant="destructive"
+                                              onClick={() =>
+                                                excluirMeta(meta.id)
+                                              }
+                                              disabled={excluindo === meta.id}
+                                            >
+                                              {excluindo === meta.id
+                                                ? "Excluindo..."
+                                                : "Confirmar"}
+                                            </Button>
+                                          </div>
+                                        </DialogContent>
+                                      </Dialog>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="bg-gray-800 text-white border-gray-700">
+                                      <p>Excluir meta</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </>
+                            )}
                           </>
                         )}
                       </div>
                     </div>
+                    {/* 👇 SEÇÃO DE COLABORADORES - CORRIGIDA ESTRUTURALMENTE */}
+                    {(usuarioAtualEhDono ||
+                      (meta.ColaboradorMeta &&
+                        meta.ColaboradorMeta.length > 0)) && (
+                      <div className="pt-3 border-t border-gray-800">
+                        <ColaboradoresMeta
+                          metaId={meta.id}
+                          colaboradores={meta.ColaboradorMeta || []}
+                          convites={meta.ConviteMeta || []}
+                          usuarioAtualEhDono={usuarioAtualEhDono}
+                          onColaboradoresAtualizados={() =>
+                            handleColaboradoresAtualizados(meta.id)
+                          }
+                        />
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );
@@ -884,6 +959,7 @@ export default function MetasPage() {
           )}
         </div>
       </div>
+
       <Dialog open={!!fotoAmpliada} onOpenChange={() => setFotoAmpliada(null)}>
         <DialogContent className="max-w-4xl bg-black border-0 p-0 overflow-hidden">
           <div className="relative">

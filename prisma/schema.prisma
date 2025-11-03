@@ -51,6 +51,16 @@ model User {
   MetaPessoal MetaPessoal[]
 
   LimiteCategoria LimiteCategoria[]
+
+  ColaboradorCartao ColaboradorCartao[]
+
+  ConviteCartao ConviteCartao[]
+
+  ConviteMeta ConviteMeta[]
+
+  ColaboradorMeta ColaboradorMeta[]
+
+  ContribuicaoMeta ContribuicaoMeta[]
 }
 
 model Account {
@@ -297,16 +307,16 @@ model Categoria {
   nome      String
   tipo      String
   cor       String?  @default("#3B82F6")
-  icone     String?  // 🆕 novo campo
+  icone     String? // 🆕 novo campo
   userId    String
   user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  lancamentos Lancamento[]
+  lancamentos     Lancamento[]
+  LimiteCategoria LimiteCategoria[]
 
   @@unique([nome, userId, tipo])
-  LimiteCategoria LimiteCategoria[]
 }
 
 model Cartao {
@@ -325,6 +335,57 @@ model Cartao {
 
   lancamentos Lancamento[]
   Fatura      Fatura[]
+
+  ColaboradorCartao ColaboradorCartao[]
+
+  ConviteCartao ConviteCartao[]
+}
+
+// Modelo para convites de colaboração
+model ConviteCartao {
+  id             String        @id @default(cuid())
+  cartaoId       String
+  emailConvidado String
+  token          String        @unique
+  status         StatusConvite @default(PENDENTE)
+  expiraEm       DateTime
+  criadoEm       DateTime      @default(now())
+  atualizadoEm   DateTime      @updatedAt
+
+  cartao           Cartao @relation(fields: [cartaoId], references: [id], onDelete: Cascade)
+  usuarioCriador   User   @relation(fields: [usuarioCriadorId], references: [id])
+  usuarioCriadorId String
+
+  @@unique([cartaoId, emailConvidado])
+  @@index([token])
+}
+
+// Modelo para colaboradores do cartão
+model ColaboradorCartao {
+  id        String               @id @default(cuid())
+  cartaoId  String
+  userId    String
+  criadoEm  DateTime             @default(now())
+  permissao PermissaoColaborador @default(LEITURA)
+
+  cartao Cartao @relation(fields: [cartaoId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([cartaoId, userId])
+}
+
+enum StatusConvite {
+  PENDENTE
+  ACEITO
+  RECUSADO
+  EXPIRADO
+  CANCELADO
+}
+
+enum PermissaoColaborador {
+  LEITURA
+  ESCRITA
+  ADMIN
 }
 
 model Lancamento {
@@ -358,9 +419,9 @@ model Lancamento {
   faturaId          String?
 
   // ADICIONE ESTES CAMPOS PARA COMPARTILHAMENTO
-  usuarioCriadorId   String?
-  usuarioCriador     User?       @relation("LancamentosCompartilhadosCriados", fields: [usuarioCriadorId], references: [id])
-  
+  usuarioCriadorId String?
+  usuarioCriador   User?   @relation("LancamentosCompartilhadosCriados", fields: [usuarioCriadorId], references: [id])
+
   LancamentoCompartilhado LancamentoCompartilhado[]
 }
 
@@ -421,22 +482,73 @@ enum StatusLancamentoCompartilhado {
 }
 
 model MetaPessoal {
-  id          String   @id @default(cuid())
-  titulo      String
-  descricao   String?
-  valorAlvo   Float
-  valorAtual  Float    @default(0)
-  dataAlvo    DateTime
-  categoria   String
-  cor         String   @default("#3B82F6")
-  icone       String   @default("🎯")
-  imagemUrl   String?  // 👈 NOVO CAMPO
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  titulo     String
+  descricao  String?
+  valorAlvo  Float
+  valorAtual Float    @default(0)
+  dataAlvo   DateTime
+  categoria  String
+  cor        String   @default("#3B82F6")
+  icone      String   @default("🎯")
+  imagemUrl  String? // 👈 NOVO CAMPO
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([userId])
+  ConviteMeta ConviteMeta[]
+  ColaboradorMeta ColaboradorMeta[]
+  ContribuicaoMeta ContribuicaoMeta[]
+}
+model ConviteMeta {
+  id             String        @id @default(cuid())
+  metaId         String
+  emailConvidado String
+  token          String        @unique
+  status         StatusConvite @default(PENDENTE)
+  expiraEm       DateTime
+  criadoEm       DateTime      @default(now())
+  atualizadoEm   DateTime      @updatedAt
+
+  meta             MetaPessoal @relation(fields: [metaId], references: [id], onDelete: Cascade)
+  usuarioCriador   User        @relation(fields: [usuarioCriadorId], references: [id])
+  usuarioCriadorId String
+
+  @@unique([metaId, emailConvidado])
+  @@index([token])
+}
+
+// Modelo para colaboradores da meta
+model ColaboradorMeta {
+  id        String               @id @default(cuid())
+  metaId    String
+  userId    String
+  criadoEm  DateTime             @default(now())
+  permissao PermissaoColaborador @default(LEITURA)
+
+  meta MetaPessoal @relation(fields: [metaId], references: [id], onDelete: Cascade)
+  user User        @relation(fields: [userId], references: [id])
+
+  @@unique([metaId, userId])
+}
+
+model ContribuicaoMeta {
+  id                String   @id @default(cuid())
+  metaId            String
+  userId            String
+  valor             Float
+  dataContribuicao  DateTime @default(now())
+  descricao         String?  // Descrição opcional da contribuição
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  meta MetaPessoal @relation(fields: [metaId], references: [id], onDelete: Cascade)
+  user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([metaId, userId, dataContribuicao])
+  @@map("contribuicoes_meta")
 }
 
 // Modelo para Limites de Categoria
@@ -445,7 +557,7 @@ model LimiteCategoria {
   categoriaId   String
   limiteMensal  Float
   gastoAtual    Float    @default(0)
-  mesReferencia String   // Formato: "YYYY-MM"
+  mesReferencia String // Formato: "YYYY-MM"
   userId        String
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt     DateTime @default(now())
