@@ -65,6 +65,14 @@ export default function MetasPage() {
   const [colaboradoresCarregando, setColaboradoresCarregando] = useState<
     Set<string>
   >(new Set());
+  const [dialogContribuicaoAberto, setDialogContribuicaoAberto] =
+    useState(false);
+  const [metaParaContribuir, setMetaParaContribuir] = useState<{
+    id: string;
+    titulo: string;
+  } | null>(null);
+  const [valorParaContribuir, setValorParaContribuir] = useState("100");
+  const [carregandoContribuicao, setCarregandoContribuicao] = useState(false);
   const [excluindo, setExcluindo] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [metas, setMetas] = useState<MetaPessoal[]>([]);
@@ -294,21 +302,17 @@ export default function MetasPage() {
     }
 
     try {
-      const meta = metas.find((m) => m.id === id);
-      if (!meta) return;
-
-      const novoValor = meta.valorAtual + parseFloat(valorAdicional);
-      const response = await fetch(`/api/dashboard/metas/${id}`, {
-        method: "PUT",
+      const response = await fetch(`/api/dashboard/metas/${id}/contribuir`, {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          valorAtual: novoValor,
+          valor: parseFloat(valorAdicional),
         }),
       });
 
-      if (!response.ok) throw new Error("Erro ao atualizar meta");
+      if (!response.ok) throw new Error("Erro ao contribuir para meta");
 
       toast.success(
         `Valor de R$ ${parseFloat(valorAdicional).toFixed(2)} adicionado com sucesso`
@@ -321,6 +325,7 @@ export default function MetasPage() {
       toast.error("Erro ao adicionar valor");
     }
   };
+
   const formatarMoeda = (valor: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -344,6 +349,75 @@ export default function MetasPage() {
     if (dataAlvoDate < hoje) return "atrasada";
     if (progresso >= 75) return "proxima";
     return "em_andamento";
+  };
+  // Função para abrir o diálogo de contribuição
+  const abrirDialogContribuicao = (metaId: string, metaTitulo: string) => {
+    setMetaParaContribuir({ id: metaId, titulo: metaTitulo });
+    setDialogContribuicaoAberto(true);
+  };
+
+  // Função para confirmar a contribuição
+  const confirmarContribuicao = async (data: {
+    lancarComoDespesa: boolean;
+    categoriaId?: string;
+    novaCategoriaNome?: string;
+  }) => {
+    if (!metaParaContribuir) return;
+
+    setCarregandoContribuicao(true);
+
+    try {
+      const payload: any = {
+        valor: parseFloat(valorParaContribuir),
+        lancarComoDespesa: data.lancarComoDespesa,
+      };
+
+      if (data.lancarComoDespesa) {
+        if (data.novaCategoriaNome) {
+          payload.novaCategoria = {
+            nome: data.novaCategoriaNome,
+            cor: "#8B5CF6", // Cor padrão para novas categorias de metas
+            icone: "🎯",
+          };
+        } else if (data.categoriaId) {
+          payload.categoriaId = data.categoriaId;
+        }
+      }
+
+      const response = await fetch(
+        `/api/metas/${metaParaContribuir.id}/contribuir`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erro ao contribuir para meta");
+      }
+
+      const result = await response.json();
+
+      toast.success(
+        `Valor de R$ ${parseFloat(valorParaContribuir).toFixed(2)} adicionado com sucesso!`
+      );
+
+      setDialogContribuicaoAberto(false);
+      setMetaParaContribuir(null);
+      setValorParaContribuir("100");
+      carregarMetas(); // Recarrega as metas para atualizar a UI
+    } catch (error) {
+      console.error("Erro ao contribuir:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Erro ao contribuir"
+      );
+    } finally {
+      setCarregandoContribuicao(false);
+    }
   };
 
   return (

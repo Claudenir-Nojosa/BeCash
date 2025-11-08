@@ -247,7 +247,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           </li>
 
           {/* Pontos */}
-          <li>
+         {/*  <li>
             <Link
               href="/dashboard/pontos"
               className={`
@@ -262,7 +262,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 <span className="ml-4 text-sm font-medium">Pontos</span>
               )}
             </Link>
-          </li>
+          </li> */}
 
           {/* Metas */}
           <li>
