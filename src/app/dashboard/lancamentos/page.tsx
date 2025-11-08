@@ -100,6 +100,9 @@ interface Cartao {
   nome: string;
   bandeira: string;
   cor: string;
+  diaFechamento?: number; // ✅ ADICIONAR ESTA PROPRIEDADE
+  diaVencimento?: number; // ✅ ADICIONAR TAMBÉM SE PRECISAR
+  limite?: number; // ✅ ADICIONAR SE PRECISAR
 }
 
 interface Usuario {
@@ -268,17 +271,44 @@ export default function LancamentosPage() {
   const handleChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
+  // Adicione esta função no seu componente, antes do filtro de lançamentos
+  const calcularMesReferenciaLancamento = (
+    lancamento: Lancamento
+  ): { ano: number; mes: number } => {
+    // Se não for cartão de crédito, usar a data normal do lançamento
+    if (lancamento.metodoPagamento !== "CREDITO" || !lancamento.cartao) {
+      const data = new Date(lancamento.data);
+      return {
+        ano: data.getFullYear(),
+        mes: data.getMonth() + 1,
+      };
+    }
 
+    // Para cartão de crédito, calcular baseado no dia de fechamento
+    const dataLancamento = new Date(lancamento.data);
+    const diaLancamento = dataLancamento.getDate();
+    const diaFechamento = lancamento.cartao.diaFechamento || 1;
+
+    let ano = dataLancamento.getFullYear();
+    let mes = dataLancamento.getMonth() + 1;
+
+    // Se a data do lançamento for depois do dia de fechamento, vai para o próximo mês
+    if (diaLancamento > diaFechamento) {
+      mes += 1;
+      if (mes > 12) {
+        mes = 1;
+        ano += 1;
+      }
+    }
+
+    return { ano, mes };
+  };
   // Filtrar lançamentos
   const lancamentosFiltrados = lancamentos.filter((lancamento) => {
-    const dataStr = lancamento.data.includes("T")
-      ? lancamento.data
-      : lancamento.data.replace(" ", "T");
-    const dataLancamento = new Date(dataStr);
-    const ano = dataLancamento.getFullYear();
-    const mes = dataLancamento.getMonth() + 1;
+    // ✅ CORREÇÃO: Usar a lógica do cartão de crédito para determinar o mês
+    const { ano, mes } = calcularMesReferenciaLancamento(lancamento);
 
-    // Filtro por mês/ano
+    // Filtro por mês/ano baseado na lógica do cartão
     if (ano !== anoSelecionado || mes !== mesSelecionado) return false;
 
     // Filtro por busca
@@ -339,7 +369,27 @@ export default function LancamentosPage() {
     .reduce((sum, l) => sum + l.valor, 0);
 
   const saldo = totalReceitas - totalDespesas;
+  // Função para corrigir a exibição da data (remover problema de timezone)
+  const formatarDataSemTimezone = (dataString: string): string => {
+    try {
+      // Para datas no formato "YYYY-MM-DD HH:MM:SS" do Supabase
+      if (dataString.includes(" ")) {
+        const [datePart, timePart] = dataString.split(" ");
+        const [year, month, day] = datePart.split("-").map(Number);
 
+        // Criar data sem considerar timezone (usar UTC)
+        const data = new Date(Date.UTC(year, month - 1, day));
+        return data.toLocaleDateString("pt-BR");
+      }
+
+      // Para datas ISO (fallback)
+      const data = new Date(dataString);
+      return data.toLocaleDateString("pt-BR");
+    } catch (error) {
+      console.error("Erro ao formatar data:", error);
+      return new Date(dataString).toLocaleDateString("pt-BR");
+    }
+  };
   // Função para criar lançamento
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -447,6 +497,18 @@ export default function LancamentosPage() {
     }
   };
 
+  // Função para extrair e formatar a data diretamente da string do Supabase
+  const formatarDataSupabase = (dataString: string): string => {
+    // Formato do Supabase: "2025-11-07 00:00:00"
+    if (dataString.includes(" ")) {
+      const [datePart] = dataString.split(" ");
+      const [year, month, day] = datePart.split("-");
+      return `${day}/${month}/${year}`;
+    }
+
+    // Se não for o formato esperado, fallback
+    return dataString;
+  };
   // Função para excluir lançamento
   const handleDelete = async (id: string) => {
     setExcluindo(id);
@@ -670,7 +732,25 @@ export default function LancamentosPage() {
       carregarDados();
     }
   };
+  // Função para formatar data ISO bonitinha
+  const formatarDataBonita = (dataString: string): string => {
+    // Se for formato ISO: "2025-11-07T00:00:00.000Z"
+    if (dataString.includes("T")) {
+      const [datePart] = dataString.split("T");
+      const [year, month, day] = datePart.split("-");
+      return `${day}/${month}/${year}`;
+    }
 
+    // Se for formato Supabase antigo: "2025-11-07 00:00:00"
+    if (dataString.includes(" ")) {
+      const [datePart] = dataString.split(" ");
+      const [year, month, day] = datePart.split("-");
+      return `${day}/${month}/${year}`;
+    }
+
+    // Fallback
+    return dataString;
+  };
   if (loading && lancamentos.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -1099,9 +1179,7 @@ export default function LancamentosPage() {
                             </p>
                             <div className="flex items-center gap-2 mt-1">
                               <span className="text-xs text-gray-400">
-                                {new Date(lancamento.data).toLocaleDateString(
-                                  "pt-BR"
-                                )}
+                                {formatarDataBonita(lancamento.data)}
                               </span>
                               {compartilhamento && (
                                 <div className="group relative">
@@ -1114,7 +1192,6 @@ export default function LancamentosPage() {
                             </div>
                           </div>
                         </td>
-
                         {/* Valor */}
                         <td className="py-3 px-4">
                           <span

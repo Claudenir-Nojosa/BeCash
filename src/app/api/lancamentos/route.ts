@@ -40,11 +40,22 @@ export async function GET(request: NextRequest) {
       where: whereClause,
       include: {
         categoria: true,
-        cartao: true,
+        cartao: {
+          select: {
+            id: true,
+            nome: true,
+            bandeira: true,
+            diaFechamento: true,
+            diaVencimento: true,
+            cor: true,
+          },
+        },
+        Fatura: true, // ✅ INCLUIR A FATURA
         lancamentosFilhos: {
           include: {
             categoria: true,
             cartao: true,
+            Fatura: true, // ✅ INCLUIR FATURA NAS PARCELAS TAMBÉM
           },
           orderBy: { parcelaAtual: "asc" },
         },
