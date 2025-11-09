@@ -5,36 +5,43 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    console.log("🔔 WEBHOOK RECEBIDO!");
+    console.log("🔔 WEBHOOK RECEBIDO (POST)!");
     console.log("📦 Body completo:", JSON.stringify(body, null, 2));
 
-    // Tentar extrair o texto da mensagem
     const messageText =
       body.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.text?.body;
 
     if (messageText) {
       console.log("✅ MENSAGEM DE TEXTO ENCONTRADA:");
       console.log("💬 Texto:", messageText);
-      console.log("👤 De:", body.entry[0].changes[0].value.messages[0].from);
-    } else {
-      console.log("❌ Nenhuma mensagem de texto encontrada na estrutura");
     }
 
-    return NextResponse.json({ status: "ok", received: true });
+    return NextResponse.json({ status: "ok" });
   } catch (error) {
-    console.error("❌ Erro no webhook:", error);
+    console.error("❌ Erro no webhook POST:", error);
     return NextResponse.json({ error: "deu erro" }, { status: 500 });
   }
 }
 
 export async function GET(request: NextRequest) {
-  // Para o Meta verificar o webhook
-  const { searchParams } = new URL(request.url);
-  const hubMode = searchParams.get("hub.mode");
-  const hubToken = searchParams.get("hub.verify_token");
-  const hubChallenge = searchParams.get("hub.challenge");
+  // Debug completo do que está chegando
+  const url = new URL(request.url);
+  const searchParams = Object.fromEntries(url.searchParams.entries());
 
-  console.log("🔍 Meta tentando verificar webhook...");
+  console.log("🔍 META WEBHOOK VERIFICATION DEBUG:");
+  console.log("📋 URL completa:", request.url);
+  console.log("🔍 Query parameters:", searchParams);
+  console.log("🔍 Headers:", Object.fromEntries(request.headers.entries()));
+
+  const hubMode = url.searchParams.get("hub.mode");
+  const hubToken = url.searchParams.get("hub.verify_token");
+  const hubChallenge = url.searchParams.get("hub.challenge");
+
+  console.log("📊 Valores extraídos:");
+  console.log("   hub.mode:", hubMode);
+  console.log("   hub.verify_token:", hubToken);
+  console.log("   hub.challenge:", hubChallenge);
+  console.log("   EXPECTED_TOKEN:", process.env.WHATSAPP_VERIFY_TOKEN);
 
   if (
     hubMode === "subscribe" &&
@@ -45,5 +52,5 @@ export async function GET(request: NextRequest) {
   }
 
   console.log("❌ Falha na verificação");
-  return new Response("Falhou", { status: 403 });
+  return new Response("Verification failed", { status: 403 });
 }
