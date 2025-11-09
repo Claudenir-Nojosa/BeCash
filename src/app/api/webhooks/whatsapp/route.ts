@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       console.log("📞 Tipo:", message.type);
     } else {
       console.log("❌ Estrutura diferente do esperado");
-      console.log("Possível status update ou outro evento");
+      console.log("Possível status update ou outro eventos");
     }
 
     return NextResponse.json({ status: "received" });
