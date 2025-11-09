@@ -1,28 +1,16 @@
 // app/api/webhooks/whatsapp/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
-// Função para chamar o Claude API (similar à que você já tem)
 async function callClaudeAPI(userMessage: string, context?: string) {
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new Error("ANTHROPIC_API_KEY não configurada");
   }
 
-  const prompt = `
-Você é um assistente útil que responde mensagens no WhatsApp.
-Responda de forma clara, direta e amigável.
+  const prompt = `Você é um assistente útil no WhatsApp. Responda de forma amigável e direta em português.
 
-${context ? `Contexto: ${context}` : ""}
+Mensagem: "${userMessage}"
 
-Mensagem do usuário: "${userMessage}"
-
-Instruções:
-- Seja natural e conversacional
-- Use emojis moderadamente
-- Responda em português
-- Seja objetivo e útil
-- Formate com quebras de linha quando necessário
-
-Resposta:`;
+Responda naturalmente:`;
 
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -33,61 +21,90 @@ Resposta:`;
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
+        model: "claude-3-haiku-20240307",
+        max_tokens: 500,
         messages: [{ role: "user", content: prompt }],
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`Erro na API Anthropic: ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`Claude API: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
     return data.content[0].text;
   } catch (error) {
-    console.error("Erro ao chamar Claude API:", error);
+    console.error("Erro Claude API:", error);
     throw error;
   }
 }
 
-// Função para enviar mensagem pelo WhatsApp Business API
 async function sendWhatsAppMessage(to: string, message: string) {
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
 
+  console.log("🔑 Verificando credenciais WhatsApp...");
+  console.log("📱 Phone Number ID:", phoneNumberId);
+  console.log("🔐 Access Token existe:", !!accessToken);
+  console.log(
+    "🔐 Primeiros chars do token:",
+    accessToken?.substring(0, 20) + "..."
+  );
+
   if (!phoneNumberId || !accessToken) {
-    throw new Error("Credenciais do WhatsApp não configuradas");
+    throw new Error("Credenciais WhatsApp não encontradas");
   }
 
+  const url = `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`;
+  console.log("🌐 URL da API:", url);
+
+  const requestBody = {
+    messaging_product: "whatsapp",
+    to: to,
+    text: { body: message },
+  };
+
+  console.log("📦 Request Body:", JSON.stringify(requestBody, null, 2));
+
   try {
-    const response = await fetch(
-      `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to: to,
-          text: { body: message },
-        }),
-      }
-    );
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    console.log("📡 Status da resposta:", response.status);
+    console.log("📡 Headers da resposta:", response.headers);
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("Erro ao enviar mensagem WhatsApp:", errorData);
-      throw new Error(`Erro WhatsApp: ${response.status}`);
+      console.error(
+        "❌ Erro detalhado WhatsApp API:",
+        JSON.stringify(errorData, null, 2)
+      );
+
+      if (response.status === 401) {
+        throw new Error("TOKEN_INVALIDO: Access Token expirado ou inválido");
+      } else if (response.status === 404) {
+        throw new Error(
+          "PHONE_NUMBER_INVALIDO: Phone Number ID não encontrado"
+        );
+      } else {
+        throw new Error(
+          `WhatsApp API: ${response.status} - ${errorData.error?.message}`
+        );
+      }
     }
 
     const data = await response.json();
-    console.log("✅ Mensagem enviada com sucesso:", data);
+    console.log("✅ Mensagem enviada com sucesso!");
     return data;
   } catch (error) {
-    console.error("Erro no envio WhatsApp:", error);
+    console.error("💥 Erro no envio WhatsApp:", error);
     throw error;
   }
 }
@@ -95,67 +112,43 @@ async function sendWhatsAppMessage(to: string, message: string) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-
-    console.log("🔔 MENSAGEM RECEBIDA NO WEBHOOK!");
-    console.log("📦 Body completo:", JSON.stringify(body, null, 2));
-
-    // Extrair informações da mensagem
-    const entry = body.entry?.[0];
-    const changes = entry?.changes?.[0];
-    const value = changes?.value;
-    const message = value?.messages?.[0];
+    const message = body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
 
     if (message && message.type === "text") {
-      console.log("✅ NOVA MENSAGEM DE TEXTO DETECTADA!");
-      console.log("👤 De:", message.from);
-      console.log("💬 Texto:", message.text?.body);
-      console.log("🆔 Message ID:", message.id);
-
       const userMessage = message.text?.body;
       const userPhone = message.from;
 
+      console.log("👤 Mensagem de:", userPhone);
+      console.log("💬 Texto:", userMessage);
+
       if (userMessage && userPhone) {
-        // Processar a mensagem com Claude
-        console.log("🤖 Processando mensagem com Claude...");
-
         let claudeResponse;
-        try {
-          // Você pode adicionar contexto específico aqui se quiser
-          const context = "Usuário enviou mensagem pelo WhatsApp";
 
-          claudeResponse = await callClaudeAPI(userMessage, context);
-          console.log("✅ Resposta do Claude:", claudeResponse);
+        // Processar com Claude
+        try {
+          claudeResponse = await callClaudeAPI(userMessage);
+          console.log("🤖 Resposta do Claude:", claudeResponse);
         } catch (error) {
-          console.error("❌ Erro ao processar com Claude:", error);
-          claudeResponse =
-            "Desculpe, estou com dificuldades técnicas no momento. Por favor, tente novamente mais tarde. 😊";
+          console.error("❌ Erro no Claude:", error);
+          claudeResponse = `Olá! Recebi: "${userMessage}". No momento estou em desenvolvimento! 😊`;
         }
 
-        // Enviar resposta pelo WhatsApp
-        console.log("📤 Enviando resposta pelo WhatsApp...");
-        await sendWhatsAppMessage(userPhone, claudeResponse);
-
-        console.log("✅ Fluxo completo concluído!");
+        // Enviar resposta
+        try {
+          console.log("📤 Tentando enviar resposta...");
+          await sendWhatsAppMessage(userPhone, claudeResponse);
+          console.log("🎉 Mensagem enviada com sucesso!");
+        } catch (whatsappError) {
+          console.error("💥 Falha no envio WhatsApp:", whatsappError);
+          // Não propaga o erro - retorna sucesso para o webhook
+        }
       }
-    } else if (message) {
-      console.log("📞 Tipo de mensagem não suportado:", message.type);
-
-      // Responder para tipos não suportados
-      if (message.from) {
-        await sendWhatsAppMessage(
-          message.from,
-          "Olá! Atualmente só consigo processar mensagens de texto. Envie uma mensagem escrita para conversarmos! 📝"
-        );
-      }
-    } else {
-      console.log("❌ Estrutura diferente do esperado");
-      console.log("Possível status update ou outro evento");
     }
 
     return NextResponse.json({ status: "received" });
   } catch (error) {
-    console.error("❌ Erro no webhook:", error);
-    return NextResponse.json({ error: "deu erro" }, { status: 500 });
+    console.error("💥 Erro geral no webhook:", error);
+    return NextResponse.json({ status: "received" });
   }
 }
 
@@ -165,13 +158,19 @@ export async function GET(request: NextRequest) {
   const hubToken = url.searchParams.get("hub.verify_token");
   const hubChallenge = url.searchParams.get("hub.challenge");
 
+  console.log("🔐 Verificação do webhook:");
+  console.log("   Mode:", hubMode);
+  console.log("   Token recebido:", hubToken);
+  console.log("   Token esperado:", process.env.WHATSAPP_VERIFY_TOKEN);
+
   if (
     hubMode === "subscribe" &&
     hubToken === process.env.WHATSAPP_VERIFY_TOKEN
   ) {
-    console.log("✅ Webhook verificado!");
+    console.log("✅ Webhook verificado com sucesso!");
     return new Response(hubChallenge, { status: 200 });
   }
 
+  console.log("❌ Falha na verificação");
   return new Response("Verification failed", { status: 403 });
 }
