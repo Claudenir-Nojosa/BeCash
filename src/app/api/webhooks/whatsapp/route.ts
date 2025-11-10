@@ -206,7 +206,7 @@ async function createLancamento(
   }
 }
 
-// Função principal do Claude API para criação de lançamentos
+// Função principal do Claude API com retry
 async function callClaudeAPICriacao(
   userMessage: string,
   dadosExtracao: any,
@@ -226,91 +226,109 @@ MENSAGEM ORIGINAL DO USUÁRIO: "${userMessage}"
 
   if (dadosExtracao.sucesso) {
     prompt += `
-DADOS EXTRAÍDOS DA MENSAGEM:
-- Tipo: ${dadosExtracao.dados.tipo}
-- Valor: R$ ${parseFloat(dadosExtracao.dados.valor).toFixed(2)}
-- Descrição: ${dadosExtracao.dados.descricao}
-- Método de Pagamento: ${dadosExtracao.dados.metodoPagamento}
-- Data: ${dadosExtracao.dados.data}
+DADOS EXTRAÍDOS:
+• Tipo: ${dadosExtracao.dados.tipo}
+• Valor: R$ ${parseFloat(dadosExtracao.dados.valor).toFixed(2)}
+• Descrição: ${dadosExtracao.dados.descricao}
+• Método: ${dadosExtracao.dados.metodoPagamento}
+• Data: ${dadosExtracao.dados.data}
 
-CATEGORIAS DISPONÍVEIS DO USUÁRIO:
-${categoriasUsuario
-  .filter((c) => c.tipo === dadosExtracao.dados.tipo)
-  .map((c) => `• ${c.nome}`)
-  .join("\n")}
-
-CATEGORIA ESCOLHIDA AUTOMATICAMENTE: ${categoriaEscolhida?.nome || "Nenhuma"}
+CATEGORIA ESCOLHIDA: ${categoriaEscolhida?.nome}
 `;
 
     if (resultadoCriacao) {
       if (resultadoCriacao.erro) {
         prompt += `
 
-ERRO AO CRIAR LANÇAMENTO: ${resultadoCriacao.erro}
+ERRO: ${resultadoCriacao.erro}
 
-AJUDE O USUÁRIO A CORRIGIR O PROBLEMA:`;
+AJUDE O USUÁRIO:`;
       } else {
         prompt += `
 
-✅ LANÇAMENTO CRIADO COM SUCESSO!
-
-CONFIRME PARA O USUÁRIO E MENCIONE A CATEGORIA ESCOLHIDA:`;
+✅ SUCESSO! CONFIRME O LANÇAMENTO:`;
       }
     } else {
       prompt += `
 
-CATEGORIA SUGERIDA: ${categoriaEscolhida.nome}
-
-CONFIRME OS DADOS COM O USUÁRIO E PERGUNTE SE A CATEGORIA ESTÁ CORRETA:`;
+CONFIRME OS DADOS:`;
     }
   } else {
     prompt += `
 
-NÃO FOI POSSÍVEL IDENTIFICAR UM LANÇAMENTO NA MENSAGEM.
-
 ERRO: ${dadosExtracao.erro}
 
-EXPLIQUE AO USUÁRIO COMO CRIAR UM LANÇAMENTO:`;
+EXPLIQUE COMO CRIAR UM LANÇAMENTO:`;
   }
 
   prompt += `
 
-INSTRUÇÕES DE RESPOSTA:
+INSTRUÇÕES:
 - Seja direto e amigável
-- Use emojis moderadamente (💰, ✅, ⚠️)
-- Formate valores como R$ 123,45
-- Mencione a categoria escolhida
-- Para erros, seja útil e sugira correções
-- Mantenha a resposta curta e objetiva
+- Use 1-2 emojis
+- Formate: R$ 123,45
+- Resposta curta
 
-RESPONDA AGORA:`;
+RESPONDA:`;
 
-  try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-3-haiku-20240307",
-        max_tokens: 800,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
+  // Tentar até 3 vezes com delay
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-3-haiku-20240307",
+          max_tokens: 500,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Claude API: ${response.status} - ${errorText}`);
+      if (response.status === 529 || response.status === 429) {
+        // Overloaded ou rate limit - esperar e tentar novamente
+        if (attempt < 3) {
+          const delay = attempt * 2000; // 2s, 4s
+          console.log(
+            `⚠️ Claude overloaded, tentando novamente em ${delay}ms...`
+          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          continue;
+        }
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Claude API: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      return data.content[0].text;
+    } catch (error: any) {
+      if (attempt === 3) {
+        // Última tentativa falhou
+        console.error(
+          `❌ Claude API falhou após ${attempt} tentativas:`,
+          error
+        );
+        throw error;
+      }
+
+      if (error.message.includes("529") || error.message.includes("429")) {
+        const delay = attempt * 2000;
+        console.log(`⚠️ Claude error, retry ${attempt} em ${delay}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      } else {
+        // Outro erro, não tente novamente
+        throw error;
+      }
     }
-
-    const data = await response.json();
-    return data.content[0].text;
-  } catch (error) {
-    console.error("Erro ao chamar Claude API:", error);
-    throw error;
   }
+
+  throw new Error("Todas as tentativas falharam");
 }
 
 // Função simulada de envio WhatsApp
