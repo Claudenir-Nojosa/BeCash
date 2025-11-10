@@ -331,19 +331,49 @@ RESPONDA:`;
   throw new Error("Todas as tentativas falharam");
 }
 
-// Função simulada de envio WhatsApp
+// Função REAL para enviar mensagem pelo WhatsApp Business API
 async function sendWhatsAppMessage(to: string, message: string) {
-  console.log("📲 SIMULAÇÃO ENVIO WHATSAPP:");
-  console.log("👤 Para:", to);
-  console.log("💬 Mensagem:", message);
-  console.log("⏰ Timestamp:", new Date().toISOString());
-  console.log("✅ Mensagem seria enviada com sucesso!");
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
 
-  return {
-    id: "simulated_" + Date.now(),
-    status: "sent",
-    simulated: true,
-  };
+  console.log("🔑 Enviando mensagem REAL pelo WhatsApp...");
+  console.log("📱 Phone Number ID:", phoneNumberId);
+  console.log("👤 Para:", to);
+
+  if (!phoneNumberId || !accessToken) {
+    throw new Error("Credenciais do WhatsApp não configuradas");
+  }
+
+  try {
+    const response = await fetch(
+      `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: to,
+          text: { body: message },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("❌ Erro ao enviar mensagem WhatsApp:", errorData);
+      throw new Error(`Erro WhatsApp: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log("✅ Mensagem enviada com sucesso:", data);
+    return data;
+  } catch (error) {
+    console.error("💥 Erro no envio WhatsApp:", error);
+    throw error;
+  }
 }
 
 export async function POST(request: NextRequest) {
