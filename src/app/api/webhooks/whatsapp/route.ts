@@ -1,13 +1,152 @@
 // app/api/webhooks/whatsapp/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "../../../../auth";
 import db from "@/lib/db";
 
+type DadosLancamento = {
+  tipo: string;
+  valor: string;
+  descricao: string;
+  metodoPagamento: string;
+  data: string;
+  categoria: string;
+};
+
+type ExtracaoSucesso = {
+  sucesso: true;
+  dados: DadosLancamento;
+};
+
+type ExtracaoErro = {
+  sucesso: false;
+  erro: string;
+};
+
+type ResultadoExtracao = ExtracaoSucesso | ExtracaoErro;
 // Função para autenticar via API
 async function getApiAuth() {
-  // Em produção, você deve vincular o número do WhatsApp ao usuário
   const user = await db.user.findFirst();
   return user ? { user: { id: user.id } } : null;
+}
+
+// Função para tentar extrair categoria da descrição
+function extrairCategoria(descricao: string): string {
+  const desc = descricao.toLowerCase();
+
+  const mapeamentoCategorias: { [key: string]: string[] } = {
+    Alimentação: [
+      "almoço",
+      "janta",
+      "restaurante",
+      "lanche",
+      "comida",
+      "mercado",
+      "supermercado",
+      "padaria",
+    ],
+    Transporte: [
+      "uber",
+      "táxi",
+      "gasolina",
+      "ônibus",
+      "metro",
+      "combustível",
+      "estacionamento",
+    ],
+    Lazer: [
+      "cinema",
+      "shopping",
+      "parque",
+      "viagem",
+      "hotel",
+      "show",
+      "festas",
+    ],
+    Saúde: [
+      "farmácia",
+      "médico",
+      "hospital",
+      "remédio",
+      "consulta",
+      "plano de saúde",
+    ],
+    Educação: [
+      "curso",
+      "livro",
+      "faculdade",
+      "escola",
+      "universidade",
+      "material",
+    ],
+    Casa: [
+      "aluguel",
+      "condomínio",
+      "luz",
+      "água",
+      "internet",
+      "telefone",
+      "manutenção",
+    ],
+    Salário: ["salário", "ordenado", "pro-labore", "renda"],
+    Freelance: ["freelance", "projeto", "serviço", "contrato"],
+    Vestuário: ["roupa", "calçado", "sapato", "camisa", "blusa"],
+    Serviços: ["assistência", "conserto", "reparo", "instalação"],
+  };
+
+  for (const [categoria, palavras] of Object.entries(mapeamentoCategorias)) {
+    if (palavras.some((palavra) => desc.includes(palavra))) {
+      return categoria;
+    }
+  }
+
+  return "Outros";
+}
+
+// Função para analisar mensagens e extrair dados de lançamentos
+function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
+  const texto = mensagem.toLowerCase().trim();
+  
+  // Padrão principal: [ação] [valor] [descrição] [método opcional] [data opcional]
+  const padraoPrincipal = texto.match(/(gastei|paguei|recebi|ganhei)\s+(\d+[.,]?\d*)\s+(?:em|para|com|no)\s+(.+?)(?:\s+(?:no|com)\s+(cartão|pix|débito|dinheiro|crédito))?(?:\s+(hoje|ontem|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?))?$/i);
+  
+  if (padraoPrincipal) {
+    const [, acao, valor, descricao, metodo, data] = padraoPrincipal;
+    
+    return {
+      sucesso: true,
+      dados: {
+        tipo: (acao.includes('recebi') || acao.includes('ganhei')) ? 'RECEITA' : 'DESPESA',
+        valor: valor.replace(',', '.'),
+        descricao: descricao.trim(),
+        metodoPagamento: metodo ? metodo.toUpperCase() : 'PIX',
+        data: data || 'hoje',
+        categoria: extrairCategoria(descricao)
+      }
+    };
+  }
+
+  // Padrão alternativo: [valor] [descrição] [implícito despesa]
+  const padraoAlternativo = texto.match(/(\d+[.,]?\d*)\s+(?:em|para|com|no)\s+(.+)/i);
+  
+  if (padraoAlternativo) {
+    const [, valor, descricao] = padraoAlternativo;
+    
+    return {
+      sucesso: true,
+      dados: {
+        tipo: 'DESPESA',
+        valor: valor.replace(',', '.'),
+        descricao: descricao.trim(),
+        metodoPagamento: 'PIX',
+        data: 'hoje',
+        categoria: extrairCategoria(descricao)
+      }
+    };
+  }
+
+  return {
+    sucesso: false,
+    erro: "Não entendi o formato. Use: 'Gastei 50 no almoço' ou 'Recebi 1000 salário'"
+  };
 }
 
 // Função para criar um lançamento via WhatsApp
@@ -30,12 +169,25 @@ async function createLancamento(userId: string, dados: any) {
       );
     }
 
+    // Processar data
+    let dataLancamento = new Date();
+    if (dados.data === "ontem") {
+      dataLancamento.setDate(dataLancamento.getDate() - 1);
+    } else if (dados.data.includes("/")) {
+      const [dia, mes, ano] = dados.data.split("/").map(Number);
+      dataLancamento = new Date(
+        ano || new Date().getFullYear(),
+        mes - 1 || new Date().getMonth(),
+        dia || new Date().getDate()
+      );
+    }
+
     const lancamentoData = {
       descricao: dados.descricao,
       valor: parseFloat(dados.valor),
       tipo: dados.tipo.toUpperCase(),
       metodoPagamento: dados.metodoPagamento || "PIX",
-      data: new Date(dados.data || new Date()),
+      data: dataLancamento,
       categoriaId: categoria.id,
       userId: userId,
       pago: dados.metodoPagamento !== "CREDITO",
@@ -54,93 +206,6 @@ async function createLancamento(userId: string, dados: any) {
     console.error("Erro ao criar lançamento:", error);
     throw error;
   }
-}
-
-// Função para analisar mensagens e extrair dados de lançamentos
-function extrairDadosLancamento(mensagem: string) {
-  const texto = mensagem.toLowerCase().trim();
-
-  // Padrão principal: [ação] [valor] [descrição] [método opcional] [data opcional]
-  const padraoPrincipal = texto.match(
-    /(gastei|paguei|recebi|ganhei)\s+(\d+[.,]?\d*)\s+(?:em|para|com|no)\s+(.+?)(?:\s+(?:no|com)\s+(cartão|pix|débito|dinheiro|crédito))?(?:\s+(hoje|ontem|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?))?$/i
-  );
-
-  if (padraoPrincipal) {
-    const [, acao, valor, descricao, metodo, data] = padraoPrincipal;
-
-    return {
-      sucesso: true,
-      dados: {
-        tipo:
-          acao.includes("recebi") || acao.includes("ganhei")
-            ? "RECEITA"
-            : "DESPESA",
-        valor: valor.replace(",", "."),
-        descricao: descricao.trim(),
-        metodoPagamento: metodo ? metodo.toUpperCase() : "PIX",
-        data: data || "hoje",
-        categoria: this.extrairCategoria(descricao), // Extrai categoria da descrição
-      },
-    };
-  }
-
-  // Padrão alternativo: [valor] [descrição] [implícito despesa]
-  const padraoAlternativo = texto.match(
-    /(\d+[.,]?\d*)\s+(?:em|para|com|no)\s+(.+)/i
-  );
-
-  if (padraoAlternativo) {
-    const [, valor, descricao] = padraoAlternativo;
-
-    return {
-      sucesso: true,
-      dados: {
-        tipo: "DESPESA", // Assume despesa por padrão
-        valor: valor.replace(",", "."),
-        descricao: descricao.trim(),
-        metodoPagamento: "PIX",
-        data: "hoje",
-        categoria: this.extrairCategoria(descricao),
-      },
-    };
-  }
-
-  return {
-    sucesso: false,
-    erro: "Não entendi o formato. Use: 'Gastei 50 no almoço' ou 'Recebi 1000 salário'",
-  };
-}
-
-// Função para tentar extrair categoria da descrição
-function extrairCategoria(descricao: string): string {
-  const desc = descricao.toLowerCase();
-
-  const mapeamentoCategorias: { [key: string]: string[] } = {
-    Alimentação: [
-      "almoço",
-      "janta",
-      "restaurante",
-      "lanche",
-      "comida",
-      "mercado",
-      "supermercado",
-    ],
-    Transporte: ["uber", "táxi", "gasolina", "ônibus", "metro", "combustível"],
-    Lazer: ["cinema", "shopping", "parque", "viagem", "hotel"],
-    Saúde: ["farmácia", "médico", "hospital", "remédio"],
-    Educação: ["curso", "livro", "faculdade", "escola"],
-    Casa: ["aluguel", "condomínio", "luz", "água", "internet"],
-    Salário: ["salário", "ordenado", "pro-labore"],
-    Freelance: ["freelance", "projeto", "serviço"],
-  };
-
-  for (const [categoria, palavras] of Object.entries(mapeamentoCategorias)) {
-    if (palavras.some((palavra) => desc.includes(palavra))) {
-      return categoria;
-    }
-  }
-
-  return "Outros"; // Categoria padrão
 }
 
 // Função principal do Claude API para criação de lançamentos
