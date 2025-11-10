@@ -206,7 +206,7 @@ async function createLancamento(
   }
 }
 
-// Função principal do Claude API com retry
+// Função principal do Claude API para criação de lançamentos
 async function callClaudeAPICriacao(
   userMessage: string,
   dadosExtracao: any,
@@ -218,22 +218,33 @@ async function callClaudeAPICriacao(
     throw new Error("ANTHROPIC_API_KEY não configurada");
   }
 
-  let prompt = `Você é um assistente especializado em criar lançamentos financeiros via WhatsApp. 
+  let prompt = `Você é o BeCash, um assistente financeiro profissional via WhatsApp. 
 
-MENSAGEM ORIGINAL DO USUÁRIO: "${userMessage}"
+MENSAGEM DO CLIENTE: "${userMessage}"
 
 `;
 
   if (dadosExtracao.sucesso) {
-    prompt += `
-DADOS EXTRAÍDOS:
-• Tipo: ${dadosExtracao.dados.tipo}
-• Valor: R$ ${parseFloat(dadosExtracao.dados.valor).toFixed(2)}
-• Descrição: ${dadosExtracao.dados.descricao}
-• Método: ${dadosExtracao.dados.metodoPagamento}
-• Data: ${dadosExtracao.dados.data}
+    // Formatar data para exibição
+    const dataFormatada = dadosExtracao.dados.data === 'hoje' 
+      ? 'hoje' 
+      : dadosExtracao.dados.data === 'ontem'
+      ? 'ontem'
+      : dadosExtracao.dados.data;
+    
+    const valorFormatado = parseFloat(dadosExtracao.dados.valor).toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    });
 
-CATEGORIA ESCOLHIDA: ${categoriaEscolhida?.nome}
+    prompt += `
+DADOS DO LANÇAMENTO:
+• Valor: ${valorFormatado}
+• Descrição: ${dadosExtracao.dados.descricao}
+• Categoria: ${categoriaEscolhida?.nome}
+• Tipo: ${dadosExtracao.dados.tipo === 'DESPESA' ? 'Despesa' : 'Receita'}
+• Método: ${dadosExtracao.dados.metodoPagamento}
+• Data: ${dataFormatada}
 `;
 
     if (resultadoCriacao) {
@@ -242,93 +253,81 @@ CATEGORIA ESCOLHIDA: ${categoriaEscolhida?.nome}
 
 ERRO: ${resultadoCriacao.erro}
 
-AJUDE O USUÁRIO:`;
+FORNEÇA UMA MENSAGEM PROFISSIONAL EXPLICANDO O ERRO:`;
       } else {
         prompt += `
 
-✅ SUCESSO! CONFIRME O LANÇAMENTO:`;
+✅ LANÇAMENTO REGISTRADO COM SUCESSO!
+
+FORNEÇA UMA CONFIRMAÇÃO PROFISSIONAL:`;
       }
     } else {
       prompt += `
 
-CONFIRME OS DADOS:`;
+CONFIRME OS DADOS DE FORMA PROFISSIONAL:`;
     }
   } else {
     prompt += `
 
+NÃO FOI POSSÍVEL IDENTIFICAR UM LANÇAMENTO.
+
 ERRO: ${dadosExtracao.erro}
 
-EXPLIQUE COMO CRIAR UM LANÇAMENTO:`;
+EXPLIQUE DE FORMA PROFISSIONAL COMO CRIAR UM LANÇAMENTO:`;
   }
 
   prompt += `
 
-INSTRUÇÕES:
-- Seja direto e amigável
-- Use 1-2 emojis
-- Formate: R$ 123,45
-- Resposta curta
+INSTRUÇÕES PARA RESPOSTA PROFISSIONAL:
+- Seja formal mas amigável
+- Use "Sr./Sra." quando apropriado
+- Apresente os dados de forma organizada
+- Inclua todos os detalhes importantes
+- Use emojis profissionais (✅, 📊, 💰, 🗓️)
+- Formate valores como R$ 1.234,56
+- Mantenha a resposta clara e concisa
 
-RESPONDA:`;
+EXEMPLO DE RESPOSTA PROFISSIONAL:
+"✅ Lançamento registrado com sucesso!
 
-  // Tentar até 3 vezes com delay
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": process.env.ANTHROPIC_API_KEY,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: "claude-3-haiku-20240307",
-          max_tokens: 500,
-          messages: [{ role: "user", content: prompt }],
-        }),
-      });
+📊 Detalhes do lançamento:
+• Valor: R$ 50,00
+• Descrição: Almoço restaurante
+• Categoria: Alimentação  
+• Tipo: Despesa
+• Data: hoje
+• Método: Cartão de crédito
 
-      if (response.status === 529 || response.status === 429) {
-        // Overloaded ou rate limit - esperar e tentar novamente
-        if (attempt < 3) {
-          const delay = attempt * 2000; // 2s, 4s
-          console.log(
-            `⚠️ Claude overloaded, tentando novamente em ${delay}ms...`
-          );
-          await new Promise((resolve) => setTimeout(resolve, delay));
-          continue;
-        }
-      }
+O lançamento foi salvo em seu extrato."
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Claude API: ${response.status} - ${errorText}`);
-      }
+RESPONDA AGORA DE FORMA PROFISSIONAL:`;
 
-      const data = await response.json();
-      return data.content[0].text;
-    } catch (error: any) {
-      if (attempt === 3) {
-        // Última tentativa falhou
-        console.error(
-          `❌ Claude API falhou após ${attempt} tentativas:`,
-          error
-        );
-        throw error;
-      }
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-3-haiku-20240307",
+        max_tokens: 500,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
 
-      if (error.message.includes("529") || error.message.includes("429")) {
-        const delay = attempt * 2000;
-        console.log(`⚠️ Claude error, retry ${attempt} em ${delay}ms...`);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      } else {
-        // Outro erro, não tente novamente
-        throw error;
-      }
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Claude API: ${response.status} - ${errorText}`);
     }
-  }
 
-  throw new Error("Todas as tentativas falharam");
+    const data = await response.json();
+    return data.content[0].text;
+  } catch (error) {
+    console.error("Erro ao chamar Claude API:", error);
+    throw error;
+  }
 }
 
 // Função REAL para enviar mensagem pelo WhatsApp Business API
