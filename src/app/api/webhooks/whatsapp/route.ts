@@ -225,13 +225,27 @@ MENSAGEM DO CLIENTE: "${userMessage}"
 `;
 
   if (dadosExtracao.sucesso) {
-    // Formatar data para exibição
-    const dataFormatada = dadosExtracao.dados.data === 'hoje' 
-      ? 'hoje' 
-      : dadosExtracao.dados.data === 'ontem'
-      ? 'ontem'
-      : dadosExtracao.dados.data;
+    // Formatar data para DD/MM/AAAA
+    let dataFormatada;
+    const hoje = new Date();
     
+    if (dadosExtracao.dados.data === 'hoje') {
+      dataFormatada = hoje.toLocaleDateString('pt-BR');
+    } else if (dadosExtracao.dados.data === 'ontem') {
+      const ontem = new Date(hoje);
+      ontem.setDate(hoje.getDate() - 1);
+      dataFormatada = ontem.toLocaleDateString('pt-BR');
+    } else if (dadosExtracao.dados.data.includes('/')) {
+      // Já está no formato de data, usar como está
+      dataFormatada = dadosExtracao.dados.data;
+    } else {
+      dataFormatada = hoje.toLocaleDateString('pt-BR');
+    }
+
+    // Capitalizar primeira letra da descrição
+    const descricaoCapitalizada = dadosExtracao.dados.descricao.charAt(0).toUpperCase() + 
+                                 dadosExtracao.dados.descricao.slice(1);
+
     const valorFormatado = parseFloat(dadosExtracao.dados.valor).toLocaleString('pt-BR', {
       style: 'currency',
       currency: 'BRL'
@@ -240,7 +254,7 @@ MENSAGEM DO CLIENTE: "${userMessage}"
     prompt += `
 DADOS DO LANÇAMENTO:
 • Valor: ${valorFormatado}
-• Descrição: ${dadosExtracao.dados.descricao}
+• Descrição: ${descricaoCapitalizada}
 • Categoria: ${categoriaEscolhida?.nome}
 • Tipo: ${dadosExtracao.dados.tipo === 'DESPESA' ? 'Despesa' : 'Receita'}
 • Método: ${dadosExtracao.dados.metodoPagamento}
@@ -259,7 +273,7 @@ FORNEÇA UMA MENSAGEM PROFISSIONAL EXPLICANDO O ERRO:`;
 
 ✅ LANÇAMENTO REGISTRADO COM SUCESSO!
 
-FORNEÇA UMA CONFIRMAÇÃO PROFISSIONAL:`;
+FORNEÇA UMA CONFIRMAÇÃO PROFISSIONAL E ELEGANTE:`;
       }
     } else {
       prompt += `
@@ -280,27 +294,48 @@ EXPLIQUE DE FORMA PROFISSIONAL COMO CRIAR UM LANÇAMENTO:`;
 
 INSTRUÇÕES PARA RESPOSTA PROFISSIONAL:
 - Seja formal mas amigável
-- Use "Sr./Sra." quando apropriado
-- Apresente os dados de forma organizada
-- Inclua todos os detalhes importantes
-- Use emojis profissionais (✅, 📊, 💰, 🗓️)
+- Use estrutura organizada com emojis
+- Capitalize a primeira letra da descrição
+- Formate data como DD/MM/AAAA
 - Formate valores como R$ 1.234,56
-- Mantenha a resposta clara e concisa
+- FINALIZE SEMPRE COM UMA DESTAS FRASES CURTAS:
+  • "Lançamento salvo com sucesso. 📈"
+  • "Transação registrada no seu extrato. ✅"
+  • "Despesa adicionada ao seu controle. 💰"
+  • "Receita registrada em sua conta. 🏦"
+- Mantenha a resposta concisa e elegante
+- NÃO use textos longos de agradecimento
+- NÃO use "Sr(a)" ou tratamentos formais excessivos
 
-EXEMPLO DE RESPOSTA PROFISSIONAL:
-"✅ Lançamento registrado com sucesso!
+EXEMPLOS DE RESPOSTA:
 
-📊 Detalhes do lançamento:
+✅ Lançamento registrado com sucesso!
+
+📊 Detalhes:
 • Valor: R$ 50,00
 • Descrição: Almoço restaurante
 • Categoria: Alimentação  
 • Tipo: Despesa
-• Data: hoje
 • Método: Cartão de crédito
+• Data: 10/11/2025
 
-O lançamento foi salvo em seu extrato."
+Lançamento salvo com sucesso. 📈
 
-RESPONDA AGORA DE FORMA PROFISSIONAL:`;
+---
+
+✅ Transação confirmada!
+
+📋 Resumo:
+• Valor: R$ 1.500,00
+• Descrição: Salário empresa
+• Categoria: Salário
+• Tipo: Receita
+• Método: Transferência
+• Data: 10/11/2025
+
+Receita registrada em sua conta. 🏦
+
+RESPONDA AGORA DE FORMA PROFISSIONAL E ELEGANTE:`;
 
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -312,7 +347,7 @@ RESPONDA AGORA DE FORMA PROFISSIONAL:`;
       },
       body: JSON.stringify({
         model: "claude-3-haiku-20240307",
-        max_tokens: 500,
+        max_tokens: 400,
         messages: [{ role: "user", content: prompt }],
       }),
     });
