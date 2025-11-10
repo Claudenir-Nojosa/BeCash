@@ -43,6 +43,34 @@ async function getCategoriasUsuario(userId: string) {
   }
 }
 
+// Adicione esta função para limpar a descrição
+function limparDescricao(descricao: string): string {
+  const texto = descricao.toLowerCase();
+  
+  // Remover menções de métodos de pagamento e cartões
+  const palavrasRemover = [
+    'cartão', 'cartao', 'débito', 'debito', 'crédito', 'credito', 
+    'pix', 'transferencia', 'transferência', 'dinheiro',
+    'nubank', 'itau', 'bradesco', 'santander', 'inter', 'c6', 'bb'
+  ];
+  
+  let descricaoLimpa = descricao;
+  
+  // Remover palavras específicas
+  palavrasRemover.forEach(palavra => {
+    const regex = new RegExp(`\\s*\\b${palavra}\\b\\s*`, 'gi');
+    descricaoLimpa = descricaoLimpa.replace(regex, ' ');
+  });
+  
+  // Limpar espaços extras e capitalizar primeira letra
+  descricaoLimpa = descricaoLimpa
+    .replace(/\s+/g, ' ')
+    .trim()
+    .charAt(0).toUpperCase() + descricaoLimpa.slice(1).trim();
+  
+  return descricaoLimpa || descricao; // Fallback se ficar vazia
+}
+
 // Função para a IA escolher a melhor categoria
 async function escolherMelhorCategoria(
   descricao: string,
@@ -262,9 +290,7 @@ async function createLancamento(
       );
     }
 
-    // Capitalizar primeira letra da descrição para o banco de dados
-    const descricaoCapitalizada =
-      dados.descricao.charAt(0).toUpperCase() + dados.descricao.slice(1);
+   const descricaoLimpa = limparDescricao(dados.descricao);
 
     let cartaoId = null;
     let cartaoEncontrado = null;
@@ -284,7 +310,7 @@ async function createLancamento(
     }
 
     const lancamentoData: any = {
-      descricao: descricaoCapitalizada,
+      descricao: descricaoLimpa,
       valor: parseFloat(dados.valor),
       tipo: dados.tipo.toUpperCase(),
       metodoPagamento: dados.metodoPagamento,
@@ -366,11 +392,10 @@ MENSAGEM DO CLIENTE: "${userMessage}"
       dataFormatada = hoje.toLocaleDateString("pt-BR");
     }
 
-    // Usar a descrição já capitalizada do resultado da criação
+    // Usar a descrição limpa
     const descricao = resultadoCriacao?.sucesso
-      ? resultadoCriacao.lancamento.descricao // Já capitalizada do DB
-      : dadosExtracao.dados.descricao.charAt(0).toUpperCase() +
-        dadosExtracao.dados.descricao.slice(1);
+      ? resultadoCriacao.lancamento.descricao
+      : limparDescricao(dadosExtracao.dados.descricao);
 
     const valorFormatado = parseFloat(dadosExtracao.dados.valor).toLocaleString(
       "pt-BR",
@@ -380,15 +405,28 @@ MENSAGEM DO CLIENTE: "${userMessage}"
       }
     );
 
+  const metodosMap: { [key: string]: string } = {
+  'PIX': 'PIX',
+  'DEBITO': 'Cartão de Débito', 
+  'CREDITO': 'Cartão de Crédito',
+  'TRANSFERENCIA': 'Transferência'
+};
+
+const metodoText = metodosMap[dadosExtracao.dados.metodoPagamento] || 'PIX';
+
     prompt += `
 DADOS DO LANÇAMENTO:
 • Valor: ${valorFormatado}
 • Descrição: ${descricao}
 • Categoria: ${categoriaEscolhida?.nome}
 • Tipo: ${dadosExtracao.dados.tipo === "DESPESA" ? "Despesa" : "Receita"}
-• Método: ${dadosExtracao.dados.metodoPagamento}
+• Método: ${metodoText}
 • Data: ${dataFormatada}
 `;
+
+    if (resultadoCriacao?.cartaoEncontrado) {
+      prompt += `• Cartão: ${resultadoCriacao.cartaoEncontrado.nome}\n`;
+    }
 
     if (resultadoCriacao) {
       if (resultadoCriacao.erro) {
@@ -402,12 +440,12 @@ FORNEÇA UMA MENSAGEM PROFISSIONAL EXPLICANDO O ERRO:`;
 
 ✅ LANÇAMENTO REGISTRADO COM SUCESSO!
 
-FORNEÇA UMA CONFIRMAÇÃO PROFISSIONAL E ELEGANTE:`;
+FORNEÇA UMA CONFIRMAÇÃO NO FORMATO FIXO ABAIXO:`;
       }
     } else {
       prompt += `
 
-CONFIRME OS DADOS DE FORMA PROFISSIONAL:`;
+CONFIRME OS DADOS NO FORMATO FIXO ABAIXO:`;
     }
   } else {
     prompt += `
@@ -419,22 +457,36 @@ ERRO: ${dadosExtracao.erro}
 EXPLIQUE DE FORMA PROFISSIONAL COMO CRIAR UM LANÇAMENTO:`;
   }
 
+  // 🔥 FORMATO FIXO ESTRITO - O Claude DEVE SEGUIR ISSO
   prompt += `
 
-INSTRUÇÕES PARA RESPOSTA PROFISSIONAL:
-- Seja formal mas amigável
-- Use estrutura organizada com emojis
-- Formate data como DD/MM/AAAA
-- Formate valores como R$ 1.234,56
-- FINALIZE SEMPRE COM UMA DESTAS FRASES CURTAS:
-  • "Lançamento salvo com sucesso. 📈"
-  • "Transação registrada no seu extrato. ✅"
-  • "Despesa adicionada ao seu controle. 💰"
-  • "Receita registrada em sua conta. 🏦"
-- Mantenha a resposta concisa e elegante
-- NÃO use textos longos de agradecimento
+🔒 **FORMATO FIXO OBRIGATÓRIO PARA A RESPOSTA:**
 
-RESPONDA AGORA DE FORMA PROFISSIONAL E ELEGANTE:`;
+📌 **Lançamento Confirmado**
+━━━━━━━━━━━━━━━
+
+[APENAS OS DETALHES DO LANÇAMENTO AQUI - máximo 5-6 linhas]
+
+━━━━━━━━━━━━━━━  
+✨ Obrigado por organizar suas finanças!
+
+🚫 **PROIBIDO:**
+- Não adicione "Olá [nome]"
+- Não use emojis diferentes 
+- Não altere a estrutura
+- Não adicione agradecimentos extras
+- Não explique nada além dos detalhes
+
+📝 **DETALHES PERMITIDOS (escolha os mais relevantes):**
+- Descrição: [descrição limpa]
+- Valor: R$ [valor]
+- Categoria: [categoria]
+- Método: [método pagamento] 
+- Cartão: [nome cartão] (apenas se for crédito)
+- Data: [data]
+- Status: [status] (apenas se for crédito)
+
+**RESPONDA APENAS NO FORMATO ACIMA SEM ALTERAÇÕES:**`;
 
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
