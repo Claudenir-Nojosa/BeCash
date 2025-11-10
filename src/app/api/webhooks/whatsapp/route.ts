@@ -1,16 +1,220 @@
 // app/api/webhooks/whatsapp/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "../../../../auth";
+import db from "@/lib/db";
 
-async function callClaudeAPI(userMessage: string, context?: string) {
+// Função para autenticar via API
+async function getApiAuth() {
+  // Em produção, você deve vincular o número do WhatsApp ao usuário
+  const user = await db.user.findFirst();
+  return user ? { user: { id: user.id } } : null;
+}
+
+// Função para criar um lançamento via WhatsApp
+async function createLancamento(userId: string, dados: any) {
+  try {
+    // Buscar categoria por nome (case insensitive)
+    const categoria = await db.categoria.findFirst({
+      where: {
+        userId,
+        nome: {
+          contains: dados.categoria,
+          mode: "insensitive",
+        },
+      },
+    });
+
+    if (!categoria) {
+      throw new Error(
+        `Categoria "${dados.categoria}" não encontrada. Use uma categoria existente.`
+      );
+    }
+
+    const lancamentoData = {
+      descricao: dados.descricao,
+      valor: parseFloat(dados.valor),
+      tipo: dados.tipo.toUpperCase(),
+      metodoPagamento: dados.metodoPagamento || "PIX",
+      data: new Date(dados.data || new Date()),
+      categoriaId: categoria.id,
+      userId: userId,
+      pago: dados.metodoPagamento !== "CREDITO",
+      observacoes: `Criado via WhatsApp - ${new Date().toLocaleString("pt-BR")}`,
+    };
+
+    const lancamento = await db.lancamento.create({
+      data: lancamentoData,
+      include: {
+        categoria: true,
+      },
+    });
+
+    return lancamento;
+  } catch (error) {
+    console.error("Erro ao criar lançamento:", error);
+    throw error;
+  }
+}
+
+// Função para analisar mensagens e extrair dados de lançamentos
+function extrairDadosLancamento(mensagem: string) {
+  const texto = mensagem.toLowerCase().trim();
+
+  // Padrão principal: [ação] [valor] [descrição] [método opcional] [data opcional]
+  const padraoPrincipal = texto.match(
+    /(gastei|paguei|recebi|ganhei)\s+(\d+[.,]?\d*)\s+(?:em|para|com|no)\s+(.+?)(?:\s+(?:no|com)\s+(cartão|pix|débito|dinheiro|crédito))?(?:\s+(hoje|ontem|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?))?$/i
+  );
+
+  if (padraoPrincipal) {
+    const [, acao, valor, descricao, metodo, data] = padraoPrincipal;
+
+    return {
+      sucesso: true,
+      dados: {
+        tipo:
+          acao.includes("recebi") || acao.includes("ganhei")
+            ? "RECEITA"
+            : "DESPESA",
+        valor: valor.replace(",", "."),
+        descricao: descricao.trim(),
+        metodoPagamento: metodo ? metodo.toUpperCase() : "PIX",
+        data: data || "hoje",
+        categoria: this.extrairCategoria(descricao), // Extrai categoria da descrição
+      },
+    };
+  }
+
+  // Padrão alternativo: [valor] [descrição] [implícito despesa]
+  const padraoAlternativo = texto.match(
+    /(\d+[.,]?\d*)\s+(?:em|para|com|no)\s+(.+)/i
+  );
+
+  if (padraoAlternativo) {
+    const [, valor, descricao] = padraoAlternativo;
+
+    return {
+      sucesso: true,
+      dados: {
+        tipo: "DESPESA", // Assume despesa por padrão
+        valor: valor.replace(",", "."),
+        descricao: descricao.trim(),
+        metodoPagamento: "PIX",
+        data: "hoje",
+        categoria: this.extrairCategoria(descricao),
+      },
+    };
+  }
+
+  return {
+    sucesso: false,
+    erro: "Não entendi o formato. Use: 'Gastei 50 no almoço' ou 'Recebi 1000 salário'",
+  };
+}
+
+// Função para tentar extrair categoria da descrição
+function extrairCategoria(descricao: string): string {
+  const desc = descricao.toLowerCase();
+
+  const mapeamentoCategorias: { [key: string]: string[] } = {
+    Alimentação: [
+      "almoço",
+      "janta",
+      "restaurante",
+      "lanche",
+      "comida",
+      "mercado",
+      "supermercado",
+    ],
+    Transporte: ["uber", "táxi", "gasolina", "ônibus", "metro", "combustível"],
+    Lazer: ["cinema", "shopping", "parque", "viagem", "hotel"],
+    Saúde: ["farmácia", "médico", "hospital", "remédio"],
+    Educação: ["curso", "livro", "faculdade", "escola"],
+    Casa: ["aluguel", "condomínio", "luz", "água", "internet"],
+    Salário: ["salário", "ordenado", "pro-labore"],
+    Freelance: ["freelance", "projeto", "serviço"],
+  };
+
+  for (const [categoria, palavras] of Object.entries(mapeamentoCategorias)) {
+    if (palavras.some((palavra) => desc.includes(palavra))) {
+      return categoria;
+    }
+  }
+
+  return "Outros"; // Categoria padrão
+}
+
+// Função principal do Claude API para criação de lançamentos
+async function callClaudeAPICriacao(
+  userMessage: string,
+  dadosExtracao: any,
+  resultadoCriacao?: any
+) {
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new Error("ANTHROPIC_API_KEY não configurada");
   }
 
-  const prompt = `Você é um assistente útil no WhatsApp. Responda de forma amigável e direta em português.
+  let prompt = `Você é um assistente especializado em criar lançamentos financeiros via WhatsApp. 
 
-Mensagem: "${userMessage}"
+MENSAGEM ORIGINAL DO USUÁRIO: "${userMessage}"
 
-Responda naturalmente:`;
+`;
+
+  if (dadosExtracao.sucesso) {
+    prompt += `
+DADOS EXTRAÍDOS DA MENSAGEM:
+- Tipo: ${dadosExtracao.dados.tipo}
+- Valor: R$ ${parseFloat(dadosExtracao.dados.valor).toFixed(2)}
+- Descrição: ${dadosExtracao.dados.descricao}
+- Categoria: ${dadosExtracao.dados.categoria}
+- Método de Pagamento: ${dadosExtracao.dados.metodoPagamento}
+- Data: ${dadosExtracao.dados.data}
+`;
+
+    if (resultadoCriacao) {
+      if (resultadoCriacao.erro) {
+        prompt += `
+
+ERRO AO CRIAR LANÇAMENTO: ${resultadoCriacao.erro}
+
+AJUDE O USUÁRIO A CORRIGIR O PROBLEMA:`;
+      } else {
+        prompt += `
+
+✅ LANÇAMENTO CRIADO COM SUCESSO!
+
+CONFIRME PARA O USUÁRIO E OFEREÇA AJUDA PARA PRÓXIMOS LANÇAMENTOS:`;
+      }
+    } else {
+      prompt += `
+
+CONFIRME OS DADOS COM O USUÁRIO E PERGUNTE SE ESTÁ TUDO CORRETO:`;
+    }
+  } else {
+    prompt += `
+
+NÃO FOI POSSÍVEL IDENTIFICAR UM LANÇAMENTO NA MENSAGEM.
+
+ERRO: ${dadosExtracao.erro}
+
+EXPLIQUE AO USUÁRIO COMO CRIAR UM LANÇAMENTO:`;
+  }
+
+  prompt += `
+
+INSTRUÇÕES DE RESPOSTA:
+- Seja direto e amigável
+- Use emojis moderadamente (💰, ✅, ⚠️)
+- Formate valores como R$ 123,45
+- Para erros, seja útil e sugira correções
+- Mantenha a resposta curta e objetiva
+
+EXEMPLOS DE FORMATAÇÃO VÁLIDA:
+• "Gastei 50 no almoço"
+• "Recebi 1000 salário com pix"
+• "Paguei 120 no mercado com cartão hoje"
+• "Ganhei 500 freelance ontem"
+
+RESPONDA AGORA:`;
 
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -22,7 +226,7 @@ Responda naturalmente:`;
       },
       body: JSON.stringify({
         model: "claude-3-haiku-20240307",
-        max_tokens: 500,
+        max_tokens: 800,
         messages: [{ role: "user", content: prompt }],
       }),
     });
@@ -35,78 +239,24 @@ Responda naturalmente:`;
     const data = await response.json();
     return data.content[0].text;
   } catch (error) {
-    console.error("Erro Claude API:", error);
+    console.error("Erro ao chamar Claude API:", error);
     throw error;
   }
 }
 
+// Função simulada de envio WhatsApp
 async function sendWhatsAppMessage(to: string, message: string) {
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+  console.log("📲 SIMULAÇÃO ENVIO WHATSAPP:");
+  console.log("👤 Para:", to);
+  console.log("💬 Mensagem:", message);
+  console.log("⏰ Timestamp:", new Date().toISOString());
+  console.log("✅ Mensagem seria enviada com sucesso!");
 
-  console.log("🔑 Verificando credenciais WhatsApp...");
-  console.log("📱 Phone Number ID:", phoneNumberId);
-  console.log("🔐 Access Token existe:", !!accessToken);
-  console.log(
-    "🔐 Primeiros chars do token:",
-    accessToken?.substring(0, 20) + "..."
-  );
-
-  if (!phoneNumberId || !accessToken) {
-    throw new Error("Credenciais WhatsApp não encontradas");
-  }
-
-  const url = `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`;
-  console.log("🌐 URL da API:", url);
-
-  const requestBody = {
-    messaging_product: "whatsapp",
-    to: to,
-    text: { body: message },
+  return {
+    id: "simulated_" + Date.now(),
+    status: "sent",
+    simulated: true,
   };
-
-  console.log("📦 Request Body:", JSON.stringify(requestBody, null, 2));
-
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    console.log("📡 Status da resposta:", response.status);
-    console.log("📡 Headers da resposta:", response.headers);
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error(
-        "❌ Erro detalhado WhatsApp API:",
-        JSON.stringify(errorData, null, 2)
-      );
-
-      if (response.status === 401) {
-        throw new Error("TOKEN_INVALIDO: Access Token expirado ou inválido");
-      } else if (response.status === 404) {
-        throw new Error(
-          "PHONE_NUMBER_INVALIDO: Phone Number ID não encontrado"
-        );
-      } else {
-        throw new Error(
-          `WhatsApp API: ${response.status} - ${errorData.error?.message}`
-        );
-      }
-    }
-
-    const data = await response.json();
-    console.log("✅ Mensagem enviada com sucesso!");
-    return data;
-  } catch (error) {
-    console.error("💥 Erro no envio WhatsApp:", error);
-    throw error;
-  }
 }
 
 export async function POST(request: NextRequest) {
@@ -122,25 +272,67 @@ export async function POST(request: NextRequest) {
       console.log("💬 Texto:", userMessage);
 
       if (userMessage && userPhone) {
-        let claudeResponse;
+        // 1. Autenticar usuário
+        const session = await getApiAuth();
+        if (!session) {
+          await sendWhatsAppMessage(
+            userPhone,
+            "🔐 Sistema em configuração. Em breve poderei criar seus lançamentos!"
+          );
+          return NextResponse.json({ status: "received" });
+        }
 
-        // Processar com Claude
+        const userId = session.user.id;
+
+        // 2. Extrair dados do lançamento
+        const dadosExtracao = extrairDadosLancamento(userMessage);
+        console.log("📊 Dados extraídos:", dadosExtracao);
+
+        // 3. Tentar criar lançamento se dados forem válidos
+        let resultadoCriacao = null;
+
+        if (dadosExtracao.sucesso) {
+          try {
+            const lancamento = await createLancamento(
+              userId,
+              dadosExtracao.dados
+            );
+            resultadoCriacao = { sucesso: true, lancamento };
+            console.log("✅ Lançamento criado:", lancamento);
+          } catch (error: any) {
+            resultadoCriacao = { sucesso: false, erro: error.message };
+            console.error("❌ Erro ao criar lançamento:", error);
+          }
+        }
+
+        // 4. Processar com Claude
+        let claudeResponse;
         try {
-          claudeResponse = await callClaudeAPI(userMessage);
+          claudeResponse = await callClaudeAPICriacao(
+            userMessage,
+            dadosExtracao,
+            resultadoCriacao
+          );
           console.log("🤖 Resposta do Claude:", claudeResponse);
         } catch (error) {
           console.error("❌ Erro no Claude:", error);
-          claudeResponse = `Olá! Recebi: "${userMessage}". No momento estou em desenvolvimento! 😊`;
+          // Resposta fallback
+          if (dadosExtracao.sucesso && resultadoCriacao?.sucesso) {
+            claudeResponse = `✅ Lançamento criado! ${dadosExtracao.dados.descricao} - R$ ${dadosExtracao.dados.valor}`;
+          } else if (dadosExtracao.sucesso) {
+            claudeResponse = `⚠️ Erro: ${resultadoCriacao?.erro || "Não foi possível criar o lançamento"}`;
+          } else {
+            claudeResponse = `❌ ${dadosExtracao.erro}\n\n💡 Exemplo: "Gastei 50 no almoço"`;
+          }
         }
 
-        // Enviar resposta
+        // 5. Enviar resposta
         try {
-          console.log("📤 Tentando enviar resposta...");
+          console.log("📤 Enviando resposta...");
           await sendWhatsAppMessage(userPhone, claudeResponse);
-          console.log("🎉 Mensagem enviada com sucesso!");
+          console.log("🎉 Resposta enviada!");
         } catch (whatsappError) {
-          console.error("💥 Falha no envio WhatsApp:", whatsappError);
-          // Não propaga o erro - retorna sucesso para o webhook
+          console.error("💥 Falha no envio:", whatsappError);
         }
       }
     }
