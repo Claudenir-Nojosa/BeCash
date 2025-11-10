@@ -1,6 +1,7 @@
 // app/api/webhooks/whatsapp/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
+import { FaturaService } from "@/lib/faturaService";
 
 type DadosLancamento = {
   tipo: string;
@@ -309,9 +310,20 @@ async function createLancamento(
       },
     });
 
+    // ✅ ✅ ✅ ADICIONE ESTA PARTE: Associar à fatura se for crédito
+    if (dados.metodoPagamento === "CREDITO" && cartaoId) {
+      try {
+        await FaturaService.adicionarLancamentoAFatura(lancamento.id);
+        console.log(`✅ Lançamento ${lancamento.id} associado à fatura`);
+      } catch (faturaError) {
+        console.error("❌ Erro ao associar à fatura:", faturaError);
+        // Não lançar erro aqui para não quebrar o fluxo principal
+      }
+    }
+
     return {
       lancamento,
-      cartaoEncontrado, // ✅ Adicionar esta linha
+      cartaoEncontrado,
     };
   } catch (error) {
     console.error("Erro ao criar lançamento:", error);
