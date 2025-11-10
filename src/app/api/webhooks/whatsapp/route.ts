@@ -161,11 +161,7 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
 }
 
 // Função para criar um lançamento via WhatsApp
-async function createLancamento(
-  userId: string,
-  dados: any,
-  categoriaEscolhida: any
-) {
+async function createLancamento(userId: string, dados: any, categoriaEscolhida: any) {
   try {
     // Processar data
     let dataLancamento = new Date();
@@ -180,8 +176,12 @@ async function createLancamento(
       );
     }
 
+    // Capitalizar primeira letra da descrição para o banco de dados
+    const descricaoCapitalizada = dados.descricao.charAt(0).toUpperCase() + 
+                                 dados.descricao.slice(1);
+
     const lancamentoData = {
-      descricao: dados.descricao,
+      descricao: descricaoCapitalizada, // ✅ Agora capitalizada no DB também
       valor: parseFloat(dados.valor),
       tipo: dados.tipo.toUpperCase(),
       metodoPagamento: dados.metodoPagamento || "PIX",
@@ -236,15 +236,16 @@ MENSAGEM DO CLIENTE: "${userMessage}"
       ontem.setDate(hoje.getDate() - 1);
       dataFormatada = ontem.toLocaleDateString('pt-BR');
     } else if (dadosExtracao.dados.data.includes('/')) {
-      // Já está no formato de data, usar como está
       dataFormatada = dadosExtracao.dados.data;
     } else {
       dataFormatada = hoje.toLocaleDateString('pt-BR');
     }
 
-    // Capitalizar primeira letra da descrição
-    const descricaoCapitalizada = dadosExtracao.dados.descricao.charAt(0).toUpperCase() + 
-                                 dadosExtracao.dados.descricao.slice(1);
+    // Usar a descrição já capitalizada do resultado da criação
+    const descricao = resultadoCriacao?.sucesso 
+      ? resultadoCriacao.lancamento.descricao // Já capitalizada do DB
+      : dadosExtracao.dados.descricao.charAt(0).toUpperCase() + 
+        dadosExtracao.dados.descricao.slice(1);
 
     const valorFormatado = parseFloat(dadosExtracao.dados.valor).toLocaleString('pt-BR', {
       style: 'currency',
@@ -254,7 +255,7 @@ MENSAGEM DO CLIENTE: "${userMessage}"
     prompt += `
 DADOS DO LANÇAMENTO:
 • Valor: ${valorFormatado}
-• Descrição: ${descricaoCapitalizada}
+• Descrição: ${descricao}
 • Categoria: ${categoriaEscolhida?.nome}
 • Tipo: ${dadosExtracao.dados.tipo === 'DESPESA' ? 'Despesa' : 'Receita'}
 • Método: ${dadosExtracao.dados.metodoPagamento}
@@ -295,7 +296,6 @@ EXPLIQUE DE FORMA PROFISSIONAL COMO CRIAR UM LANÇAMENTO:`;
 INSTRUÇÕES PARA RESPOSTA PROFISSIONAL:
 - Seja formal mas amigável
 - Use estrutura organizada com emojis
-- Capitalize a primeira letra da descrição
 - Formate data como DD/MM/AAAA
 - Formate valores como R$ 1.234,56
 - FINALIZE SEMPRE COM UMA DESTAS FRASES CURTAS:
@@ -305,35 +305,6 @@ INSTRUÇÕES PARA RESPOSTA PROFISSIONAL:
   • "Receita registrada em sua conta. 🏦"
 - Mantenha a resposta concisa e elegante
 - NÃO use textos longos de agradecimento
-- NÃO use "Sr(a)" ou tratamentos formais excessivos
-
-EXEMPLOS DE RESPOSTA:
-
-✅ Lançamento registrado com sucesso!
-
-📊 Detalhes:
-• Valor: R$ 50,00
-• Descrição: Almoço restaurante
-• Categoria: Alimentação  
-• Tipo: Despesa
-• Método: Cartão de crédito
-• Data: 10/11/2025
-
-Lançamento salvo com sucesso. 📈
-
----
-
-✅ Transação confirmada!
-
-📋 Resumo:
-• Valor: R$ 1.500,00
-• Descrição: Salário empresa
-• Categoria: Salário
-• Tipo: Receita
-• Método: Transferência
-• Data: 10/11/2025
-
-Receita registrada em sua conta. 🏦
 
 RESPONDA AGORA DE FORMA PROFISSIONAL E ELEGANTE:`;
 
