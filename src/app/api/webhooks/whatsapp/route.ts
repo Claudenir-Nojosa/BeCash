@@ -8,7 +8,6 @@ type DadosLancamento = {
   descricao: string;
   metodoPagamento: string;
   data: string;
-  categoria: string;
 };
 
 type ExtracaoSucesso = {
@@ -22,153 +21,152 @@ type ExtracaoErro = {
 };
 
 type ResultadoExtracao = ExtracaoSucesso | ExtracaoErro;
+
 // Função para autenticar via API
 async function getApiAuth() {
   const user = await db.user.findFirst();
   return user ? { user: { id: user.id } } : null;
 }
 
-// Função para tentar extrair categoria da descrição
-function extrairCategoria(descricao: string): string {
-  const desc = descricao.toLowerCase();
+// Função para buscar categorias do usuário
+async function getCategoriasUsuario(userId: string) {
+  try {
+    const categorias = await db.categoria.findMany({
+      where: { userId },
+      orderBy: { nome: "asc" },
+    });
+    return categorias;
+  } catch (error) {
+    console.error("Erro ao buscar categorias:", error);
+    return [];
+  }
+}
 
-  const mapeamentoCategorias: { [key: string]: string[] } = {
-    Alimentação: [
-      "almoço",
-      "janta",
-      "restaurante",
-      "lanche",
-      "comida",
-      "mercado",
-      "supermercado",
-      "padaria",
-    ],
-    Transporte: [
-      "uber",
-      "táxi",
-      "gasolina",
-      "ônibus",
-      "metro",
-      "combustível",
-      "estacionamento",
-    ],
-    Lazer: [
-      "cinema",
-      "shopping",
-      "parque",
-      "viagem",
-      "hotel",
-      "show",
-      "festas",
-    ],
-    Saúde: [
-      "farmácia",
-      "médico",
-      "hospital",
-      "remédio",
-      "consulta",
-      "plano de saúde",
-    ],
-    Educação: [
-      "curso",
-      "livro",
-      "faculdade",
-      "escola",
-      "universidade",
-      "material",
-    ],
-    Casa: [
-      "aluguel",
-      "condomínio",
-      "luz",
-      "água",
-      "internet",
-      "telefone",
-      "manutenção",
-    ],
-    Salário: ["salário", "ordenado", "pro-labore", "renda"],
-    Freelance: ["freelance", "projeto", "serviço", "contrato"],
-    Vestuário: ["roupa", "calçado", "sapato", "camisa", "blusa"],
-    Serviços: ["assistência", "conserto", "reparo", "instalação"],
-  };
-
-  for (const [categoria, palavras] of Object.entries(mapeamentoCategorias)) {
-    if (palavras.some((palavra) => desc.includes(palavra))) {
-      return categoria;
-    }
+// Função para a IA escolher a melhor categoria
+async function escolherMelhorCategoria(
+  descricao: string,
+  categorias: any[],
+  tipo: string
+) {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    // Fallback simples se não tiver API key
+    const categoriasFiltradas = categorias.filter((c) => c.tipo === tipo);
+    return categoriasFiltradas.length > 0 ? categoriasFiltradas[0] : null;
   }
 
-  return "Outros";
+  const categoriasFiltradas = categorias.filter((c) => c.tipo === tipo);
+
+  if (categoriasFiltradas.length === 0) {
+    return null;
+  }
+
+  const prompt = `Analise a descrição "${descricao}" e escolha a categoria mais adequada entre estas opções:
+
+CATEGORIAS DISPONÍVEIS:
+${categoriasFiltradas.map((c, i) => `${i + 1}. ${c.nome}`).join("\n")}
+
+INSTRUÇÕES:
+- Escolha APENAS o nome da categoria mais adequada
+- Não explique, não dê justificativas
+- Retorne apenas o nome exato da categoria escolhida
+- Se não houver uma boa correspondência, escolha a primeira categoria
+
+RESPOSTA (apenas o nome da categoria):`;
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-3-haiku-20240307",
+        max_tokens: 100,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Claude API: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const categoriaEscolhida = data.content[0].text.trim();
+
+    // Encontrar a categoria correspondente
+    return (
+      categoriasFiltradas.find(
+        (c) => c.nome.toLowerCase() === categoriaEscolhida.toLowerCase()
+      ) || categoriasFiltradas[0]
+    );
+  } catch (error) {
+    console.error("Erro ao escolher categoria com IA:", error);
+    return categoriasFiltradas[0];
+  }
 }
 
 // Função para analisar mensagens e extrair dados de lançamentos
 function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
   const texto = mensagem.toLowerCase().trim();
-  
+
   // Padrão principal: [ação] [valor] [descrição] [método opcional] [data opcional]
-  const padraoPrincipal = texto.match(/(gastei|paguei|recebi|ganhei)\s+(\d+[.,]?\d*)\s+(?:em|para|com|no)\s+(.+?)(?:\s+(?:no|com)\s+(cartão|pix|débito|dinheiro|crédito))?(?:\s+(hoje|ontem|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?))?$/i);
-  
+  const padraoPrincipal = texto.match(
+    /(gastei|paguei|recebi|ganhei)\s+(\d+[.,]?\d*)\s+(?:em|para|com|no)\s+(.+?)(?:\s+(?:no|com)\s+(cartão|pix|débito|dinheiro|crédito))?(?:\s+(hoje|ontem|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?))?$/i
+  );
+
   if (padraoPrincipal) {
     const [, acao, valor, descricao, metodo, data] = padraoPrincipal;
-    
+
     return {
       sucesso: true,
       dados: {
-        tipo: (acao.includes('recebi') || acao.includes('ganhei')) ? 'RECEITA' : 'DESPESA',
-        valor: valor.replace(',', '.'),
+        tipo:
+          acao.includes("recebi") || acao.includes("ganhei")
+            ? "RECEITA"
+            : "DESPESA",
+        valor: valor.replace(",", "."),
         descricao: descricao.trim(),
-        metodoPagamento: metodo ? metodo.toUpperCase() : 'PIX',
-        data: data || 'hoje',
-        categoria: extrairCategoria(descricao)
-      }
+        metodoPagamento: metodo ? metodo.toUpperCase() : "PIX",
+        data: data || "hoje",
+      },
     };
   }
 
   // Padrão alternativo: [valor] [descrição] [implícito despesa]
-  const padraoAlternativo = texto.match(/(\d+[.,]?\d*)\s+(?:em|para|com|no)\s+(.+)/i);
-  
+  const padraoAlternativo = texto.match(
+    /(\d+[.,]?\d*)\s+(?:em|para|com|no)\s+(.+)/i
+  );
+
   if (padraoAlternativo) {
     const [, valor, descricao] = padraoAlternativo;
-    
+
     return {
       sucesso: true,
       dados: {
-        tipo: 'DESPESA',
-        valor: valor.replace(',', '.'),
+        tipo: "DESPESA",
+        valor: valor.replace(",", "."),
         descricao: descricao.trim(),
-        metodoPagamento: 'PIX',
-        data: 'hoje',
-        categoria: extrairCategoria(descricao)
-      }
+        metodoPagamento: "PIX",
+        data: "hoje",
+      },
     };
   }
 
   return {
     sucesso: false,
-    erro: "Não entendi o formato. Use: 'Gastei 50 no almoço' ou 'Recebi 1000 salário'"
+    erro: "Não entendi o formato. Use: 'Gastei 50 no almoço' ou 'Recebi 1000 salário'",
   };
 }
 
 // Função para criar um lançamento via WhatsApp
-async function createLancamento(userId: string, dados: any) {
+async function createLancamento(
+  userId: string,
+  dados: any,
+  categoriaEscolhida: any
+) {
   try {
-    // Buscar categoria por nome (case insensitive)
-    const categoria = await db.categoria.findFirst({
-      where: {
-        userId,
-        nome: {
-          contains: dados.categoria,
-          mode: "insensitive",
-        },
-      },
-    });
-
-    if (!categoria) {
-      throw new Error(
-        `Categoria "${dados.categoria}" não encontrada. Use uma categoria existente.`
-      );
-    }
-
     // Processar data
     let dataLancamento = new Date();
     if (dados.data === "ontem") {
@@ -188,10 +186,10 @@ async function createLancamento(userId: string, dados: any) {
       tipo: dados.tipo.toUpperCase(),
       metodoPagamento: dados.metodoPagamento || "PIX",
       data: dataLancamento,
-      categoriaId: categoria.id,
+      categoriaId: categoriaEscolhida.id,
       userId: userId,
       pago: dados.metodoPagamento !== "CREDITO",
-      observacoes: `Criado via WhatsApp - ${new Date().toLocaleString("pt-BR")}`,
+      observacoes: `Criado via WhatsApp - Categoria: ${categoriaEscolhida.nome}`,
     };
 
     const lancamento = await db.lancamento.create({
@@ -212,6 +210,8 @@ async function createLancamento(userId: string, dados: any) {
 async function callClaudeAPICriacao(
   userMessage: string,
   dadosExtracao: any,
+  categoriasUsuario: any[],
+  categoriaEscolhida: any,
   resultadoCriacao?: any
 ) {
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -230,9 +230,16 @@ DADOS EXTRAÍDOS DA MENSAGEM:
 - Tipo: ${dadosExtracao.dados.tipo}
 - Valor: R$ ${parseFloat(dadosExtracao.dados.valor).toFixed(2)}
 - Descrição: ${dadosExtracao.dados.descricao}
-- Categoria: ${dadosExtracao.dados.categoria}
 - Método de Pagamento: ${dadosExtracao.dados.metodoPagamento}
 - Data: ${dadosExtracao.dados.data}
+
+CATEGORIAS DISPONÍVEIS DO USUÁRIO:
+${categoriasUsuario
+  .filter((c) => c.tipo === dadosExtracao.dados.tipo)
+  .map((c) => `• ${c.nome}`)
+  .join("\n")}
+
+CATEGORIA ESCOLHIDA AUTOMATICAMENTE: ${categoriaEscolhida?.nome || "Nenhuma"}
 `;
 
     if (resultadoCriacao) {
@@ -247,12 +254,14 @@ AJUDE O USUÁRIO A CORRIGIR O PROBLEMA:`;
 
 ✅ LANÇAMENTO CRIADO COM SUCESSO!
 
-CONFIRME PARA O USUÁRIO E OFEREÇA AJUDA PARA PRÓXIMOS LANÇAMENTOS:`;
+CONFIRME PARA O USUÁRIO E MENCIONE A CATEGORIA ESCOLHIDA:`;
       }
     } else {
       prompt += `
 
-CONFIRME OS DADOS COM O USUÁRIO E PERGUNTE SE ESTÁ TUDO CORRETO:`;
+CATEGORIA SUGERIDA: ${categoriaEscolhida.nome}
+
+CONFIRME OS DADOS COM O USUÁRIO E PERGUNTE SE A CATEGORIA ESTÁ CORRETA:`;
     }
   } else {
     prompt += `
@@ -270,14 +279,9 @@ INSTRUÇÕES DE RESPOSTA:
 - Seja direto e amigável
 - Use emojis moderadamente (💰, ✅, ⚠️)
 - Formate valores como R$ 123,45
+- Mencione a categoria escolhida
 - Para erros, seja útil e sugira correções
 - Mantenha a resposta curta e objetiva
-
-EXEMPLOS DE FORMATAÇÃO VÁLIDA:
-• "Gastei 50 no almoço"
-• "Recebi 1000 salário com pix"
-• "Paguei 120 no mercado com cartão hoje"
-• "Ganhei 500 freelance ontem"
 
 RESPONDA AGORA:`;
 
@@ -353,14 +357,43 @@ export async function POST(request: NextRequest) {
         const dadosExtracao = extrairDadosLancamento(userMessage);
         console.log("📊 Dados extraídos:", dadosExtracao);
 
-        // 3. Tentar criar lançamento se dados forem válidos
+        // 3. Buscar categorias do usuário e escolher a melhor
+        let categoriaEscolhida = null;
+        let categoriasUsuario: any[] = [];
         let resultadoCriacao = null;
 
         if (dadosExtracao.sucesso) {
           try {
+            // Buscar categorias reais do usuário
+            categoriasUsuario = await getCategoriasUsuario(userId);
+            console.log("🏷️ Categorias do usuário:", categoriasUsuario);
+
+            if (categoriasUsuario.length === 0) {
+              throw new Error(
+                "Nenhuma categoria encontrada. Crie categorias primeiro."
+              );
+            }
+
+            // Escolher a melhor categoria com IA
+            categoriaEscolhida = await escolherMelhorCategoria(
+              dadosExtracao.dados.descricao,
+              categoriasUsuario,
+              dadosExtracao.dados.tipo
+            );
+
+            console.log("🎯 Categoria escolhida:", categoriaEscolhida?.nome);
+
+            if (!categoriaEscolhida) {
+              throw new Error(
+                `Nenhuma categoria do tipo ${dadosExtracao.dados.tipo} encontrada.`
+              );
+            }
+
+            // Criar lançamento com categoria escolhida
             const lancamento = await createLancamento(
               userId,
-              dadosExtracao.dados
+              dadosExtracao.dados,
+              categoriaEscolhida
             );
             resultadoCriacao = { sucesso: true, lancamento };
             console.log("✅ Lançamento criado:", lancamento);
@@ -376,6 +409,8 @@ export async function POST(request: NextRequest) {
           claudeResponse = await callClaudeAPICriacao(
             userMessage,
             dadosExtracao,
+            categoriasUsuario,
+            categoriaEscolhida,
             resultadoCriacao
           );
           console.log("🤖 Resposta do Claude:", claudeResponse);
@@ -383,7 +418,7 @@ export async function POST(request: NextRequest) {
           console.error("❌ Erro no Claude:", error);
           // Resposta fallback
           if (dadosExtracao.sucesso && resultadoCriacao?.sucesso) {
-            claudeResponse = `✅ Lançamento criado! ${dadosExtracao.dados.descricao} - R$ ${dadosExtracao.dados.valor}`;
+            claudeResponse = `✅ Lançamento criado! ${dadosExtracao.dados.descricao} - R$ ${dadosExtracao.dados.valor} (Categoria: ${categoriaEscolhida?.nome})`;
           } else if (dadosExtracao.sucesso) {
             claudeResponse = `⚠️ Erro: ${resultadoCriacao?.erro || "Não foi possível criar o lançamento"}`;
           } else {
