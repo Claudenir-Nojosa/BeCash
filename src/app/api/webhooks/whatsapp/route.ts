@@ -107,6 +107,81 @@ RESPOSTA (apenas o nome da categoria):`;
   }
 }
 
+// Adicione estas funções ANTES da função extrairDadosLancamento
+
+function extrairMetodoPagamento(texto: string): string {
+  const textoLower = texto.toLowerCase();
+
+  if (textoLower.includes("débito") || textoLower.includes("debito")) {
+    return "DEBITO";
+  } else if (textoLower.includes("crédito") || textoLower.includes("credito")) {
+    return "CREDITO";
+  } else if (textoLower.includes("pix")) {
+    return "PIX";
+  } else if (
+    textoLower.includes("transferência") ||
+    textoLower.includes("transferencia")
+  ) {
+    return "TRANSFERENCIA";
+  }
+
+  // Default para débito se não especificado mas mencionar cartão
+  if (textoLower.includes("cartão") || textoLower.includes("cartao")) {
+    return "DEBITO";
+  }
+
+  return "PIX"; // fallback
+}
+
+// Função para identificar cartão específico
+async function identificarCartao(texto: string, userId: string) {
+  const textoLower = texto.toLowerCase();
+
+  // Buscar cartões do usuário
+  const cartoes = await db.cartao.findMany({
+    where: {
+      OR: [
+        { userId: userId },
+        { ColaboradorCartao: { some: { userId: userId } } },
+      ],
+    },
+    include: {
+      user: { select: { id: true, name: true } },
+    },
+  });
+
+  // Procurar por menções específicas de cartões
+  for (const cartao of cartoes) {
+    const nomeCartaoLower = cartao.nome.toLowerCase();
+
+    // Verificar se o texto menciona o nome do cartão
+    if (textoLower.includes(nomeCartaoLower)) {
+      return cartao;
+    }
+
+    // Verificar por bandeiras comuns
+    const bandeiras = [
+      "nubank",
+      "itau",
+      "bradesco",
+      "santander",
+      "inter",
+      "c6",
+      "bb",
+    ];
+    for (const bandeira of bandeiras) {
+      if (
+        textoLower.includes(bandeira) &&
+        cartao.bandeira.toLowerCase().includes(bandeira)
+      ) {
+        return cartao;
+      }
+    }
+  }
+
+  return null;
+}
+
 // Função para analisar mensagens e extrair dados de lançamentos
 function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
   const texto = mensagem.toLowerCase().trim();
@@ -119,6 +194,9 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
   if (padraoPrincipal) {
     const [, acao, valor, descricao, metodo, data] = padraoPrincipal;
 
+    // Usar a nova função para determinar método de pagamento
+    const metodoPagamentoCorrigido = extrairMetodoPagamento(mensagem);
+
     return {
       sucesso: true,
       dados: {
@@ -128,7 +206,7 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
             : "DESPESA",
         valor: valor.replace(",", "."),
         descricao: descricao.trim(),
-        metodoPagamento: metodo ? metodo.toUpperCase() : "PIX",
+        metodoPagamento: metodoPagamentoCorrigido, // ✅ AGORA USANDO A FUNÇÃO CORRIGIDA
         data: data || "hoje",
       },
     };
@@ -142,13 +220,16 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
   if (padraoAlternativo) {
     const [, valor, descricao] = padraoAlternativo;
 
+    // Usar a nova função para determinar método de pagamento
+    const metodoPagamentoCorrigido = extrairMetodoPagamento(mensagem);
+
     return {
       sucesso: true,
       dados: {
         tipo: "DESPESA",
         valor: valor.replace(",", "."),
         descricao: descricao.trim(),
-        metodoPagamento: "PIX",
+        metodoPagamento: metodoPagamentoCorrigido, // ✅ AGORA USANDO A FUNÇÃO CORRIGIDA
         data: "hoje",
       },
     };
@@ -161,7 +242,11 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
 }
 
 // Função para criar um lançamento via WhatsApp
-async function createLancamento(userId: string, dados: any, categoriaEscolhida: any) {
+async function createLancamento(
+  userId: string,
+  dados: any,
+  categoriaEscolhida: any
+) {
   try {
     // Processar data
     let dataLancamento = new Date();
@@ -177,29 +262,57 @@ async function createLancamento(userId: string, dados: any, categoriaEscolhida: 
     }
 
     // Capitalizar primeira letra da descrição para o banco de dados
-    const descricaoCapitalizada = dados.descricao.charAt(0).toUpperCase() + 
-                                 dados.descricao.slice(1);
+    const descricaoCapitalizada =
+      dados.descricao.charAt(0).toUpperCase() + dados.descricao.slice(1);
 
-    const lancamentoData = {
-      descricao: descricaoCapitalizada, // ✅ Agora capitalizada no DB também
+    let cartaoId = null;
+    let cartaoEncontrado = null;
+
+    // ✅ NOVA LÓGICA: Se for crédito, identificar cartão específico
+    if (dados.metodoPagamento === "CREDITO") {
+      cartaoEncontrado = await identificarCartao(dados.descricao, userId);
+
+      if (cartaoEncontrado) {
+        cartaoId = cartaoEncontrado.id;
+      } else {
+        // Se não encontrou cartão específico, lançar erro
+        throw new Error(
+          "Cartão de crédito mencionado, mas não identificado. Especifique qual cartão (ex: Nubank, Itaú, etc.)"
+        );
+      }
+    }
+
+    const lancamentoData: any = {
+      descricao: descricaoCapitalizada,
       valor: parseFloat(dados.valor),
       tipo: dados.tipo.toUpperCase(),
-      metodoPagamento: dados.metodoPagamento || "PIX",
+      metodoPagamento: dados.metodoPagamento,
       data: dataLancamento,
       categoriaId: categoriaEscolhida.id,
       userId: userId,
-      pago: dados.metodoPagamento !== "CREDITO",
-      observacoes: `Criado via WhatsApp - Categoria: ${categoriaEscolhida.nome}`,
+      pago: dados.metodoPagamento !== "CREDITO", // ✅ Crédito fica como não pago
+      observacoes:
+        `Criado via WhatsApp - Categoria: ${categoriaEscolhida.nome}` +
+        (cartaoEncontrado ? ` - Cartão: ${cartaoEncontrado.nome}` : ""),
     };
+
+    // ✅ ADICIONAR cartaoId apenas se for crédito e encontrou cartão
+    if (dados.metodoPagamento === "CREDITO" && cartaoId) {
+      lancamentoData.cartaoId = cartaoId;
+    }
 
     const lancamento = await db.lancamento.create({
       data: lancamentoData,
       include: {
         categoria: true,
+        cartao: true,
       },
     });
 
-    return lancamento;
+    return {
+      lancamento,
+      cartaoEncontrado, // ✅ Adicionar esta linha
+    };
   } catch (error) {
     console.error("Erro ao criar lançamento:", error);
     throw error;
@@ -228,36 +341,39 @@ MENSAGEM DO CLIENTE: "${userMessage}"
     // Formatar data para DD/MM/AAAA
     let dataFormatada;
     const hoje = new Date();
-    
-    if (dadosExtracao.dados.data === 'hoje') {
-      dataFormatada = hoje.toLocaleDateString('pt-BR');
-    } else if (dadosExtracao.dados.data === 'ontem') {
+
+    if (dadosExtracao.dados.data === "hoje") {
+      dataFormatada = hoje.toLocaleDateString("pt-BR");
+    } else if (dadosExtracao.dados.data === "ontem") {
       const ontem = new Date(hoje);
       ontem.setDate(hoje.getDate() - 1);
-      dataFormatada = ontem.toLocaleDateString('pt-BR');
-    } else if (dadosExtracao.dados.data.includes('/')) {
+      dataFormatada = ontem.toLocaleDateString("pt-BR");
+    } else if (dadosExtracao.dados.data.includes("/")) {
       dataFormatada = dadosExtracao.dados.data;
     } else {
-      dataFormatada = hoje.toLocaleDateString('pt-BR');
+      dataFormatada = hoje.toLocaleDateString("pt-BR");
     }
 
     // Usar a descrição já capitalizada do resultado da criação
-    const descricao = resultadoCriacao?.sucesso 
+    const descricao = resultadoCriacao?.sucesso
       ? resultadoCriacao.lancamento.descricao // Já capitalizada do DB
-      : dadosExtracao.dados.descricao.charAt(0).toUpperCase() + 
+      : dadosExtracao.dados.descricao.charAt(0).toUpperCase() +
         dadosExtracao.dados.descricao.slice(1);
 
-    const valorFormatado = parseFloat(dadosExtracao.dados.valor).toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    });
+    const valorFormatado = parseFloat(dadosExtracao.dados.valor).toLocaleString(
+      "pt-BR",
+      {
+        style: "currency",
+        currency: "BRL",
+      }
+    );
 
     prompt += `
 DADOS DO LANÇAMENTO:
 • Valor: ${valorFormatado}
 • Descrição: ${descricao}
 • Categoria: ${categoriaEscolhida?.nome}
-• Tipo: ${dadosExtracao.dados.tipo === 'DESPESA' ? 'Despesa' : 'Receita'}
+• Tipo: ${dadosExtracao.dados.tipo === "DESPESA" ? "Despesa" : "Receita"}
 • Método: ${dadosExtracao.dados.metodoPagamento}
 • Data: ${dataFormatada}
 `;
@@ -442,14 +558,17 @@ export async function POST(request: NextRequest) {
               );
             }
 
-            // Criar lançamento com categoria escolhida
-            const lancamento = await createLancamento(
+            const resultadoCreate = await createLancamento(
               userId,
               dadosExtracao.dados,
               categoriaEscolhida
             );
-            resultadoCriacao = { sucesso: true, lancamento };
-            console.log("✅ Lançamento criado:", lancamento);
+            resultadoCriacao = {
+              sucesso: true,
+              lancamento: resultadoCreate.lancamento,
+              cartaoEncontrado: resultadoCreate.cartaoEncontrado, // ✅ AGORA INCLUI O CARTÃO
+            };
+            console.log("✅ Lançamento criado:", resultadoCreate.lancamento);
           } catch (error: any) {
             resultadoCriacao = { sucesso: false, erro: error.message };
             console.error("❌ Erro ao criar lançamento:", error);
