@@ -489,10 +489,9 @@ async function createLancamento(
   userMessage: string
 ) {
   try {
-    // Processar data
     console.log(`🔥🔥🔥 HOTFIX GLOBAL INICIADO 🔥🔥🔥`);
     console.log(`📨 Mensagem recebida: "${userMessage}"`);
-    // 🔥🔥🔥 HOTFIX DEFINITIVO: Se a mensagem contém padrão de compartilhamento, FORÇAR
+
     // 🔥 HOTFIX DEFINITIVO: Se a mensagem tem "compartilhada" e "beatriz", FORÇAR
     const msgLower = userMessage?.toLowerCase() || "";
     if (msgLower.includes("compartilhada") && msgLower.includes("beatriz")) {
@@ -501,19 +500,19 @@ async function createLancamento(
       );
       dados.ehCompartilhado = true;
       dados.nomeUsuarioCompartilhado = "beatriz";
-
-      console.log(`🔥🔥🔥 HOTFIX: Dados modificados:`, {
-        ehCompartilhado: dados.ehCompartilhado,
-        nomeUsuario: dados.nomeUsuarioCompartilhado,
-        valorOriginal: dados.valor,
-      });
-    } else {
-      console.log(
-        `🔥🔥🔥 HOTFIX: Nenhum compartilhamento detectado na mensagem`
-      );
     }
 
+    // 🔥 CORREÇÃO DA DATA: Usar horário de Brasília (UTC-3)
     let dataLancamento = new Date();
+
+    // Ajustar para horário de Brasília (UTC-3)
+    const offsetBrasilia = -3 * 60; // UTC-3 em minutos
+    dataLancamento.setMinutes(
+      dataLancamento.getMinutes() +
+        dataLancamento.getTimezoneOffset() +
+        offsetBrasilia
+    );
+
     if (dados.data === "ontem") {
       dataLancamento.setDate(dataLancamento.getDate() - 1);
     } else if (dados.data.includes("/")) {
@@ -524,6 +523,10 @@ async function createLancamento(
         dia || new Date().getDate()
       );
     }
+
+    console.log(
+      `📅 Data do lançamento (Brasília): ${dataLancamento.toLocaleDateString("pt-BR")}`
+    );
 
     // Limpar e capitalizar a descrição
     const descricaoLimpa = limparDescricao(dados.descricao);
@@ -682,10 +685,14 @@ MENSAGEM DO CLIENTE: "${userMessage}"
 `;
 
   if (dadosExtracao.sucesso) {
-    // Formatar data para DD/MM/AAAA
-    let dataFormatada;
+    // 🔥 CORREÇÃO DA DATA: Usar horário de Brasília
     const hoje = new Date();
+    const offsetBrasilia = -3 * 60; // UTC-3 em minutos
+    hoje.setMinutes(
+      hoje.getMinutes() + hoje.getTimezoneOffset() + offsetBrasilia
+    );
 
+    let dataFormatada;
     if (dadosExtracao.dados.data === "hoje") {
       dataFormatada = hoje.toLocaleDateString("pt-BR");
     } else if (dadosExtracao.dados.data === "ontem") {
@@ -697,6 +704,8 @@ MENSAGEM DO CLIENTE: "${userMessage}"
     } else {
       dataFormatada = hoje.toLocaleDateString("pt-BR");
     }
+
+    console.log(`📅 Data formatada para resposta: ${dataFormatada}`);
 
     // Usar a descrição limpa
     const descricao = resultadoCriacao?.sucesso
