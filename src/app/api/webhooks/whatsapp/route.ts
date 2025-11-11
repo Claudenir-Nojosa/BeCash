@@ -373,9 +373,22 @@ RESPOSTA (apenas o nome da categoria):`;
 
 // Adicione estas funções ANTES da função extrairDadosLancamento
 
-function extrairMetodoPagamento(texto: string): string {
+function extrairMetodoPagamento(
+  texto: string,
+  ehParcelado: boolean = false
+): string {
   const textoLower = texto.toLowerCase();
 
+  console.log(`🔍 ANALISANDO MÉTODO PAGAMENTO: "${textoLower}"`);
+  console.log(`🔍 É PARCELADO?: ${ehParcelado}`);
+
+  // 🔥 REGRA PRINCIPAL: Se for parcelado, SEMPRE é crédito
+  if (ehParcelado) {
+    console.log(`✅ PARCELAMENTO DETECTADO - FORÇANDO CRÉDITO`);
+    return "CREDITO";
+  }
+
+  // Lógica normal para compras à vista
   if (textoLower.includes("débito") || textoLower.includes("debito")) {
     return "DEBITO";
   } else if (textoLower.includes("crédito") || textoLower.includes("credito")) {
@@ -389,7 +402,7 @@ function extrairMetodoPagamento(texto: string): string {
     return "TRANSFERENCIA";
   }
 
-  // Default para débito se não especificado mas mencionar cartão
+  // Default para débito se não especificado mas mencionar cartão (apenas para à vista)
   if (textoLower.includes("cartão") || textoLower.includes("cartao")) {
     return "DEBITO";
   }
@@ -778,7 +791,10 @@ async function createLancamento(
         valorParcela: valorParcela,
       };
     }
-
+    if (dados.ehParcelado && dados.metodoPagamento !== "CREDITO") {
+      console.log(`🚨 CORREÇÃO AUTOMÁTICA: Parcelamento forçado para CRÉDITO`);
+      dados.metodoPagamento = "CREDITO";
+    }
     // 🔥 SE NÃO FOR PARCELADO, MANTEM O CÓDIGO ORIGINAL
     const lancamentoData: any = {
       descricao: descricaoLimpa,
