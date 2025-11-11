@@ -402,6 +402,11 @@ async function createLancamento(
     let cartaoId = null;
     let cartaoEncontrado = null;
     let usuarioAlvo = null;
+    
+    // ✅ CALCULAR VALOR ANTES DE CRIAR O LANÇAMENTO
+    const valorTotal = parseFloat(dados.valor);
+    let valorUsuarioCriador = valorTotal;
+    let valorCompartilhado = 0;
 
     // ✅ LÓGICA: Se for crédito, identificar cartão específico
     if (dados.metodoPagamento === "CREDITO") {
@@ -416,7 +421,7 @@ async function createLancamento(
       }
     }
 
-    // ✅ NOVA LÓGICA: Se for compartilhado, encontrar usuário
+    // ✅ NOVA LÓGICA: Se for compartilhado, encontrar usuário E calcular valores
     if (dados.ehCompartilhado && dados.nomeUsuarioCompartilhado) {
       usuarioAlvo = await encontrarUsuarioPorNome(dados.nomeUsuarioCompartilhado, userId);
       
@@ -425,11 +430,15 @@ async function createLancamento(
           `Usuário "${dados.nomeUsuarioCompartilhado}" não encontrado. Verifique o nome.`
         );
       }
+      
+      // ✅ CORREÇÃO: Dividir o valor - usuário paga apenas sua parte
+      valorCompartilhado = valorTotal / 2;
+      valorUsuarioCriador = valorTotal - valorCompartilhado; // Ou simplesmente valorTotal / 2
     }
 
     const lancamentoData: any = {
       descricao: descricaoLimpa,
-      valor: parseFloat(dados.valor),
+      valor: valorUsuarioCriador, // ✅ AGORA USA O VALOR DIVIDIDO
       tipo: dados.tipo.toUpperCase(),
       metodoPagamento: dados.metodoPagamento,
       data: dataLancamento,
@@ -457,9 +466,6 @@ async function createLancamento(
 
     // ✅ ✅ ✅ ADICIONE ESTA PARTE: Criar compartilhamento se necessário
     if (dados.ehCompartilhado && usuarioAlvo) {
-      const valorTotal = parseFloat(dados.valor);
-      const valorCompartilhado = valorTotal / 2; // Meio a meio
-      
       await db.lancamentoCompartilhado.create({
         data: {
           lancamentoId: lancamento.id,
@@ -471,6 +477,7 @@ async function createLancamento(
       });
       
       console.log(`✅ Lançamento compartilhado criado com ${usuarioAlvo.name}`);
+      console.log(`💰 Valor total: R$ ${valorTotal}, Seu valor: R$ ${valorUsuarioCriador}, Compartilhado: R$ ${valorCompartilhado}`);
     }
 
     // ✅ Associar à fatura se for crédito
@@ -486,7 +493,9 @@ async function createLancamento(
     return {
       lancamento,
       cartaoEncontrado,
-      usuarioAlvo, // ✅ Retornar info do usuário compartilhado
+      usuarioAlvo,
+      valorCompartilhado, // ✅ Retornar também o valor compartilhado
+      valorUsuarioCriador // ✅ E o valor do usuário criador
     };
   } catch (error) {
     console.error("Erro ao criar lançamento:", error);
@@ -765,15 +774,20 @@ export async function POST(request: NextRequest) {
             }
 
             const resultadoCreate = await createLancamento(
-              userId,
-              dadosExtracao.dados,
-              categoriaEscolhida
-            );
-            resultadoCriacao = {
-              sucesso: true,
-              lancamento: resultadoCreate.lancamento,
-              cartaoEncontrado: resultadoCreate.cartaoEncontrado, // ✅ AGORA INCLUI O CARTÃO
+  userId,
+  dadosExtracao.dados,
+  categoriaEscolhida
+);
+
+resultadoCriacao = { 
+  sucesso: true, 
+  lancamento: resultadoCreate.lancamento,
+  cartaoEncontrado: resultadoCreate.cartaoEncontrado,
+  usuarioAlvo: resultadoCreate.usuarioAlvo,
+  valorCompartilhado: resultadoCreate.valorCompartilhado, // ✅ Adicionar
+  valorUsuarioCriador: resultadoCreate.valorUsuarioCriador // ✅ Adicionar
             };
+            
             console.log("✅ Lançamento criado:", resultadoCreate.lancamento);
           } catch (error: any) {
             resultadoCriacao = { sucesso: false, erro: error.message };
