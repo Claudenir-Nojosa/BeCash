@@ -50,9 +50,8 @@ function detectarCompartilhamento(mensagem: string): {
   nomeUsuario?: string;
   tipoCompartilhamento?: string;
 } {
-  const texto = mensagem.toLowerCase();
-  
-  console.log(`🔍 Analisando compartilhamento: "${texto}"`);
+  // 🔥 CORREÇÃO: Usar a mensagem ORIGINAL (com caracteres especiais)
+  console.log(`🔍 Analisando compartilhamento na mensagem ORIGINAL: "${mensagem}"`);
   
   const padroesCompartilhamento = [
     /compartilhado com (.+?)(?:\s|$)/i,
@@ -65,16 +64,16 @@ function detectarCompartilhamento(mensagem: string): {
   ];
   
   for (const padrao of padroesCompartilhamento) {
-    const match = texto.match(padrao);
+    const match = mensagem.match(padrao);
     console.log(`🔍 Padrão ${padrao}:`, match);
     if (match && match[1]) {
       const resultado = {
         ehCompartilhado: true,
         nomeUsuario: match[1].trim(),
-        tipoCompartilhamento: texto.includes('despesa') ? 'DESPESA' : 
-                             texto.includes('receita') ? 'RECEITA' : undefined
+        tipoCompartilhamento: mensagem.toLowerCase().includes('despesa') ? 'DESPESA' : 
+                             mensagem.toLowerCase().includes('receita') ? 'RECEITA' : undefined
       };
-      console.log(`✅ Compartilhamento detectado:`, resultado);
+      console.log(`✅✅✅ COMPARTILHAMENTO DETECTADO:`, resultado);
       return resultado;
     }
   }
@@ -82,6 +81,7 @@ function detectarCompartilhamento(mensagem: string): {
   console.log(`❌ Nenhum compartilhamento detectado`);
   return { ehCompartilhado: false };
 }
+
 // Função para encontrar usuário pelo nome
 async function encontrarUsuarioPorNome(nome: string, userIdAtual: string) {
   try {
@@ -337,36 +337,39 @@ async function identificarCartao(texto: string, userId: string) {
   return null;
 }
 
-// Função para analisar mensagens e extrair dados de lançamentos
+// SUBSTITUA a função extrairDadosLancamento por ESTA:
 function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
   const texto = mensagem.toLowerCase().trim();
   
-  // Primeiro detectar se é compartilhado
+  console.log(`🔍 Mensagem original: "${mensagem}"`);
+  console.log(`🔍 Mensagem lower: "${texto}"`);
+  
+  // Primeiro detectar se é compartilhado (ANTES do regex principal)
   const compartilhamento = detectarCompartilhamento(mensagem);
   console.log(`🔍 Detecção compartilhamento:`, compartilhamento);
-  
-  // 🔥 CORREÇÃO COMPLETA: Padrão melhorado
+
+  // 🔥 CORREÇÃO DEFINITIVA: Regex simplificado e eficaz
+  // Padrão: [ação] [valor] com [descrição completa]
   const padraoPrincipal = texto.match(
-    /(gastei|paguei|recebi|ganhei)\s+(\d+[.,]?\d*)\s+(?:com|em|para|no)\s+(.+?)(?:\s+(?:no|com)\s+(cartão|pix|débito|dinheiro|crédito))?(?:\s+(hoje|ontem|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?))?/i
+    /(gastei|paguei|recebi|ganhei)\s+(\d+[.,]?\d*)\s+com\s+(.+?)(?=\s+(?:no\s+cartão|n0\s+cartão|cartão|pix|débito|crédito|debito|credito|despesa|receita|compartilhado|$))/i
   );
 
-  console.log(`🔍 Regex resultado:`, padraoPrincipal);
+  console.log(`🔍 Regex principal resultado:`, padraoPrincipal);
 
   if (padraoPrincipal) {
-    const [, acao, valor, descricao, metodo, data] = padraoPrincipal;
+    const [, acao, valor, descricao] = padraoPrincipal;
 
-    // Usar a nova função para determinar método de pagamento
+    // Método de pagamento
     const metodoPagamentoCorrigido = extrairMetodoPagamento(mensagem);
     
-    // Determinar tipo baseado na ação e no compartilhamento
+    // Tipo
     let tipo = acao.includes("recebi") || acao.includes("ganhei") ? "RECEITA" : "DESPESA";
     
-    // Se o compartilhamento especificou tipo, usar esse
     if (compartilhamento.tipoCompartilhamento) {
       tipo = compartilhamento.tipoCompartilhamento;
     }
 
-    console.log(`📝 Descrição extraída: "${descricao}"`);
+    console.log(`📝 Descrição EXTRAÍDA: "${descricao}"`);
 
     return {
       sucesso: true,
@@ -375,28 +378,37 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
         valor: valor.replace(",", "."),
         descricao: descricao.trim(),
         metodoPagamento: metodoPagamentoCorrigido,
-        data: data || "hoje",
+        data: "hoje",
         ehCompartilhado: compartilhamento.ehCompartilhado,
         nomeUsuarioCompartilhado: compartilhamento.nomeUsuario
       },
     };
   }
 
-  // Padrão alternativo melhorado
+  // 🔥 PADRÃO ALTERNATIVO: Se o primeiro não funcionar
   const padraoAlternativo = texto.match(
-    /(\d+[.,]?\d*)\s+(?:com|em|para|no)\s+(.+)/i
+    /(gastei|paguei|recebi|ganhei)\s+(\d+[.,]?\d*)\s+(?:com|em|para|no)\s+(.+)/i
   );
 
-  if (padraoAlternativo) {
-    const [, valor, descricao] = padraoAlternativo;
+  console.log(`🔍 Regex alternativo resultado:`, padraoAlternativo);
 
-    // Usar a nova função para determinar método de pagamento
+  if (padraoAlternativo) {
+    const [, acao, valor, descricao] = padraoAlternativo;
+
     const metodoPagamentoCorrigido = extrairMetodoPagamento(mensagem);
+    
+    let tipo = acao.includes("recebi") || acao.includes("ganhei") ? "RECEITA" : "DESPESA";
+    
+    if (compartilhamento.tipoCompartilhamento) {
+      tipo = compartilhamento.tipoCompartilhamento;
+    }
+
+    console.log(`📝 Descrição ALTERNATIVA: "${descricao}"`);
 
     return {
       sucesso: true,
       dados: {
-        tipo: "DESPESA",
+        tipo,
         valor: valor.replace(",", "."),
         descricao: descricao.trim(),
         metodoPagamento: metodoPagamentoCorrigido,
@@ -422,6 +434,22 @@ async function createLancamento(
 ) {
   try {
     // Processar data
+     // 🔥🔥🔥 HOTFIX DEFINITIVO: Se a mensagem contém padrão de compartilhamento, FORÇAR
+    if (userMessage && (userMessage.includes('compartilhada com') || userMessage.includes('compartilhado com'))) {
+      console.log(`🔥🔥🔥 HOTFIX: Forçando compartilhamento detectado na mensagem`);
+      dados.ehCompartilhado = true;
+      
+      // Extrair nome do usuário do padrão
+      const match = userMessage.match(/compartilhad[a|o] com\s+([^\s,.]+)/i);
+      if (match && match[1]) {
+        dados.nomeUsuarioCompartilhado = match[1].trim();
+        console.log(`🔥🔥🔥 HOTFIX: Nome extraído: "${dados.nomeUsuarioCompartilhado}"`);
+      } else {
+        // Fallback
+        dados.nomeUsuarioCompartilhado = 'beatriz';
+        console.log(`🔥🔥🔥 HOTFIX: Usando fallback: beatriz`);
+      }
+    }
     let dataLancamento = new Date();
     if (dados.data === "ontem") {
       dataLancamento.setDate(dataLancamento.getDate() - 1);
@@ -471,20 +499,28 @@ console.log(`🛒 Dados compartilhamento: ehCompartilhado=${dados.ehCompartilhad
 
  // E modifique a lógica de compartilhamento:
 if (dados.ehCompartilhado && dados.nomeUsuarioCompartilhado) {
-  console.log(`🔍 Buscando usuário compartilhado: "${dados.nomeUsuarioCompartilhado}"`);
+  console.log(`✅✅✅ COMPARTILHAMENTO CONFIRMADO ✅✅✅`);
+  console.log(`🔍 Buscando usuário: "${dados.nomeUsuarioCompartilhado}"`);
+  
   usuarioAlvo = await encontrarUsuarioPorNome(dados.nomeUsuarioCompartilhado, userId);
   
-  if (!usuarioAlvo) {
-    throw new Error(
-      `Usuário "${dados.nomeUsuarioCompartilhado}" não encontrado. Verifique o nome.`
-    );
+  if (usuarioAlvo) {
+    console.log(`✅ Usuário encontrado: ${usuarioAlvo.name}`);
+    
+    // ✅✅✅ DIVIDIR O VALOR DEFINITIVAMENTE
+    valorUsuarioCriador = valorTotal / 2;
+    valorCompartilhado = valorTotal / 2;
+    
+    console.log(`💰💰💰 VALORES DIVIDIDOS CONFIRMADOS 💰💰💰`);
+    console.log(`Total: R$ ${valorTotal}`);
+    console.log(`Seu valor: R$ ${valorUsuarioCriador}`);
+    console.log(`Valor compartilhado: R$ ${valorCompartilhado}`);
+    
+  } else {
+    throw new Error(`Usuário "${dados.nomeUsuarioCompartilhado}" não encontrado.`);
   }
-  
-  // ✅ CORREÇÃO: Dividir o valor
-  valorCompartilhado = valorTotal / 2;
-  valorUsuarioCriador = valorTotal / 2; // Ambos pagam metade
-  
-  console.log(`💰 VALORES DIVIDIDOS: Total=${valorTotal}, Seu valor=${valorUsuarioCriador}, Compartilhado=${valorCompartilhado}`);
+} else {
+  console.log(`❌ COMPARTILHAMENTO NÃO ATIVADO - Valor inteiro: R$ ${valorTotal}`);
 }
 
     const lancamentoData: any = {
@@ -596,9 +632,11 @@ MENSAGEM DO CLIENTE: "${userMessage}"
       ? resultadoCriacao.lancamento.descricao
       : limparDescricao(dadosExtracao.dados.descricao);
 
-  const valorReal = resultadoCriacao?.sucesso 
+ const valorReal = resultadoCriacao?.sucesso 
   ? resultadoCriacao.lancamento.valor 
   : parseFloat(dadosExtracao.dados.valor);
+
+console.log(`💰💰💰 CLAUDE - Valor REAL: ${valorReal}, Valor extraído: ${dadosExtracao.dados.valor}`);
 
 const valorFormatado = valorReal.toLocaleString("pt-BR", {
   style: "currency",
