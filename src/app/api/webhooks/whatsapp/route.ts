@@ -542,8 +542,28 @@ async function encontrarUsuarioPorNome(nome: string, userIdAtual: string) {
 function limparDescricao(descricao: string): string {
   let descricaoLimpa = descricao;
 
-  // 🔥 PRIMEIRO: Remover partes específicas que atrapalham
+  console.log(`🔧🔧🔧 LIMPANDO DESCRIÇÃO ORIGINAL: "${descricao}"`);
+
+  // 🔥🔥🔥 PRIMEIRO: Remover TODAS as menções de compartilhamento
+  const partesCompartilhamento = [
+    /compartilhada com\s+[^,.]+/i,
+    /compartilhado com\s+[^,.]+/i,
+    /compartilhada\s*/i,
+    /compartilhado\s*/i,
+    /dividir com\s+[^,.]+/i,
+    /meio a meio com\s+[^,.]+/i,
+  ];
+
+  partesCompartilhamento.forEach((parte) => {
+    descricaoLimpa = descricaoLimpa.replace(parte, "");
+  });
+
+  // 🔥🔥🔥 SEGUNDO: Remover partes específicas que atrapalham
   const partesRemover = [
+    /de\s+despesa\s*/i,
+    /de\s+receita\s*/i,
+    /foi\s*$/i,
+    /,\s*$/i,
     /reais\s+/i,
     /real\s+/i,
     /r\$\s*/i,
@@ -558,7 +578,11 @@ function limparDescricao(descricao: string): string {
   ];
 
   partesRemover.forEach((parte) => {
+    const antes = descricaoLimpa;
     descricaoLimpa = descricaoLimpa.replace(parte, "");
+    if (antes !== descricaoLimpa) {
+      console.log(`🔧 Removido "${parte}": "${antes}" → "${descricaoLimpa}"`);
+    }
   });
 
   // Depois aplicar as remoções normais
@@ -576,7 +600,11 @@ function limparDescricao(descricao: string): string {
   ];
 
   padroesRemover.forEach((padrao) => {
+    const antes = descricaoLimpa;
     descricaoLimpa = descricaoLimpa.replace(padrao, "");
+    if (antes !== descricaoLimpa) {
+      console.log(`🔧 Removido padrão: "${antes}" → "${descricaoLimpa}"`);
+    }
   });
 
   // Limpeza final
@@ -587,15 +615,21 @@ function limparDescricao(descricao: string): string {
     .replace(/\.\s*$/, "")
     .trim();
 
+  // Se ficou vazia ou muito curta, usar fallback
+  if (!descricaoLimpa || descricaoLimpa.length < 3) {
+    descricaoLimpa = "Transação";
+    console.log(`🔧 Descrição ficou vazia, usando fallback: "${descricaoLimpa}"`);
+  }
+
   // Capitalizar primeira letra
   if (descricaoLimpa.length > 0) {
     descricaoLimpa =
       descricaoLimpa.charAt(0).toUpperCase() + descricaoLimpa.slice(1);
   }
 
-  console.log(`🔧 Descrição limpa: "${descricao}" → "${descricaoLimpa}"`);
+  console.log(`🔧🔧🔧 DESCRIÇÃO FINAL LIMPA: "${descricao}" → "${descricaoLimpa}"`);
 
-  return descricaoLimpa || "Transação";
+  return descricaoLimpa;
 }
 
 // Função para a IA escolher a melhor categoria
@@ -665,41 +699,78 @@ RESPOSTA (apenas o nome da categoria):`;
 
 // Adicione estas funções ANTES da função extrairDadosLancamento
 
+// ATUALIZE a função extrairMetodoPagamento:
 function extrairMetodoPagamento(
   texto: string,
   ehParcelado: boolean = false
 ): string {
   const textoLower = texto.toLowerCase();
 
-  console.log(`🔍 ANALISANDO MÉTODO PAGAMENTO: "${textoLower}"`);
+  console.log(`🔍🔍🔍 ANALISANDO MÉTODO PAGAMENTO: "${textoLower}"`);
   console.log(`🔍 É PARCELADO?: ${ehParcelado}`);
 
-  // 🔥 REGRA PRINCIPAL: Se for parcelado, SEMPRE é crédito
+  // 🔥 REGRA 1: Se for parcelado, SEMPRE é crédito
   if (ehParcelado) {
     console.log(`✅ PARCELAMENTO DETECTADO - FORÇANDO CRÉDITO`);
     return "CREDITO";
   }
 
-  // Lógica normal para compras à vista
-  if (textoLower.includes("débito") || textoLower.includes("debito")) {
-    return "DEBITO";
-  } else if (textoLower.includes("crédito") || textoLower.includes("credito")) {
+  // 🔥 REGRA 2: Verificar menções EXPLÍCITAS primeiro
+  if (textoLower.includes("crédito") || textoLower.includes("credito")) {
+    console.log(`✅ MENÇÃO EXPLÍCITA A CRÉDITO DETECTADA`);
     return "CREDITO";
-  } else if (textoLower.includes("pix")) {
+  }
+
+  if (textoLower.includes("débito") || textoLower.includes("debito")) {
+    console.log(`✅ MENÇÃO EXPLÍCITA A DÉBITO DETECTADA`);
+    return "DEBITO";
+  }
+
+  // 🔥 REGRA 3: Se mencionar "cartão" sem especificar, verificar contexto
+  if (textoLower.includes("cartão") || textoLower.includes("cartao")) {
+    // Se for uma compra parcelada ou mencionar "fatura", é crédito
+    if (
+      textoLower.includes("parcela") ||
+      textoLower.includes("vezes") ||
+      textoLower.includes("fatura") ||
+      textoLower.includes("meses")
+    ) {
+      console.log(`✅ CONTEXTO DE CARTÃO COM PARCELAMENTO - CRÉDITO`);
+      return "CREDITO";
+    }
+    
+    // Se mencionar compras típicas de crédito
+    const comprasCredito = [
+      "ecommerce", "online", "internet", "app", "aplicativo", 
+      "amazon", "mercado livre", "shopee", "aliexpress"
+    ];
+    
+    if (comprasCredito.some(palavra => textoLower.includes(palavra))) {
+      console.log(`✅ COMPRA ONLINE TÍPICA DE CRÉDITO DETECTADA`);
+      return "CREDITO";
+    }
+    
+    // Default para débito se não houver indicações de crédito
+    console.log(`✅ CARTÃO MENCIONADO SEM INDICAÇÃO DE CRÉDITO - DÉBITO`);
+    return "DEBITO";
+  }
+
+  // 🔥 REGRA 4: Outros métodos
+  if (textoLower.includes("pix")) {
     return "PIX";
   } else if (
     textoLower.includes("transferência") ||
     textoLower.includes("transferencia")
   ) {
     return "TRANSFERENCIA";
+  } else if (textoLower.includes("dinheiro") || textoLower.includes("efetivo")) {
+    return "DINHEIRO";
   }
 
-  // Default para débito se não especificado mas mencionar cartão (apenas para à vista)
-  if (textoLower.includes("cartão") || textoLower.includes("cartao")) {
-    return "DEBITO";
-  }
-
-  return "PIX"; // fallback
+  // 🔥 REGRA 5: Default mais inteligente
+  // Se não mencionou método específico, usar PIX como fallback
+  console.log(`🔍 NENHUM MÉTODO ESPECÍFICO DETECTADO - USANDO PIX COMO FALLBACK`);
+  return "PIX";
 }
 
 // Função para identificar cartão específico
