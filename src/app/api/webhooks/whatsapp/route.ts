@@ -130,7 +130,7 @@ function detectarCompartilhamento(mensagem: string): {
   };
 }
 
-// Adicione esta função para detectar parcelamento
+// SUBSTITUA a função detectarParcelamento por ESTA:
 function detectarParcelamento(mensagem: string): {
   ehParcelado: boolean;
   parcelas?: number;
@@ -138,9 +138,10 @@ function detectarParcelamento(mensagem: string): {
 } {
   const texto = mensagem.toLowerCase();
 
-  console.log(`🔍 Detectando parcelamento: "${texto}"`);
+  console.log(`🔍🔍🔍 DETECÇÃO PARCELAMENTO INICIADA 🔍🔍🔍`);
+  console.log(`🔍 Mensagem: "${texto}"`);
 
-  // Padrões para parcelamento
+  // Padrões mais flexíveis para parcelamento
   const padroesParcelamento = [
     /parcelado em (\d+) vezes/i,
     /parcelado em (\d+)x/i,
@@ -149,11 +150,14 @@ function detectarParcelamento(mensagem: string): {
     /em (\d+) parcelas/i,
     /(\d+) parcelas/i,
     /dividido em (\d+)/i,
+    /compra parcelada.*em (\d+) vezes/i,
+    /parcelado.*em (\d+)x/i,
+    /(\d+) vezes/i, // Padrão mais genérico
+    /(\d+)x/i, // Padrão mais genérico
   ];
 
   for (const padrao of padroesParcelamento) {
     const match = texto.match(padrao);
-    console.log(`🔍 Padrão ${padrao}:`, match);
     if (match && match[1]) {
       const parcelas = parseInt(match[1]);
       if (parcelas > 1) {
@@ -162,7 +166,27 @@ function detectarParcelamento(mensagem: string): {
           parcelas: parcelas,
           tipoParcelamento: "PARCELADO",
         };
-        console.log(`✅✅✅ PARCELAMENTO DETECTADO:`, resultado);
+        console.log(`✅✅✅ PARCELAMENTO DETECTADO (${padrao}):`, resultado);
+        return resultado;
+      }
+    }
+  }
+
+  // 🔥 HOTFIX: Verificar se tem "parcelada" e algum número na mensagem
+  if (texto.includes("parcelada") || texto.includes("parcelado")) {
+    // Procurar por qualquer número na mensagem
+    const numeros = texto.match(/\d+/g);
+    if (numeros && numeros.length > 0) {
+      // Pegar o maior número (provavelmente o número de parcelas)
+      const maiorNumero = Math.max(...numeros.map((n) => parseInt(n)));
+      if (maiorNumero > 1 && maiorNumero <= 24) {
+        // Limite razoável de parcelas
+        const resultado = {
+          ehParcelado: true,
+          parcelas: maiorNumero,
+          tipoParcelamento: "PARCELADO",
+        };
+        console.log(`✅✅✅ PARCELAMENTO DETECTADO (HOTFIX):`, resultado);
         return resultado;
       }
     }
@@ -210,14 +234,34 @@ async function encontrarUsuarioPorNome(nome: string, userIdAtual: string) {
     return null;
   }
 }
-// Adicione esta função para limpar a descrição
-function limparDescricao(descricao: string): string {
-  const texto = descricao.toLowerCase();
 
-  // Padrões para remover (partes após certas preposições)
+// ATUALIZE a função limparDescricao para ser mais inteligente:
+function limparDescricao(descricao: string): string {
+  let descricaoLimpa = descricao;
+
+  // 🔥 PRIMEIRO: Remover partes específicas que atrapalham
+  const partesRemover = [
+    /reais\s+/i,
+    /real\s+/i,
+    /r\$\s*/i,
+    /\s+no\s+cartão.*$/i,
+    /\s+cartão.*$/i,
+    /\s+parcelado.*$/i,
+    /\s+parcelada.*$/i,
+    /\s+em\s+\d+\s+vezes.*$/i,
+    /\s+compra.*$/i,
+    /\s+débito.*$/i,
+    /\s+crédito.*$/i,
+  ];
+
+  partesRemover.forEach((parte) => {
+    descricaoLimpa = descricaoLimpa.replace(parte, "");
+  });
+
+  // Depois aplicar as remoções normais
   const padroesRemover = [
     /(?:\s+no\s+cartão\s+.+)$/i,
-    /(?:\s+no\s+cartão\s+.+)$/i, // com acento
+    /(?:\s+no\s+cartão\s+.+)$/i,
     /(?:\s+com\s+cartão\s+.+)$/i,
     /(?:\s+no\s+de\s+.+)$/i,
     /(?:\s+no\s+crédito\s+.+)$/i,
@@ -228,47 +272,16 @@ function limparDescricao(descricao: string): string {
     /(?:\s+com\s+pix.*)$/i,
   ];
 
-  let descricaoLimpa = descricao;
-
-  // Aplicar padrões de remoção
   padroesRemover.forEach((padrao) => {
     descricaoLimpa = descricaoLimpa.replace(padrao, "");
   });
 
-  // Remover palavras soltas de métodos de pagamento
-  const palavrasRemover = [
-    "cartão",
-    "cartao",
-    "débito",
-    "debito",
-    "crédito",
-    "credito",
-    "pix",
-    "transferencia",
-    "transferência",
-    "dinheiro",
-    "no",
-    "de",
-    "nubank",
-    "itau",
-    "bradesco",
-    "santander",
-    "inter",
-    "c6",
-    "bb",
-  ];
-
-  palavrasRemover.forEach((palavra) => {
-    const regex = new RegExp(`\\s*\\b${palavra}\\b\\s*`, "gi");
-    descricaoLimpa = descricaoLimpa.replace(regex, " ");
-  });
-
-  // Limpar espaços extras, pontuação estranha e capitalizar
+  // Limpeza final
   descricaoLimpa = descricaoLimpa
     .replace(/\s+/g, " ")
     .replace(/^\s+|\s+$/g, "")
-    .replace(/,\s*$/, "") // Remove vírgula no final
-    .replace(/\.\s*$/, "") // Remove ponto no final
+    .replace(/,\s*$/, "")
+    .replace(/\.\s*$/, "")
     .trim();
 
   // Capitalizar primeira letra
@@ -277,7 +290,9 @@ function limparDescricao(descricao: string): string {
       descricaoLimpa.charAt(0).toUpperCase() + descricaoLimpa.slice(1);
   }
 
-  return descricaoLimpa || "Transação"; // Fallback se ficar vazia
+  console.log(`🔧 Descrição limpa: "${descricao}" → "${descricaoLimpa}"`);
+
+  return descricaoLimpa || "Transação";
 }
 
 // Função para a IA escolher a melhor categoria
@@ -432,22 +447,21 @@ async function identificarCartao(texto: string, userId: string) {
   return null;
 }
 
-// SUBSTITUA a função extrairDadosLancamento por ESTA:
+// SUBSTITUA a função extrairDadosLancamento por ESTA VERSÃO MELHORADA:
 function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
   const texto = mensagem.toLowerCase().trim();
 
   console.log(`🔍 Mensagem original: "${mensagem}"`);
 
-  // Primeiro detectar se é compartilhado
+  // Primeiro detectar se é compartilhado E parcelamento
   const compartilhamento = detectarCompartilhamento(mensagem);
-  // 🔥 AGORA DETECTAR PARCELAMENTO TAMBÉM
   const parcelamento = detectarParcelamento(mensagem);
 
   console.log(`🔍 Detecções:`, { compartilhamento, parcelamento });
 
-  // Regex principal (mantenha o atual)
+  // 🔥 CORREÇÃO: Regex muito mais flexível
   const padraoPrincipal = texto.match(
-    /(gastei|paguei|recebi|ganhei)\s+(\d+[.,]?\d*)\s+com\s+(.+?)(?=\s+(?:no\s+cartão|n0\s+cartão|cartão|pix|débito|crédito|debito|credito|despesa|receita|compartilhado|parcelado|$))/i
+    /(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+(?:em|com|para|de|no)\s+([^0-9]+?)(?=\s+(?:no\s+cartão|cartão|nubank|itau|bradesco|santander|inter|c6|bb|pix|débito|crédito|debito|credito|despesa|receita|compartilhado|parcelado|parcelada|vezes|parcelas|$))/i
   );
 
   console.log(`🔍 Regex principal resultado:`, padraoPrincipal);
@@ -478,7 +492,6 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
         data: "hoje",
         ehCompartilhado: compartilhamento.ehCompartilhado,
         nomeUsuarioCompartilhado: compartilhamento.nomeUsuario,
-        // 🔥 ADICIONAR DADOS DE PARCELAMENTO
         ehParcelado: parcelamento.ehParcelado,
         parcelas: parcelamento.parcelas,
         tipoParcelamento: parcelamento.tipoParcelamento,
@@ -486,9 +499,9 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
     };
   }
 
-  // 🔥 PADRÃO ALTERNATIVO: Se o primeiro não funcionar
+  // 🔥 PADRÃO ALTERNATIVO MAIS FLEXÍVEL
   const padraoAlternativo = texto.match(
-    /(gastei|paguei|recebi|ganhei)\s+(\d+[.,]?\d*)\s+(?:com|em|para|no)\s+(.+)/i
+    /(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+(?:em|com|para|de|no)\s+(.+)/i
   );
 
   console.log(`🔍 Regex alternativo resultado:`, padraoAlternativo);
@@ -519,6 +532,9 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
         data: "hoje",
         ehCompartilhado: compartilhamento.ehCompartilhado,
         nomeUsuarioCompartilhado: compartilhamento.nomeUsuario,
+        ehParcelado: parcelamento.ehParcelado,
+        parcelas: parcelamento.parcelas,
+        tipoParcelamento: parcelamento.tipoParcelamento,
       },
     };
   }
@@ -1082,7 +1098,28 @@ export async function POST(request: NextRequest) {
                 "Nenhuma categoria encontrada. Crie categorias primeiro."
               );
             }
-
+            // 🔥 HOTFIX: Se não detectou parcelamento mas a mensagem tem "parcelada" e "vezes"
+            const msgLower = userMessage.toLowerCase();
+            if (
+              !dadosExtracao.dados.ehParcelado &&
+              (msgLower.includes("parcelada") ||
+                msgLower.includes("parcelado")) &&
+              msgLower.includes("vezes")
+            ) {
+              // Tentar extrair número de parcelas manualmente
+              const numeros = msgLower.match(/\d+/g);
+              if (numeros && numeros.length > 0) {
+                const parcelas = parseInt(numeros[0]);
+                if (parcelas > 1) {
+                  console.log(
+                    `🔥 HOTFIX: Forçando parcelamento em ${parcelas}x`
+                  );
+                  dadosExtracao.dados.ehParcelado = true;
+                  dadosExtracao.dados.parcelas = parcelas;
+                  dadosExtracao.dados.tipoParcelamento = "PARCELADO";
+                }
+              }
+            }
             // Escolher a melhor categoria com IA
             categoriaEscolhida = await escolherMelhorCategoria(
               dadosExtracao.dados.descricao,
