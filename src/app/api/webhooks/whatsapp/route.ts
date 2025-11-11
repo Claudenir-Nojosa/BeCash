@@ -51,6 +51,294 @@ async function getCategoriasUsuario(userId: string) {
     return [];
   }
 }
+
+// 🔥 NOVA FUNÇÃO: Transcrever áudio com OpenAI
+async function transcreverAudioWhatsApp(audioId: string): Promise<string> {
+  console.log(`🎙️ Iniciando transcrição do áudio ID: ${audioId}`);
+
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("OPENAI_API_KEY não configurada");
+  }
+
+  try {
+    // 1. Baixar o áudio do WhatsApp
+    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+
+    if (!phoneNumberId || !accessToken) {
+      throw new Error("Credenciais do WhatsApp não configuradas");
+    }
+
+    // Buscar URL do áudio
+    const mediaResponse = await fetch(
+      `https://graph.facebook.com/v18.0/${audioId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (!mediaResponse.ok) {
+      const errorData = await mediaResponse.text();
+      console.error("❌ Erro ao buscar URL do áudio:", errorData);
+      throw new Error(`Erro ao buscar mídia: ${mediaResponse.status}`);
+    }
+
+    const mediaData = await mediaResponse.json();
+    const audioUrl = mediaData.url;
+
+    console.log(`🔗 URL do áudio obtida: ${audioUrl}`);
+
+    if (!audioUrl) {
+      throw new Error("URL do áudio não encontrada");
+    }
+
+    // 2. Baixar o arquivo de áudio
+    const audioFileResponse = await fetch(audioUrl, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!audioFileResponse.ok) {
+      throw new Error(`Erro ao baixar áudio: ${audioFileResponse.status}`);
+    }
+
+    // 3. Converter para formato adequado para a OpenAI
+    const audioBuffer = await audioFileResponse.arrayBuffer();
+
+    // Criar blob do áudio
+    const audioBlob = new Blob([audioBuffer], {
+      type: mediaData.mime_type || "audio/ogg",
+    });
+
+    console.log(
+      `📁 Áudio preparado: ${mediaData.mime_type}, ${audioBlob.size} bytes`
+    );
+
+    // 4. Enviar para transcrição na OpenAI
+    const formData = new FormData();
+    formData.append("file", audioBlob, "audio.ogg");
+    formData.append("model", "whisper-1");
+    formData.append("language", "pt"); // Português
+    formData.append("response_format", "json");
+
+    const transcriptionResponse = await fetch(
+      "https://api.openai.com/v1/audio/transcriptions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: formData,
+      }
+    );
+
+    if (!transcriptionResponse.ok) {
+      const errorText = await transcriptionResponse.text();
+      console.error("❌ Erro na transcrição OpenAI:", errorText);
+      throw new Error(`OpenAI API: ${transcriptionResponse.status}`);
+    }
+
+    const transcriptionData = await transcriptionResponse.json();
+    const textoTranscrito = transcriptionData.text?.trim();
+
+    console.log(`✅ Transcrição bem-sucedida: "${textoTranscrito}"`);
+
+    if (!textoTranscrito) {
+      throw new Error("Áudio não pôde ser transcrito ou está vazio");
+    }
+
+    return textoTranscrito;
+  } catch (error) {
+    console.error("💥 Erro completo na transcrição:", error);
+    throw error;
+  }
+}
+
+// 🔥 FUNÇÃO AUXILIAR: Processar mensagem de áudio
+async function processarAudioWhatsApp(audioMessage: any, userPhone: string) {
+  try {
+    console.log(`🎙️ Processando mensagem de áudio de: ${userPhone}`);
+
+    // Transcrever o áudio
+    const audioId = audioMessage.audio?.id;
+    if (!audioId) {
+      throw new Error("ID do áudio não encontrado");
+    }
+
+    const textoTranscrito = await transcreverAudioWhatsApp(audioId);
+
+    console.log(`📝 Áudio transcrito: "${textoTranscrito}"`);
+
+    // Agora processar o texto transcrito como uma mensagem normal
+    return await processarMensagemTexto({
+      type: "text",
+      text: { body: textoTranscrito },
+      from: userPhone,
+      id: audioMessage.id,
+    });
+  } catch (error: any) {
+    console.error("❌ Erro ao processar áudio:", error);
+
+    // Enviar mensagem de erro
+    await sendWhatsAppMessage(
+      userPhone,
+      `❌ Não consegui entender o áudio. Erro: ${error.message}\n\n💡 Tente enviar em texto ou falar mais claramente.`
+    );
+
+    throw error;
+  }
+}
+
+// 🔥 FUNÇÃO PRINCIPAL DE PROCESSAMENTO (extrair da função POST)
+async function processarMensagemTexto(message: any) {
+  const userMessage = message.text?.body;
+  const userPhone = message.from;
+  const messageId = message.id;
+
+  console.log("👤 Mensagem de:", userPhone);
+  console.log("💬 Texto:", userMessage);
+  console.log("🆔 Message ID:", messageId);
+
+  // 🔥 DEDUPLICAÇÃO DE MENSAGENS
+  if (messageId) {
+    if (!global.messageCache) {
+      global.messageCache = new Map();
+    }
+
+    const cacheKey = `whatsapp_msg_${messageId}`;
+    if (global.messageCache.has(cacheKey)) {
+      console.log(
+        `🔄 Mensagem ${messageId} já processada - ignorando duplicata`
+      );
+      return { status: "duplicated" };
+    }
+
+    // Adicionar ao cache (expira em 30 segundos)
+    global.messageCache.set(cacheKey, true);
+    setTimeout(() => {
+      global.messageCache?.delete(cacheKey);
+    }, 30000);
+  }
+
+  if (userMessage && userPhone) {
+    // 1. Autenticar usuário
+    const session = await getApiAuth();
+    if (!session) {
+      await sendWhatsAppMessage(
+        userPhone,
+        "🔐 Sistema em configuração. Em breve poderei criar seus lançamentos!"
+      );
+      return { status: "no_session" };
+    }
+
+    const userId = session.user.id;
+
+    // 2. Extrair dados do lançamento
+    const dadosExtracao = extrairDadosLancamento(userMessage);
+    console.log("📊 Dados extraídos:", dadosExtracao);
+
+    // 3. Buscar categorias do usuário e escolher a melhor
+    let categoriaEscolhida = null;
+    let categoriasUsuario: any[] = [];
+    let resultadoCriacao = null;
+
+    if (dadosExtracao.sucesso) {
+      try {
+        // Buscar categorias reais do usuário
+        categoriasUsuario = await getCategoriasUsuario(userId);
+        console.log("🏷️ Categorias do usuário:", categoriasUsuario);
+
+        if (categoriasUsuario.length === 0) {
+          throw new Error(
+            "Nenhuma categoria encontrada. Crie categorias primeiro."
+          );
+        }
+
+        // Escolher a melhor categoria com IA
+        categoriaEscolhida = await escolherMelhorCategoria(
+          dadosExtracao.dados.descricao,
+          categoriasUsuario,
+          dadosExtracao.dados.tipo
+        );
+
+        console.log("🎯 Categoria escolhida:", categoriaEscolhida?.nome);
+
+        if (!categoriaEscolhida) {
+          throw new Error(
+            `Nenhuma categoria do tipo ${dadosExtracao.dados.tipo} encontrada.`
+          );
+        }
+
+        const resultadoCreate = await createLancamento(
+          userId,
+          dadosExtracao.dados,
+          categoriaEscolhida,
+          userMessage
+        );
+
+        resultadoCriacao = {
+          sucesso: true,
+          lancamento: resultadoCreate.lancamento,
+          cartaoEncontrado: resultadoCreate.cartaoEncontrado,
+          usuarioAlvo: resultadoCreate.usuarioAlvo,
+          valorCompartilhado: resultadoCreate.valorCompartilhado,
+          valorUsuarioCriador: resultadoCreate.valorUsuarioCriador,
+        };
+
+        console.log("✅ Lançamento criado:", resultadoCreate.lancamento);
+      } catch (error: any) {
+        resultadoCriacao = { sucesso: false, erro: error.message };
+        console.error("❌ Erro ao criar lançamento:", error);
+      }
+    }
+
+    // 4. Processar com Claude
+    let claudeResponse;
+    try {
+      claudeResponse = await callClaudeAPICriacao(
+        userMessage,
+        dadosExtracao,
+        categoriasUsuario,
+        categoriaEscolhida,
+        resultadoCriacao
+      );
+      console.log("🤖 Resposta do Claude:", claudeResponse);
+    } catch (error) {
+      console.error("❌ Erro no Claude:", error);
+      // Resposta fallback
+      if (dadosExtracao.sucesso && resultadoCriacao?.sucesso) {
+        claudeResponse = `✅ Lançamento criado! ${dadosExtracao.dados.descricao} - R$ ${dadosExtracao.dados.valor} (Categoria: ${categoriaEscolhida?.nome})`;
+      } else if (dadosExtracao.sucesso) {
+        claudeResponse = `⚠️ Erro: ${resultadoCriacao?.erro || "Não foi possível criar o lançamento"}`;
+      } else {
+        claudeResponse = `❌ ${dadosExtracao.erro}\n\n💡 Exemplo: "Gastei 50 no almoço"`;
+      }
+    }
+
+    // 5. Enviar resposta
+    try {
+      console.log("📤 Enviando resposta...");
+      await sendWhatsAppMessage(userPhone, claudeResponse);
+      console.log("🎉 Resposta enviada!");
+    } catch (whatsappError) {
+      console.error("💥 Falha no envio:", whatsappError);
+    }
+  }
+
+  return { status: "processed" };
+}
+
+// [MANTENHA TODAS AS OUTRAS FUNÇÕES EXISTENTES AQUI]
+// detectarCompartilhamento, detectarParcelamento, encontrarUsuarioPorNome,
+// limparDescricao, escolherMelhorCategoria, extrairMetodoPagamento,
+// identificarCartao, extrairDadosLancamento, createLancamento,
+// callClaudeAPICriacao, sendWhatsAppMessage
+
+// ... (cole aqui todas as outras funções que já existiam)
+
 // SUBSTITUA a função detectarCompartilhamento por ESTA:
 function detectarCompartilhamento(mensagem: string): {
   ehCompartilhado: boolean;
@@ -1087,145 +1375,32 @@ async function sendWhatsAppMessage(to: string, message: string) {
   }
 }
 
+// 🔥 ATUALIZE A FUNÇÃO POST PRINCIPAL
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const message = body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
 
-    if (message && message.type === "text") {
-      const userMessage = message.text?.body;
-      const userPhone = message.from;
-      const messageId = message.id;
+    if (!message) {
+      return NextResponse.json({ status: "received" });
+    }
 
-      console.log("👤 Mensagem de:", userPhone);
-      console.log("💬 Texto:", userMessage);
-      console.log("🆔 Message ID:", messageId);
+    const userPhone = message.from;
 
-      // 🔥 DEDUPLICAÇÃO DE MENSAGENS
-      if (messageId) {
-        if (!global.messageCache) {
-          global.messageCache = new Map();
-        }
+    console.log("📱 Tipo de mensagem recebida:", message.type);
+    console.log("👤 De:", userPhone);
 
-        const cacheKey = `whatsapp_msg_${messageId}`;
-        if (global.messageCache.has(cacheKey)) {
-          console.log(
-            `🔄 Mensagem ${messageId} já processada - ignorando duplicata`
-          );
-          return NextResponse.json({ status: "received" });
-        }
-
-        // Adicionar ao cache (expira em 30 segundos)
-        global.messageCache.set(cacheKey, true);
-        setTimeout(() => {
-          global.messageCache?.delete(cacheKey);
-        }, 30000);
-      }
-
-      if (userMessage && userPhone) {
-        // 1. Autenticar usuário
-        const session = await getApiAuth();
-        if (!session) {
-          await sendWhatsAppMessage(
-            userPhone,
-            "🔐 Sistema em configuração. Em breve poderei criar seus lançamentos!"
-          );
-          return NextResponse.json({ status: "received" });
-        }
-
-        const userId = session.user.id;
-
-        // 2. Extrair dados do lançamento
-        const dadosExtracao = extrairDadosLancamento(userMessage);
-        console.log("📊 Dados extraídos:", dadosExtracao);
-
-        // 3. Buscar categorias do usuário e escolher a melhor
-        let categoriaEscolhida = null;
-        let categoriasUsuario: any[] = [];
-        let resultadoCriacao = null;
-
-        if (dadosExtracao.sucesso) {
-          try {
-            // Buscar categorias reais do usuário
-            categoriasUsuario = await getCategoriasUsuario(userId);
-            console.log("🏷️ Categorias do usuário:", categoriasUsuario);
-
-            if (categoriasUsuario.length === 0) {
-              throw new Error(
-                "Nenhuma categoria encontrada. Crie categorias primeiro."
-              );
-            }
-
-            // Escolher a melhor categoria com IA
-            categoriaEscolhida = await escolherMelhorCategoria(
-              dadosExtracao.dados.descricao,
-              categoriasUsuario,
-              dadosExtracao.dados.tipo
-            );
-
-            console.log("🎯 Categoria escolhida:", categoriaEscolhida?.nome);
-
-            if (!categoriaEscolhida) {
-              throw new Error(
-                `Nenhuma categoria do tipo ${dadosExtracao.dados.tipo} encontrada.`
-              );
-            }
-
-            const resultadoCreate = await createLancamento(
-              userId,
-              dadosExtracao.dados,
-              categoriaEscolhida,
-              userMessage
-            );
-
-            resultadoCriacao = {
-              sucesso: true,
-              lancamento: resultadoCreate.lancamento,
-              cartaoEncontrado: resultadoCreate.cartaoEncontrado,
-              usuarioAlvo: resultadoCreate.usuarioAlvo,
-              valorCompartilhado: resultadoCreate.valorCompartilhado,
-              valorUsuarioCriador: resultadoCreate.valorUsuarioCriador,
-            };
-
-            console.log("✅ Lançamento criado:", resultadoCreate.lancamento);
-          } catch (error: any) {
-            resultadoCriacao = { sucesso: false, erro: error.message };
-            console.error("❌ Erro ao criar lançamento:", error);
-          }
-        }
-
-        // 4. Processar com Claude
-        let claudeResponse;
-        try {
-          claudeResponse = await callClaudeAPICriacao(
-            userMessage,
-            dadosExtracao,
-            categoriasUsuario,
-            categoriaEscolhida,
-            resultadoCriacao
-          );
-          console.log("🤖 Resposta do Claude:", claudeResponse);
-        } catch (error) {
-          console.error("❌ Erro no Claude:", error);
-          // Resposta fallback
-          if (dadosExtracao.sucesso && resultadoCriacao?.sucesso) {
-            claudeResponse = `✅ Lançamento criado! ${dadosExtracao.dados.descricao} - R$ ${dadosExtracao.dados.valor} (Categoria: ${categoriaEscolhida?.nome})`;
-          } else if (dadosExtracao.sucesso) {
-            claudeResponse = `⚠️ Erro: ${resultadoCriacao?.erro || "Não foi possível criar o lançamento"}`;
-          } else {
-            claudeResponse = `❌ ${dadosExtracao.erro}\n\n💡 Exemplo: "Gastei 50 no almoço"`;
-          }
-        }
-
-        // 5. Enviar resposta
-        try {
-          console.log("📤 Enviando resposta...");
-          await sendWhatsAppMessage(userPhone, claudeResponse);
-          console.log("🎉 Resposta enviada!");
-        } catch (whatsappError) {
-          console.error("💥 Falha no envio:", whatsappError);
-        }
-      }
+    // 🔥 PROCESSAR DIFERENTES TIPOS DE MENSAGEM
+    if (message.type === "text") {
+      await processarMensagemTexto(message);
+    } else if (message.type === "audio") {
+      await processarAudioWhatsApp(message, userPhone);
+    } else {
+      console.log(`❌ Tipo de mensagem não suportado: ${message.type}`);
+      await sendWhatsAppMessage(
+        userPhone,
+        "❌ Ainda não consigo processar este tipo de mídia.\n\n💡 Envie apenas mensagens de texto ou áudio com seus lançamentos."
+      );
     }
 
     return NextResponse.json({ status: "received" });
