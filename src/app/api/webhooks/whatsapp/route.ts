@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { FaturaService } from "@/lib/faturaService";
 
+declare global {
+  var messageCache: Map<string, boolean> | undefined;
+}
+
 type DadosLancamento = {
   tipo: string;
   valor: string;
@@ -532,7 +536,10 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
       descricao = melhorMatch[2];
     }
 
-   const metodoPagamentoCorrigido = extrairMetodoPagamento(mensagem, parcelamento.ehParcelado);
+    const metodoPagamentoCorrigido = extrairMetodoPagamento(
+      mensagem,
+      parcelamento.ehParcelado
+    );
 
     let tipo =
       acao.includes("recebi") || acao.includes("ganhei")
@@ -1088,9 +1095,32 @@ export async function POST(request: NextRequest) {
     if (message && message.type === "text") {
       const userMessage = message.text?.body;
       const userPhone = message.from;
+      const messageId = message.id;
 
       console.log("👤 Mensagem de:", userPhone);
       console.log("💬 Texto:", userMessage);
+      console.log("🆔 Message ID:", messageId);
+
+      // 🔥 DEDUPLICAÇÃO DE MENSAGENS
+      if (messageId) {
+        if (!global.messageCache) {
+          global.messageCache = new Map();
+        }
+
+        const cacheKey = `whatsapp_msg_${messageId}`;
+        if (global.messageCache.has(cacheKey)) {
+          console.log(
+            `🔄 Mensagem ${messageId} já processada - ignorando duplicata`
+          );
+          return NextResponse.json({ status: "received" });
+        }
+
+        // Adicionar ao cache (expira em 30 segundos)
+        global.messageCache.set(cacheKey, true);
+        setTimeout(() => {
+          global.messageCache?.delete(cacheKey);
+        }, 30000);
+      }
 
       if (userMessage && userPhone) {
         // 1. Autenticar usuário
@@ -1125,52 +1155,7 @@ export async function POST(request: NextRequest) {
                 "Nenhuma categoria encontrada. Crie categorias primeiro."
               );
             }
-            // 🔥🔥🔥 HOTFIX MEGA: Se não detectou parcelamento mas a mensagem claramente tem
-            if (!dadosExtracao.dados.ehParcelado) {
-              const msgLower = userMessage.toLowerCase();
-              const temParcelamento =
-                msgLower.includes("parcelada") ||
-                msgLower.includes("parcelado") ||
-                msgLower.includes("vezes");
 
-              if (temParcelamento) {
-                console.log(
-                  `🔥🔥🔥 HOTFIX MEGA: Mensagem tem indícios de parcelamento`
-                );
-
-                // Procurar número de parcelas manualmente
-                const numeros = msgLower.match(/\d+/g);
-                console.log(`🔥 Números encontrados:`, numeros);
-
-                if (numeros && numeros.length >= 2) {
-                  // O primeiro número geralmente é o valor, o segundo pode ser as parcelas
-                  const possiveisParcelas = numeros
-                    .slice(1)
-                    .map((n: any) => parseInt(n));
-                  for (const parcelas of possiveisParcelas) {
-                    if (parcelas > 1 && parcelas <= 24) {
-                      console.log(
-                        `🔥🔥🔥 HOTFIX MEGA: Forçando parcelamento em ${parcelas}x`
-                      );
-                      dadosExtracao.dados.ehParcelado = true;
-                      dadosExtracao.dados.parcelas = parcelas;
-                      dadosExtracao.dados.tipoParcelamento = "PARCELADO";
-                      break;
-                    }
-                  }
-                }
-
-                // Se não encontrou, usar fallback de 2 parcelas
-                if (!dadosExtracao.dados.ehParcelado) {
-                  console.log(
-                    `🔥🔥🔥 HOTFIX MEGA: Usando fallback de 2 parcelas`
-                  );
-                  dadosExtracao.dados.ehParcelado = true;
-                  dadosExtracao.dados.parcelas = 2;
-                  dadosExtracao.dados.tipoParcelamento = "PARCELADO";
-                }
-              }
-            }
             // Escolher a melhor categoria com IA
             categoriaEscolhida = await escolherMelhorCategoria(
               dadosExtracao.dados.descricao,
@@ -1190,7 +1175,7 @@ export async function POST(request: NextRequest) {
               userId,
               dadosExtracao.dados,
               categoriaEscolhida,
-              userMessage // ✅ Adicionar este parâmetro
+              userMessage
             );
 
             resultadoCriacao = {
@@ -1198,8 +1183,8 @@ export async function POST(request: NextRequest) {
               lancamento: resultadoCreate.lancamento,
               cartaoEncontrado: resultadoCreate.cartaoEncontrado,
               usuarioAlvo: resultadoCreate.usuarioAlvo,
-              valorCompartilhado: resultadoCreate.valorCompartilhado, // ✅ Adicionar
-              valorUsuarioCriador: resultadoCreate.valorUsuarioCriador, // ✅ Adicionar
+              valorCompartilhado: resultadoCreate.valorCompartilhado,
+              valorUsuarioCriador: resultadoCreate.valorUsuarioCriador,
             };
 
             console.log("✅ Lançamento criado:", resultadoCreate.lancamento);
