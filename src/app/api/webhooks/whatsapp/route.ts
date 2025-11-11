@@ -573,7 +573,8 @@ DADOS DO LANÇAMENTO:
 // ✅ ✅ ✅ COLOQUE AQUI:
 if (resultadoCriacao?.usuarioAlvo) {
   prompt += `• Compartilhado com: ${resultadoCriacao.usuarioAlvo.name}\n`;
-  prompt += `• Valor compartilhado: R$ ${(parseFloat(dadosExtracao.dados.valor) / 2).toLocaleString('pt-BR')}\n`;
+  prompt += `• Seu valor: R$ ${resultadoCriacao.valorUsuarioCriador.toLocaleString('pt-BR')}\n`;
+  prompt += `• Valor compartilhado: R$ ${resultadoCriacao.valorCompartilhado.toLocaleString('pt-BR')}\n`;
 }
 
 // E depois continua com:
