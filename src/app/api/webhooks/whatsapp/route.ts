@@ -532,7 +532,7 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
       descricao = melhorMatch[2];
     }
 
-    const metodoPagamentoCorrigido = extrairMetodoPagamento(mensagem);
+   const metodoPagamentoCorrigido = extrairMetodoPagamento(mensagem, parcelamento.ehParcelado);
 
     let tipo =
       acao.includes("recebi") || acao.includes("ganhei")
