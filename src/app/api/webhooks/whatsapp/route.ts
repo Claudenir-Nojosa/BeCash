@@ -11,6 +11,9 @@ type DadosLancamento = {
   data: string;
   ehCompartilhado?: boolean;
   nomeUsuarioCompartilhado?: string;
+  ehParcelado?: boolean;
+  parcelas?: number;
+  tipoParcelamento?: string;
 };
 
 type ExtracaoSucesso = {
@@ -125,6 +128,48 @@ function detectarCompartilhamento(mensagem: string): {
     nomeUsuario: "beatriz", // Fallback
     tipoCompartilhamento: "DESPESA",
   };
+}
+
+// Adicione esta função para detectar parcelamento
+function detectarParcelamento(mensagem: string): {
+  ehParcelado: boolean;
+  parcelas?: number;
+  tipoParcelamento?: string;
+} {
+  const texto = mensagem.toLowerCase();
+
+  console.log(`🔍 Detectando parcelamento: "${texto}"`);
+
+  // Padrões para parcelamento
+  const padroesParcelamento = [
+    /parcelado em (\d+) vezes/i,
+    /parcelado em (\d+)x/i,
+    /(\d+) vezes no cartão/i,
+    /(\d+)x no cartão/i,
+    /em (\d+) parcelas/i,
+    /(\d+) parcelas/i,
+    /dividido em (\d+)/i,
+  ];
+
+  for (const padrao of padroesParcelamento) {
+    const match = texto.match(padrao);
+    console.log(`🔍 Padrão ${padrao}:`, match);
+    if (match && match[1]) {
+      const parcelas = parseInt(match[1]);
+      if (parcelas > 1) {
+        const resultado = {
+          ehParcelado: true,
+          parcelas: parcelas,
+          tipoParcelamento: "PARCELADO",
+        };
+        console.log(`✅✅✅ PARCELAMENTO DETECTADO:`, resultado);
+        return resultado;
+      }
+    }
+  }
+
+  console.log(`❌ Nenhum parcelamento detectado`);
+  return { ehParcelado: false };
 }
 
 // Função para encontrar usuário pelo nome
@@ -392,16 +437,17 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
   const texto = mensagem.toLowerCase().trim();
 
   console.log(`🔍 Mensagem original: "${mensagem}"`);
-  console.log(`🔍 Mensagem lower: "${texto}"`);
 
-  // Primeiro detectar se é compartilhado (ANTES do regex principal)
+  // Primeiro detectar se é compartilhado
   const compartilhamento = detectarCompartilhamento(mensagem);
-  console.log(`🔍 Detecção compartilhamento:`, compartilhamento);
+  // 🔥 AGORA DETECTAR PARCELAMENTO TAMBÉM
+  const parcelamento = detectarParcelamento(mensagem);
 
-  // 🔥 CORREÇÃO DEFINITIVA: Regex simplificado e eficaz
-  // Padrão: [ação] [valor] com [descrição completa]
+  console.log(`🔍 Detecções:`, { compartilhamento, parcelamento });
+
+  // Regex principal (mantenha o atual)
   const padraoPrincipal = texto.match(
-    /(gastei|paguei|recebi|ganhei)\s+(\d+[.,]?\d*)\s+com\s+(.+?)(?=\s+(?:no\s+cartão|n0\s+cartão|cartão|pix|débito|crédito|debito|credito|despesa|receita|compartilhado|$))/i
+    /(gastei|paguei|recebi|ganhei)\s+(\d+[.,]?\d*)\s+com\s+(.+?)(?=\s+(?:no\s+cartão|n0\s+cartão|cartão|pix|débito|crédito|debito|credito|despesa|receita|compartilhado|parcelado|$))/i
   );
 
   console.log(`🔍 Regex principal resultado:`, padraoPrincipal);
@@ -409,10 +455,8 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
   if (padraoPrincipal) {
     const [, acao, valor, descricao] = padraoPrincipal;
 
-    // Método de pagamento
     const metodoPagamentoCorrigido = extrairMetodoPagamento(mensagem);
 
-    // Tipo
     let tipo =
       acao.includes("recebi") || acao.includes("ganhei")
         ? "RECEITA"
@@ -434,6 +478,10 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
         data: "hoje",
         ehCompartilhado: compartilhamento.ehCompartilhado,
         nomeUsuarioCompartilhado: compartilhamento.nomeUsuario,
+        // 🔥 ADICIONAR DADOS DE PARCELAMENTO
+        ehParcelado: parcelamento.ehParcelado,
+        parcelas: parcelamento.parcelas,
+        tipoParcelamento: parcelamento.tipoParcelamento,
       },
     };
   }
@@ -492,21 +540,16 @@ async function createLancamento(
     console.log(`🔥🔥🔥 HOTFIX GLOBAL INICIADO 🔥🔥🔥`);
     console.log(`📨 Mensagem recebida: "${userMessage}"`);
 
-    // 🔥 HOTFIX DEFINITIVO: Se a mensagem tem "compartilhada" e "beatriz", FORÇAR
+    // HOTFIX compartilhamento
     const msgLower = userMessage?.toLowerCase() || "";
     if (msgLower.includes("compartilhada") && msgLower.includes("beatriz")) {
-      console.log(
-        `🔥🔥🔥 HOTFIX: COMPARTILHAMENTO DETECTADO - ATIVANDO FORÇADO`
-      );
       dados.ehCompartilhado = true;
       dados.nomeUsuarioCompartilhado = "beatriz";
     }
 
-    // 🔥 CORREÇÃO DA DATA: Usar horário de Brasília (UTC-3)
+    // 🔥 CORREÇÃO DA DATA
     let dataLancamento = new Date();
-
-    // Ajustar para horário de Brasília (UTC-3)
-    const offsetBrasilia = -3 * 60; // UTC-3 em minutos
+    const offsetBrasilia = -3 * 60;
     dataLancamento.setMinutes(
       dataLancamento.getMinutes() +
         dataLancamento.getTimezoneOffset() +
@@ -528,78 +571,191 @@ async function createLancamento(
       `📅 Data do lançamento (Brasília): ${dataLancamento.toLocaleDateString("pt-BR")}`
     );
 
-    // Limpar e capitalizar a descrição
+    // Limpar descrição
     const descricaoLimpa = limparDescricao(dados.descricao);
 
     let cartaoId = null;
     let cartaoEncontrado = null;
     let usuarioAlvo = null;
 
-    // ✅ CALCULAR VALOR ANTES DE CRIAR O LANÇAMENTO
+    // ✅ CALCULAR VALOR BASE
     const valorTotal = parseFloat(dados.valor);
     let valorUsuarioCriador = valorTotal;
     let valorCompartilhado = 0;
+
     console.log(
-      `🛒 Dados compartilhamento: ehCompartilhado=${dados.ehCompartilhado}, nomeUsuario=${dados.nomeUsuarioCompartilhado}`
+      `🛒 Dados: Compartilhado=${dados.ehCompartilhado}, Parcelado=${dados.ehParcelado}, Parcelas=${dados.parcelas}`
     );
-    // ✅ LÓGICA: Se for crédito, identificar cartão específico
+
+    // ✅ LÓGICA: Se for crédito, identificar cartão
     if (dados.metodoPagamento === "CREDITO") {
-      console.log(`🔍 Identificando cartão para: "${dados.descricao}"`);
-
-      // Primeiro tenta com a descrição
       cartaoEncontrado = await identificarCartao(dados.descricao, userId);
-
-      // Se não encontrou, tenta com a mensagem completa
       if (!cartaoEncontrado && userMessage) {
-        console.log(`🔍 Tentando identificar cartão na mensagem completa...`);
         cartaoEncontrado = await identificarCartao(userMessage, userId);
       }
-
       if (cartaoEncontrado) {
         cartaoId = cartaoEncontrado.id;
-        console.log(`✅ Cartão selecionado: ${cartaoEncontrado.nome}`);
       } else {
-        throw new Error(
-          "Cartão de crédito mencionado, mas não identificado. Especifique qual cartão (ex: Nubank, Itaú, etc.)"
-        );
+        throw new Error("Cartão de crédito mencionado, mas não identificado.");
       }
     }
 
-    // E modifique a lógica de compartilhamento:
+    // ✅ LÓGICA DE COMPARTILHAMENTO
     if (dados.ehCompartilhado && dados.nomeUsuarioCompartilhado) {
-      console.log(`✅✅✅ COMPARTILHAMENTO CONFIRMADO ✅✅✅`);
-      console.log(`🔍 Buscando usuário: "${dados.nomeUsuarioCompartilhado}"`);
-
       usuarioAlvo = await encontrarUsuarioPorNome(
         dados.nomeUsuarioCompartilhado,
         userId
       );
-
       if (usuarioAlvo) {
-        console.log(`✅ Usuário encontrado: ${usuarioAlvo.name}`);
-
-        // ✅✅✅ DIVIDIR O VALOR DEFINITIVAMENTE
-        valorUsuarioCriador = valorTotal / 2;
         valorCompartilhado = valorTotal / 2;
-
-        console.log(`💰💰💰 VALORES DIVIDIDOS CONFIRMADOS 💰💰💰`);
-        console.log(`Total: R$ ${valorTotal}`);
-        console.log(`Seu valor: R$ ${valorUsuarioCriador}`);
-        console.log(`Valor compartilhado: R$ ${valorCompartilhado}`);
-      } else {
-        throw new Error(
-          `Usuário "${dados.nomeUsuarioCompartilhado}" não encontrado.`
+        valorUsuarioCriador = valorTotal / 2;
+        console.log(
+          `💰 VALORES DIVIDIDOS: Total=${valorTotal}, Seu=${valorUsuarioCriador}, Compartilhado=${valorCompartilhado}`
         );
       }
-    } else {
-      console.log(
-        `❌ COMPARTILHAMENTO NÃO ATIVADO - Valor inteiro: R$ ${valorTotal}`
-      );
     }
 
+    // 🔥🔥🔥 AGORA A LÓGICA DE PARCELAMENTO
+    if (dados.ehParcelado && dados.parcelas && dados.parcelas > 1) {
+      console.log(`🔄 CRIANDO PARCELAMENTO: ${dados.parcelas} parcelas`);
+
+      const valorParcela = valorUsuarioCriador / dados.parcelas;
+      const valorParcelaCompartilhada = valorCompartilhado / dados.parcelas;
+
+      console.log(
+        `💰 VALOR POR PARCELA: Sua parte=${valorParcela}, Compartilhada=${valorParcelaCompartilhada}`
+      );
+
+      // Criar primeira parcela (lançamento principal)
+      const lancamentoPrincipalData: any = {
+        descricao: `${descricaoLimpa} (1/${dados.parcelas})`,
+        valor: valorParcela,
+        tipo: dados.tipo.toUpperCase(),
+        metodoPagamento: dados.metodoPagamento,
+        data: dataLancamento,
+        categoriaId: categoriaEscolhida.id,
+        userId: userId,
+        pago: false, // Parcelas de crédito nunca são pagas inicialmente
+        tipoParcelamento: "PARCELADO",
+        parcelasTotal: dados.parcelas,
+        parcelaAtual: 1,
+        recorrente: false,
+        observacoes:
+          `Criado via WhatsApp - Categoria: ${categoriaEscolhida.nome}` +
+          (cartaoEncontrado ? ` - Cartão: ${cartaoEncontrado.nome}` : "") +
+          (usuarioAlvo ? ` - Compartilhado com: ${usuarioAlvo.name}` : "") +
+          ` - Parcelado em ${dados.parcelas}x`,
+      };
+
+      if (dados.metodoPagamento === "CREDITO" && cartaoId) {
+        lancamentoPrincipalData.cartaoId = cartaoId;
+      }
+
+      const lancamentoPrincipal = await db.lancamento.create({
+        data: lancamentoPrincipalData,
+        include: { categoria: true, cartao: true },
+      });
+
+      // ✅ Criar compartilhamento para a primeira parcela se necessário
+      if (
+        dados.ehCompartilhado &&
+        usuarioAlvo &&
+        valorParcelaCompartilhada > 0
+      ) {
+        await db.lancamentoCompartilhado.create({
+          data: {
+            lancamentoId: lancamentoPrincipal.id,
+            usuarioCriadorId: userId,
+            usuarioAlvoId: usuarioAlvo.id,
+            valorCompartilhado: valorParcelaCompartilhada,
+            status: "PENDENTE",
+          },
+        });
+      }
+
+      // ✅ Associar primeira parcela à fatura
+      if (dados.metodoPagamento === "CREDITO" && cartaoId) {
+        await FaturaService.adicionarLancamentoAFatura(lancamentoPrincipal.id);
+      }
+
+      // 🔥 CRIAR PARCELAS FUTURAS
+      const parcelasFuturas = [];
+      for (let i = 2; i <= dados.parcelas; i++) {
+        const dataParcela = new Date(dataLancamento);
+        dataParcela.setMonth(dataParcela.getMonth() + (i - 1));
+
+        const parcelaData = {
+          descricao: `${descricaoLimpa} (${i}/${dados.parcelas})`,
+          valor: valorParcela,
+          tipo: dados.tipo.toUpperCase(),
+          metodoPagamento: dados.metodoPagamento,
+          data: dataParcela,
+          categoriaId: categoriaEscolhida.id,
+          cartaoId: dados.metodoPagamento === "CREDITO" ? cartaoId : null,
+          userId: userId,
+          pago: false,
+          tipoParcelamento: "PARCELADO",
+          parcelasTotal: dados.parcelas,
+          parcelaAtual: i,
+          recorrente: false,
+          lancamentoPaiId: lancamentoPrincipal.id,
+          observacoes: `Parcela ${i} de ${dados.parcelas} - Criado via WhatsApp`,
+        };
+
+        parcelasFuturas.push(parcelaData);
+      }
+
+      // Criar todas as parcelas futuras
+      if (parcelasFuturas.length > 0) {
+        const parcelasCriadas = await db.lancamento.createManyAndReturn({
+          data: parcelasFuturas,
+        });
+
+        // ✅ Associar cada parcela futura à sua fatura e criar compartilhamentos
+        for (const parcela of parcelasCriadas) {
+          if (dados.metodoPagamento === "CREDITO" && cartaoId) {
+            await FaturaService.adicionarLancamentoAFatura(parcela.id);
+          }
+
+          // ✅ Criar compartilhamento para cada parcela futura
+          if (
+            dados.ehCompartilhado &&
+            usuarioAlvo &&
+            valorParcelaCompartilhada > 0
+          ) {
+            await db.lancamentoCompartilhado.create({
+              data: {
+                lancamentoId: parcela.id,
+                usuarioCriadorId: userId,
+                usuarioAlvoId: usuarioAlvo.id,
+                valorCompartilhado: valorParcelaCompartilhada,
+                status: "PENDENTE",
+              },
+            });
+          }
+        }
+      }
+
+      console.log(
+        `✅ PARCELAMENTO CRIADO: ${dados.parcelas} parcelas de R$ ${valorParcela.toFixed(2)}`
+      );
+
+      return {
+        lancamento: lancamentoPrincipal,
+        cartaoEncontrado,
+        usuarioAlvo,
+        valorCompartilhado,
+        valorUsuarioCriador,
+        ehParcelado: true,
+        parcelasTotal: dados.parcelas,
+        valorParcela: valorParcela,
+      };
+    }
+
+    // 🔥 SE NÃO FOR PARCELADO, MANTEM O CÓDIGO ORIGINAL
     const lancamentoData: any = {
       descricao: descricaoLimpa,
-      valor: valorUsuarioCriador, // ✅ AGORA USA O VALOR DIVIDIDO
+      valor: valorUsuarioCriador,
       tipo: dados.tipo.toUpperCase(),
       metodoPagamento: dados.metodoPagamento,
       data: dataLancamento,
@@ -612,20 +768,16 @@ async function createLancamento(
         (usuarioAlvo ? ` - Compartilhado com: ${usuarioAlvo.name}` : ""),
     };
 
-    // ✅ ADICIONAR cartaoId apenas se for crédito e encontrou cartão
     if (dados.metodoPagamento === "CREDITO" && cartaoId) {
       lancamentoData.cartaoId = cartaoId;
     }
 
     const lancamento = await db.lancamento.create({
       data: lancamentoData,
-      include: {
-        categoria: true,
-        cartao: true,
-      },
+      include: { categoria: true, cartao: true },
     });
 
-    // ✅ ✅ ✅ ADICIONE ESTA PARTE: Criar compartilhamento se necessário
+    // ✅ Compartilhamento para lançamento único
     if (dados.ehCompartilhado && usuarioAlvo) {
       await db.lancamentoCompartilhado.create({
         data: {
@@ -636,29 +788,19 @@ async function createLancamento(
           status: "PENDENTE",
         },
       });
-
-      console.log(`✅ Lançamento compartilhado criado com ${usuarioAlvo.name}`);
-      console.log(
-        `💰 Valor total: R$ ${valorTotal}, Seu valor: R$ ${valorUsuarioCriador}, Compartilhado: R$ ${valorCompartilhado}`
-      );
     }
 
     // ✅ Associar à fatura se for crédito
     if (dados.metodoPagamento === "CREDITO" && cartaoId) {
-      try {
-        await FaturaService.adicionarLancamentoAFatura(lancamento.id);
-        console.log(`✅ Lançamento ${lancamento.id} associado à fatura`);
-      } catch (faturaError) {
-        console.error("❌ Erro ao associar à fatura:", faturaError);
-      }
+      await FaturaService.adicionarLancamentoAFatura(lancamento.id);
     }
 
     return {
       lancamento,
       cartaoEncontrado,
       usuarioAlvo,
-      valorCompartilhado, // ✅ Retornar também o valor compartilhado
-      valorUsuarioCriador, // ✅ E o valor do usuário criador
+      valorCompartilhado,
+      valorUsuarioCriador,
     };
   } catch (error) {
     console.error("Erro ao criar lançamento:", error);
@@ -755,7 +897,10 @@ DADOS DO LANÇAMENTO:
       prompt += `• Seu valor: R$ ${resultadoCriacao.valorUsuarioCriador.toLocaleString("pt-BR")}\n`;
       prompt += `• Valor compartilhado: R$ ${resultadoCriacao.valorCompartilhado.toLocaleString("pt-BR")}\n`;
     }
-
+    if (resultadoCriacao?.ehParcelado) {
+      prompt += `• Parcelado: ${resultadoCriacao.parcelasTotal}x\n`;
+      prompt += `• Valor por parcela: R$ ${resultadoCriacao.valorParcela.toLocaleString("pt-BR")}\n`;
+    }
     // E depois continua com:
     if (resultadoCriacao?.cartaoEncontrado) {
       prompt += `• Cartão: ${resultadoCriacao.cartaoEncontrado.nome}\n`;
