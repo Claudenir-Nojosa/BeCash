@@ -9,6 +9,8 @@ type DadosLancamento = {
   descricao: string;
   metodoPagamento: string;
   data: string;
+  ehCompartilhado?: boolean;
+  nomeUsuarioCompartilhado?: string;
 };
 
 type ExtracaoSucesso = {
@@ -42,7 +44,74 @@ async function getCategoriasUsuario(userId: string) {
     return [];
   }
 }
+// Função para detectar se é lançamento compartilhado
+function detectarCompartilhamento(mensagem: string): { 
+  ehCompartilhado: boolean; 
+  nomeUsuario?: string;
+  tipoCompartilhamento?: string;
+} {
+  const texto = mensagem.toLowerCase();
+  
+  const padroesCompartilhamento = [
+    /compartilhado com (.+)/i,
+    /compartilhar com (.+)/i,
+    /dividir com (.+)/i,
+    /meio a meio com (.+)/i,
+    /despesa compartilhada com (.+)/i,
+    /receita compartilhada com (.+)/i,
+  ];
+  
+  for (const padrao of padroesCompartilhamento) {
+    const match = texto.match(padrao);
+    if (match && match[1]) {
+      return {
+        ehCompartilhado: true,
+        nomeUsuario: match[1].trim(),
+        tipoCompartilhamento: texto.includes('despesa') ? 'DESPESA' : 
+                             texto.includes('receita') ? 'RECEITA' : undefined
+      };
+    }
+  }
+  
+  return { ehCompartilhado: false };
+}
 
+// Função para encontrar usuário pelo nome
+async function encontrarUsuarioPorNome(nome: string, userIdAtual: string) {
+  try {
+    // Buscar todos os usuários (exceto o atual)
+    const usuarios = await db.user.findMany({
+      where: {
+        NOT: { id: userIdAtual }
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        image: true
+      }
+    });
+    
+    // Procurar por nome similar
+    const nomeBusca = nome.toLowerCase().trim();
+    
+    for (const usuario of usuarios) {
+      const nomeUsuario = usuario.name.toLowerCase();
+      
+      // Verificação exata ou parcial
+      if (nomeUsuario === nomeBusca || 
+          nomeUsuario.includes(nomeBusca) || 
+          nomeBusca.includes(nomeUsuario)) {
+        return usuario;
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Erro ao buscar usuário:', error);
+    return null;
+  }
+}
 // Adicione esta função para limpar a descrição
 function limparDescricao(descricao: string): string {
   const texto = descricao.toLowerCase();
@@ -239,10 +308,13 @@ async function identificarCartao(texto: string, userId: string) {
 // Função para analisar mensagens e extrair dados de lançamentos
 function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
   const texto = mensagem.toLowerCase().trim();
-
+  
+  // Primeiro detectar se é compartilhado
+  const compartilhamento = detectarCompartilhamento(mensagem);
+  
   // Padrão principal: [ação] [valor] [descrição] [método opcional] [data opcional]
   const padraoPrincipal = texto.match(
-    /(gastei|paguei|recebi|ganhei)\s+(\d+[.,]?\d*)\s+(?:em|para|com|no)\s+(.+?)(?:\s+(?:no|com)\s+(cartão|pix|débito|dinheiro|crédito))?(?:\s+(hoje|ontem|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?))?$/i
+    /(gastei|paguei|recebi|ganhei)\s+(\d+[.,]?\d*)\s+(?:em|para|com|no)\s+(.+?)(?:\s+(?:no|com)\s+(cartão|pix|débito|dinheiro|crédito))?(?:\s+(hoje|ontem|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?))?/i
   );
 
   if (padraoPrincipal) {
@@ -250,18 +322,25 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
 
     // Usar a nova função para determinar método de pagamento
     const metodoPagamentoCorrigido = extrairMetodoPagamento(mensagem);
+    
+    // Determinar tipo baseado na ação e no compartilhamento
+    let tipo = acao.includes("recebi") || acao.includes("ganhei") ? "RECEITA" : "DESPESA";
+    
+    // Se o compartilhamento especificou tipo, usar esse
+    if (compartilhamento.tipoCompartilhamento) {
+      tipo = compartilhamento.tipoCompartilhamento;
+    }
 
     return {
       sucesso: true,
       dados: {
-        tipo:
-          acao.includes("recebi") || acao.includes("ganhei")
-            ? "RECEITA"
-            : "DESPESA",
+        tipo,
         valor: valor.replace(",", "."),
         descricao: descricao.trim(),
-        metodoPagamento: metodoPagamentoCorrigido, // ✅ AGORA USANDO A FUNÇÃO CORRIGIDA
+        metodoPagamento: metodoPagamentoCorrigido,
         data: data || "hoje",
+        ehCompartilhado: compartilhamento.ehCompartilhado,
+        nomeUsuarioCompartilhado: compartilhamento.nomeUsuario
       },
     };
   }
@@ -283,8 +362,10 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
         tipo: "DESPESA",
         valor: valor.replace(",", "."),
         descricao: descricao.trim(),
-        metodoPagamento: metodoPagamentoCorrigido, // ✅ AGORA USANDO A FUNÇÃO CORRIGIDA
+        metodoPagamento: metodoPagamentoCorrigido,
         data: "hoje",
+        ehCompartilhado: compartilhamento.ehCompartilhado,
+        nomeUsuarioCompartilhado: compartilhamento.nomeUsuario
       },
     };
   }
@@ -315,21 +396,33 @@ async function createLancamento(
       );
     }
 
-   const descricaoLimpa = limparDescricao(dados.descricao);
+    // Limpar e capitalizar a descrição
+    const descricaoLimpa = limparDescricao(dados.descricao);
 
     let cartaoId = null;
     let cartaoEncontrado = null;
+    let usuarioAlvo = null;
 
-    // ✅ NOVA LÓGICA: Se for crédito, identificar cartão específico
+    // ✅ LÓGICA: Se for crédito, identificar cartão específico
     if (dados.metodoPagamento === "CREDITO") {
       cartaoEncontrado = await identificarCartao(dados.descricao, userId);
 
       if (cartaoEncontrado) {
         cartaoId = cartaoEncontrado.id;
       } else {
-        // Se não encontrou cartão específico, lançar erro
         throw new Error(
           "Cartão de crédito mencionado, mas não identificado. Especifique qual cartão (ex: Nubank, Itaú, etc.)"
+        );
+      }
+    }
+
+    // ✅ NOVA LÓGICA: Se for compartilhado, encontrar usuário
+    if (dados.ehCompartilhado && dados.nomeUsuarioCompartilhado) {
+      usuarioAlvo = await encontrarUsuarioPorNome(dados.nomeUsuarioCompartilhado, userId);
+      
+      if (!usuarioAlvo) {
+        throw new Error(
+          `Usuário "${dados.nomeUsuarioCompartilhado}" não encontrado. Verifique o nome.`
         );
       }
     }
@@ -342,10 +435,11 @@ async function createLancamento(
       data: dataLancamento,
       categoriaId: categoriaEscolhida.id,
       userId: userId,
-      pago: dados.metodoPagamento !== "CREDITO", // ✅ Crédito fica como não pago
+      pago: dados.metodoPagamento !== "CREDITO",
       observacoes:
         `Criado via WhatsApp - Categoria: ${categoriaEscolhida.nome}` +
-        (cartaoEncontrado ? ` - Cartão: ${cartaoEncontrado.nome}` : ""),
+        (cartaoEncontrado ? ` - Cartão: ${cartaoEncontrado.nome}` : '') +
+        (usuarioAlvo ? ` - Compartilhado com: ${usuarioAlvo.name}` : ''),
     };
 
     // ✅ ADICIONAR cartaoId apenas se for crédito e encontrou cartão
@@ -361,20 +455,38 @@ async function createLancamento(
       },
     });
 
-    // ✅ ✅ ✅ ADICIONE ESTA PARTE: Associar à fatura se for crédito
+    // ✅ ✅ ✅ ADICIONE ESTA PARTE: Criar compartilhamento se necessário
+    if (dados.ehCompartilhado && usuarioAlvo) {
+      const valorTotal = parseFloat(dados.valor);
+      const valorCompartilhado = valorTotal / 2; // Meio a meio
+      
+      await db.lancamentoCompartilhado.create({
+        data: {
+          lancamentoId: lancamento.id,
+          usuarioCriadorId: userId,
+          usuarioAlvoId: usuarioAlvo.id,
+          valorCompartilhado: valorCompartilhado,
+          status: "PENDENTE",
+        },
+      });
+      
+      console.log(`✅ Lançamento compartilhado criado com ${usuarioAlvo.name}`);
+    }
+
+    // ✅ Associar à fatura se for crédito
     if (dados.metodoPagamento === "CREDITO" && cartaoId) {
       try {
         await FaturaService.adicionarLancamentoAFatura(lancamento.id);
         console.log(`✅ Lançamento ${lancamento.id} associado à fatura`);
       } catch (faturaError) {
         console.error("❌ Erro ao associar à fatura:", faturaError);
-        // Não lançar erro aqui para não quebrar o fluxo principal
       }
     }
 
     return {
       lancamento,
       cartaoEncontrado,
+      usuarioAlvo, // ✅ Retornar info do usuário compartilhado
     };
   } catch (error) {
     console.error("Erro ao criar lançamento:", error);
@@ -439,7 +551,7 @@ MENSAGEM DO CLIENTE: "${userMessage}"
 
 const metodoText = metodosMap[dadosExtracao.dados.metodoPagamento] || 'PIX';
 
-    prompt += `
+prompt += `
 DADOS DO LANÇAMENTO:
 • Valor: ${valorFormatado}
 • Descrição: ${descricao}
@@ -449,9 +561,16 @@ DADOS DO LANÇAMENTO:
 • Data: ${dataFormatada}
 `;
 
-    if (resultadoCriacao?.cartaoEncontrado) {
-      prompt += `• Cartão: ${resultadoCriacao.cartaoEncontrado.nome}\n`;
-    }
+// ✅ ✅ ✅ COLOQUE AQUI:
+if (resultadoCriacao?.usuarioAlvo) {
+  prompt += `• Compartilhado com: ${resultadoCriacao.usuarioAlvo.name}\n`;
+  prompt += `• Valor compartilhado: R$ ${(parseFloat(dadosExtracao.dados.valor) / 2).toLocaleString('pt-BR')}\n`;
+}
+
+// E depois continua com:
+if (resultadoCriacao?.cartaoEncontrado) {
+  prompt += `• Cartão: ${resultadoCriacao.cartaoEncontrado.nome}\n`;
+}
 
     if (resultadoCriacao) {
       if (resultadoCriacao.erro) {
