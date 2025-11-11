@@ -47,28 +47,53 @@ async function getCategoriasUsuario(userId: string) {
 function limparDescricao(descricao: string): string {
   const texto = descricao.toLowerCase();
   
-  // Remover menções de métodos de pagamento e cartões
-  const palavrasRemover = [
-    'cartão', 'cartao', 'débito', 'debito', 'crédito', 'credito', 
-    'pix', 'transferencia', 'transferência', 'dinheiro',
-    'nubank', 'itau', 'bradesco', 'santander', 'inter', 'c6', 'bb'
+  // Padrões para remover (partes após certas preposições)
+  const padroesRemover = [
+    /(?:\s+no\s+cartão\s+.+)$/i,
+    /(?:\s+no\s+cartão\s+.+)$/i, // com acento
+    /(?:\s+com\s+cartão\s+.+)$/i,
+    /(?:\s+no\s+de\s+.+)$/i,
+    /(?:\s+no\s+crédito\s+.+)$/i,
+    /(?:\s+no\s+credito\s+.+)$/i,
+    /(?:\s+no\s+débito\s+.+)$/i,
+    /(?:\s+no\s+debito\s+.+)$/i,
+    /(?:\s+via\s+pix.*)$/i,
+    /(?:\s+com\s+pix.*)$/i,
   ];
   
   let descricaoLimpa = descricao;
   
-  // Remover palavras específicas
+  // Aplicar padrões de remoção
+  padroesRemover.forEach(padrao => {
+    descricaoLimpa = descricaoLimpa.replace(padrao, '');
+  });
+  
+  // Remover palavras soltas de métodos de pagamento
+  const palavrasRemover = [
+    'cartão', 'cartao', 'débito', 'debito', 'crédito', 'credito', 
+    'pix', 'transferencia', 'transferência', 'dinheiro', 'no', 'de',
+    'nubank', 'itau', 'bradesco', 'santander', 'inter', 'c6', 'bb'
+  ];
+  
   palavrasRemover.forEach(palavra => {
     const regex = new RegExp(`\\s*\\b${palavra}\\b\\s*`, 'gi');
     descricaoLimpa = descricaoLimpa.replace(regex, ' ');
   });
   
-  // Limpar espaços extras e capitalizar primeira letra
+  // Limpar espaços extras, pontuação estranha e capitalizar
   descricaoLimpa = descricaoLimpa
     .replace(/\s+/g, ' ')
-    .trim()
-    .charAt(0).toUpperCase() + descricaoLimpa.slice(1).trim();
+    .replace(/^\s+|\s+$/g, '')
+    .replace(/,\s*$/, '') // Remove vírgula no final
+    .replace(/\.\s*$/, '') // Remove ponto no final
+    .trim();
   
-  return descricaoLimpa || descricao; // Fallback se ficar vazia
+  // Capitalizar primeira letra
+  if (descricaoLimpa.length > 0) {
+    descricaoLimpa = descricaoLimpa.charAt(0).toUpperCase() + descricaoLimpa.slice(1);
+  }
+  
+  return descricaoLimpa || 'Transação'; // Fallback se ficar vazia
 }
 
 // Função para a IA escolher a melhor categoria
@@ -460,9 +485,7 @@ EXPLIQUE DE FORMA PROFISSIONAL COMO CRIAR UM LANÇAMENTO:`;
   // 🔥 FORMATO FIXO ESTRITO - O Claude DEVE SEGUIR ISSO
   prompt += `
 
-🔒 **FORMATO FIXO OBRIGATÓRIO PARA A RESPOSTA:**
-
-📌 **Lançamento Confirmado**
+📌 Lançamento Confirmado
 ━━━━━━━━━━━━━━━
 
 [APENAS OS DETALHES DO LANÇAMENTO AQUI - máximo 5-6 linhas]
