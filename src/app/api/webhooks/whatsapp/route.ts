@@ -273,35 +273,41 @@ async function identificarCartao(texto: string, userId: string) {
     },
   });
 
+  console.log(`🔍 Buscando cartão no texto: "${textoLower}"`);
+  console.log(`📋 Cartões disponíveis:`, cartoes.map(c => c.nome));
+
   // Procurar por menções específicas de cartões
   for (const cartao of cartoes) {
     const nomeCartaoLower = cartao.nome.toLowerCase();
 
-    // Verificar se o texto menciona o nome do cartão
-    if (textoLower.includes(nomeCartaoLower)) {
+    // 🔥 CORREÇÃO: Verificar se o texto menciona o nome do cartão (parcial também)
+    if (textoLower.includes(nomeCartaoLower) || nomeCartaoLower.includes(textoLower)) {
+      console.log(`✅ Cartão encontrado: ${cartao.nome}`);
       return cartao;
     }
-
-    // Verificar por bandeiras comuns
+    
+    // 🔥 CORREÇÃO: Verificar por bandeiras comuns (busca mais flexível)
     const bandeiras = [
-      "nubank",
-      "itau",
-      "bradesco",
-      "santander",
-      "inter",
-      "c6",
-      "bb",
+      { key: 'nubank', names: ['nubank', 'nu bank'] },
+      { key: 'itau', names: ['itau', 'itaú'] },
+      { key: 'bradesco', names: ['bradesco'] },
+      { key: 'santander', names: ['santander'] },
+      { key: 'inter', names: ['inter', 'banco inter'] },
+      { key: 'c6', names: ['c6', 'c6 bank'] },
+      { key: 'bb', names: ['bb', 'banco do brasil'] }
     ];
+    
     for (const bandeira of bandeiras) {
-      if (
-        textoLower.includes(bandeira) &&
-        cartao.bandeira.toLowerCase().includes(bandeira)
-      ) {
-        return cartao;
+      for (const nomeBandeira of bandeira.names) {
+        if (textoLower.includes(nomeBandeira) && cartao.bandeira.toLowerCase().includes(bandeira.key)) {
+          console.log(`✅ Cartão encontrado por bandeira: ${cartao.nome}`);
+          return cartao;
+        }
       }
     }
   }
-
+  
+  console.log(`❌ Nenhum cartão encontrado para: "${textoLower}"`);
   return null;
 }
 
@@ -312,9 +318,9 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
   // Primeiro detectar se é compartilhado
   const compartilhamento = detectarCompartilhamento(mensagem);
   
-  // Padrão principal: [ação] [valor] [descrição] [método opcional] [data opcional]
+  // 🔥 CORREÇÃO: Padrão melhorado para pegar descrição completa
   const padraoPrincipal = texto.match(
-    /(gastei|paguei|recebi|ganhei)\s+(\d+[.,]?\d*)\s+(?:em|para|com|no)\s+(.+?)(?:\s+(?:no|com)\s+(cartão|pix|débito|dinheiro|crédito))?(?:\s+(hoje|ontem|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?))?/i
+    /(gastei|paguei|recebi|ganhei)\s+(\d+[.,]?\d*)\s+(?:em|para|com|no)\s+([^,.]+?)(?:\s+(?:no|com)\s+(cartão|pix|débito|dinheiro|crédito))?(?:\s+(hoje|ontem|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?))?/i
   );
 
   if (padraoPrincipal) {
@@ -345,9 +351,9 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
     };
   }
 
-  // Padrão alternativo: [valor] [descrição] [implícito despesa]
+  // Padrão alternativo melhorado
   const padraoAlternativo = texto.match(
-    /(\d+[.,]?\d*)\s+(?:em|para|com|no)\s+(.+)/i
+    /(\d+[.,]?\d*)\s+(?:em|para|com|no)\s+([^,.]+)/i
   );
 
   if (padraoAlternativo) {
