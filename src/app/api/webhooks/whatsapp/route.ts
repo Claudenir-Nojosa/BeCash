@@ -45,40 +45,43 @@ async function getCategoriasUsuario(userId: string) {
   }
 }
 // Função para detectar se é lançamento compartilhado
-function detectarCompartilhamento(mensagem: string): {
-  ehCompartilhado: boolean;
+function detectarCompartilhamento(mensagem: string): { 
+  ehCompartilhado: boolean; 
   nomeUsuario?: string;
   tipoCompartilhamento?: string;
 } {
   const texto = mensagem.toLowerCase();
-
+  
+  console.log(`🔍 Analisando compartilhamento: "${texto}"`);
+  
   const padroesCompartilhamento = [
-    /compartilhado com (.+)/i,
-    /compartilhar com (.+)/i,
-    /dividir com (.+)/i,
-    /meio a meio com (.+)/i,
-    /despesa compartilhada com (.+)/i,
-    /receita compartilhada com (.+)/i,
+    /compartilhado com (.+?)(?:\s|$)/i,
+    /compartilhar com (.+?)(?:\s|$)/i,
+    /dividir com (.+?)(?:\s|$)/i,
+    /meio a meio com (.+?)(?:\s|$)/i,
+    /despesa compartilhada com (.+?)(?:\s|$)/i,
+    /receita compartilhada com (.+?)(?:\s|$)/i,
+    /compartilhada com (.+?)(?:\s|$)/i,
   ];
-
+  
   for (const padrao of padroesCompartilhamento) {
     const match = texto.match(padrao);
+    console.log(`🔍 Padrão ${padrao}:`, match);
     if (match && match[1]) {
-      return {
+      const resultado = {
         ehCompartilhado: true,
         nomeUsuario: match[1].trim(),
-        tipoCompartilhamento: texto.includes("despesa")
-          ? "DESPESA"
-          : texto.includes("receita")
-            ? "RECEITA"
-            : undefined,
+        tipoCompartilhamento: texto.includes('despesa') ? 'DESPESA' : 
+                             texto.includes('receita') ? 'RECEITA' : undefined
       };
+      console.log(`✅ Compartilhamento detectado:`, resultado);
+      return resultado;
     }
   }
-
+  
+  console.log(`❌ Nenhum compartilhamento detectado`);
   return { ehCompartilhado: false };
 }
-
 // Função para encontrar usuário pelo nome
 async function encontrarUsuarioPorNome(nome: string, userIdAtual: string) {
   try {
@@ -296,95 +299,74 @@ async function identificarCartao(texto: string, userId: string) {
   });
 
   console.log(`🔍 Buscando cartão no texto: "${textoLower}"`);
-  console.log(
-    `📋 Cartões disponíveis:`,
-    cartoes.map((c) => ({ nome: c.nome, bandeira: c.bandeira }))
-  );
+  console.log(`📋 Cartões disponíveis:`, cartoes.map(c => ({ nome: c.nome, bandeira: c.bandeira })));
 
-  // Lista de cartões por prioridade (mais específicos primeiro)
-  const cartoesPrioridade = [
-    { nome: "nubank", aliases: ["nubank", "nu bank", "nu"] },
-    { nome: "itau", aliases: ["itau", "itaú"] },
-    { nome: "bradesco", aliases: ["bradesco"] },
-    { nome: "santander", aliases: ["santander"] },
-    { nome: "inter", aliases: ["inter", "banco inter"] },
-    { nome: "c6", aliases: ["c6", "c6 bank"] },
-    { nome: "bb", aliases: ["bb", "banco do brasil"] },
-    { nome: "ourocard", aliases: ["ourocard", "visa infinite"] },
+  // 🔥 CORREÇÃO: Buscar por menções específicas primeiro
+  const cartoesKeywords = [
+    { nome: 'nubank', keywords: ['nubank', 'nu bank', 'nu'] },
+    { nome: 'ourocard', keywords: ['ourocard', 'visa infinite'] },
+    // Adicione outros cartões conforme necessário
   ];
 
-  // Primeiro: procurar por nome exato do cartão
-  for (const cartao of cartoes) {
-    const nomeCartaoLower = cartao.nome.toLowerCase();
-
-    // Verificação exata
-    if (textoLower.includes(nomeCartaoLower)) {
-      console.log(`✅ Cartão encontrado por nome exato: ${cartao.nome}`);
-      return cartao;
-    }
-  }
-
-  // Segundo: procurar por aliases/bandeiras
-  for (const cartaoPrioridade of cartoesPrioridade) {
-    for (const alias of cartaoPrioridade.aliases) {
-      if (textoLower.includes(alias)) {
-        // Encontrar cartão que corresponde a este alias
-        const cartaoEncontrado = cartoes.find(
-          (c) =>
-            c.nome.toLowerCase().includes(cartaoPrioridade.nome) ||
-            c.bandeira.toLowerCase().includes(cartaoPrioridade.nome)
+  // Primeiro: buscar por keywords específicas
+  for (const cartaoKeyword of cartoesKeywords) {
+    for (const keyword of cartaoKeyword.keywords) {
+      if (textoLower.includes(keyword)) {
+        const cartaoEncontrado = cartoes.find(c => 
+          c.nome.toLowerCase().includes(cartaoKeyword.nome)
         );
-
         if (cartaoEncontrado) {
-          console.log(
-            `✅ Cartão encontrado por alias "${alias}": ${cartaoEncontrado.nome}`
-          );
+          console.log(`✅ Cartão encontrado por keyword "${keyword}": ${cartaoEncontrado.nome}`);
           return cartaoEncontrado;
         }
       }
     }
   }
 
-  // Terceiro: fallback - primeiro cartão disponível
-  if (cartoes.length > 0) {
-    console.log(
-      `⚠️ Usando fallback: primeiro cartão disponível: ${cartoes[0].nome}`
-    );
-    return cartoes[0];
+  // Segundo: buscar por nome exato
+  for (const cartao of cartoes) {
+    const nomeCartaoLower = cartao.nome.toLowerCase();
+    if (textoLower.includes(nomeCartaoLower)) {
+      console.log(`✅ Cartão encontrado por nome exato: ${cartao.nome}`);
+      return cartao;
+    }
   }
 
-  console.log(`❌ Nenhum cartão encontrado para: "${textoLower}"`);
+  // Terceiro: NÃO usar fallback - lançar erro se não encontrou
+  console.log(`❌ Nenhum cartão específico encontrado para: "${textoLower}"`);
   return null;
 }
 
 // Função para analisar mensagens e extrair dados de lançamentos
 function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
   const texto = mensagem.toLowerCase().trim();
-
+  
   // Primeiro detectar se é compartilhado
   const compartilhamento = detectarCompartilhamento(mensagem);
-
-  // 🔥 CORREÇÃO: Padrão melhorado para pegar descrição completa
+  console.log(`🔍 Detecção compartilhamento:`, compartilhamento);
+  
+  // 🔥 CORREÇÃO COMPLETA: Padrão melhorado
   const padraoPrincipal = texto.match(
-    /(gastei|paguei|recebi|ganhei)\s+(\d+[.,]?\d*)\s+(?:em|para|com|no)\s+([^,.]+?)(?:\s+(?:no|com)\s+(cartão|pix|débito|dinheiro|crédito))?(?:\s+(hoje|ontem|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?))?/i
+    /(gastei|paguei|recebi|ganhei)\s+(\d+[.,]?\d*)\s+(?:com|em|para|no)\s+(.+?)(?:\s+(?:no|com)\s+(cartão|pix|débito|dinheiro|crédito))?(?:\s+(hoje|ontem|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?))?/i
   );
+
+  console.log(`🔍 Regex resultado:`, padraoPrincipal);
 
   if (padraoPrincipal) {
     const [, acao, valor, descricao, metodo, data] = padraoPrincipal;
 
     // Usar a nova função para determinar método de pagamento
     const metodoPagamentoCorrigido = extrairMetodoPagamento(mensagem);
-
+    
     // Determinar tipo baseado na ação e no compartilhamento
-    let tipo =
-      acao.includes("recebi") || acao.includes("ganhei")
-        ? "RECEITA"
-        : "DESPESA";
-
+    let tipo = acao.includes("recebi") || acao.includes("ganhei") ? "RECEITA" : "DESPESA";
+    
     // Se o compartilhamento especificou tipo, usar esse
     if (compartilhamento.tipoCompartilhamento) {
       tipo = compartilhamento.tipoCompartilhamento;
     }
+
+    console.log(`📝 Descrição extraída: "${descricao}"`);
 
     return {
       sucesso: true,
@@ -395,14 +377,14 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
         metodoPagamento: metodoPagamentoCorrigido,
         data: data || "hoje",
         ehCompartilhado: compartilhamento.ehCompartilhado,
-        nomeUsuarioCompartilhado: compartilhamento.nomeUsuario,
+        nomeUsuarioCompartilhado: compartilhamento.nomeUsuario
       },
     };
   }
 
   // Padrão alternativo melhorado
   const padraoAlternativo = texto.match(
-    /(\d+[.,]?\d*)\s+(?:em|para|com|no)\s+([^,.]+)/i
+    /(\d+[.,]?\d*)\s+(?:com|em|para|no)\s+(.+)/i
   );
 
   if (padraoAlternativo) {
@@ -420,7 +402,7 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
         metodoPagamento: metodoPagamentoCorrigido,
         data: "hoje",
         ehCompartilhado: compartilhamento.ehCompartilhado,
-        nomeUsuarioCompartilhado: compartilhamento.nomeUsuario,
+        nomeUsuarioCompartilhado: compartilhamento.nomeUsuario
       },
     };
   }
@@ -463,7 +445,7 @@ async function createLancamento(
     const valorTotal = parseFloat(dados.valor);
     let valorUsuarioCriador = valorTotal;
     let valorCompartilhado = 0;
-
+console.log(`🛒 Dados compartilhamento: ehCompartilhado=${dados.ehCompartilhado}, nomeUsuario=${dados.nomeUsuarioCompartilhado}`);
      // ✅ LÓGICA: Se for crédito, identificar cartão específico
   if (dados.metodoPagamento === "CREDITO") {
     console.log(`🔍 Identificando cartão para: "${dados.descricao}"`);
@@ -487,23 +469,23 @@ async function createLancamento(
     }
   }
 
-    // ✅ NOVA LÓGICA: Se for compartilhado, encontrar usuário E calcular valores
-    if (dados.ehCompartilhado && dados.nomeUsuarioCompartilhado) {
-      usuarioAlvo = await encontrarUsuarioPorNome(
-        dados.nomeUsuarioCompartilhado,
-        userId
-      );
-
-      if (!usuarioAlvo) {
-        throw new Error(
-          `Usuário "${dados.nomeUsuarioCompartilhado}" não encontrado. Verifique o nome.`
-        );
-      }
-
-      // ✅ CORREÇÃO: Dividir o valor - usuário paga apenas sua parte
-      valorCompartilhado = valorTotal / 2;
-      valorUsuarioCriador = valorTotal - valorCompartilhado; // Ou simplesmente valorTotal / 2
-    }
+ // E modifique a lógica de compartilhamento:
+if (dados.ehCompartilhado && dados.nomeUsuarioCompartilhado) {
+  console.log(`🔍 Buscando usuário compartilhado: "${dados.nomeUsuarioCompartilhado}"`);
+  usuarioAlvo = await encontrarUsuarioPorNome(dados.nomeUsuarioCompartilhado, userId);
+  
+  if (!usuarioAlvo) {
+    throw new Error(
+      `Usuário "${dados.nomeUsuarioCompartilhado}" não encontrado. Verifique o nome.`
+    );
+  }
+  
+  // ✅ CORREÇÃO: Dividir o valor
+  valorCompartilhado = valorTotal / 2;
+  valorUsuarioCriador = valorTotal / 2; // Ambos pagam metade
+  
+  console.log(`💰 VALORES DIVIDIDOS: Total=${valorTotal}, Seu valor=${valorUsuarioCriador}, Compartilhado=${valorCompartilhado}`);
+}
 
     const lancamentoData: any = {
       descricao: descricaoLimpa,
@@ -614,14 +596,17 @@ MENSAGEM DO CLIENTE: "${userMessage}"
       ? resultadoCriacao.lancamento.descricao
       : limparDescricao(dadosExtracao.dados.descricao);
 
-    const valorReal = resultadoCriacao?.sucesso
-      ? resultadoCriacao.lancamento.valor
-      : parseFloat(dadosExtracao.dados.valor);
+  const valorReal = resultadoCriacao?.sucesso 
+  ? resultadoCriacao.lancamento.valor 
+  : parseFloat(dadosExtracao.dados.valor);
 
-    const valorFormatado = valorReal.toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    });
+const valorFormatado = valorReal.toLocaleString("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+});
+
+// E adicione logs:
+console.log(`💰 VALOR NO CLAUDE: Extraído=${dadosExtracao.dados.valor}, Real=${valorReal}, Formatado=${valorFormatado}`);
 
     const metodosMap: { [key: string]: string } = {
       PIX: "PIX",
