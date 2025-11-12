@@ -538,24 +538,35 @@ async function encontrarUsuarioPorNome(nome: string, userIdAtual: string) {
   }
 }
 
-// 🔥 NOVA FUNÇÃO: Limpar descrição com Claude
+// 🔥 FUNÇÃO MELHORADA: Limpar descrição com Claude
 async function limparDescricaoComClaude(descricaoOriginal: string): Promise<string> {
   if (!process.env.ANTHROPIC_API_KEY) {
     // Fallback simples se não tiver API key
     return descricaoOriginal.trim();
   }
 
-  const prompt = `Analise esta descrição de transação financeira e extraia apenas a informação essencial:
+  const prompt = `Analise esta descrição de transação financeira e extraia APENAS o nome do estabelecimento, produto ou serviço:
 
 DESCRIÇÃO ORIGINAL: "${descricaoOriginal}"
 
-INSTRUÇÕES:
-- Extraia apenas o nome do estabelecimento/produto/serviço
-- Remova: métodos de pagamento, valores, datas, palavras como "gastei", "paguei", "recebi"
-- Remova: "reais", "real", "R$", "cartão", "crédito", "débito", "pix", etc.
-- Mantenha apenas substantivos que identificam O QUE foi comprado/onde foi gasto
-- Seja conciso (máximo 3-4 palavras)
-- Retorne APENAS a descrição limpa, sem explicações
+REGRAS ESTRITAS:
+1. EXTRAIA APENAS o nome do estabelecimento/produto/serviço
+2. REMOVA COMPLETAMENTE: 
+   - Métodos de pagamento (cartão, crédito, débito, pix, nubank, etc.)
+   - Valores monetários 
+   - Datas
+   - Verbos como "gastei", "paguei", "recebi", "comprei"
+   - Palavras como "reais", "real", "R$"
+3. MANTENHA APENAS 1-2 palavras que identificam O QUE foi comprado/ONDE foi gasto
+4. SEJA CONCISO: máximo 2 palavras
+5. NÃO INCLUA informações de pagamento, bancos ou cartões
+
+EXEMPLOS:
+- "uber cartao credito nubank" → "Uber"
+- "mercado paguei 50 reais" → "Mercado" 
+- "almoço no restaurante cartao" → "Almoço"
+- "comprei tenis nike parcelado" → "Tênis Nike"
+- "farmacia drogaria pix" → "Farmácia"
 
 DESCRIÇÃO LIMPA:`;
 
@@ -583,16 +594,51 @@ DESCRIÇÃO LIMPA:`;
     
     console.log(`🧹 Descrição limpa com Claude: "${descricaoOriginal}" → "${descricaoLimpa}"`);
     
-    // Se o Claude retornou vazio ou muito longo, usar fallback
-    if (!descricaoLimpa || descricaoLimpa.length > 50) {
-      return descricaoOriginal.substring(0, 30).trim();
+    // Validação adicional: remover qualquer menção a bancos/cartões que possa ter escapado
+    const termosProibidos = ['nubank', 'credito', 'debito', 'cartao', 'cartão', 'pix', 'bb', 'itau', 'bradesco', 'santander'];
+    let descricaoValidada = descricaoLimpa;
+    
+    termosProibidos.forEach(termo => {
+      const regex = new RegExp(`\\s*${termo}\\s*`, 'gi');
+      descricaoValidada = descricaoValidada.replace(regex, ' ');
+    });
+    
+    // Limpeza final
+    descricaoValidada = descricaoValidada
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    // Se ficou vazio após validação, usar fallback
+    if (!descricaoValidada || descricaoValidada.length > 30) {
+      // Tentar extrair a primeira palavra substantiva como fallback
+      const palavras = descricaoOriginal.split(/\s+/);
+      const palavraSubstantiva = palavras.find(palavra => 
+        palavra.length > 2 && 
+        !termosProibidos.some(termo => palavra.toLowerCase().includes(termo))
+      );
+      
+      descricaoValidada = palavraSubstantiva || 'Transação';
+      console.log(`🔄 Fallback para descrição: "${descricaoValidada}"`);
     }
     
-    return descricaoLimpa;
+    // Capitalizar primeira letra
+    if (descricaoValidada.length > 0) {
+      descricaoValidada = descricaoValidada.charAt(0).toUpperCase() + descricaoValidada.slice(1);
+    }
+    
+    console.log(`✅ Descrição final: "${descricaoValidada}"`);
+    return descricaoValidada;
   } catch (error) {
     console.error("Erro ao limpar descrição com Claude:", error);
-    // Fallback para a descrição original
-    return descricaoOriginal.trim();
+    // Fallback inteligente
+    const termosProibidos = ['nubank', 'credito', 'debito', 'cartao', 'cartão', 'pix'];
+    const palavras = descricaoOriginal.split(/\s+/);
+    const palavraSubstantiva = palavras.find(palavra => 
+      palavra.length > 2 && 
+      !termosProibidos.some(termo => palavra.toLowerCase().includes(termo))
+    );
+    
+    return palavraSubstantiva ? palavraSubstantiva.charAt(0).toUpperCase() + palavraSubstantiva.slice(1) : 'Transação';
   }
 }
 
