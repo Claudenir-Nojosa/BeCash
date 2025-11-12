@@ -369,6 +369,7 @@ async function processarMensagemTexto(message: any) {
 }
 
 // 🔥 FUNÇÃO PARA PROCESSAR CONFIRMAÇÃO
+// 🔥 FUNÇÃO PARA PROCESSAR CONFIRMAÇÃO - CORRIGIDA
 async function processarConfirmacao(
   resposta: string,
   pendingLancamento: LancamentoTemporario,
@@ -378,10 +379,9 @@ async function processarConfirmacao(
   global.pendingLancamentos?.delete(userPhone);
 
   if (resposta === "não" || resposta === "nao") {
-    await sendWhatsAppMessage(
-      userPhone,
-      "❌ Lançamento cancelado. Envie uma nova mensagem para criar outro lançamento."
-    );
+    // ✅ CORREÇÃO: Chamar a função de mensagem de cancelamento
+    const mensagemCancelamento = await gerarMensagemCancelamento();
+    await sendWhatsAppMessage(userPhone, mensagemCancelamento);
     return { status: "cancelled" };
   }
 
@@ -422,7 +422,8 @@ async function processarConfirmacao(
   return { status: "invalid_confirmation" };
 }
 
-// 🔥 FUNÇÃO PARA GERAR MENSAGEM DE CONFIRMAÇÃO
+
+// 🔥 FUNÇÃO PARA GERAR MENSAGEM DE CONFIRMAÇÃO - VERSÃO ELEGANTE
 async function gerarMensagemConfirmacao(
   dados: DadosLancamento,
   descricaoLimpa: string,
@@ -439,34 +440,40 @@ async function gerarMensagemConfirmacao(
     DEBITO: "Cartão de Débito",
     CREDITO: "Cartão de Crédito",
     TRANSFERENCIA: "Transferência",
+    DINHEIRO: "Dinheiro"
   };
 
-  let mensagem = `📋 *CONFIRMAR LANÇAMENTO*\n\n`;
-  mensagem += `🔸 *Descrição:* ${descricaoLimpa}\n`;
-  mensagem += `🔸 *Valor:* ${valorFormatado}\n`;
-  mensagem += `🔸 *Categoria:* ${categoriaEscolhida.nome}\n`;
-  mensagem += `🔸 *Tipo:* ${dados.tipo === "DESPESA" ? "Despesa" : "Receita"}\n`;
-  mensagem += `🔸 *Método:* ${metodosMap[dados.metodoPagamento] || dados.metodoPagamento}\n`;
+  const tipoMap: { [key: string]: string } = {
+    DESPESA: "Despesa",
+    RECEITA: "Receita"
+  };
 
-  if (cartaoEncontrado) {
-    mensagem += `🔸 *Cartão:* ${cartaoEncontrado.nome}\n`;
-  }
+  let mensagem = `▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+      CONFIRMAR LANÇAMENTO
+▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
 
-  if (dados.ehParcelado && dados.parcelas) {
-    mensagem += `🔸 *Parcelado:* ${dados.parcelas}x\n`;
-  }
+**Detalhes do Lançamento**
 
-  if (dados.ehCompartilhado && dados.nomeUsuarioCompartilhado) {
-    mensagem += `🔸 *Compartilhado com:* ${dados.nomeUsuarioCompartilhado}\n`;
-  }
+• Descrição: ${descricaoLimpa}
+• Valor: ${valorFormatado}
+• Categoria: ${categoriaEscolhida.nome}
+• Tipo: ${tipoMap[dados.tipo] || dados.tipo}
+• Método: ${metodosMap[dados.metodoPagamento] || dados.metodoPagamento}
+${cartaoEncontrado ? `• Cartão: ${cartaoEncontrado.nome}\n` : ''}${dados.ehParcelado && dados.parcelas ? `• Parcelado: ${dados.parcelas}x\n` : ''}${dados.ehCompartilhado && dados.nomeUsuarioCompartilhado ? `• Compartilhado com: ${dados.nomeUsuarioCompartilhado}\n` : ''}
+▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
 
-  mensagem += `\n⚠️ *Confirma a criação deste lançamento?*\n`;
-  mensagem += `Digite *SIM* para confirmar ou *NÃO* para cancelar`;
+**Confirmação Requerida**
+
+Para confirmar este lançamento, responda:
+✅ **SIM** - Para confirmar e salvar
+❌ **NÃO** - Para cancelar
+
+_Tempo limite: 5 minutos_`;
 
   return mensagem;
 }
 
-// 🔥 FUNÇÃO PARA GERAR MENSAGEM FINAL
+// 🔥 FUNÇÃO PARA GERAR MENSAGEM FINAL - VERSÃO ELEGANTE
 async function gerarMensagemConfirmacaoFinal(
   dados: DadosLancamento,
   descricaoLimpa: string,
@@ -479,23 +486,46 @@ async function gerarMensagemConfirmacaoFinal(
     currency: "BRL",
   });
 
-  let mensagem = `✅ *LANÇAMENTO CONFIRMADO*\n\n`;
-  mensagem += `📌 ${descricaoLimpa}\n`;
-  mensagem += `💰 ${valorFormatado}\n`;
-  mensagem += `🏷️ ${categoriaEscolhida.nome}\n`;
+  let mensagem = `▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+      LANÇAMENTO CONFIRMADO
+▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
 
-  if (cartaoEncontrado) {
-    mensagem += `💳 ${cartaoEncontrado.nome}\n`;
-  }
+**Resumo do Lançamento**
 
-  if (resultadoCriacao?.ehParcelado) {
-    mensagem += `🔢 ${resultadoCriacao.parcelasTotal}x de ${resultadoCriacao.valorParcela.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
-  }
+• ${descricaoLimpa}
+• ${valorFormatado}
+• ${categoriaEscolhida.nome}
+• ${dados.metodoPagamento === 'CREDITO' ? 'Cartão de Crédito' : 
+    dados.metodoPagamento === 'DEBITO' ? 'Cartão de Débito' : 
+    dados.metodoPagamento}
+${cartaoEncontrado ? `• ${cartaoEncontrado.nome}\n` : ''}${resultadoCriacao?.ehParcelado ? `• ${resultadoCriacao.parcelasTotal}x de ${resultadoCriacao.valorParcela.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n` : ''}
+▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
 
-  mensagem += `\n✨ Obrigado por organizar suas finanças!`;
+Status: ✅ Registrado com sucesso
+Data: ${new Date().toLocaleDateString('pt-BR')}
+
+Obrigado por usar o BeCash.`;
 
   return mensagem;
 }
+
+// 🔥 FUNÇÃO PARA MENSAGEM DE CANCELAMENTO - VERSÃO ELEGANTE
+async function gerarMensagemCancelamento(): Promise<string> {
+  return `▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+      AÇÃO CANCELADA
+▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+
+O lançamento foi cancelado e não foi salvo em seu registro financeiro.
+
+Para criar um novo lançamento, envie uma mensagem no formato:
+
+"Gastei 50 no almoço"
+ou
+"Recebi 1200 de salário"
+
+Estamos à disposição para ajudá-lo.`;
+}
+
 function detectarCompartilhamento(mensagem: string): {
   ehCompartilhado: boolean;
   nomeUsuario?: string;
