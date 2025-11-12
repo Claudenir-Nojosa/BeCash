@@ -424,6 +424,7 @@ async function processarConfirmacao(
 
 
 // 🔥 FUNÇÃO PARA GERAR MENSAGEM DE CONFIRMAÇÃO - VERSÃO ELEGANTE
+// 🔥 FUNÇÃO PARA GERAR MENSAGEM DE CONFIRMAÇÃO - VERSÃO PROFISSIONAL
 async function gerarMensagemConfirmacao(
   dados: DadosLancamento,
   descricaoLimpa: string,
@@ -435,45 +436,25 @@ async function gerarMensagemConfirmacao(
     currency: "BRL",
   });
 
-  const metodosMap: { [key: string]: string } = {
-    PIX: "PIX",
-    DEBITO: "Cartão de Débito",
-    CREDITO: "Cartão de Crédito",
-    TRANSFERENCIA: "Transferência",
-    DINHEIRO: "Dinheiro"
-  };
+  let mensagem = `CONFIRMAÇÃO DE LANÇAMENTO
 
-  const tipoMap: { [key: string]: string } = {
-    DESPESA: "Despesa",
-    RECEITA: "Receita"
-  };
+Descrição: ${descricaoLimpa}
+Valor: ${valorFormatado}
+Categoria: ${categoriaEscolhida.nome}
+Tipo: ${dados.tipo === "DESPESA" ? "Despesa" : "Receita"}
+Método: ${dados.metodoPagamento === 'CREDITO' ? 'Cartão de Crédito' : 
+          dados.metodoPagamento === 'DEBITO' ? 'Cartão de Débito' : 
+          dados.metodoPagamento}
+${cartaoEncontrado ? `Cartão: ${cartaoEncontrado.nome}\n` : ''}${dados.ehParcelado && dados.parcelas ? `Parcelado: ${dados.parcelas}x\n` : ''}${dados.ehCompartilhado && dados.nomeUsuarioCompartilhado ? `Compartilhado com: ${dados.nomeUsuarioCompartilhado}\n` : ''}
+Para confirmar, responda SIM
+Para cancelar, responda NÃO
 
-  let mensagem = `▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-      CONFIRMAR LANÇAMENTO
-▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-
-**Detalhes do Lançamento**
-
-• Descrição: ${descricaoLimpa}
-• Valor: ${valorFormatado}
-• Categoria: ${categoriaEscolhida.nome}
-• Tipo: ${tipoMap[dados.tipo] || dados.tipo}
-• Método: ${metodosMap[dados.metodoPagamento] || dados.metodoPagamento}
-${cartaoEncontrado ? `• Cartão: ${cartaoEncontrado.nome}\n` : ''}${dados.ehParcelado && dados.parcelas ? `• Parcelado: ${dados.parcelas}x\n` : ''}${dados.ehCompartilhado && dados.nomeUsuarioCompartilhado ? `• Compartilhado com: ${dados.nomeUsuarioCompartilhado}\n` : ''}
-▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-
-**Confirmação Requerida**
-
-Para confirmar este lançamento, responda:
-✅ **SIM** - Para confirmar e salvar
-❌ **NÃO** - Para cancelar
-
-_Tempo limite: 5 minutos_`;
+*Esta solicitação expira em 5 minutos*`;
 
   return mensagem;
 }
 
-// 🔥 FUNÇÃO PARA GERAR MENSAGEM FINAL - VERSÃO ELEGANTE
+// 🔥 FUNÇÃO PARA GERAR MENSAGEM FINAL - VERSÃO PROFISSIONAL
 async function gerarMensagemConfirmacaoFinal(
   dados: DadosLancamento,
   descricaoLimpa: string,
@@ -486,22 +467,16 @@ async function gerarMensagemConfirmacaoFinal(
     currency: "BRL",
   });
 
-  let mensagem = `▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-      LANÇAMENTO CONFIRMADO
-▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+  let mensagem = `LANÇAMENTO REGISTRADO
 
-**Resumo do Lançamento**
-
-• ${descricaoLimpa}
-• ${valorFormatado}
-• ${categoriaEscolhida.nome}
-• ${dados.metodoPagamento === 'CREDITO' ? 'Cartão de Crédito' : 
-    dados.metodoPagamento === 'DEBITO' ? 'Cartão de Débito' : 
-    dados.metodoPagamento}
-${cartaoEncontrado ? `• ${cartaoEncontrado.nome}\n` : ''}${resultadoCriacao?.ehParcelado ? `• ${resultadoCriacao.parcelasTotal}x de ${resultadoCriacao.valorParcela.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n` : ''}
-▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-
-Status: ✅ Registrado com sucesso
+${descricaoLimpa}
+${valorFormatado}
+${categoriaEscolhida.nome}
+${dados.metodoPagamento === 'CREDITO' ? 'Cartão de Crédito' : 
+  dados.metodoPagamento === 'DEBITO' ? 'Cartão de Débito' : 
+  dados.metodoPagamento}
+${cartaoEncontrado ? `${cartaoEncontrado.nome}\n` : ''}${resultadoCriacao?.ehParcelado ? `${resultadoCriacao.parcelasTotal}x de ${resultadoCriacao.valorParcela.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n` : ''}
+Status: Confirmado
 Data: ${new Date().toLocaleDateString('pt-BR')}
 
 Obrigado por usar o BeCash.`;
@@ -509,21 +484,16 @@ Obrigado por usar o BeCash.`;
   return mensagem;
 }
 
-// 🔥 FUNÇÃO PARA MENSAGEM DE CANCELAMENTO - VERSÃO ELEGANTE
+// 🔥 FUNÇÃO PARA MENSAGEM DE CANCELAMENTO - VERSÃO PROFISSIONAL
 async function gerarMensagemCancelamento(): Promise<string> {
-  return `▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
-      AÇÃO CANCELADA
-▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+  return `LANÇAMENTO CANCELADO
 
-O lançamento foi cancelado e não foi salvo em seu registro financeiro.
+A transação foi cancelada e não foi registrada em seu extrato.
 
-Para criar um novo lançamento, envie uma mensagem no formato:
-
+Para criar um novo lançamento, envie:
 "Gastei 50 no almoço"
 ou
-"Recebi 1200 de salário"
-
-Estamos à disposição para ajudá-lo.`;
+"Recebi 1200 de salário"`;
 }
 
 function detectarCompartilhamento(mensagem: string): {
