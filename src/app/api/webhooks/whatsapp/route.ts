@@ -538,6 +538,65 @@ async function encontrarUsuarioPorNome(nome: string, userIdAtual: string) {
   }
 }
 
+// 🔥 NOVA FUNÇÃO: Limpar descrição com Claude
+async function limparDescricaoComClaude(descricaoOriginal: string): Promise<string> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    // Fallback simples se não tiver API key
+    return descricaoOriginal.trim();
+  }
+
+  const prompt = `Analise esta descrição de transação financeira e extraia apenas a informação essencial:
+
+DESCRIÇÃO ORIGINAL: "${descricaoOriginal}"
+
+INSTRUÇÕES:
+- Extraia apenas o nome do estabelecimento/produto/serviço
+- Remova: métodos de pagamento, valores, datas, palavras como "gastei", "paguei", "recebi"
+- Remova: "reais", "real", "R$", "cartão", "crédito", "débito", "pix", etc.
+- Mantenha apenas substantivos que identificam O QUE foi comprado/onde foi gasto
+- Seja conciso (máximo 3-4 palavras)
+- Retorne APENAS a descrição limpa, sem explicações
+
+DESCRIÇÃO LIMPA:`;
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-3-haiku-20240307",
+        max_tokens: 100,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Claude API: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const descricaoLimpa = data.content[0].text.trim();
+    
+    console.log(`🧹 Descrição limpa com Claude: "${descricaoOriginal}" → "${descricaoLimpa}"`);
+    
+    // Se o Claude retornou vazio ou muito longo, usar fallback
+    if (!descricaoLimpa || descricaoLimpa.length > 50) {
+      return descricaoOriginal.substring(0, 30).trim();
+    }
+    
+    return descricaoLimpa;
+  } catch (error) {
+    console.error("Erro ao limpar descrição com Claude:", error);
+    // Fallback para a descrição original
+    return descricaoOriginal.trim();
+  }
+}
+
+
 // ATUALIZE COMPLETAMENTE a função limparDescricao:
 function limparDescricao(descricao: string): string {
   console.log(`🔧🔧🔧 LIMPANDO DESCRIÇÃO INICIADA 🔧🔧🔧`);
@@ -1015,7 +1074,7 @@ async function createLancamento(
     );
 
     // Limpar descrição
-    const descricaoLimpa = limparDescricao(dados.descricao);
+  const descricaoLimpa = await limparDescricaoComClaude(dados.descricao);
 
     let cartaoId = null;
     let cartaoEncontrado = null;
@@ -1296,9 +1355,9 @@ MENSAGEM DO CLIENTE: "${userMessage}"
     console.log(`📅 Data formatada para resposta: ${dataFormatada}`);
 
     // Usar a descrição limpa
-    const descricao = resultadoCriacao?.sucesso
-      ? resultadoCriacao.lancamento.descricao
-      : limparDescricao(dadosExtracao.dados.descricao);
+ const descricao = resultadoCriacao?.sucesso
+  ? resultadoCriacao.lancamento.descricao
+  : await limparDescricaoComClaude(dadosExtracao.dados.descricao);
 
     const valorReal = resultadoCriacao?.sucesso
       ? resultadoCriacao.lancamento.valor
