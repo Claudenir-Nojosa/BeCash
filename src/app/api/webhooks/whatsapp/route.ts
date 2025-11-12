@@ -3,8 +3,19 @@ import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { FaturaService } from "@/lib/faturaService";
 
+interface LancamentoTemporario {
+  dados: DadosLancamento;
+  categoriaEscolhida: any;
+  userId: string;
+  userPhone: string;
+  timestamp: number;
+  descricaoLimpa: string;
+  cartaoEncontrado?: any;
+}
+
 declare global {
   var messageCache: Map<string, boolean> | undefined;
+  var pendingLancamentos: Map<string, LancamentoTemporario> | undefined;
 }
 
 type DadosLancamento = {
@@ -192,7 +203,7 @@ async function processarAudioWhatsApp(audioMessage: any, userPhone: string) {
   }
 }
 
-// 🔥 FUNÇÃO PRINCIPAL DE PROCESSAMENTO (extrair da função POST)
+// 🔥 FUNÇÃO PRINCIPAL MODIFICADA COM CONFIRMAÇÃO
 async function processarMensagemTexto(message: any) {
   const userMessage = message.text?.body;
   const userPhone = message.from;
@@ -216,13 +227,34 @@ async function processarMensagemTexto(message: any) {
       return { status: "duplicated" };
     }
 
-    // Adicionar ao cache (expira em 30 segundos)
     global.messageCache.set(cacheKey, true);
     setTimeout(() => {
       global.messageCache?.delete(cacheKey);
     }, 30000);
   }
 
+  // 🔥 INICIALIZAR CACHE DE LANÇAMENTOS PENDENTES
+  if (!global.pendingLancamentos) {
+    global.pendingLancamentos = new Map();
+  }
+
+  // 🔥 VERIFICAR SE É UMA RESPOSTA DE CONFIRMAÇÃO
+  const pendingLancamento = global.pendingLancamentos.get(userPhone);
+
+  if (
+    pendingLancamento &&
+    (userMessage.toLowerCase() === "sim" ||
+      userMessage.toLowerCase() === "não" ||
+      userMessage.toLowerCase() === "nao")
+  ) {
+    return await processarConfirmacao(
+      userMessage.toLowerCase(),
+      pendingLancamento,
+      userPhone
+    );
+  }
+
+  // 🔥 SE NÃO FOR CONFIRMAÇÃO, PROCESSAR COMO NOVO LANÇAMENTO
   if (userMessage && userPhone) {
     // 1. Autenticar usuário
     const session = await getApiAuth();
@@ -240,106 +272,230 @@ async function processarMensagemTexto(message: any) {
     const dadosExtracao = extrairDadosLancamento(userMessage);
     console.log("📊 Dados extraídos:", dadosExtracao);
 
+    if (!dadosExtracao.sucesso) {
+      await sendWhatsAppMessage(
+        userPhone,
+        `❌ ${dadosExtracao.erro}\n\n💡 Exemplo: "Gastei 50 no almoço"`
+      );
+      return { status: "extraction_failed" };
+    }
+
     // 3. Buscar categorias do usuário e escolher a melhor
     let categoriaEscolhida = null;
     let categoriasUsuario: any[] = [];
-    let resultadoCriacao = null;
 
-    if (dadosExtracao.sucesso) {
-      try {
-        // Buscar categorias reais do usuário
-        categoriasUsuario = await getCategoriasUsuario(userId);
-        console.log("🏷️ Categorias do usuário:", categoriasUsuario);
-
-        if (categoriasUsuario.length === 0) {
-          throw new Error(
-            "Nenhuma categoria encontrada. Crie categorias primeiro."
-          );
-        }
-
-        // Escolher a melhor categoria com IA
-        categoriaEscolhida = await escolherMelhorCategoria(
-          dadosExtracao.dados.descricao,
-          categoriasUsuario,
-          dadosExtracao.dados.tipo
-        );
-
-        console.log("🎯 Categoria escolhida:", categoriaEscolhida?.nome);
-
-        if (!categoriaEscolhida) {
-          throw new Error(
-            `Nenhuma categoria do tipo ${dadosExtracao.dados.tipo} encontrada.`
-          );
-        }
-
-        const resultadoCreate = await createLancamento(
-          userId,
-          dadosExtracao.dados,
-          categoriaEscolhida,
-          userMessage
-        );
-
-        resultadoCriacao = {
-          sucesso: true,
-          lancamento: resultadoCreate.lancamento,
-          cartaoEncontrado: resultadoCreate.cartaoEncontrado,
-          usuarioAlvo: resultadoCreate.usuarioAlvo,
-          valorCompartilhado: resultadoCreate.valorCompartilhado,
-          valorUsuarioCriador: resultadoCreate.valorUsuarioCriador,
-        };
-
-        console.log("✅ Lançamento criado:", resultadoCreate.lancamento);
-      } catch (error: any) {
-        resultadoCriacao = { sucesso: false, erro: error.message };
-        console.error("❌ Erro ao criar lançamento:", error);
-      }
-    }
-
-    // 4. Processar com Claude
-    let claudeResponse;
     try {
-      claudeResponse = await callClaudeAPICriacao(
-        userMessage,
-        dadosExtracao,
+      categoriasUsuario = await getCategoriasUsuario(userId);
+      console.log("🏷️ Categorias do usuário:", categoriasUsuario);
+
+      if (categoriasUsuario.length === 0) {
+        await sendWhatsAppMessage(
+          userPhone,
+          "❌ Nenhuma categoria encontrada. Crie categorias primeiro no app."
+        );
+        return { status: "no_categories" };
+      }
+
+      categoriaEscolhida = await escolherMelhorCategoria(
+        dadosExtracao.dados.descricao,
         categoriasUsuario,
-        categoriaEscolhida,
-        resultadoCriacao
+        dadosExtracao.dados.tipo
       );
-      console.log("🤖 Resposta do Claude:", claudeResponse);
-    } catch (error) {
-      console.error("❌ Erro no Claude:", error);
-      // Resposta fallback
-      if (dadosExtracao.sucesso && resultadoCriacao?.sucesso) {
-        claudeResponse = `✅ Lançamento criado! ${dadosExtracao.dados.descricao} - R$ ${dadosExtracao.dados.valor} (Categoria: ${categoriaEscolhida?.nome})`;
-      } else if (dadosExtracao.sucesso) {
-        claudeResponse = `⚠️ Erro: ${resultadoCriacao?.erro || "Não foi possível criar o lançamento"}`;
-      } else {
-        claudeResponse = `❌ ${dadosExtracao.erro}\n\n💡 Exemplo: "Gastei 50 no almoço"`;
+
+      console.log("🎯 Categoria escolhida:", categoriaEscolhida?.nome);
+
+      if (!categoriaEscolhida) {
+        await sendWhatsAppMessage(
+          userPhone,
+          `❌ Nenhuma categoria do tipo ${dadosExtracao.dados.tipo} encontrada.`
+        );
+        return { status: "no_matching_category" };
       }
+    } catch (error: any) {
+      await sendWhatsAppMessage(
+        userPhone,
+        `❌ Erro ao processar categorias: ${error.message}`
+      );
+      return { status: "category_error" };
     }
 
-    // 5. Enviar resposta
-    try {
-      console.log("📤 Enviando resposta...");
-      await sendWhatsAppMessage(userPhone, claudeResponse);
-      console.log("🎉 Resposta enviada!");
-    } catch (whatsappError) {
-      console.error("💥 Falha no envio:", whatsappError);
+    // 4. Limpar descrição com Claude
+    const descricaoLimpa = await limparDescricaoComClaude(
+      dadosExtracao.dados.descricao
+    );
+
+    // 5. Identificar cartão se for crédito
+    let cartaoEncontrado = null;
+    if (dadosExtracao.dados.metodoPagamento === "CREDITO") {
+      cartaoEncontrado = await identificarCartao(userMessage, userId);
     }
+
+    // 6. Preparar mensagem de confirmação
+    const mensagemConfirmacao = await gerarMensagemConfirmacao(
+      dadosExtracao.dados,
+      descricaoLimpa,
+      categoriaEscolhida,
+      cartaoEncontrado
+    );
+
+    // 7. Salvar dados temporariamente e pedir confirmação
+    const lancamentoTemporario: LancamentoTemporario = {
+      dados: dadosExtracao.dados,
+      categoriaEscolhida,
+      userId,
+      userPhone,
+      timestamp: Date.now(),
+      descricaoLimpa,
+      cartaoEncontrado,
+    };
+
+    global.pendingLancamentos.set(userPhone, lancamentoTemporario);
+
+    // Limpar após 5 minutos
+    setTimeout(
+      () => {
+        global.pendingLancamentos?.delete(userPhone);
+      },
+      5 * 60 * 1000
+    );
+
+    // 8. Enviar mensagem de confirmação
+    await sendWhatsAppMessage(userPhone, mensagemConfirmacao);
+
+    return { status: "waiting_confirmation" };
   }
 
   return { status: "processed" };
 }
 
-// [MANTENHA TODAS AS OUTRAS FUNÇÕES EXISTENTES AQUI]
-// detectarCompartilhamento, detectarParcelamento, encontrarUsuarioPorNome,
-// limparDescricao, escolherMelhorCategoria, extrairMetodoPagamento,
-// identificarCartao, extrairDadosLancamento, createLancamento,
-// callClaudeAPICriacao, sendWhatsAppMessage
+// 🔥 FUNÇÃO PARA PROCESSAR CONFIRMAÇÃO
+async function processarConfirmacao(
+  resposta: string,
+  pendingLancamento: LancamentoTemporario,
+  userPhone: string
+) {
+  // Remover do cache de pendentes
+  global.pendingLancamentos?.delete(userPhone);
 
-// ... (cole aqui todas as outras funções que já existiam)
+  if (resposta === "não" || resposta === "nao") {
+    await sendWhatsAppMessage(
+      userPhone,
+      "❌ Lançamento cancelado. Envie uma nova mensagem para criar outro lançamento."
+    );
+    return { status: "cancelled" };
+  }
 
-// SUBSTITUA a função detectarCompartilhamento por ESTA:
+  if (resposta === "sim") {
+    try {
+      // Criar o lançamento no banco de dados
+      const resultadoCriacao = await createLancamento(
+        pendingLancamento.userId,
+        pendingLancamento.dados,
+        pendingLancamento.categoriaEscolhida,
+        pendingLancamento.descricaoLimpa,
+        pendingLancamento.cartaoEncontrado
+      );
+
+      // Gerar mensagem de confirmação final
+      const mensagemFinal = await gerarMensagemConfirmacaoFinal(
+        pendingLancamento.dados,
+        pendingLancamento.descricaoLimpa,
+        pendingLancamento.categoriaEscolhida,
+        pendingLancamento.cartaoEncontrado,
+        resultadoCriacao
+      );
+
+      await sendWhatsAppMessage(userPhone, mensagemFinal);
+      console.log("✅ Lançamento confirmado e criado no banco de dados");
+
+      return { status: "confirmed" };
+    } catch (error: any) {
+      console.error("❌ Erro ao criar lançamento:", error);
+      await sendWhatsAppMessage(
+        userPhone,
+        `❌ Erro ao criar lançamento: ${error.message}\n\nTente novamente.`
+      );
+      return { status: "creation_error" };
+    }
+  }
+
+  return { status: "invalid_confirmation" };
+}
+
+// 🔥 FUNÇÃO PARA GERAR MENSAGEM DE CONFIRMAÇÃO
+async function gerarMensagemConfirmacao(
+  dados: DadosLancamento,
+  descricaoLimpa: string,
+  categoriaEscolhida: any,
+  cartaoEncontrado: any
+): Promise<string> {
+  const valorFormatado = parseFloat(dados.valor).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+
+  const metodosMap: { [key: string]: string } = {
+    PIX: "PIX",
+    DEBITO: "Cartão de Débito",
+    CREDITO: "Cartão de Crédito",
+    TRANSFERENCIA: "Transferência",
+  };
+
+  let mensagem = `📋 *CONFIRMAR LANÇAMENTO*\n\n`;
+  mensagem += `🔸 *Descrição:* ${descricaoLimpa}\n`;
+  mensagem += `🔸 *Valor:* ${valorFormatado}\n`;
+  mensagem += `🔸 *Categoria:* ${categoriaEscolhida.nome}\n`;
+  mensagem += `🔸 *Tipo:* ${dados.tipo === "DESPESA" ? "Despesa" : "Receita"}\n`;
+  mensagem += `🔸 *Método:* ${metodosMap[dados.metodoPagamento] || dados.metodoPagamento}\n`;
+
+  if (cartaoEncontrado) {
+    mensagem += `🔸 *Cartão:* ${cartaoEncontrado.nome}\n`;
+  }
+
+  if (dados.ehParcelado && dados.parcelas) {
+    mensagem += `🔸 *Parcelado:* ${dados.parcelas}x\n`;
+  }
+
+  if (dados.ehCompartilhado && dados.nomeUsuarioCompartilhado) {
+    mensagem += `🔸 *Compartilhado com:* ${dados.nomeUsuarioCompartilhado}\n`;
+  }
+
+  mensagem += `\n⚠️ *Confirma a criação deste lançamento?*\n`;
+  mensagem += `Digite *SIM* para confirmar ou *NÃO* para cancelar`;
+
+  return mensagem;
+}
+
+// 🔥 FUNÇÃO PARA GERAR MENSAGEM FINAL
+async function gerarMensagemConfirmacaoFinal(
+  dados: DadosLancamento,
+  descricaoLimpa: string,
+  categoriaEscolhida: any,
+  cartaoEncontrado: any,
+  resultadoCriacao: any
+): Promise<string> {
+  const valorFormatado = parseFloat(dados.valor).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+
+  let mensagem = `✅ *LANÇAMENTO CONFIRMADO*\n\n`;
+  mensagem += `📌 ${descricaoLimpa}\n`;
+  mensagem += `💰 ${valorFormatado}\n`;
+  mensagem += `🏷️ ${categoriaEscolhida.nome}\n`;
+
+  if (cartaoEncontrado) {
+    mensagem += `💳 ${cartaoEncontrado.nome}\n`;
+  }
+
+  if (resultadoCriacao?.ehParcelado) {
+    mensagem += `🔢 ${resultadoCriacao.parcelasTotal}x de ${resultadoCriacao.valorParcela.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+  }
+
+  mensagem += `\n✨ Obrigado por organizar suas finanças!`;
+
+  return mensagem;
+}
 function detectarCompartilhamento(mensagem: string): {
   ehCompartilhado: boolean;
   nomeUsuario?: string;
@@ -539,7 +695,9 @@ async function encontrarUsuarioPorNome(nome: string, userIdAtual: string) {
 }
 
 // 🔥 FUNÇÃO MELHORADA: Limpar descrição com Claude
-async function limparDescricaoComClaude(descricaoOriginal: string): Promise<string> {
+async function limparDescricaoComClaude(
+  descricaoOriginal: string
+): Promise<string> {
   if (!process.env.ANTHROPIC_API_KEY) {
     // Fallback simples se não tiver API key
     return descricaoOriginal.trim();
@@ -591,57 +749,81 @@ DESCRIÇÃO LIMPA:`;
 
     const data = await response.json();
     const descricaoLimpa = data.content[0].text.trim();
-    
-    console.log(`🧹 Descrição limpa com Claude: "${descricaoOriginal}" → "${descricaoLimpa}"`);
-    
+
+    console.log(
+      `🧹 Descrição limpa com Claude: "${descricaoOriginal}" → "${descricaoLimpa}"`
+    );
+
     // Validação adicional: remover qualquer menção a bancos/cartões que possa ter escapado
-    const termosProibidos = ['nubank', 'credito', 'debito', 'cartao', 'cartão', 'pix', 'bb', 'itau', 'bradesco', 'santander'];
+    const termosProibidos = [
+      "nubank",
+      "credito",
+      "debito",
+      "cartao",
+      "cartão",
+      "pix",
+      "bb",
+      "itau",
+      "bradesco",
+      "santander",
+    ];
     let descricaoValidada = descricaoLimpa;
-    
-    termosProibidos.forEach(termo => {
-      const regex = new RegExp(`\\s*${termo}\\s*`, 'gi');
-      descricaoValidada = descricaoValidada.replace(regex, ' ');
+
+    termosProibidos.forEach((termo) => {
+      const regex = new RegExp(`\\s*${termo}\\s*`, "gi");
+      descricaoValidada = descricaoValidada.replace(regex, " ");
     });
-    
+
     // Limpeza final
-    descricaoValidada = descricaoValidada
-      .replace(/\s+/g, ' ')
-      .trim();
-    
+    descricaoValidada = descricaoValidada.replace(/\s+/g, " ").trim();
+
     // Se ficou vazio após validação, usar fallback
     if (!descricaoValidada || descricaoValidada.length > 30) {
       // Tentar extrair a primeira palavra substantiva como fallback
       const palavras = descricaoOriginal.split(/\s+/);
-      const palavraSubstantiva = palavras.find(palavra => 
-        palavra.length > 2 && 
-        !termosProibidos.some(termo => palavra.toLowerCase().includes(termo))
+      const palavraSubstantiva = palavras.find(
+        (palavra) =>
+          palavra.length > 2 &&
+          !termosProibidos.some((termo) =>
+            palavra.toLowerCase().includes(termo)
+          )
       );
-      
-      descricaoValidada = palavraSubstantiva || 'Transação';
+
+      descricaoValidada = palavraSubstantiva || "Transação";
       console.log(`🔄 Fallback para descrição: "${descricaoValidada}"`);
     }
-    
+
     // Capitalizar primeira letra
     if (descricaoValidada.length > 0) {
-      descricaoValidada = descricaoValidada.charAt(0).toUpperCase() + descricaoValidada.slice(1);
+      descricaoValidada =
+        descricaoValidada.charAt(0).toUpperCase() + descricaoValidada.slice(1);
     }
-    
+
     console.log(`✅ Descrição final: "${descricaoValidada}"`);
     return descricaoValidada;
   } catch (error) {
     console.error("Erro ao limpar descrição com Claude:", error);
     // Fallback inteligente
-    const termosProibidos = ['nubank', 'credito', 'debito', 'cartao', 'cartão', 'pix'];
+    const termosProibidos = [
+      "nubank",
+      "credito",
+      "debito",
+      "cartao",
+      "cartão",
+      "pix",
+    ];
     const palavras = descricaoOriginal.split(/\s+/);
-    const palavraSubstantiva = palavras.find(palavra => 
-      palavra.length > 2 && 
-      !termosProibidos.some(termo => palavra.toLowerCase().includes(termo))
+    const palavraSubstantiva = palavras.find(
+      (palavra) =>
+        palavra.length > 2 &&
+        !termosProibidos.some((termo) => palavra.toLowerCase().includes(termo))
     );
-    
-    return palavraSubstantiva ? palavraSubstantiva.charAt(0).toUpperCase() + palavraSubstantiva.slice(1) : 'Transação';
+
+    return palavraSubstantiva
+      ? palavraSubstantiva.charAt(0).toUpperCase() + palavraSubstantiva.slice(1)
+      : "Transação";
   }
 }
-
 
 // ATUALIZE COMPLETAMENTE a função limparDescricao:
 function limparDescricao(descricao: string): string {
@@ -664,16 +846,33 @@ function limparDescricao(descricao: string): string {
     const antes = descricaoLimpa;
     descricaoLimpa = descricaoLimpa.replace(padrao, "");
     if (antes !== descricaoLimpa) {
-      console.log(`🔧 Removido lixo "${padrao}": "${antes}" → "${descricaoLimpa}"`);
+      console.log(
+        `🔧 Removido lixo "${padrao}": "${antes}" → "${descricaoLimpa}"`
+      );
     }
   });
 
   // 🔥 SEGUNDO: Remover menções de pagamento (mais agressivo)
   const termosPagamento = [
-    "cartão de crédito", "cartão de debito", "cartão credito", "cartão debito",
-    "cartão crédito", "cartão débito", "crédito", "débito", "debito", 
-    "nubank", "visa", "mastercard", "elo", "hipercard",
-    "pix", "transferência", "transferencia", "dinheiro", "efetivo"
+    "cartão de crédito",
+    "cartão de debito",
+    "cartão credito",
+    "cartão debito",
+    "cartão crédito",
+    "cartão débito",
+    "crédito",
+    "débito",
+    "debito",
+    "nubank",
+    "visa",
+    "mastercard",
+    "elo",
+    "hipercard",
+    "pix",
+    "transferência",
+    "transferencia",
+    "dinheiro",
+    "efetivo",
   ];
 
   termosPagamento.forEach((termo) => {
@@ -681,7 +880,9 @@ function limparDescricao(descricao: string): string {
     const antes = descricaoLimpa;
     descricaoLimpa = descricaoLimpa.replace(regex, " ");
     if (antes !== descricaoLimpa) {
-      console.log(`🔧 Removido pagamento "${termo}": "${antes}" → "${descricaoLimpa}"`);
+      console.log(
+        `🔧 Removido pagamento "${termo}": "${antes}" → "${descricaoLimpa}"`
+      );
     }
   });
 
@@ -694,8 +895,23 @@ function limparDescricao(descricao: string): string {
 
   // 🔥 QUARTO: Remover palavras comuns que não agregam
   const palavrasVazias = [
-    "reais", "real", "r$", "valor", "gastei", "paguei", "recebi", "ganhei",
-    "com", "em", "no", "na", "do", "da", "dos", "das", "de"
+    "reais",
+    "real",
+    "r$",
+    "valor",
+    "gastei",
+    "paguei",
+    "recebi",
+    "ganhei",
+    "com",
+    "em",
+    "no",
+    "na",
+    "do",
+    "da",
+    "dos",
+    "das",
+    "de",
   ];
 
   palavrasVazias.forEach((palavra) => {
@@ -703,7 +919,9 @@ function limparDescricao(descricao: string): string {
     const antes = descricaoLimpa;
     descricaoLimpa = descricaoLimpa.replace(regex, "");
     if (antes !== descricaoLimpa) {
-      console.log(`🔧 Removido palavra vazia "${palavra}": "${antes}" → "${descricaoLimpa}"`);
+      console.log(
+        `🔧 Removido palavra vazia "${palavra}": "${antes}" → "${descricaoLimpa}"`
+      );
     }
   });
 
@@ -716,15 +934,16 @@ function limparDescricao(descricao: string): string {
   // 🔥 QUINTO: Se ficou muito curta, tentar inteligência contextual
   if (!descricaoLimpa || descricaoLimpa.length < 2) {
     console.log(`🔧 Descrição muito curta após limpeza: "${descricaoLimpa}"`);
-    
+
     // Tentar extrair a primeira palavra substantiva da descrição original
     const palavras = descricao.split(/\s+/);
-    const palavrasSubstantivas = palavras.filter(palavra => 
-      palavra.length > 2 && 
-      !palavrasVazias.includes(palavra.toLowerCase()) &&
-      !termosPagamento.some(termo => palavra.toLowerCase().includes(termo))
+    const palavrasSubstantivas = palavras.filter(
+      (palavra) =>
+        palavra.length > 2 &&
+        !palavrasVazias.includes(palavra.toLowerCase()) &&
+        !termosPagamento.some((termo) => palavra.toLowerCase().includes(termo))
     );
-    
+
     if (palavrasSubstantivas.length > 0) {
       descricaoLimpa = palavrasSubstantivas[0];
       console.log(`🔧 Usando palavra substantiva: "${descricaoLimpa}"`);
@@ -736,10 +955,13 @@ function limparDescricao(descricao: string): string {
 
   // Capitalizar primeira letra
   if (descricaoLimpa.length > 0) {
-    descricaoLimpa = descricaoLimpa.charAt(0).toUpperCase() + descricaoLimpa.slice(1);
+    descricaoLimpa =
+      descricaoLimpa.charAt(0).toUpperCase() + descricaoLimpa.slice(1);
   }
 
-  console.log(`🔧🔧🔧 DESCRIÇÃO FINAL LIMPA: "${descricao}" → "${descricaoLimpa}"`);
+  console.log(
+    `🔧🔧🔧 DESCRIÇÃO FINAL LIMPA: "${descricao}" → "${descricaoLimpa}"`
+  );
 
   return descricaoLimpa;
 }
@@ -976,19 +1198,19 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
   const padroesTeste = [
     // 🔥 PADRÃO 1: "gastei X reais com [DESCRIÇÃO]" (MAIS ESPECÍFICO)
     /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+reais\s+com\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
-    
-    // 🔥 PADRÃO 2: "gastei X reais em [DESCRIÇÃO]" 
+
+    // 🔥 PADRÃO 2: "gastei X reais em [DESCRIÇÃO]"
     /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+reais\s+em\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
-    
+
     // 🔥 PADRÃO 3: "gastei X reais no [DESCRIÇÃO]"
     /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+reais\s+no\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
-    
+
     // 🔥 PADRÃO 4: "gastei X reais na [DESCRIÇÃO]"
     /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+reais\s+na\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
 
     // 🔥 PADRÃO 5: Com R$
     /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+r\$\s*([\d.,]+)\s+com\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
-    
+
     // 🔥 PADRÃO 6: Formato simples "gastei X em [DESCRIÇÃO]"
     /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+em\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
 
@@ -1023,7 +1245,9 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
     // Se a descrição estiver vazia, tentar fallback
     if (!descricao || descricao.length < 2) {
       // Tentar extrair do contexto geral
-      const fallbackMatch = texto.match(/(?:com|em|no|na)\s+([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|$)/i);
+      const fallbackMatch = texto.match(
+        /(?:com|em|no|na)\s+([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|$)/i
+      );
       if (fallbackMatch && fallbackMatch[1]) {
         descricao = fallbackMatch[1].trim();
         console.log(`🔄 Usando fallback para descrição: "${descricao}"`);
@@ -1045,12 +1269,12 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
       tipo = compartilhamento.tipoCompartilhamento;
     }
 
-    console.log(`📝 Dados processados:`, { 
-      acao, 
-      valor, 
+    console.log(`📝 Dados processados:`, {
+      acao,
+      valor,
       descricao,
       metodoPagamento: metodoPagamentoCorrigido,
-      tipo
+      tipo,
     });
 
     return {
@@ -1082,7 +1306,9 @@ async function createLancamento(
   userId: string,
   dados: any,
   categoriaEscolhida: any,
-  userMessage: string
+  userMessage: string,
+  descricaoLimpa: string, // 🔥 AGORA RECEBE A DESCRIÇÃO JÁ LIMPA
+  cartaoEncontrado?: any
 ) {
   try {
     console.log(`🔥🔥🔥 HOTFIX GLOBAL INICIADO 🔥🔥🔥`);
@@ -1120,7 +1346,7 @@ async function createLancamento(
     );
 
     // Limpar descrição
-  const descricaoLimpa = await limparDescricaoComClaude(dados.descricao);
+    const descricaoLimpa = await limparDescricaoComClaude(dados.descricao);
 
     let cartaoId = null;
     let cartaoEncontrado = null;
@@ -1401,9 +1627,9 @@ MENSAGEM DO CLIENTE: "${userMessage}"
     console.log(`📅 Data formatada para resposta: ${dataFormatada}`);
 
     // Usar a descrição limpa
- const descricao = resultadoCriacao?.sucesso
-  ? resultadoCriacao.lancamento.descricao
-  : await limparDescricaoComClaude(dadosExtracao.dados.descricao);
+    const descricao = resultadoCriacao?.sucesso
+      ? resultadoCriacao.lancamento.descricao
+      : await limparDescricaoComClaude(dadosExtracao.dados.descricao);
 
     const valorReal = resultadoCriacao?.sucesso
       ? resultadoCriacao.lancamento.valor
