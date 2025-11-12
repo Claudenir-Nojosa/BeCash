@@ -538,56 +538,67 @@ async function encontrarUsuarioPorNome(nome: string, userIdAtual: string) {
   }
 }
 
-// ATUALIZE a função limparDescricao para ser mais inteligente:
+// ATUALIZE COMPLETAMENTE a função limparDescricao:
 function limparDescricao(descricao: string): string {
-  let descricaoLimpa = descricao;
+  console.log(`🔧🔧🔧 LIMPANDO DESCRIÇÃO INICIADA 🔧🔧🔧`);
+  console.log(`📨 Descrição original: "${descricao}"`);
 
-  console.log(`🔧🔧🔧 LIMPANDO DESCRIÇÃO ORIGINAL: "${descricao}"`);
+  let descricaoLimpa = descricao.trim();
 
-  // Se a descrição for muito longa ou contiver "reais com", extrair a parte importante
-  if (descricaoLimpa.includes("reais com")) {
-    // Extrair apenas o que vem depois de "reais com"
-    const match = descricaoLimpa.match(/reais com\s+(.+)/i);
-    if (match && match[1]) {
-      descricaoLimpa = match[1];
-      console.log(`🔧 Extraído após "reais com": "${descricaoLimpa}"`);
-    }
-  }
-
-  // 🔥 PRIMEIRO: Remover menções de método de pagamento
-  const partesPagamento = [
-    /do\s+cartão\s+(?:de\s+)?(?:crédito|débito|credito|debito)\s*/i,
-    /no\s+cartão\s+(?:de\s+)?(?:crédito|débito|credito|debito)\s*/i,
-    /com\s+cartão\s+(?:de\s+)?(?:crédito|débito|credito|debito)\s*/i,
-    /cartão\s+(?:de\s+)?(?:crédito|débito|credito|debito)\s*/i,
-    /nubank\s*,?/i,
-    /,\s*nubank/i,
+  // 🔥 PRIMEIRO: Se a descrição contiver partes que sabemos que são lixo
+  const padroesLixo = [
+    // Remover "reais com", "reais em", etc
+    /^reais\s+(?:com|em|no|na)\s+/i,
+    // Remover artigos no início
+    /^(?:o|a|os|as)\s+/i,
+    // Remover "de despesa", "de receita"
+    /\s+de\s+(?:despesa|receita)\s*$/i,
   ];
 
-  partesPagamento.forEach((parte) => {
+  padroesLixo.forEach((padrao) => {
     const antes = descricaoLimpa;
-    descricaoLimpa = descricaoLimpa.replace(parte, "");
+    descricaoLimpa = descricaoLimpa.replace(padrao, "");
     if (antes !== descricaoLimpa) {
-      console.log(`🔧 Removido pagamento: "${parte}" → "${descricaoLimpa}"`);
+      console.log(`🔧 Removido lixo "${padrao}": "${antes}" → "${descricaoLimpa}"`);
     }
   });
 
-  // 🔥 SEGUNDO: Remover TODAS as menções de compartilhamento
-  const partesCompartilhamento = [
-    /despesa\s+compartilhada\s+com\s+[^,.]+/i,
-    /compartilhada\s+com\s+[^,.]+/i,
-    /compartilhado\s+com\s+[^,.]+/i,
-    /,\s*despesa\s+compartilhada/i,
-    /,\s*compartilhada/i,
+  // 🔥 SEGUNDO: Remover menções de pagamento (mais agressivo)
+  const termosPagamento = [
+    "cartão de crédito", "cartão de debito", "cartão credito", "cartão debito",
+    "cartão crédito", "cartão débito", "crédito", "débito", "debito", 
+    "nubank", "visa", "mastercard", "elo", "hipercard",
+    "pix", "transferência", "transferencia", "dinheiro", "efetivo"
   ];
 
-  partesCompartilhamento.forEach((parte) => {
+  termosPagamento.forEach((termo) => {
+    const regex = new RegExp(`\\s*${termo}\\s*`, "gi");
     const antes = descricaoLimpa;
-    descricaoLimpa = descricaoLimpa.replace(parte, "");
+    descricaoLimpa = descricaoLimpa.replace(regex, " ");
     if (antes !== descricaoLimpa) {
-      console.log(
-        `🔧 Removido compartilhamento: "${parte}" → "${descricaoLimpa}"`
-      );
+      console.log(`🔧 Removido pagamento "${termo}": "${antes}" → "${descricaoLimpa}"`);
+    }
+  });
+
+  // 🔥 TERCEIRO: Remover pontuação problemática e espaços extras
+  descricaoLimpa = descricaoLimpa
+    .replace(/\s*,\s*/g, " ") // Vírgulas viram espaços
+    .replace(/\s*\.\s*/g, " ") // Pontos viram espaços
+    .replace(/\s+/g, " ") // Múltiplos espaços viram um
+    .trim();
+
+  // 🔥 QUARTO: Remover palavras comuns que não agregam
+  const palavrasVazias = [
+    "reais", "real", "r$", "valor", "gastei", "paguei", "recebi", "ganhei",
+    "com", "em", "no", "na", "do", "da", "dos", "das", "de"
+  ];
+
+  palavrasVazias.forEach((palavra) => {
+    const regex = new RegExp(`\\b${palavra}\\b`, "gi");
+    const antes = descricaoLimpa;
+    descricaoLimpa = descricaoLimpa.replace(regex, "");
+    if (antes !== descricaoLimpa) {
+      console.log(`🔧 Removido palavra vazia "${palavra}": "${antes}" → "${descricaoLimpa}"`);
     }
   });
 
@@ -595,27 +606,35 @@ function limparDescricao(descricao: string): string {
   descricaoLimpa = descricaoLimpa
     .replace(/\s+/g, " ")
     .replace(/^\s+|\s+$/g, "")
-    .replace(/^,\s*|,\s*$/g, "")
-    .replace(/^\.\s*|\.\s*$/g, "")
     .trim();
 
-  // Se ficou vazia ou muito curta, usar a categoria como fallback
+  // 🔥 QUINTO: Se ficou muito curta, tentar inteligência contextual
   if (!descricaoLimpa || descricaoLimpa.length < 2) {
-    descricaoLimpa = "Transação";
-    console.log(
-      `🔧 Descrição ficou vazia, usando fallback: "${descricaoLimpa}"`
+    console.log(`🔧 Descrição muito curta após limpeza: "${descricaoLimpa}"`);
+    
+    // Tentar extrair a primeira palavra substantiva da descrição original
+    const palavras = descricao.split(/\s+/);
+    const palavrasSubstantivas = palavras.filter(palavra => 
+      palavra.length > 2 && 
+      !palavrasVazias.includes(palavra.toLowerCase()) &&
+      !termosPagamento.some(termo => palavra.toLowerCase().includes(termo))
     );
+    
+    if (palavrasSubstantivas.length > 0) {
+      descricaoLimpa = palavrasSubstantivas[0];
+      console.log(`🔧 Usando palavra substantiva: "${descricaoLimpa}"`);
+    } else {
+      descricaoLimpa = "Transação";
+      console.log(`🔧 Usando fallback padrão: "${descricaoLimpa}"`);
+    }
   }
 
   // Capitalizar primeira letra
   if (descricaoLimpa.length > 0) {
-    descricaoLimpa =
-      descricaoLimpa.charAt(0).toUpperCase() + descricaoLimpa.slice(1);
+    descricaoLimpa = descricaoLimpa.charAt(0).toUpperCase() + descricaoLimpa.slice(1);
   }
 
-  console.log(
-    `🔧🔧🔧 DESCRIÇÃO FINAL LIMPA: "${descricao}" → "${descricaoLimpa}"`
-  );
+  console.log(`🔧🔧🔧 DESCRIÇÃO FINAL LIMPA: "${descricao}" → "${descricaoLimpa}"`);
 
   return descricaoLimpa;
 }
@@ -834,7 +853,7 @@ async function identificarCartao(texto: string, userId: string) {
   return null;
 }
 
-// ATUALIZE a função extrairDadosLancamento para corrigir a extração:
+// ATUALIZE a função extrairDadosLancamento com padrões mais precisos:
 function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
   const texto = mensagem.toLowerCase().trim();
 
@@ -848,22 +867,28 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
 
   console.log(`🎯 Detecções:`, { compartilhamento, parcelamento });
 
-  // 🔥🔥🔥 PADRÕES MAIS ESPECÍFICOS - CORRIGIDOS
+  // 🔥🔥🔥 PADRÕES MAIS PRECISOS - CORRIGIDOS
   const padroesTeste = [
-    // 🔥 PADRÃO MAIS ESPECÍFICO para "gastei X reais com Y"
-    /(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+reais\s+com\s+([^,.\d]+?)(?=,|\.|\s+do\s+cartão|\s+no\s+cartão|\s+despesa|$)/i,
-    /(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+reais\s+em\s+([^,.\d]+?)(?=,|\.|\s+do\s+cartão|\s+no\s+cartão|\s+despesa|$)/i,
-    /(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+reais\s+na\s+([^,.\d]+?)(?=,|\.|\s+do\s+cartão|\s+no\s+cartão|\s+despesa|$)/i,
-    /(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+reais\s+no\s+([^,.\d]+?)(?=,|\.|\s+do\s+cartão|\s+no\s+cartão|\s+despesa|$)/i,
+    // 🔥 PADRÃO 1: "gastei X reais com [DESCRIÇÃO]" (MAIS ESPECÍFICO)
+    /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+reais\s+com\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
+    
+    // 🔥 PADRÃO 2: "gastei X reais em [DESCRIÇÃO]" 
+    /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+reais\s+em\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
+    
+    // 🔥 PADRÃO 3: "gastei X reais no [DESCRIÇÃO]"
+    /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+reais\s+no\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
+    
+    // 🔥 PADRÃO 4: "gastei X reais na [DESCRIÇÃO]"
+    /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+reais\s+na\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
 
-    // Padrões com R$
-    /(gastei|paguei|recebi|ganhei)\s+r\$\s*([\d.,]+)\s+com\s+([^,.\d]+?)(?=,|\.|\s+do\s+cartão|\s+no\s+cartão|\s+despesa|$)/i,
-    /(gastei|paguei|recebi|ganhei)\s+r\$\s*([\d.,]+)\s+em\s+([^,.\d]+?)(?=,|\.|\s+do\s+cartão|\s+no\s+cartão|\s+despesa|$)/i,
+    // 🔥 PADRÃO 5: Com R$
+    /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+r\$\s*([\d.,]+)\s+com\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
+    
+    // 🔥 PADRÃO 6: Formato simples "gastei X em [DESCRIÇÃO]"
+    /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+em\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
 
-    // Padrões genéricos (fallback)
-    /(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+com\s+(.+)/i,
-    /(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+em\s+(.+)/i,
-    /(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+(.+)/i,
+    // 🔥 PADRÃO 7: Fallback genérico
+    /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+com\s+(.+)/i,
   ];
 
   let melhorMatch = null;
@@ -884,14 +909,23 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
   if (melhorMatch) {
     let acao, valor, descricao;
 
-    // 🔥 LÓGICA CORRIGIDA - sempre pegar o terceiro grupo para descrição
     acao = melhorMatch[1];
     valor = melhorMatch[2];
     descricao = melhorMatch[3] ? melhorMatch[3].trim() : "";
 
     console.log(`📝 Dados brutos extraídos:`, { acao, valor, descricao });
 
-    // 🔥🔥🔥 CORREÇÃO: Detectar método de pagamento com info do parcelamento
+    // Se a descrição estiver vazia, tentar fallback
+    if (!descricao || descricao.length < 2) {
+      // Tentar extrair do contexto geral
+      const fallbackMatch = texto.match(/(?:com|em|no|na)\s+([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|$)/i);
+      if (fallbackMatch && fallbackMatch[1]) {
+        descricao = fallbackMatch[1].trim();
+        console.log(`🔄 Usando fallback para descrição: "${descricao}"`);
+      }
+    }
+
+    // 🔥🔥🔥 CORREÇÃO: Detectar método de pagamento
     const metodoPagamentoCorrigido = extrairMetodoPagamento(
       mensagem,
       parcelamento.ehParcelado
@@ -906,12 +940,12 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
       tipo = compartilhamento.tipoCompartilhamento;
     }
 
-    console.log(`📝 Dados processados:`, {
-      acao,
-      valor,
+    console.log(`📝 Dados processados:`, { 
+      acao, 
+      valor, 
       descricao,
       metodoPagamento: metodoPagamentoCorrigido,
-      tipo,
+      tipo
     });
 
     return {
@@ -919,7 +953,7 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
       dados: {
         tipo,
         valor: valor.replace(",", "."),
-        descricao: descricao, // 🔥 NÃO limpar aqui - vamos limpar depois
+        descricao: descricao, // 🔥 Vamos limpar depois
         metodoPagamento: metodoPagamentoCorrigido,
         data: "hoje",
         ehCompartilhado: compartilhamento.ehCompartilhado,
