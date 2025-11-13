@@ -500,7 +500,6 @@ async function gerarMensagemConfirmacaoFinal(
   let mensagem = `✅ Lançamento registrado
 
 ${descricaoLimpa} • ${valorFormatado}
-${categoriaEscolhida.nome} • ${new Date().toLocaleDateString('pt-BR')}
 
 Obrigado por usar o BeCash.`;
 
