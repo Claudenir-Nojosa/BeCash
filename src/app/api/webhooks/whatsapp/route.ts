@@ -422,8 +422,6 @@ async function processarConfirmacao(
   return { status: "invalid_confirmation" };
 }
 
-
-// 🔥 FUNÇÃO PARA GERAR MENSAGEM DE CONFIRMAÇÃO - VERSÃO ELEGANTE
 // 🔥 FUNÇÃO PARA GERAR MENSAGEM DE CONFIRMAÇÃO - VERSÃO PROFISSIONAL
 async function gerarMensagemConfirmacao(
   dados: DadosLancamento,
@@ -436,20 +434,51 @@ async function gerarMensagemConfirmacao(
     currency: "BRL",
   });
 
-  let mensagem = `CONFIRMAÇÃO DE LANÇAMENTO
+  // 🔥 ADICIONAR DATA DO LANÇAMENTO
+  let dataLancamento = new Date();
+  const offsetBrasilia = -3 * 60;
+  dataLancamento.setMinutes(
+    dataLancamento.getMinutes() +
+    dataLancamento.getTimezoneOffset() +
+    offsetBrasilia
+  );
+
+  if (dados.data === "ontem") {
+    dataLancamento.setDate(dataLancamento.getDate() - 1);
+  } else if (dados.data.includes("/")) {
+    const [dia, mes, ano] = dados.data.split("/").map(Number);
+    dataLancamento = new Date(
+      ano || new Date().getFullYear(),
+      mes - 1 || new Date().getMonth(),
+      dia || new Date().getDate()
+    );
+  }
+
+  const dataFormatada = dataLancamento.toLocaleDateString("pt-BR");
+
+  let mensagem = `📌 Confirmação de Lançamento
+━━━━━━━━━━━━━━━
 
 Descrição: ${descricaoLimpa}
 Valor: ${valorFormatado}
 Categoria: ${categoriaEscolhida.nome}
 Tipo: ${dados.tipo === "DESPESA" ? "Despesa" : "Receita"}
-Método: ${dados.metodoPagamento === 'CREDITO' ? 'Cartão de Crédito' : 
-          dados.metodoPagamento === 'DEBITO' ? 'Cartão de Débito' : 
-          dados.metodoPagamento}
-${cartaoEncontrado ? `Cartão: ${cartaoEncontrado.nome}\n` : ''}${dados.ehParcelado && dados.parcelas ? `Parcelado: ${dados.parcelas}x\n` : ''}${dados.ehCompartilhado && dados.nomeUsuarioCompartilhado ? `Compartilhado com: ${dados.nomeUsuarioCompartilhado}\n` : ''}
-Para confirmar, responda SIM
-Para cancelar, responda NÃO
+Data: ${dataFormatada}
+Método: ${
+    dados.metodoPagamento === "CREDITO"
+      ? "Cartão de Crédito"
+      : dados.metodoPagamento === "DEBITO"
+        ? "Cartão de Débito"
+        : dados.metodoPagamento
+  }
+${cartaoEncontrado ? `Cartão: ${cartaoEncontrado.nome}\n` : ""}${dados.ehParcelado && dados.parcelas ? `Parcelado: ${dados.parcelas}x\n` : ""}${dados.ehCompartilhado && dados.nomeUsuarioCompartilhado ? `Compartilhado com: ${dados.nomeUsuarioCompartilhado}\n` : ""}
+━━━━━━━━━━━━━━━
 
-*Esta solicitação expira em 5 minutos*`;
+_Responda com:_
+✅ *SIM* - Para confirmar
+❌ *NÃO* - Para cancelar
+
+⏰ _Expira em 5 minutos_`;
 
   return mensagem;
 }
@@ -467,18 +496,7 @@ async function gerarMensagemConfirmacaoFinal(
     currency: "BRL",
   });
 
-  let mensagem = `LANÇAMENTO REGISTRADO
-
-${descricaoLimpa}
-${valorFormatado}
-${categoriaEscolhida.nome}
-${dados.metodoPagamento === 'CREDITO' ? 'Cartão de Crédito' : 
-  dados.metodoPagamento === 'DEBITO' ? 'Cartão de Débito' : 
-  dados.metodoPagamento}
-${cartaoEncontrado ? `${cartaoEncontrado.nome}\n` : ''}${resultadoCriacao?.ehParcelado ? `${resultadoCriacao.parcelasTotal}x de ${resultadoCriacao.valorParcela.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n` : ''}
-Status: Confirmado
-Data: ${new Date().toLocaleDateString('pt-BR')}
-
+  let mensagem = `Lançamento Registrado
 Obrigado por usar o BeCash.`;
 
   return mensagem;
@@ -486,14 +504,9 @@ Obrigado por usar o BeCash.`;
 
 // 🔥 FUNÇÃO PARA MENSAGEM DE CANCELAMENTO - VERSÃO PROFISSIONAL
 async function gerarMensagemCancelamento(): Promise<string> {
-  return `LANÇAMENTO CANCELADO
+  return `*Lançamento Cancelado*
 
-A transação foi cancelada e não foi registrada em seu extrato.
-
-Para criar um novo lançamento, envie:
-"Gastei 50 no almoço"
-ou
-"Recebi 1200 de salário"`;
+A transação foi cancelada e não foi registrada em seu extrato.`;
 }
 
 function detectarCompartilhamento(mensagem: string): {
