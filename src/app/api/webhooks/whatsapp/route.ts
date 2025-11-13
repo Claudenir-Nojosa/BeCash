@@ -484,6 +484,7 @@ _Responda com:_
 }
 
 // 🔥 FUNÇÃO PARA GERAR MENSAGEM FINAL - VERSÃO PROFISSIONAL
+// 🔥 FUNÇÃO PARA GERAR MENSAGEM FINAL - VERSÃO MINIMALISTA MELHORADA
 async function gerarMensagemConfirmacaoFinal(
   dados: DadosLancamento,
   descricaoLimpa: string,
@@ -496,7 +497,11 @@ async function gerarMensagemConfirmacaoFinal(
     currency: "BRL",
   });
 
-  let mensagem = `Lançamento Registrado
+  let mensagem = `✅ Lançamento registrado
+
+${descricaoLimpa} • ${valorFormatado}
+${categoriaEscolhida.nome} • ${new Date().toLocaleDateString('pt-BR')}
+
 Obrigado por usar o BeCash.`;
 
   return mensagem;
