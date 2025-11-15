@@ -5,7 +5,7 @@ import { auth } from "../../../../../auth";
 
 export async function POST(request: NextRequest) {
   try {
-     const session = await auth();
+    const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
@@ -19,14 +19,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Formatar telefone (remover caracteres especiais)
-    const telefoneFormatado = telefone.replace(/\D/g, "");
+    // 🔥 NORMALIZAR TELEFONE: remover tudo que não é número
+    const telefoneNormalizado = telefone.replace(/\D/g, "");
+
+    console.log(`📞 Telefone recebido: ${telefone}`);
+    console.log(`🔧 Telefone normalizado: ${telefoneNormalizado}`);
 
     // Verificar se telefone já está em uso por outro usuário
     const telefoneExistente = await db.user.findFirst({
       where: {
-        telefone: telefoneFormatado,
-        NOT: { email: session.user.email }, // Excluir o próprio usuário
+        OR: [
+          { telefone: telefoneNormalizado },
+          { telefone: `+${telefoneNormalizado}` },
+          { telefone: telefoneNormalizado.replace(/^55/, "") },
+          { telefone: `+55${telefoneNormalizado.replace(/^55/, "")}` },
+        ],
+        NOT: { email: session.user.email },
       },
     });
 
@@ -39,11 +47,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 🔥 SALVAR SEM DDI (apenas números)
+    const telefoneParaSalvar = telefoneNormalizado.replace(/^55/, "");
+
     // Atualizar usuário atual com o telefone
     const usuarioAtualizado = await db.user.update({
       where: { email: session.user.email },
-      data: { telefone: telefoneFormatado },
+      data: { telefone: telefoneParaSalvar },
     });
+
+    console.log(`✅ Telefone salvo no banco: ${telefoneParaSalvar}`);
 
     return NextResponse.json({
       success: true,

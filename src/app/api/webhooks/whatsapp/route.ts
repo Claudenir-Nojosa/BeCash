@@ -57,23 +57,57 @@ async function getCategoriasUsuario(userId: string) {
   }
 }
 
-// 🔥 NOVA FUNÇÃO: Buscar usuário pelo telefone do WhatsApp
+// 🔥 FUNÇÃO DEFINITIVA: Buscar usuário com todas as variações possíveis
 async function getUserByPhone(userPhone: string) {
   try {
     console.log(`🔍 Buscando usuário para telefone: ${userPhone}`);
 
-    // Buscar usuário pelo telefone
+    // Normalizar o telefone (remover tudo que não é número)
+    const telefoneNormalizado = userPhone.replace(/\D/g, "");
+
+    console.log(`🔧 Telefone normalizado: ${telefoneNormalizado}`);
+
+    // Gerar todas as variações possíveis do telefone
+    const variacoesTelefone = [
+      telefoneNormalizado, // 85989310653
+      `+${telefoneNormalizado}`, // +85989310653
+      telefoneNormalizado.replace(/^55/, ""), // 85989310653 (sem 55)
+      `+55${telefoneNormalizado.replace(/^55/, "")}`, // +5585989310653
+      telefoneNormalizado.replace(/^55/, "55"), // 5585989310653
+    ].filter((tel, index, self) => self.indexOf(tel) === index); // Remover duplicatas
+
+    console.log(`🎯 Variações a buscar:`, variacoesTelefone);
+
+    // Buscar usuário por qualquer uma das variações
     const usuario = await db.user.findFirst({
-      where: { telefone: userPhone },
+      where: {
+        OR: variacoesTelefone.map((telefone) => ({ telefone })),
+      },
     });
 
     if (usuario) {
       console.log(`✅ Usuário encontrado: ${usuario.name} (${usuario.id})`);
+      console.log(`📞 Telefone no banco: ${usuario.telefone}`);
       return { user: { id: usuario.id, name: usuario.name } };
     }
 
-    // Se não encontrou, retorna null
-    console.log(`❌ Nenhum usuário encontrado para telefone: ${userPhone}`);
+    // 🔥 DEBUG: Para ajudar no troubleshooting
+    console.log("🐛 DEBUG - Buscando correspondências parciais...");
+    const todosUsuariosComTelefone = await db.user.findMany({
+      where: { telefone: { not: null } },
+      select: { name: true, telefone: true },
+    });
+
+    console.log("📋 Usuários com telefone no banco:");
+    todosUsuariosComTelefone.forEach((user) => {
+      const telBanco = user.telefone || "";
+      const telBusca = telefoneNormalizado;
+      console.log(
+        `   - ${user.name}: "${telBanco}" (busca: "${telBusca}") - Match: ${telBanco.includes(telBusca) || telBusca.includes(telBanco.replace(/\D/g, ""))}`
+      );
+    });
+
+    console.log(`❌ Nenhum usuário encontrado para: ${userPhone}`);
     return null;
   } catch (error) {
     console.error("❌ Erro ao buscar usuário:", error);
