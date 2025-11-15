@@ -21,6 +21,7 @@ import {
   ReceiptCent,
   Coins,
   Target,
+  PhoneIncoming,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSession, signOut } from "next-auth/react";
@@ -247,7 +248,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           </li>
 
           {/* Pontos */}
-         {/*  <li>
+          {/*  <li>
             <Link
               href="/dashboard/pontos"
               className={`
@@ -278,6 +279,25 @@ export default function Sidebar({ onClose }: SidebarProps) {
               <Goal className="h-5 w-5" />
               {!isCollapsed && (
                 <span className="ml-4 text-sm font-medium">Metas</span>
+              )}
+            </Link>
+          </li>
+          {/* Telefone */}
+          <li>
+            <Link
+              href="/dashboard/vincular-telefone"
+              className={`
+                flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
+                ${isCollapsed ? "justify-center p-4" : "p-4"}
+                ${isActiveRoute("/dashboard/vincular-telefone") ? "bg-gray-800 text-white border-l-2 border-gray-700" : ""}
+              `}
+              onClick={handleLinkClick}
+            >
+              <PhoneIncoming className="h-5 w-5" />
+              {!isCollapsed && (
+                <span className="ml-4 text-sm font-medium">
+                  Vincular Telefone
+                </span>
               )}
             </Link>
           </li>

@@ -43,12 +43,6 @@ type ExtracaoErro = {
 
 type ResultadoExtracao = ExtracaoSucesso | ExtracaoErro;
 
-// Função para autenticar via API
-async function getApiAuth() {
-  const user = await db.user.findFirst();
-  return user ? { user: { id: user.id } } : null;
-}
-
 // Função para buscar categorias do usuário
 async function getCategoriasUsuario(userId: string) {
   try {
@@ -60,6 +54,30 @@ async function getCategoriasUsuario(userId: string) {
   } catch (error) {
     console.error("Erro ao buscar categorias:", error);
     return [];
+  }
+}
+
+// 🔥 NOVA FUNÇÃO: Buscar usuário pelo telefone do WhatsApp
+async function getUserByPhone(userPhone: string) {
+  try {
+    console.log(`🔍 Buscando usuário para telefone: ${userPhone}`);
+
+    // Buscar usuário pelo telefone
+    const usuario = await db.user.findFirst({
+      where: { telefone: userPhone },
+    });
+
+    if (usuario) {
+      console.log(`✅ Usuário encontrado: ${usuario.name} (${usuario.id})`);
+      return { user: { id: usuario.id, name: usuario.name } };
+    }
+
+    // Se não encontrou, retorna null
+    console.log(`❌ Nenhum usuário encontrado para telefone: ${userPhone}`);
+    return null;
+  } catch (error) {
+    console.error("❌ Erro ao buscar usuário:", error);
+    return null;
   }
 }
 
@@ -173,6 +191,17 @@ async function processarAudioWhatsApp(audioMessage: any, userPhone: string) {
   try {
     console.log(`🎙️ Processando mensagem de áudio de: ${userPhone}`);
 
+    // 🔥 PRIMEIRO VERIFICAR SE USUÁRIO EXISTE
+    const session = await getUserByPhone(userPhone);
+    if (!session) {
+      await sendWhatsAppMessage(
+        userPhone,
+        "❌ Seu número não está vinculado a nenhuma conta.\n\n" +
+          "💡 Acesse o app BeCash e vincule seu WhatsApp em Configurações."
+      );
+      return { status: "user_not_found" };
+    }
+
     // Transcrever o áudio
     const audioId = audioMessage.audio?.id;
     if (!audioId) {
@@ -256,14 +285,15 @@ async function processarMensagemTexto(message: any) {
 
   // 🔥 SE NÃO FOR CONFIRMAÇÃO, PROCESSAR COMO NOVO LANÇAMENTO
   if (userMessage && userPhone) {
-    // 1. Autenticar usuário
-    const session = await getApiAuth();
+    // 1. 🔥 BUSCAR USUÁRIO PELO TELEFONE ESPECÍFICO
+    const session = await getUserByPhone(userPhone);
     if (!session) {
       await sendWhatsAppMessage(
         userPhone,
-        "🔐 Sistema em configuração. Em breve poderei criar seus lançamentos!"
+        "❌ Seu número não está vinculado a nenhuma conta.\n\n" +
+          "💡 Acesse o app BeCash e vincule seu WhatsApp em Configurações."
       );
-      return { status: "no_session" };
+      return { status: "user_not_found" };
     }
 
     const userId = session.user.id;
@@ -368,13 +398,22 @@ async function processarMensagemTexto(message: any) {
   return { status: "processed" };
 }
 
-// 🔥 FUNÇÃO PARA PROCESSAR CONFIRMAÇÃO
 // 🔥 FUNÇÃO PARA PROCESSAR CONFIRMAÇÃO - CORRIGIDA
 async function processarConfirmacao(
   resposta: string,
   pendingLancamento: LancamentoTemporario,
   userPhone: string
 ) {
+  // 🔥 VERIFICAR SE USUÁRIO AINDA EXISTE (SEGURANÇA)
+  const session = await getUserByPhone(userPhone);
+  if (!session) {
+    await sendWhatsAppMessage(
+      userPhone,
+      "❌ Sua conta não foi encontrada. O lançamento foi cancelado."
+    );
+    global.pendingLancamentos?.delete(userPhone);
+    return { status: "user_not_found" };
+  }
   // Remover do cache de pendentes
   global.pendingLancamentos?.delete(userPhone);
 
@@ -439,8 +478,8 @@ async function gerarMensagemConfirmacao(
   const offsetBrasilia = -3 * 60;
   dataLancamento.setMinutes(
     dataLancamento.getMinutes() +
-    dataLancamento.getTimezoneOffset() +
-    offsetBrasilia
+      dataLancamento.getTimezoneOffset() +
+      offsetBrasilia
   );
 
   if (dados.data === "ontem") {
