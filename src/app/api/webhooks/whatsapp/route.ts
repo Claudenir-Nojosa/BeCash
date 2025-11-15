@@ -340,10 +340,24 @@ async function processarMensagemTexto(message: any) {
   }
 
   // 🔥 VERIFICAR SE É UMA RESPOSTA DE CONFIRMAÇÃO (CORRIGIDO)
-  const pendingLancamento = global.pendingLancamentos.get(userPhone);
+  console.log(`🔍 Verificando lançamentos pendentes...`);
+  console.log(
+    `📊 Cache atual:`,
+    global.pendingLancamentos
+      ? Array.from(global.pendingLancamentos.entries())
+      : "vazio"
+  );
+
+  const pendingLancamento = global.pendingLancamentos?.get(userPhone);
 
   if (pendingLancamento) {
-    console.log(`📋 Lançamento pendente encontrado para: ${userPhone}`);
+    console.log(`🎯 LANÇAMENTO PENDENTE ENCONTRADO para: ${userPhone}`);
+    console.log(`📝 Dados do lançamento:`, {
+      descricao: pendingLancamento.descricaoLimpa,
+      valor: pendingLancamento.dados.valor,
+      categoria: pendingLancamento.categoriaEscolhida.nome,
+      timestamp: new Date(pendingLancamento.timestamp).toISOString(),
+    });
     console.log(`💬 Resposta do usuário: "${userMessage}"`);
 
     const resposta = userMessage.toLowerCase().trim();
@@ -354,9 +368,10 @@ async function processarMensagemTexto(message: any) {
       resposta === "s" ||
       resposta === "confirmar" ||
       resposta === "ok" ||
-      resposta === "yes"
+      resposta === "yes" ||
+      resposta === "✅"
     ) {
-      console.log(`✅ Usuário confirmou o lançamento`);
+      console.log(`✅ USUÁRIO CONFIRMOU - Processando confirmação...`);
       return await processarConfirmacao("sim", pendingLancamento, userPhone);
     }
 
@@ -365,9 +380,10 @@ async function processarMensagemTexto(message: any) {
       resposta === "nao" ||
       resposta === "n" ||
       resposta === "cancelar" ||
-      resposta === "no"
+      resposta === "no" ||
+      resposta === "❌"
     ) {
-      console.log(`❌ Usuário cancelou o lançamento`);
+      console.log(`❌ USUÁRIO CANCELOU - Processando cancelamento...`);
       return await processarConfirmacao("não", pendingLancamento, userPhone);
     }
 
@@ -378,13 +394,22 @@ async function processarMensagemTexto(message: any) {
 
     await sendWhatsAppMessage(
       userPhone,
-      `❌ Não entendi sua resposta.\n\n` +
+      `❌ Não entendi sua resposta: "${userMessage}"\n\n` +
         `Responda com:\n` +
         `✅ *SIM* - Para confirmar o lançamento\n` +
-        `❌ *NÃO* - Para cancelar`
+        `❌ *NÃO* - Para cancelar\n\n` +
+        `Ou envie uma nova mensagem para criar outro lançamento.`
     );
 
     return { status: "invalid_confirmation_response" };
+  } else {
+    console.log(`❌ NENHUM LANÇAMENTO PENDENTE encontrado para: ${userPhone}`);
+    console.log(
+      `🔍 Telefones no cache:`,
+      global.pendingLancamentos
+        ? Array.from(global.pendingLancamentos.keys())
+        : "nenhum"
+    );
   }
 
   // 🔥 SE NÃO FOR CONFIRMAÇÃO, PROCESSAR COMO NOVO LANÇAMENTO
@@ -483,13 +508,35 @@ async function processarMensagemTexto(message: any) {
       cartaoEncontrado,
     };
 
+    console.log(`💾 SALVANDO LANÇAMENTO PENDENTE para: ${userPhone}`);
+    console.log(`📦 Dados salvos:`, {
+      descricao: descricaoLimpa,
+      valor: dadosExtracao.dados.valor,
+      categoria: categoriaEscolhida.nome,
+      compartilhado: dadosExtracao.dados.ehCompartilhado,
+      usuarioCompartilhado: dadosExtracao.dados.nomeUsuarioCompartilhado,
+    });
+
     global.pendingLancamentos.set(userPhone, lancamentoTemporario);
+
+    // 🔥 DEBUG: Verificar se foi salvo corretamente
+    console.log(
+      `✅ Lançamento salvo no cache. Total pendentes: ${global.pendingLancamentos.size}`
+    );
+    console.log(
+      `📋 Cache atual:`,
+      Array.from(global.pendingLancamentos.entries())
+    );
 
     // Limpar após 5 minutos
     setTimeout(
       () => {
-        global.pendingLancamentos?.delete(userPhone);
-        console.log(`🧹 Limpando lançamento pendente para: ${userPhone}`);
+        if (global.pendingLancamentos?.has(userPhone)) {
+          console.log(
+            `🧹 LIMPANDO lançamento pendente expirado para: ${userPhone}`
+          );
+          global.pendingLancamentos.delete(userPhone);
+        }
       },
       5 * 60 * 1000
     );
