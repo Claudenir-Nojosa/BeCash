@@ -61,46 +61,57 @@ async function getCategoriasUsuario(userId: string) {
 async function getUserByPhone(userPhone: string) {
   try {
     console.log(`🔍 Buscando usuário para telefone: ${userPhone}`);
-    
+
     // Normalizar o telefone (remover tudo que não é número)
     const telefoneNormalizado = userPhone.replace(/\D/g, "");
-    
+
     console.log(`🔧 Telefone normalizado: ${telefoneNormalizado}`);
-    
+
     // 🔥 LÓGICA ESPECÍFICA PARA FORMATOS BRASILEIROS
     let telefoneBusca = telefoneNormalizado;
-    
+
     // Se o telefone começa com 55 (DDI Brasil) e tem 13 dígitos
-    if (telefoneNormalizado.startsWith('55') && telefoneNormalizado.length === 13) {
+    if (
+      telefoneNormalizado.startsWith("55") &&
+      telefoneNormalizado.length === 13
+    ) {
       // Remover DDI (55) e manter o resto: 558589310653 → 8589310653
       telefoneBusca = telefoneNormalizado.substring(2);
-      console.log(`🇧🇷 Removido DDI 55: ${telefoneNormalizado} → ${telefoneBusca}`);
+      console.log(
+        `🇧🇷 Removido DDI 55: ${telefoneNormalizado} → ${telefoneBusca}`
+      );
     }
     // Se o telefone tem 12 dígitos (DDI + DDD sem o 9)
-    else if (telefoneNormalizado.startsWith('55') && telefoneNormalizado.length === 12) {
+    else if (
+      telefoneNormalizado.startsWith("55") &&
+      telefoneNormalizado.length === 12
+    ) {
       // Formato: 558598931065 → 8598931065 (precisa adicionar o 9)
       const ddd = telefoneNormalizado.substring(2, 4); // 85
       const resto = telefoneNormalizado.substring(4); // 89310653
-      telefoneBusca = ddd + '9' + resto; // 85989310653
+      telefoneBusca = ddd + "9" + resto; // 85989310653
       console.log(`🇧🇷 Adicionado 9: ${telefoneNormalizado} → ${telefoneBusca}`);
     }
     // Se o telefone tem 11 dígitos e começa com 85 (sem DDI)
-    else if (telefoneNormalizado.startsWith('85') && telefoneNormalizado.length === 11) {
+    else if (
+      telefoneNormalizado.startsWith("85") &&
+      telefoneNormalizado.length === 11
+    ) {
       // Já está no formato correto: 85989310653
       telefoneBusca = telefoneNormalizado;
     }
-    
+
     console.log(`🎯 Telefone para busca: ${telefoneBusca}`);
-    
+
     // Gerar variações para busca
     const variacoesTelefone = [
       telefoneBusca, // 85989310653 (formato correto)
       `+55${telefoneBusca}`, // +5585989310653
       `55${telefoneBusca}`, // 5585989310653
-      telefoneBusca.replace(/^55/, ''), // Remove DDI se houver
+      telefoneBusca.replace(/^55/, ""), // Remove DDI se houver
       telefoneBusca.substring(2), // Remove DDD (85) - 989310653
-    ].filter((tel, index, self) => 
-      tel && self.indexOf(tel) === index // Remover duplicatas e vazios
+    ].filter(
+      (tel, index, self) => tel && self.indexOf(tel) === index // Remover duplicatas e vazios
     );
 
     console.log(`🎯 Variações a buscar:`, variacoesTelefone);
@@ -108,8 +119,8 @@ async function getUserByPhone(userPhone: string) {
     // Buscar usuário por qualquer uma das variações
     const usuario = await db.user.findFirst({
       where: {
-        OR: variacoesTelefone.map(telefone => ({ telefone }))
-      }
+        OR: variacoesTelefone.map((telefone) => ({ telefone })),
+      },
     });
 
     if (usuario) {
@@ -119,23 +130,24 @@ async function getUserByPhone(userPhone: string) {
     }
 
     // 🔥 DEBUG: Para troubleshooting detalhado
-    console.log('🐛 DEBUG - Buscando correspondências exatas...');
-    
+    console.log("🐛 DEBUG - Buscando correspondências exatas...");
+
     // Buscar exatamente o telefone que está no banco
     const usuarioExato = await db.user.findFirst({
-      where: { telefone: '85989310653' }
+      where: { telefone: "85989310653" },
     });
-    
+
     if (usuarioExato) {
-      console.log(`🎯 Usuário com telefone exato '85989310653': ${usuarioExato.name}`);
+      console.log(
+        `🎯 Usuário com telefone exato '85989310653': ${usuarioExato.name}`
+      );
     }
 
     console.log(`❌ Nenhum usuário encontrado para: ${userPhone}`);
     console.log(`🔍 Buscamos por: ${telefoneBusca} e variações`);
     return null;
-    
   } catch (error) {
-    console.error('❌ Erro ao buscar usuário:', error);
+    console.error("❌ Erro ao buscar usuário:", error);
     return null;
   }
 }
@@ -292,6 +304,7 @@ async function processarAudioWhatsApp(audioMessage: any, userPhone: string) {
 }
 
 // 🔥 FUNÇÃO PRINCIPAL MODIFICADA COM CONFIRMAÇÃO
+// 🔥 FUNÇÃO PRINCIPAL MODIFICADA COM CONFIRMAÇÃO CORRIGIDA
 async function processarMensagemTexto(message: any) {
   const userMessage = message.text?.body;
   const userPhone = message.from;
@@ -326,20 +339,52 @@ async function processarMensagemTexto(message: any) {
     global.pendingLancamentos = new Map();
   }
 
-  // 🔥 VERIFICAR SE É UMA RESPOSTA DE CONFIRMAÇÃO
+  // 🔥 VERIFICAR SE É UMA RESPOSTA DE CONFIRMAÇÃO (CORRIGIDO)
   const pendingLancamento = global.pendingLancamentos.get(userPhone);
 
-  if (
-    pendingLancamento &&
-    (userMessage.toLowerCase() === "sim" ||
-      userMessage.toLowerCase() === "não" ||
-      userMessage.toLowerCase() === "nao")
-  ) {
-    return await processarConfirmacao(
-      userMessage.toLowerCase(),
-      pendingLancamento,
-      userPhone
+  if (pendingLancamento) {
+    console.log(`📋 Lançamento pendente encontrado para: ${userPhone}`);
+    console.log(`💬 Resposta do usuário: "${userMessage}"`);
+
+    const resposta = userMessage.toLowerCase().trim();
+
+    // 🔥 VERIFICAÇÃO MAIS FLEXÍVEL DAS RESPOSTAS
+    if (
+      resposta === "sim" ||
+      resposta === "s" ||
+      resposta === "confirmar" ||
+      resposta === "ok" ||
+      resposta === "yes"
+    ) {
+      console.log(`✅ Usuário confirmou o lançamento`);
+      return await processarConfirmacao("sim", pendingLancamento, userPhone);
+    }
+
+    if (
+      resposta === "não" ||
+      resposta === "nao" ||
+      resposta === "n" ||
+      resposta === "cancelar" ||
+      resposta === "no"
+    ) {
+      console.log(`❌ Usuário cancelou o lançamento`);
+      return await processarConfirmacao("não", pendingLancamento, userPhone);
+    }
+
+    // 🔥 SE NÃO FOR UMA RESPOSTA DE CONFIRMAÇÃO VÁLIDA, AVISA O USUÁRIO
+    console.log(
+      `⚠️ Resposta não reconhecida como confirmação: "${userMessage}"`
     );
+
+    await sendWhatsAppMessage(
+      userPhone,
+      `❌ Não entendi sua resposta.\n\n` +
+        `Responda com:\n` +
+        `✅ *SIM* - Para confirmar o lançamento\n` +
+        `❌ *NÃO* - Para cancelar`
+    );
+
+    return { status: "invalid_confirmation_response" };
   }
 
   // 🔥 SE NÃO FOR CONFIRMAÇÃO, PROCESSAR COMO NOVO LANÇAMENTO
@@ -444,6 +489,7 @@ async function processarMensagemTexto(message: any) {
     setTimeout(
       () => {
         global.pendingLancamentos?.delete(userPhone);
+        console.log(`🧹 Limpando lançamento pendente para: ${userPhone}`);
       },
       5 * 60 * 1000
     );
@@ -463,6 +509,8 @@ async function processarConfirmacao(
   pendingLancamento: LancamentoTemporario,
   userPhone: string
 ) {
+  console.log(`🎯 PROCESSANDO CONFIRMAÇÃO: ${resposta} para ${userPhone}`);
+
   // 🔥 VERIFICAR SE USUÁRIO AINDA EXISTE (SEGURANÇA)
   const session = await getUserByPhone(userPhone);
   if (!session) {
@@ -475,21 +523,24 @@ async function processarConfirmacao(
   }
   // Remover do cache de pendentes
   global.pendingLancamentos?.delete(userPhone);
+  console.log(`🗑️ Removido lançamento pendente para: ${userPhone}`);
 
   if (resposta === "não" || resposta === "nao") {
-    // ✅ CORREÇÃO: Chamar a função de mensagem de cancelamento
+    console.log(`❌ Usuário cancelou o lançamento`);
     const mensagemCancelamento = await gerarMensagemCancelamento();
     await sendWhatsAppMessage(userPhone, mensagemCancelamento);
     return { status: "cancelled" };
   }
 
   if (resposta === "sim") {
+    console.log(`✅ Usuário confirmou - criando lançamento...`);
     try {
       // Criar o lançamento no banco de dados
       const resultadoCriacao = await createLancamento(
         pendingLancamento.userId,
         pendingLancamento.dados,
         pendingLancamento.categoriaEscolhida,
+        "Confirmação via WhatsApp", // userMessage
         pendingLancamento.descricaoLimpa,
         pendingLancamento.cartaoEncontrado
       );
@@ -517,6 +568,7 @@ async function processarConfirmacao(
     }
   }
 
+  console.log(`⚠️ Resposta inválida na confirmação: ${resposta}`);
   return { status: "invalid_confirmation" };
 }
 
