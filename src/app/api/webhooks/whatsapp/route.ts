@@ -57,32 +57,59 @@ async function getCategoriasUsuario(userId: string) {
   }
 }
 
-// 🔥 FUNÇÃO DEFINITIVA: Buscar usuário com todas as variações possíveis
+// 🔥 FUNÇÃO CORRIGIDA: Buscar usuário com tratamento específico para DDI/DDD
 async function getUserByPhone(userPhone: string) {
   try {
     console.log(`🔍 Buscando usuário para telefone: ${userPhone}`);
-
+    
     // Normalizar o telefone (remover tudo que não é número)
     const telefoneNormalizado = userPhone.replace(/\D/g, "");
-
+    
     console.log(`🔧 Telefone normalizado: ${telefoneNormalizado}`);
-
-    // Gerar todas as variações possíveis do telefone
+    
+    // 🔥 LÓGICA ESPECÍFICA PARA FORMATOS BRASILEIROS
+    let telefoneBusca = telefoneNormalizado;
+    
+    // Se o telefone começa com 55 (DDI Brasil) e tem 13 dígitos
+    if (telefoneNormalizado.startsWith('55') && telefoneNormalizado.length === 13) {
+      // Remover DDI (55) e manter o resto: 558589310653 → 8589310653
+      telefoneBusca = telefoneNormalizado.substring(2);
+      console.log(`🇧🇷 Removido DDI 55: ${telefoneNormalizado} → ${telefoneBusca}`);
+    }
+    // Se o telefone tem 12 dígitos (DDI + DDD sem o 9)
+    else if (telefoneNormalizado.startsWith('55') && telefoneNormalizado.length === 12) {
+      // Formato: 558598931065 → 8598931065 (precisa adicionar o 9)
+      const ddd = telefoneNormalizado.substring(2, 4); // 85
+      const resto = telefoneNormalizado.substring(4); // 89310653
+      telefoneBusca = ddd + '9' + resto; // 85989310653
+      console.log(`🇧🇷 Adicionado 9: ${telefoneNormalizado} → ${telefoneBusca}`);
+    }
+    // Se o telefone tem 11 dígitos e começa com 85 (sem DDI)
+    else if (telefoneNormalizado.startsWith('85') && telefoneNormalizado.length === 11) {
+      // Já está no formato correto: 85989310653
+      telefoneBusca = telefoneNormalizado;
+    }
+    
+    console.log(`🎯 Telefone para busca: ${telefoneBusca}`);
+    
+    // Gerar variações para busca
     const variacoesTelefone = [
-      telefoneNormalizado, // 85989310653
-      `+${telefoneNormalizado}`, // +85989310653
-      telefoneNormalizado.replace(/^55/, ""), // 85989310653 (sem 55)
-      `+55${telefoneNormalizado.replace(/^55/, "")}`, // +5585989310653
-      telefoneNormalizado.replace(/^55/, "55"), // 5585989310653
-    ].filter((tel, index, self) => self.indexOf(tel) === index); // Remover duplicatas
+      telefoneBusca, // 85989310653 (formato correto)
+      `+55${telefoneBusca}`, // +5585989310653
+      `55${telefoneBusca}`, // 5585989310653
+      telefoneBusca.replace(/^55/, ''), // Remove DDI se houver
+      telefoneBusca.substring(2), // Remove DDD (85) - 989310653
+    ].filter((tel, index, self) => 
+      tel && self.indexOf(tel) === index // Remover duplicatas e vazios
+    );
 
     console.log(`🎯 Variações a buscar:`, variacoesTelefone);
 
     // Buscar usuário por qualquer uma das variações
     const usuario = await db.user.findFirst({
       where: {
-        OR: variacoesTelefone.map((telefone) => ({ telefone })),
-      },
+        OR: variacoesTelefone.map(telefone => ({ telefone }))
+      }
     });
 
     if (usuario) {
@@ -91,26 +118,24 @@ async function getUserByPhone(userPhone: string) {
       return { user: { id: usuario.id, name: usuario.name } };
     }
 
-    // 🔥 DEBUG: Para ajudar no troubleshooting
-    console.log("🐛 DEBUG - Buscando correspondências parciais...");
-    const todosUsuariosComTelefone = await db.user.findMany({
-      where: { telefone: { not: null } },
-      select: { name: true, telefone: true },
+    // 🔥 DEBUG: Para troubleshooting detalhado
+    console.log('🐛 DEBUG - Buscando correspondências exatas...');
+    
+    // Buscar exatamente o telefone que está no banco
+    const usuarioExato = await db.user.findFirst({
+      where: { telefone: '85989310653' }
     });
-
-    console.log("📋 Usuários com telefone no banco:");
-    todosUsuariosComTelefone.forEach((user) => {
-      const telBanco = user.telefone || "";
-      const telBusca = telefoneNormalizado;
-      console.log(
-        `   - ${user.name}: "${telBanco}" (busca: "${telBusca}") - Match: ${telBanco.includes(telBusca) || telBusca.includes(telBanco.replace(/\D/g, ""))}`
-      );
-    });
+    
+    if (usuarioExato) {
+      console.log(`🎯 Usuário com telefone exato '85989310653': ${usuarioExato.name}`);
+    }
 
     console.log(`❌ Nenhum usuário encontrado para: ${userPhone}`);
+    console.log(`🔍 Buscamos por: ${telefoneBusca} e variações`);
     return null;
+    
   } catch (error) {
-    console.error("❌ Erro ao buscar usuário:", error);
+    console.error('❌ Erro ao buscar usuário:', error);
     return null;
   }
 }
