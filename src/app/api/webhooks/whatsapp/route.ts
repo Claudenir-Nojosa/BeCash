@@ -869,9 +869,13 @@ function detectarParcelamento(mensagem: string): {
   return { ehParcelado: false };
 }
 
-// Função para encontrar usuário pelo nome
+// 🔥 FUNÇÃO CORRIGIDA: Encontrar usuário por nome com validação
 async function encontrarUsuarioPorNome(nome: string, userIdAtual: string) {
   try {
+    console.log(
+      `🔍 Buscando usuário por nome: "${nome}" (usuário atual: ${userIdAtual})`
+    );
+
     // Buscar todos os usuários (exceto o atual)
     const usuarios = await db.user.findMany({
       where: {
@@ -885,25 +889,94 @@ async function encontrarUsuarioPorNome(nome: string, userIdAtual: string) {
       },
     });
 
-    // Procurar por nome similar
+    console.log(
+      `📋 Usuários disponíveis para compartilhamento:`,
+      usuarios.map((u) => ({ id: u.id, name: u.name }))
+    );
+
     const nomeBusca = nome.toLowerCase().trim();
+    console.log(`🎯 Buscando por: "${nomeBusca}"`);
+
+    let melhorUsuario = null;
+    let melhorPontuacao = 0;
 
     for (const usuario of usuarios) {
       const nomeUsuario = usuario.name.toLowerCase();
+      let pontuacao = 0;
 
-      // Verificação exata ou parcial
-      if (
-        nomeUsuario === nomeBusca ||
-        nomeUsuario.includes(nomeBusca) ||
-        nomeBusca.includes(nomeUsuario)
-      ) {
+      console.log(`🔍 Comparando com: "${nomeUsuario}"`);
+
+      // 🔥 CORREÇÃO: Verificação exata primeiro
+      if (nomeUsuario === nomeBusca) {
+        console.log(`✅ CORRESPONDÊNCIA EXATA encontrada: ${usuario.name}`);
         return usuario;
+      }
+
+      // 🔥 CORREÇÃO: Verificação por partes do nome
+      const partesBusca = nomeBusca.split(" ");
+      const partesUsuario = nomeUsuario.split(" ");
+
+      // Verificar se alguma parte do nome buscado está no nome do usuário
+      for (const parteBusca of partesBusca) {
+        if (parteBusca.length > 2) {
+          // Ignorar partes muito curtas
+          for (const parteUsuario of partesUsuario) {
+            if (
+              parteUsuario.includes(parteBusca) ||
+              parteBusca.includes(parteUsuario)
+            ) {
+              pontuacao += 1;
+              console.log(
+                `   ✅ Parte "${parteBusca}" corresponde a "${parteUsuario}"`
+              );
+            }
+          }
+        }
+      }
+
+      // 🔥 CORREÇÃO: Verificar se é um apelido comum
+      const apelidos: { [key: string]: string[] } = {
+        claudenir: ["clau", "claudenir", "nenir"],
+        beatriz: ["bia", "bea", "beatriz"],
+        filho: ["junior", "jr", "filho"],
+      };
+
+      for (const [nomeCompleto, variacoes] of Object.entries(apelidos)) {
+        if (
+          variacoes.includes(nomeBusca) &&
+          nomeUsuario.includes(nomeCompleto)
+        ) {
+          pontuacao += 2;
+          console.log(
+            `   ✅ Apelido "${nomeBusca}" corresponde a "${nomeCompleto}"`
+          );
+        }
+      }
+
+      if (pontuacao > melhorPontuacao) {
+        melhorPontuacao = pontuacao;
+        melhorUsuario = usuario;
+        console.log(
+          `   🏆 Novo melhor usuário: ${usuario.name} (pontuação: ${pontuacao})`
+        );
       }
     }
 
+    // 🔥 CORREÇÃO: Só retornar se tiver uma pontuação mínima
+    if (melhorUsuario && melhorPontuacao >= 1) {
+      console.log(
+        `✅ Usuário encontrado: ${melhorUsuario.name} (pontuação: ${melhorPontuacao})`
+      );
+      return melhorUsuario;
+    }
+
+    console.log(`❌ Nenhum usuário adequado encontrado para: "${nome}"`);
+    console.log(
+      `📊 Melhor pontuação: ${melhorPontuacao} (mínimo necessário: 1)`
+    );
     return null;
   } catch (error) {
-    console.error("Erro ao buscar usuário:", error);
+    console.error("❌ Erro ao buscar usuário:", error);
     return null;
   }
 }
@@ -1590,16 +1663,32 @@ async function createLancamento(
 
     // ✅ LÓGICA DE COMPARTILHAMENTO
     if (dados.ehCompartilhado && dados.nomeUsuarioCompartilhado) {
+      console.log(
+        `🔍 Buscando usuário para compartilhamento: "${dados.nomeUsuarioCompartilhado}"`
+      );
+
       usuarioAlvo = await encontrarUsuarioPorNome(
         dados.nomeUsuarioCompartilhado,
         userId
       );
+
       if (usuarioAlvo) {
+        console.log(
+          `✅ Usuário encontrado para compartilhamento: ${usuarioAlvo.name} (${usuarioAlvo.id})`
+        );
         valorCompartilhado = valorTotal / 2;
         valorUsuarioCriador = valorTotal / 2;
         console.log(
           `💰 VALORES DIVIDIDOS: Total=${valorTotal}, Seu=${valorUsuarioCriador}, Compartilhado=${valorCompartilhado}`
         );
+      } else {
+        console.log(
+          `❌ Usuário para compartilhamento não encontrado: "${dados.nomeUsuarioCompartilhado}"`
+        );
+        console.log(`⚠️ Continuando sem compartilhamento...`);
+        // Continua sem compartilhamento
+        dados.ehCompartilhado = false;
+        dados.nomeUsuarioCompartilhado = undefined;
       }
     }
 
