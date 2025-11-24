@@ -16,9 +16,9 @@ export function LoadingBarrinhas() {
 
   // ✅ URLs após o deploy - ATUALIZE COM SEU DOMÍNIO
   const imagens = {
-    1: "https://your-app.vercel.app/loading/1.svg",
-    2: "https://your-app.vercel.app/loading/2.svg",
-    3: "https://your-app.vercel.app/loading/3.svg"
+    1: "https://becash.app/loading/1.svg",
+    2: "https://becash.app/loading/2.svg",
+    3: "https://becash.app/loading/3.svg",
   };
 
   return (
