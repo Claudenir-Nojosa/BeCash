@@ -339,3 +339,32 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+
+@keyframes wave {
+  0%, 60%, 100% {
+    transform: scaleY(0.5);
+  }
+  30% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes grow {
+  0%, 100% {
+    transform: scaleY(0.3);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.animate-wave {
+  animation: wave 1.5s ease-in-out infinite;
+}
+
+.animate-grow {
+  animation: grow 1.5s ease-in-out infinite;
+}

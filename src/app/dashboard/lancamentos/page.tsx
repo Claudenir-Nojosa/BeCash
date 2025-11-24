@@ -86,6 +86,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { LoadingBarrinhas } from "@/components/ui/loading-barrinhas";
 
 interface Categoria {
   id: string;
@@ -751,15 +752,41 @@ export default function LancamentosPage() {
     // Fallback
     return dataString;
   };
-  if (loading && lancamentos.length === 0) {
+
+  const LoadingBarrinhasOnda = () => {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-gray-400">Carregando lançamentos...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-black">
+        <div className="text-center space-y-8">
+          {/* Container das barrinhas com efeito de onda */}
+          <div className="relative">
+            <div className="flex space-x-1 justify-center">
+              <div className="w-3 h-12 bg-gradient-to-b from-blue-400 to-purple-500 rounded-full animate-wave [animation-delay:0.0s]" />
+              <div className="w-3 h-12 bg-gradient-to-b from-blue-400 to-purple-500 rounded-full animate-wave [animation-delay:0.1s]" />
+              <div className="w-3 h-12 bg-gradient-to-b from-blue-400 to-purple-500 rounded-full animate-wave [animation-delay:0.2s]" />
+            </div>
+
+            {/* Sombra */}
+            <div className="flex space-x-4 justify-center mt-2 opacity-50">
+              <div className="w-1 h-1 bg-white rounded-full animate-pulse [animation-delay:0.0s]" />
+              <div className="w-1 h-1 bg-white rounded-full animate-pulse [animation-delay:0.1s]" />
+              <div className="w-1 h-1 bg-white rounded-full animate-pulse [animation-delay:0.2s]" />
+            </div>
+          </div>
+
+          {/* Texto */}
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold text-white">FinanceApp</h2>
+            <p className="text-gray-400 text-sm">
+              Organizando suas finanças...
+            </p>
+          </div>
         </div>
       </div>
     );
+  };
+
+  if (loading && lancamentos.length === 0) {
+    return <LoadingBarrinhas  />;
   }
 
   return (
