@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 
 export function LoadingBarrinhas() {
   const [fase, setFase] = useState(0);
@@ -34,10 +35,12 @@ export function LoadingBarrinhas() {
               transition={{ duration: 0.3 }}
               className="absolute"
             >
-              <img
+              <Image
                 src={imagens[fases[fase] as keyof typeof imagens]}
                 alt=""
                 className="h-14 w-auto filter brightness-0 invert"
+                width={20}
+                height={20}
               />
             </motion.div>
           </AnimatePresence>
