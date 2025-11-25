@@ -23,7 +23,7 @@ export function LoadingBarrinhas() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900">
+    <div className="min-h-screen flex items-center justify-center">
       <div className="text-center space-y-8">
         <div className="relative h-20 flex items-center justify-center">
           <AnimatePresence mode="wait">
@@ -38,7 +38,6 @@ export function LoadingBarrinhas() {
               <Image
                 src={imagens[fases[fase] as keyof typeof imagens]}
                 alt=""
-                className="h-14 w-auto filter brightness-0 invert"
                 width={20}
                 height={20}
               />
