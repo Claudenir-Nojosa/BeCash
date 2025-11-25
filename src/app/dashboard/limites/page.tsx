@@ -49,6 +49,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Loading } from "@/components/ui/loading-barrinhas";
 
 interface Categoria {
   id: string;
@@ -165,8 +166,6 @@ export default function LimitesPage() {
       setSalvando(null);
     }
   };
-
-  // No seu componente, atualize as funções:
 
   const ajustarLimite = async (limiteId: string, novoValor: number) => {
     if (!novoValor || novoValor <= 0) {
@@ -313,6 +312,11 @@ export default function LimitesPage() {
   console.log("Estado editando:", editando);
   console.log("Estado dialogExclusaoAberto:", dialogExclusaoAberto);
 
+  // 🔥 AQUI ESTÁ A MUDANÇA PRINCIPAL: Loading em tela cheia
+  if (carregando) {
+    return <Loading />;
+  }
+
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -405,13 +409,7 @@ export default function LimitesPage() {
 
         {/* Cards de Limites Existentes */}
         <div className="grid gap-4">
-          {carregando ? (
-            <div className="space-y-4">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-32 w-full bg-gray-800" />
-              ))}
-            </div>
-          ) : limites.length === 0 ? (
+          {limites.length === 0 ? (
             <Card className="bg-gray-900 border-gray-800">
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Target className="h-16 w-16 text-gray-600 mb-4" />
@@ -512,54 +510,54 @@ export default function LimitesPage() {
                         </div>
                       </div>
 
-                    {/* Menu de três pontos */}
-<DropdownMenu 
-  open={dropdownAberto === limite.id} 
-  onOpenChange={(open) => {
-    if (!open) {
-      setDropdownAberto(null);
-    }
-  }}
->
-  <DropdownMenuTrigger asChild>
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={() => setDropdownAberto(limite.id)}
-      className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-800"
-    >
-      <MoreVertical className="h-4 w-4" />
-    </Button>
-  </DropdownMenuTrigger>
-  <DropdownMenuContent
-    align="end"
-    className="bg-gray-800 border-gray-700 text-white"
-    onInteractOutside={() => setDropdownAberto(null)}
-    onEscapeKeyDown={() => setDropdownAberto(null)}
-  >
-    <DropdownMenuItem
-      onClick={() => {
-        setEditando(limite.id);
-        setNovoLimite(limite.limiteMensal.toString());
-        setDropdownAberto(null); // 👈 FECHA O DROPDOWN
-      }}
-      className="flex items-center gap-2 hover:bg-gray-700 cursor-pointer"
-    >
-      <Edit className="h-4 w-4" />
-      Ajustar Limite
-    </DropdownMenuItem>
-    <DropdownMenuItem
-      onClick={() => {
-        setDialogExclusaoAberto(limite.id);
-        setDropdownAberto(null); // 👈 FECHA O DROPDOWN
-      }}
-      className="flex items-center gap-2 text-red-400 hover:bg-red-950 hover:text-red-300 cursor-pointer"
-    >
-      <Trash2 className="h-4 w-4" />
-      Excluir Limite
-    </DropdownMenuItem>
-  </DropdownMenuContent>
-</DropdownMenu>
+                      {/* Menu de três pontos */}
+                      <DropdownMenu
+                        open={dropdownAberto === limite.id}
+                        onOpenChange={(open) => {
+                          if (!open) {
+                            setDropdownAberto(null);
+                          }
+                        }}
+                      >
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDropdownAberto(limite.id)}
+                            className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-800"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="end"
+                          className="bg-gray-800 border-gray-700 text-white"
+                          onInteractOutside={() => setDropdownAberto(null)}
+                          onEscapeKeyDown={() => setDropdownAberto(null)}
+                        >
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setEditando(limite.id);
+                              setNovoLimite(limite.limiteMensal.toString());
+                              setDropdownAberto(null); // 👈 FECHA O DROPDOWN
+                            }}
+                            className="flex items-center gap-2 hover:bg-gray-700 cursor-pointer"
+                          >
+                            <Edit className="h-4 w-4" />
+                            Ajustar Limite
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setDialogExclusaoAberto(limite.id);
+                              setDropdownAberto(null); // 👈 FECHA O DROPDOWN
+                            }}
+                            className="flex items-center gap-2 text-red-400 hover:bg-red-950 hover:text-red-300 cursor-pointer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Excluir Limite
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
 
                     {/* Modal de edição inline */}

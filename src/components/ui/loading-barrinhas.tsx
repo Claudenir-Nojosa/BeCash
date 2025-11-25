@@ -4,47 +4,61 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
-export function LoadingBarrinhas() {
+export function Loading() {
   const [fase, setFase] = useState(0);
   const fases = [1, 2, 3];
 
   useEffect(() => {
     const interval = setInterval(() => {
       setFase((prev) => (prev + 1) % fases.length);
-    }, 400);
+    }, 1200);
     return () => clearInterval(interval);
   }, []);
 
-  // ✅ URLs após o deploy - ATUALIZE COM SEU DOMÍNIO
   const imagens = {
-    1: "https://becash.vercel.app/loading/1.svg",
-    2: "https://becash.vercel.app/loading/2.svg",
-    3: "https://becash.vercel.app/loading/3.svg"
+    1: "/loading/1.png",
+    2: "/loading/2.png",
+    3: "/loading/3.png",
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center space-y-8">
-        <div className="relative h-20 flex items-center justify-center">
+      <div className="text-center">
+        {/* Container principal ampliado */}
+        <div className="relative h-64 w-64 mx-auto flex items-center justify-center">
           <AnimatePresence mode="wait">
             <motion.div
               key={fase}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.1 }}
-              transition={{ duration: 0.3 }}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{
+                opacity: 1,
+                scale: 1,
+                transition: {
+                  duration: 0.5,
+                  ease: "easeOut",
+                },
+              }}
+              exit={{
+                opacity: 0,
+                scale: 0.95,
+                transition: {
+                  duration: 0.4,
+                  ease: "easeIn",
+                },
+              }}
               className="absolute"
             >
               <Image
                 src={imagens[fases[fase] as keyof typeof imagens]}
-                alt=""
-                width={20}
-                height={20}
+                alt="Carregando"
+                width={220}
+                height={220}
+                className="drop-shadow-lg"
+                priority
               />
             </motion.div>
           </AnimatePresence>
         </div>
-        <p className="text-gray-400">Carregando...</p>
       </div>
     </div>
   );
