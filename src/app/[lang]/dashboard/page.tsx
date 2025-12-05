@@ -1,8 +1,9 @@
-// app/dashboard/page.tsx (completo)
+// app/[lang]/dashboard/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
+import { useTranslation } from "react-i18next"; // ✅ Use react-i18next
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -32,7 +33,7 @@ import {
   ResumoFinanceiro,
   MetaPessoal,
   LimiteCategoria,
-} from "../../../types/dashboard";
+} from "../../../../types/dashboard";
 import { useSession } from "next-auth/react";
 import NotificacoesSino from "@/components/dashboard/NotificacoesCompartilhamento";
 import AuthGuard from "@/components/shared/AuthGuard";
@@ -55,7 +56,14 @@ const MESES = [
 
 export default function DashboardPage() {
   const router = useRouter();
+  const params = useParams();
   const { data: session, status } = useSession();
+  
+  // ✅ Use useTranslation do react-i18next
+  const { t, i18n } = useTranslation("dashboard");
+  
+  // Para pegar o idioma atual
+  const currentLang = params?.lang as string || 'pt';
 
   // Estados devem vir ANTES de qualquer condicional
   const [resumo, setResumo] = useState<ResumoFinanceiro>({
@@ -86,12 +94,12 @@ export default function DashboardPage() {
     if (status === "loading") return;
 
     if (!session) {
-      router.push("/login");
+      router.push(`/${currentLang}/login`);
       return;
     }
-  }, [session, status, router]);
+  }, [session, status, router, currentLang]);
 
-  // Buscar nome do usuário separadamente - MOVER PARA DEPOIS DA VERIFICAÇÃO DE SESSÃO
+  // Buscar nome do usuário separadamente
   useEffect(() => {
     if (!session) return;
 
@@ -108,7 +116,7 @@ export default function DashboardPage() {
     };
 
     buscarUsuario();
-  }, [session]); // Adicionar session como dependência
+  }, [session]);
 
   // Recarregar dashboard quando mês/ano mudar
   useEffect(() => {
@@ -122,7 +130,7 @@ export default function DashboardPage() {
 
     try {
       setCarregando(true);
-      toastId = toast.loading("Carregando dashboard...");
+      toastId = toast.loading(t("botoes.carregando")); // ✅ Usar tradução
 
       console.log("Iniciando carregamento do dashboard...");
 
@@ -178,10 +186,10 @@ export default function DashboardPage() {
       setMetas(metasData);
       setLimites(limitesData);
 
-      toast.success("Dashboard carregado", { id: toastId });
+      toast.success(t("status.dashboardCarregado"), { id: toastId }); // ✅ Usar tradução
     } catch (error) {
       console.error("Erro completo ao carregar dashboard:", error);
-      toast.error("Erro ao carregar dados do dashboard", { id: toastId });
+      toast.error(t("status.erroCarregar"), { id: toastId }); // ✅ Usar tradução
     } finally {
       setCarregando(false);
       console.log("Carregamento finalizado");
@@ -190,7 +198,7 @@ export default function DashboardPage() {
 
   const handleRefresh = () => {
     setRefreshTrigger((prev) => prev + 1);
-    toast.info("Atualizando dados...");
+    toast.info(t("botoes.atualizando")); // ✅ Usar tradução
   };
 
   // Se estiver carregando a sessão, mostrar loading
@@ -199,7 +207,7 @@ export default function DashboardPage() {
       <div className="min-h-screen p-6 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-gray-300">Verificando autenticação...</p>
+          <p className="text-gray-300">{t("status.verificando")}</p> {/* ✅ Usar tradução */}
         </div>
       </div>
     );
@@ -210,8 +218,10 @@ export default function DashboardPage() {
     return null;
   }
 
+  // ✅ Função para formatar moeda baseada no idioma
   const formatarMoeda = (valor: number) => {
-    return new Intl.NumberFormat("pt-BR", {
+    const locale = i18n.language === 'pt' ? 'pt-BR' : 'en-US';
+    return new Intl.NumberFormat(locale, {
       style: "currency",
       currency: "BRL",
     }).format(valor);
@@ -219,18 +229,21 @@ export default function DashboardPage() {
 
   const obterFraseMotivacional = () => {
     const hora = new Date().getHours();
-    const saudacao =
-      hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
+    
+    // ✅ Pegar saudação do arquivo de tradução
+    let saudacao;
+    if (hora < 12) {
+      saudacao = t("saudacoes.bomDia");
+    } else if (hora < 18) {
+      saudacao = t("saudacoes.boaTarde");
+    } else {
+      saudacao = t("saudacoes.boaNoite");
+    }
 
-    const frases = [
-      "Continue assim! Seu controle financeiro está excelente.",
-      "Pequenas economias hoje geram grandes resultados amanhã.",
-      "Foco nas metas! Cada passo conta.",
-      "Seu planejamento financeiro está fazendo a diferença.",
-      "Momento de revisar e ajustar as estratégias.",
-    ];
-
-    return `${saudacao}, ${userName || "..."}! ${frases[Math.floor(Math.random() * frases.length)]}`;
+    // ✅ Pegar frases motivacionais
+    const frases = t("frasesMotivacionais", { returnObjects: true });
+    
+    return `${saudacao}, ${userName || "..."}! ${Array.isArray(frases) ? frases[Math.floor(Math.random() * frases.length)] : ''}`;
   };
 
   const obterStatusLimites = () => {
@@ -245,7 +258,7 @@ export default function DashboardPage() {
 
     if (limitesEstourados.length > 0) {
       return {
-        texto: `${limitesEstourados.length} categoria(s) estourada(s)`,
+        texto: `${limitesEstourados.length} ${t("limites.status.estourado")}`,
         cor: "text-red-400",
         icone: <AlertTriangle className="h-4 w-4" />,
       };
@@ -253,14 +266,14 @@ export default function DashboardPage() {
 
     if (limitesProximos.length > 0) {
       return {
-        texto: `${limitesProximos.length} categoria(s) próxima(s) do limite`,
+        texto: `${limitesProximos.length} ${t("limites.status.proximo")}`,
         cor: "text-yellow-400",
         icone: <Clock className="h-4 w-4" />,
       };
     }
 
     return {
-      texto: "Limites sob controle",
+      texto: t("limites.status.controle"),
       cor: "text-green-400",
       icone: <CheckCircle2 className="h-4 w-4" />,
     };
@@ -268,27 +281,43 @@ export default function DashboardPage() {
 
   const statusLimites = obterStatusLimites();
 
+  // ✅ Função para pegar nome do mês traduzido
   const obterNomeMes = (mes: string) => {
-    const mesObj = MESES.find((m) => m.value === mes);
-    return mesObj ? mesObj.label : "Mês";
+    const mesesTraduzidos = {
+      '1': t("Meses:jan", { ns: "common" }),
+      '2': t("Meses:fev", { ns: "common" }),
+      '3': t("Meses:mar", { ns: "common" }),
+      '4': t("Meses:abr", { ns: "common" }),
+      '5': t("Meses:mai", { ns: "common" }),
+      '6': t("Meses:jun", { ns: "common" }),
+      '7': t("Meses:jul", { ns: "common" }),
+      '8': t("Meses:ago", { ns: "common" }),
+      '9': t("Meses:set", { ns: "common" }),
+      '10': t("Meses:out", { ns: "common" }),
+      '11': t("Meses:nov", { ns: "common" }),
+      '12': t("Meses:dez", { ns: "common" }),
+    };
+    
+    return mesesTraduzidos[mes as keyof typeof mesesTraduzidos] || "Mês";
   };
 
   const obterNomeMesAbreviado = (mes: string) => {
-    const mesesAbreviados = [
-      "Jan",
-      "Fev",
-      "Mar",
-      "Abr",
-      "Mai",
-      "Jun",
-      "Jul",
-      "Ago",
-      "Set",
-      "Out",
-      "Nov",
-      "Dez",
-    ];
-    return mesesAbreviados[Number(mes) - 1] || "Mês";
+    const mesesAbreviados = {
+      '1': t("MesesAbreviados:jan", { ns: "common" }),
+      '2': t("MesesAbreviados:fev", { ns: "common" }),
+      '3': t("MesesAbreviados:mar", { ns: "common" }),
+      '4': t("MesesAbreviados:abr", { ns: "common" }),
+      '5': t("MesesAbreviados:mai", { ns: "common" }),
+      '6': t("MesesAbreviados:jun", { ns: "common" }),
+      '7': t("MesesAbreviados:jul", { ns: "common" }),
+      '8': t("MesesAbreviados:ago", { ns: "common" }),
+      '9': t("MesesAbreviados:set", { ns: "common" }),
+      '10': t("MesesAbreviados:out", { ns: "common" }),
+      '11': t("MesesAbreviados:nov", { ns: "common" }),
+      '12': t("MesesAbreviados:dez", { ns: "common" }),
+    };
+    
+    return mesesAbreviados[mes as keyof typeof mesesAbreviados] || "Mês";
   };
 
   // Gerar array de anos (últimos 5 anos + próximo ano)
@@ -305,12 +334,12 @@ export default function DashboardPage() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <h1 className="text-3xl font-bold text-white">
-                Dashboard Financeiro
+                {t("titulo")} {/* ✅ Texto traduzido */}
               </h1>
               <p className="text-gray-300 mt-2">{obterFraseMotivacional()}</p>
             </div>
 
-            {/* 👈 ATUALIZE ESTA SEÇÃO - Controles do Header */}
+            {/* Controles do Header */}
             <div className="flex items-center gap-3">
               {/* Seletor de Mês */}
               <div className="flex items-center gap-2 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2">
@@ -391,7 +420,7 @@ export default function DashboardPage() {
                 onClick={handleRefresh}
                 disabled={carregando}
                 className="h-9 w-9 border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 disabled:opacity-50"
-                title="Atualizar dados"
+                title={t("botoes.refresh")} 
               >
                 <RefreshCw
                   className={`h-4 w-4 ${carregando ? "animate-spin" : ""}`}
@@ -409,7 +438,7 @@ export default function DashboardPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2 text-white">
                   <TrendingUp className="h-5 w-5 text-green-400" />
-                  Receita
+                  {t("cards.receita.titulo")} {/* ✅ Texto traduzido */}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -423,7 +452,9 @@ export default function DashboardPage() {
                     <p className="text-2xl font-bold text-green-400">
                       {formatarMoeda(resumo.receita)}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">Total do mês</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {t("cards.receita.subtitulo")} {/* ✅ Texto traduzido */}
+                    </p>
                   </>
                 )}
               </CardContent>
@@ -434,7 +465,7 @@ export default function DashboardPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2 text-white">
                   <TrendingDown className="h-5 w-5 text-red-400" />
-                  Despesa
+                  {t("cards.despesa.titulo")} {/* ✅ Texto traduzido */}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -448,7 +479,9 @@ export default function DashboardPage() {
                     <p className="text-2xl font-bold text-red-400">
                       {formatarMoeda(resumo.despesa)}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">Total do mês</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {t("cards.despesa.subtitulo")} {/* ✅ Texto traduzido */}
+                    </p>
                   </>
                 )}
               </CardContent>
@@ -459,7 +492,7 @@ export default function DashboardPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2 text-white">
                   <Users className="h-5 w-5 text-blue-400" />
-                  Compartilhadas
+                  {t("cards.compartilhadas.titulo")} {/* ✅ Texto traduzido */}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -473,7 +506,9 @@ export default function DashboardPage() {
                     <p className="text-2xl font-bold text-blue-400">
                       {formatarMoeda(resumo.despesasCompartilhadas)}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">Aguardando</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {t("cards.compartilhadas.subtitulo")} {/* ✅ Texto traduzido */}
+                    </p>
                   </>
                 )}
               </CardContent>
@@ -484,7 +519,7 @@ export default function DashboardPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2 text-white">
                   <Wallet className="h-5 w-5 text-purple-400" />
-                  Saldo
+                  {t("cards.saldo.titulo")} {/* ✅ Texto traduzido */}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -502,7 +537,9 @@ export default function DashboardPage() {
                     >
                       {formatarMoeda(resumo.saldo)}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">Disponível</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {t("cards.saldo.subtitulo")} {/* ✅ Texto traduzido */}
+                    </p>
                   </>
                 )}
               </CardContent>
@@ -527,10 +564,10 @@ export default function DashboardPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-white">
                     <Target className="h-5 w-5" />
-                    Limites do Mês
+                    {t("limites.titulo")} {/* ✅ Texto traduzido */}
                   </CardTitle>
                   <CardDescription className="text-gray-400">
-                    {obterNomeMes(mesSelecionado)} de {anoSelecionado}
+                    {obterNomeMes(mesSelecionado)} {t("limites.subtitulo")} {anoSelecionado}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -543,14 +580,14 @@ export default function DashboardPage() {
                   ) : limites.length === 0 ? (
                     <div className="text-center py-6 text-gray-400">
                       <Target className="h-12 w-12 mx-auto mb-3 text-gray-700" />
-                      <p className="mb-3">Nenhum limite definido</p>
+                      <p className="mb-3">{t("limites.nenhumLimite")}</p> {/* ✅ Texto traduzido */}
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => router.push("/dashboard/limites")}
+                        onClick={() => router.push(`/${currentLang}/dashboard/limites`)}
                         className="border-gray-700 text-gray-300 hover:bg-gray-800"
                       >
-                        Configurar Limites
+                        {t("limites.configurarLimites")} {/* ✅ Texto traduzido */}
                       </Button>
                     </div>
                   ) : (
@@ -609,9 +646,9 @@ export default function DashboardPage() {
                           variant="ghost"
                           size="sm"
                           className="w-full text-gray-400 hover:text-white hover:bg-gray-800"
-                          onClick={() => router.push("/dashboard/limites")}
+                          onClick={() => router.push(`/${currentLang}/dashboard/limites`)}
                         >
-                          Ver todos os limites
+                          {t("limites.verTodos")} {/* ✅ Texto traduzido */}
                           <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
                       )}

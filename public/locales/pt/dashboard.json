@@ -1,0 +1,55 @@
+{
+  "titulo": "Dashboard Financeiro",
+  "frasesMotivacionais": [
+    "Continue assim! Seu controle financeiro está excelente.",
+    "Pequenas economias hoje geram grandes resultados amanhã.",
+    "Foco nas metas! Cada passo conta.",
+    "Seu planejamento financeiro está fazendo a diferença.",
+    "Momento de revisar e ajustar as estratégias."
+  ],
+  "cards": {
+    "receita": {
+      "titulo": "Receita",
+      "subtitulo": "Total do mês"
+    },
+    "despesa": {
+      "titulo": "Despesa",
+      "subtitulo": "Total do mês"
+    },
+    "compartilhadas": {
+      "titulo": "Compartilhadas",
+      "subtitulo": "Aguardando"
+    },
+    "saldo": {
+      "titulo": "Saldo",
+      "subtitulo": "Disponível"
+    }
+  },
+  "limites": {
+    "titulo": "Limites do Mês",
+    "subtitulo": "de",
+    "nenhumLimite": "Nenhum limite definido",
+    "configurarLimites": "Configurar Limites",
+    "verTodos": "Ver todos os limites",
+    "status": {
+      "estourado": "categoria(s) estourada(s)",
+      "proximo": "categoria(s) próxima(s) do limite",
+      "controle": "Limites sob controle"
+    }
+  },
+  "saudacoes": {
+    "bomDia": "Bom dia",
+    "boaTarde": "Boa tarde",
+    "boaNoite": "Boa noite"
+  },
+  "botoes": {
+    "refresh": "Atualizar dados",
+    "atualizando": "Atualizando dados...",
+    "carregando": "Carregando dashboard..."
+  },
+  "status": {
+    "verificando": "Verificando autenticação...",
+    "dashboardCarregado": "Dashboard carregado",
+    "erroCarregar": "Erro ao carregar dados do dashboard"
+  }
+}

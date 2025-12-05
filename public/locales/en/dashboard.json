@@ -1,0 +1,28 @@
+{
+  "titulo": "Financial Dashboard",
+  "frasesMotivacionais": [
+    "Keep it up! Your financial control is excellent.",
+    "Small savings today generate great results tomorrow.",
+    "Focus on goals! Every step counts.",
+    "Your financial planning is making a difference.",
+    "Time to review and adjust strategies."
+  ],
+  "cards": {
+    "receita": {
+      "titulo": "Income",
+      "subtitulo": "Month total"
+    },
+    "despesa": {
+      "titulo": "Expense",
+      "subtitulo": "Month total"
+    },
+    "compartilhadas": {
+      "titulo": "Shared",
+      "subtitulo": "Pending"
+    },
+    "saldo": {
+      "titulo": "Balance",
+      "subtitulo": "Available"
+    }
+  }
+}
