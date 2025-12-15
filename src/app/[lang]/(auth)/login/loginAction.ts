@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
-import { signIn } from "../../../../auth";
 import db from "@/lib/db";
 import { AuthError } from "next-auth";
+import { signIn } from "../../../../../auth";
 
 export default async function loginAction(_prevState: any, formData: FormData) {
   const email = formData.get("email") as string;

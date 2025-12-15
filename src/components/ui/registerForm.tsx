@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import Form from "next/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import registerAction from "@/app/(auth)/cadastro/registerAction";
+import registerAction from "@/app/[lang]/(auth)/cadastro/registerAction";
 import { Toaster, toast } from "sonner";
 import { useActionState } from "react";
 import { useState, useEffect } from "react";

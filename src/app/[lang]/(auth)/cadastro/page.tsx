@@ -1,4 +1,3 @@
-import { auth } from "../../../../auth";
 import BotaoGoogle from "@/components/shared/botaoGoogleClient";
 import RegisterForm from "@/components/ui/registerForm";
 import {
@@ -9,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { auth } from "../../../../../auth";
 
 export default async function RegisterPage() {
   const session = await auth();
