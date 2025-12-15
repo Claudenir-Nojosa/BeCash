@@ -41,7 +41,7 @@ import {
   Edit,
   Trash2,
 } from "lucide-react";
-import { LimiteCategoria } from "../../../../types/dashboard";
+import { LimiteCategoria } from "../../../../../types/dashboard";
 import {
   Dialog,
   DialogContent,
