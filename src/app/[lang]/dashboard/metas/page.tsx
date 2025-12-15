@@ -54,7 +54,7 @@ import {
   Trash2,
   ArrowLeft,
 } from "lucide-react";
-import { MetaPessoal } from "../../../../types/dashboard";
+import { MetaPessoal } from "../../../../../types/dashboard";
 import { UploadImage } from "@/components/shared/upload-image";
 import { useSession } from "next-auth/react";
 import { ColaboradoresMeta } from "@/components/shared/ColaboradoresMeta";
