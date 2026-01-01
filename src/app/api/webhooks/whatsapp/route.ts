@@ -2258,17 +2258,38 @@ EXPLIQUE DE FORMA PROFISSIONAL COMO CRIAR UM LANÇAMENTO:`;
 }
 
 // Função REAL para enviar mensagem pelo WhatsApp Business API
+// Função REAL para enviar mensagem pelo WhatsApp Business API
 async function sendWhatsAppMessage(to: string, message: string) {
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
 
   console.log("🔑 Enviando mensagem REAL pelo WhatsApp...");
   console.log("📱 Phone Number ID:", phoneNumberId);
-  console.log("👤 Para:", to);
+  console.log("👤 Para (original):", to);
 
   if (!phoneNumberId || !accessToken) {
     throw new Error("Credenciais do WhatsApp não configuradas");
   }
+
+  // 🔥 CORREÇÃO: Garantir que o número tenha DDI
+  let numeroFormatado = to;
+  
+  // Se o número não começa com 55 (DDI Brasil), adicionar
+  const apenasNumeros = to.replace(/\D/g, "");
+  
+  if (apenasNumeros.length === 11 && !apenasNumeros.startsWith("55")) {
+    // Formato brasileiro sem DDI: 85991486998 → 5585991486998
+    const ddd = apenasNumeros.substring(0, 2); // 85
+    const resto = apenasNumeros.substring(2); // 991486998
+    numeroFormatado = "55" + ddd + "9" + resto; // 5585991486998
+    console.log(`🇧🇷 Formatado: ${to} → ${numeroFormatado}`);
+  } else if (apenasNumeros.length === 10 && !apenasNumeros.startsWith("55")) {
+    // Formato antigo sem 9: 8591486998 → 558591486998
+    numeroFormatado = "55" + apenasNumeros;
+    console.log(`🇧🇷 Formatado (10 dígitos): ${to} → ${numeroFormatado}`);
+  }
+
+  console.log("👤 Para (formatado):", numeroFormatado);
 
   try {
     const response = await fetch(
@@ -2281,7 +2302,7 @@ async function sendWhatsAppMessage(to: string, message: string) {
         },
         body: JSON.stringify({
           messaging_product: "whatsapp",
-          to: to,
+          to: numeroFormatado,
           text: { body: message },
         }),
       }
