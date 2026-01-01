@@ -693,56 +693,73 @@ async function gerarMensagemConfirmacao(
   }
 
   const dataFormatada = dataLancamento.toLocaleDateString("pt-BR");
-  
+
   // 🔥 FORMATAR MÉTODO DE PAGAMENTO
-  const metodoPagamentoText = {
-    "CREDITO": "💳 Cartão de Crédito",
-    "DEBITO": "💳 Cartão de Débito", 
-    "PIX": "📱 PIX",
-    "DINHEIRO": "💵 Dinheiro",
-    "TRANSFERENCIA": "🔄 Transferência"
-  }[dados.metodoPagamento] || "💳 " + dados.metodoPagamento;
+  const metodoPagamentoText =
+    {
+      CREDITO: "💳 Cartão de Crédito",
+      DEBITO: "💳 Cartão de Débito",
+      PIX: "📱 PIX",
+      DINHEIRO: "💵 Dinheiro",
+      TRANSFERENCIA: "🔄 Transferência",
+    }[dados.metodoPagamento] || "💳 " + dados.metodoPagamento;
 
   // 🔥 CONSTRUIR MENSAGEM PROFISSIONAL
   let mensagem = `*📋 CONFIRMAÇÃO DE LANÇAMENTO*\n`;
   mensagem += `━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-  
+
   mensagem += `*📝 Descrição:* ${descricaoLimpa}\n`;
   mensagem += `*💰 Valor:* ${valorFormatado}\n`;
   mensagem += `*🏷️ Categoria:* ${categoriaEscolhida.nome}\n`;
   mensagem += `*📅 Data:* ${dataFormatada}\n`;
   mensagem += `*📊 Tipo:* ${dados.tipo === "DESPESA" ? "Despesa" : "Receita"}\n`;
   mensagem += `*${metodoPagamentoText.includes("💳") ? "💳" : "📱"} Método:* ${metodoPagamentoText.replace("💳 ", "").replace("📱 ", "").replace("💵 ", "").replace("🔄 ", "")}\n`;
-  
+
   if (cartaoEncontrado) {
     mensagem += `*🔸 Cartão:* ${cartaoEncontrado.nome}\n`;
-    
-    // 🔥 ADICIONAR INFORMAÇÕES DO CARTÃO (OPCIONAL)
-    const utilizacao = cartaoEncontrado.utilizacaoLimite || 0;
-    const limiteDisponivel = cartaoEncontrado.limite - (cartaoEncontrado.totalGasto || 0);
-    
-    if (limiteDisponivel > 0) {
+
+    // 🔥 VERIFICAR SE TEM OS DADOS CORRETOS
+    if (cartaoEncontrado.limiteDisponivel !== undefined) {
+      // Se já tem limiteDisponivel calculado
+      const limiteDisponivel = cartaoEncontrado.limiteDisponivel;
+      const utilizacaoPercentual = cartaoEncontrado.utilizacaoLimite || 0;
+
       mensagem += `*📊 Limite disponível:* ${limiteDisponivel.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+      mensagem += `*📈 Utilização:* ${utilizacaoPercentual.toFixed(1)}%\n`;
+    } else if (
+      cartaoEncontrado.limite &&
+      cartaoEncontrado.totalGasto !== undefined
+    ) {
+      // Se tem os dados brutos, calcular
+      const limiteDisponivel =
+        cartaoEncontrado.limite - cartaoEncontrado.totalGasto;
+      const utilizacaoPercentual =
+        cartaoEncontrado.limite > 0
+          ? (cartaoEncontrado.totalGasto / cartaoEncontrado.limite) * 100
+          : 0;
+
+      mensagem += `*📊 Limite disponível:* ${limiteDisponivel.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+      mensagem += `*📈 Utilização:* ${utilizacaoPercentual.toFixed(1)}%\n`;
     }
   }
-  
+
   if (dados.ehCompartilhado && dados.nomeUsuarioCompartilhado) {
     mensagem += `*👥 Compartilhado com:* ${dados.nomeUsuarioCompartilhado}\n`;
-    
+
     // Mostrar valores divididos se for compartilhado
     const valorTotal = parseFloat(dados.valor);
     const valorCompartilhado = valorTotal / 2;
     const valorUsuario = valorTotal / 2;
-    
+
     mensagem += `*🤝 Sua parte:* ${valorUsuario.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
     mensagem += `*👤 Parte do ${dados.nomeUsuarioCompartilhado}:* ${valorCompartilhado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
   }
-  
+
   if (dados.ehParcelado && dados.parcelas) {
     const valorParcela = parseFloat(dados.valor) / dados.parcelas;
     mensagem += `*🔢 Parcelamento:* ${dados.parcelas}x de ${valorParcela.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
   }
-  
+
   mensagem += `\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
   mensagem += `*Por favor, confirme:*\n\n`;
   mensagem += `✅ *SIM* - Para confirmar este lançamento\n`;
@@ -769,48 +786,59 @@ async function gerarMensagemConfirmacaoFinal(
   // 🔥 VERSÃO PROFISSIONAL COM DESTAQUES
   let mensagem = `✅ *LANÇAMENTO REGISTRADO*\n`;
   mensagem += `━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-  
+
   mensagem += `📝 *Descrição:* ${descricaoLimpa}\n`;
   mensagem += `💰 *Valor total:* ${valorFormatado}\n`;
   mensagem += `🏷️ *Categoria:* ${categoriaEscolhida.nome}\n`;
-  
+
   // Se for compartilhado
-  if (resultadoCriacao?.usuarioAlvo && resultadoCriacao.valorCompartilhado > 0) {
-    const valorUsuario = resultadoCriacao.valorUsuarioCriador.toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    });
-    
-    const valorCompartilhado = resultadoCriacao.valorCompartilhado.toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    });
-    
+  if (
+    resultadoCriacao?.usuarioAlvo &&
+    resultadoCriacao.valorCompartilhado > 0
+  ) {
+    const valorUsuario = resultadoCriacao.valorUsuarioCriador.toLocaleString(
+      "pt-BR",
+      {
+        style: "currency",
+        currency: "BRL",
+      }
+    );
+
+    const valorCompartilhado =
+      resultadoCriacao.valorCompartilhado.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      });
+
     mensagem += `\n👥 *COMPARTILHAMENTO*\n`;
     mensagem += `   • Sua parte: ${valorUsuario}\n`;
     mensagem += `   • ${resultadoCriacao.usuarioAlvo.name}: ${valorCompartilhado}\n`;
   }
-  
+
   if (cartaoEncontrado) {
     mensagem += `\n💳 *Cartão:* ${cartaoEncontrado.nome}\n`;
-    
+
     // 🔥 ADICIONAR INFORMAÇÃO ÚTIL SOBRE O CARTÃO
     if (cartaoEncontrado.limite && cartaoEncontrado.totalGasto) {
-      const limiteDisponivel = cartaoEncontrado.limite - cartaoEncontrado.totalGasto;
-      const utilizacaoPercentual = ((cartaoEncontrado.totalGasto / cartaoEncontrado.limite) * 100).toFixed(1);
-      
+      const limiteDisponivel =
+        cartaoEncontrado.limite - cartaoEncontrado.totalGasto;
+      const utilizacaoPercentual = (
+        (cartaoEncontrado.totalGasto / cartaoEncontrado.limite) *
+        100
+      ).toFixed(1);
+
       mensagem += `   • Limite disponível: ${limiteDisponivel.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
       mensagem += `   • Utilização: ${utilizacaoPercentual}%\n`;
     }
   }
-  
-  mensagem += `\n📅 *Data:* ${new Date().toLocaleDateString('pt-BR', { 
-    weekday: 'long', 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
+
+  mensagem += `\n📅 *Data:* ${new Date().toLocaleDateString("pt-BR", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   })}\n`;
-  
+
   mensagem += `\n━━━━━━━━━━━━━━━━━━━━━━━━\n`;
   mensagem += `✨ *Obrigado por usar o BeCash!*\n`;
   mensagem += `📊 Seu controle financeiro simplificado.`;
@@ -1527,7 +1555,7 @@ function extrairMetodoPagamento(
 async function identificarCartao(texto: string, userId: string) {
   const textoLower = texto.toLowerCase();
 
-  // Buscar cartões do usuário
+  // Buscar cartões do usuário COM CÁLCULO DOS TOTAIS
   const cartoes = await db.cartao.findMany({
     where: {
       OR: [
@@ -1537,6 +1565,12 @@ async function identificarCartao(texto: string, userId: string) {
     },
     include: {
       user: { select: { id: true, name: true } },
+      lancamentos: {
+        where: {
+          pago: false,
+          metodoPagamento: "CREDITO",
+        },
+      },
     },
   });
 
@@ -1547,6 +1581,8 @@ async function identificarCartao(texto: string, userId: string) {
       id: c.id,
       nome: c.nome,
       bandeira: c.bandeira,
+      limite: c.limite,
+      totalLancamentos: c.lancamentos.length,
     }))
   );
 
@@ -1554,9 +1590,41 @@ async function identificarCartao(texto: string, userId: string) {
     console.log(`❌ Nenhum cartão cadastrado para o usuário`);
     return null;
   }
+  // 🔥 CALCULAR TOTAIS PARA CADA CARTÃO (igual à API)
+  const cartoesComTotais = cartoes.map((cartao) => {
+    const totalUtilizado = cartao.lancamentos.reduce((total, lancamento) => {
+      return total + lancamento.valor;
+    }, 0);
+
+    const limite = cartao.limite || 0;
+    const utilizacaoPercentual =
+      limite > 0
+        ? (totalUtilizado / limite) * 100
+        : totalUtilizado > 0
+          ? 100
+          : 0;
+
+    return {
+      ...cartao,
+      totalGasto: totalUtilizado,
+      utilizacaoLimite: utilizacaoPercentual,
+      limiteDisponivel: limite - totalUtilizado,
+    };
+  });
+
+  console.log(
+    `📊 Cartões com totais calculados:`,
+    cartoesComTotais.map((c) => ({
+      nome: c.nome,
+      limite: c.limite,
+      totalGasto: c.totalGasto,
+      limiteDisponivel: c.limiteDisponivel,
+      utilizacao: c.utilizacaoLimite,
+    }))
+  );
 
   // 🔥 Mapeamento inteligente de cartões
-  const cartaoMatches = cartoes.map((cartao) => {
+  const cartaoMatches = cartoesComTotais.map((cartao) => {
     const nomeCartaoLower = cartao.nome.toLowerCase();
     const bandeiraLower = cartao.bandeira.toLowerCase();
 
@@ -1565,6 +1633,9 @@ async function identificarCartao(texto: string, userId: string) {
     const palavrasTexto = textoLower.split(/[\s,]+/);
 
     console.log(`🎯 Analisando cartão: "${cartao.nome}"`);
+    console.log(
+      `   💰 Limite: R$ ${cartao.limite}, Utilizado: R$ ${cartao.totalGasto}, Disponível: R$ ${cartao.limiteDisponivel}`
+    );
 
     // 🔍 1. Busca por nome completo (maior peso)
     if (textoLower.includes(nomeCartaoLower)) {
@@ -2332,14 +2403,18 @@ async function sendWhatsAppMessage(to: string, message: string) {
   if (apenasNumeros === "85991486998" || apenasNumeros === "991486998") {
     // Se receber o número local, converter para internacional
     numeroWhatsApp = "5585991486998";
-    console.log(`✅ Convertendo local → internacional: ${apenasNumeros} → ${numeroWhatsApp}`);
+    console.log(
+      `✅ Convertendo local → internacional: ${apenasNumeros} → ${numeroWhatsApp}`
+    );
   } else if (apenasNumeros.length === 12 && apenasNumeros.startsWith("55")) {
     // Se já tem 12 dígitos com DDI, adicionar o 9 que falta
     const ddi = "55";
     const ddd = apenasNumeros.substring(2, 4);
     const resto = apenasNumeros.substring(4);
     numeroWhatsApp = ddi + ddd + "9" + resto;
-    console.log(`✅ Adicionando 9 faltante: ${apenasNumeros} → ${numeroWhatsApp}`);
+    console.log(
+      `✅ Adicionando 9 faltante: ${apenasNumeros} → ${numeroWhatsApp}`
+    );
   }
 
   console.log("👤 Para (enviando):", numeroWhatsApp);
