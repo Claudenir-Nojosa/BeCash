@@ -315,32 +315,17 @@ async function processarMensagemTexto(message: any) {
   console.log("💬 Texto:", userMessage);
   console.log("🆔 Message ID:", messageId);
 
-  // 🔥 DEDUPLICAÇÃO DE MENSAGENS
-  if (messageId) {
-    if (!global.messageCache) {
-      global.messageCache = new Map();
-    }
-
-    const cacheKey = `whatsapp_msg_${messageId}`;
-    if (global.messageCache.has(cacheKey)) {
-      console.log(
-        `🔄 Mensagem ${messageId} já processada - ignorando duplicata`
-      );
-      return { status: "duplicated" };
-    }
-
-    global.messageCache.set(cacheKey, true);
-    setTimeout(() => {
-      global.messageCache?.delete(cacheKey);
-    }, 30000);
-  }
-
-  // 🔥 INICIALIZAR CACHE DE LANÇAMENTOS PENDENTES
+  // 🔥 CORREÇÃO 1: INICIALIZAR CACHE SE NÃO EXISTIR (VERIFICAÇÃO MAIS ROBUSTA)
   if (!global.pendingLancamentos) {
+    console.log("🔄 Criando novo cache de pendingLancamentos");
     global.pendingLancamentos = new Map();
+  } else {
+    console.log(
+      `📊 Cache já existe com ${global.pendingLancamentos.size} itens`
+    );
   }
 
-  // 🔥 NORMALIZAR TELEFONE PARA BUSCA NO CACHE
+  // 🔥 NORMALIZAR TELEFONE PARA BUSCA NO CACHE (MANTENDO O CÓDIGO ATUAL)
   const telefoneNormalizado = userPhone.replace(/\D/g, "");
   let telefoneBusca = telefoneNormalizado;
 
@@ -362,25 +347,49 @@ async function processarMensagemTexto(message: any) {
   console.log(`🔍 Verificando lançamentos pendentes...`);
   console.log(`📞 Telefone original: ${userPhone}`);
   console.log(`🔧 Telefone normalizado: ${telefoneBusca}`);
-  console.log(
-    `📊 Cache atual:`,
-    global.pendingLancamentos
-      ? Array.from(global.pendingLancamentos.entries())
-      : "vazio"
-  );
 
-  // 🔥 BUSCAR COM TELEFONE NORMALIZADO
+  // 🔥 DEBUG DETALHADO DO CACHE
+  console.log(`📊 Cache atual (tamanho: ${global.pendingLancamentos.size}):`);
+  if (global.pendingLancamentos.size > 0) {
+    global.pendingLancamentos.forEach((value, key) => {
+      console.log(
+        `   📍 Key: ${key}, Descrição: ${value.descricaoLimpa}, Timestamp: ${value.timestamp}`
+      );
+    });
+  } else {
+    console.log(`   📍 Cache vazio`);
+  }
+
+  // 🔥 CORREÇÃO 2: BUSCAR NO CACHE COM DEBUG
+  console.log(
+    `🎯 Procurando lançamento pendente para chave: "${telefoneBusca}"`
+  );
   const pendingLancamento = global.pendingLancamentos?.get(telefoneBusca);
 
   if (pendingLancamento) {
-    console.log(`🎯 LANÇAMENTO PENDENTE ENCONTRADO para: ${userPhone}`);
+    console.log(
+      `✅✅✅ LANÇAMENTO PENDENTE ENCONTRADO para chave: "${telefoneBusca}"`
+    );
     console.log(`📝 Dados do lançamento:`, {
       descricao: pendingLancamento.descricaoLimpa,
       valor: pendingLancamento.dados.valor,
       categoria: pendingLancamento.categoriaEscolhida.nome,
       timestamp: new Date(pendingLancamento.timestamp).toISOString(),
+      idade: Date.now() - pendingLancamento.timestamp,
     });
     console.log(`💬 Resposta do usuário: "${userMessage}"`);
+
+    // Verificar se expirou (5 minutos = 300000 ms)
+    if (Date.now() - pendingLancamento.timestamp > 5 * 60 * 1000) {
+      console.log(`⏰ Lançamento expirado - removendo do cache`);
+      global.pendingLancamentos.delete(telefoneBusca);
+
+      await sendWhatsAppMessage(
+        userPhone,
+        "❌ A confirmação expirou (5 minutos).\n\n💡 Envie novamente o lançamento."
+      );
+      return { status: "expired" };
+    }
 
     const resposta = userMessage.toLowerCase().trim();
 
@@ -393,7 +402,7 @@ async function processarMensagemTexto(message: any) {
       resposta === "yes" ||
       resposta === "✅"
     ) {
-      console.log(`✅ USUÁRIO CONFIRMOU - Processando confirmação...`);
+      console.log(`✅✅✅ USUÁRIO CONFIRMOU - Processando confirmação...`);
       return await processarConfirmacao(
         "sim",
         pendingLancamento,
@@ -409,7 +418,7 @@ async function processarMensagemTexto(message: any) {
       resposta === "no" ||
       resposta === "❌"
     ) {
-      console.log(`❌ USUÁRIO CANCELOU - Processando cancelamento...`);
+      console.log(`❌❌❌ USUÁRIO CANCELOU - Processando cancelamento...`);
       return await processarConfirmacao(
         "não",
         pendingLancamento,
@@ -434,13 +443,11 @@ async function processarMensagemTexto(message: any) {
     return { status: "invalid_confirmation_response" };
   } else {
     console.log(
-      `❌ NENHUM LANÇAMENTO PENDENTE encontrado para: ${telefoneBusca}`
+      `❌❌❌ NENHUM LANÇAMENTO PENDENTE encontrado para chave: "${telefoneBusca}"`
     );
     console.log(
-      `🔍 Telefones no cache:`,
-      global.pendingLancamentos
-        ? Array.from(global.pendingLancamentos.keys())
-        : "nenhum"
+      `🔍 Chaves no cache:`,
+      Array.from(global.pendingLancamentos?.keys() || [])
     );
   }
 
