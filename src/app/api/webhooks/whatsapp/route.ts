@@ -660,7 +660,7 @@ async function processarConfirmacao(
   return { status: "invalid_confirmation" };
 }
 
-// 🔥 FUNÇÃO PARA GERAR MENSAGEM DE CONFIRMAÇÃO - VERSÃO MAIS CLARA
+// 🔥 FUNÇÃO PARA GERAR MENSAGEM DE CONFIRMAÇÃO - VERSÃO PROFISSIONAL
 async function gerarMensagemConfirmacao(
   dados: DadosLancamento,
   descricaoLimpa: string,
@@ -693,28 +693,66 @@ async function gerarMensagemConfirmacao(
   }
 
   const dataFormatada = dataLancamento.toLocaleDateString("pt-BR");
+  
+  // 🔥 FORMATAR MÉTODO DE PAGAMENTO
+  const metodoPagamentoText = {
+    "CREDITO": "💳 Cartão de Crédito",
+    "DEBITO": "💳 Cartão de Débito", 
+    "PIX": "📱 PIX",
+    "DINHEIRO": "💵 Dinheiro",
+    "TRANSFERENCIA": "🔄 Transferência"
+  }[dados.metodoPagamento] || "💳 " + dados.metodoPagamento;
 
-  let mensagem = `📌 Confirmação de Lançamento
-━━━━━━━━━━━━━━━
-
-📝 ${descricaoLimpa}
-💰 ${valorFormatado}
-🏷️ ${categoriaEscolhida.nome}
-📅 ${dataFormatada}
-💳 ${dados.metodoPagamento === "CREDITO" ? "Cartão de Crédito" : dados.metodoPagamento === "DEBITO" ? "Cartão de Débito" : dados.metodoPagamento}
-${cartaoEncontrado ? `🔸 ${cartaoEncontrado.nome}\n` : ""}${dados.ehCompartilhado && dados.nomeUsuarioCompartilhado ? `👥 Compartilhado com: ${dados.nomeUsuarioCompartilhado}\n` : ""}
-━━━━━━━━━━━━━━━
-
-_Responda com:_
-✅ *SIM* - Para confirmar
-❌ *NÃO* - Para cancelar
-
-⏰ _Expira em 5 minutos_`;
+  // 🔥 CONSTRUIR MENSAGEM PROFISSIONAL
+  let mensagem = `*📋 CONFIRMAÇÃO DE LANÇAMENTO*\n`;
+  mensagem += `━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+  
+  mensagem += `*📝 Descrição:* ${descricaoLimpa}\n`;
+  mensagem += `*💰 Valor:* ${valorFormatado}\n`;
+  mensagem += `*🏷️ Categoria:* ${categoriaEscolhida.nome}\n`;
+  mensagem += `*📅 Data:* ${dataFormatada}\n`;
+  mensagem += `*📊 Tipo:* ${dados.tipo === "DESPESA" ? "Despesa" : "Receita"}\n`;
+  mensagem += `*${metodoPagamentoText.includes("💳") ? "💳" : "📱"} Método:* ${metodoPagamentoText.replace("💳 ", "").replace("📱 ", "").replace("💵 ", "").replace("🔄 ", "")}\n`;
+  
+  if (cartaoEncontrado) {
+    mensagem += `*🔸 Cartão:* ${cartaoEncontrado.nome}\n`;
+    
+    // 🔥 ADICIONAR INFORMAÇÕES DO CARTÃO (OPCIONAL)
+    const utilizacao = cartaoEncontrado.utilizacaoLimite || 0;
+    const limiteDisponivel = cartaoEncontrado.limite - (cartaoEncontrado.totalGasto || 0);
+    
+    if (limiteDisponivel > 0) {
+      mensagem += `*📊 Limite disponível:* ${limiteDisponivel.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+    }
+  }
+  
+  if (dados.ehCompartilhado && dados.nomeUsuarioCompartilhado) {
+    mensagem += `*👥 Compartilhado com:* ${dados.nomeUsuarioCompartilhado}\n`;
+    
+    // Mostrar valores divididos se for compartilhado
+    const valorTotal = parseFloat(dados.valor);
+    const valorCompartilhado = valorTotal / 2;
+    const valorUsuario = valorTotal / 2;
+    
+    mensagem += `*🤝 Sua parte:* ${valorUsuario.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+    mensagem += `*👤 Parte do ${dados.nomeUsuarioCompartilhado}:* ${valorCompartilhado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+  }
+  
+  if (dados.ehParcelado && dados.parcelas) {
+    const valorParcela = parseFloat(dados.valor) / dados.parcelas;
+    mensagem += `*🔢 Parcelamento:* ${dados.parcelas}x de ${valorParcela.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+  }
+  
+  mensagem += `\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+  mensagem += `*Por favor, confirme:*\n\n`;
+  mensagem += `✅ *SIM* - Para confirmar este lançamento\n`;
+  mensagem += `❌ *NÃO* - Para cancelar\n\n`;
+  mensagem += `_⏰ Esta confirmação expira em 5 minutos_`;
 
   return mensagem;
 }
 
-// 🔥 FUNÇÃO PARA GERAR MENSAGEM FINAL - VERSÃO PERSONALIZADA
+// 🔥 FUNÇÃO PARA GERAR MENSAGEM FINAL - VERSÃO PROFISSIONAL ATUALIZADA
 async function gerarMensagemConfirmacaoFinal(
   dados: DadosLancamento,
   descricaoLimpa: string,
@@ -728,6 +766,14 @@ async function gerarMensagemConfirmacaoFinal(
     currency: "BRL",
   });
 
+  // 🔥 VERSÃO PROFISSIONAL COM DESTAQUES
+  let mensagem = `✅ *LANÇAMENTO REGISTRADO*\n`;
+  mensagem += `━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+  
+  mensagem += `📝 *Descrição:* ${descricaoLimpa}\n`;
+  mensagem += `💰 *Valor total:* ${valorFormatado}\n`;
+  mensagem += `🏷️ *Categoria:* ${categoriaEscolhida.nome}\n`;
+  
   // Se for compartilhado
   if (resultadoCriacao?.usuarioAlvo && resultadoCriacao.valorCompartilhado > 0) {
     const valorUsuario = resultadoCriacao.valorUsuarioCriador.toLocaleString("pt-BR", {
@@ -739,28 +785,37 @@ async function gerarMensagemConfirmacaoFinal(
       style: "currency",
       currency: "BRL",
     });
-
-    return `✅ Lançamento Registrado
-
-📝 ${descricaoLimpa}
-💰 Valor Total: ${valorFormatado}
-👤 Sua Parte: ${valorUsuario}
-👥 Compartilhado com ${resultadoCriacao.usuarioAlvo.name}: ${valorCompartilhado}
-${cartaoEncontrado ? `💳 ${cartaoEncontrado.nome}\n` : ""}🏷️ ${categoriaEscolhida.nome}
-
-━━━━━━━━━━━━━━━
-Obrigado por usar o BeCash!`;
+    
+    mensagem += `\n👥 *COMPARTILHAMENTO*\n`;
+    mensagem += `   • Sua parte: ${valorUsuario}\n`;
+    mensagem += `   • ${resultadoCriacao.usuarioAlvo.name}: ${valorCompartilhado}\n`;
   }
+  
+  if (cartaoEncontrado) {
+    mensagem += `\n💳 *Cartão:* ${cartaoEncontrado.nome}\n`;
+    
+    // 🔥 ADICIONAR INFORMAÇÃO ÚTIL SOBRE O CARTÃO
+    if (cartaoEncontrado.limite && cartaoEncontrado.totalGasto) {
+      const limiteDisponivel = cartaoEncontrado.limite - cartaoEncontrado.totalGasto;
+      const utilizacaoPercentual = ((cartaoEncontrado.totalGasto / cartaoEncontrado.limite) * 100).toFixed(1);
+      
+      mensagem += `   • Limite disponível: ${limiteDisponivel.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+      mensagem += `   • Utilização: ${utilizacaoPercentual}%\n`;
+    }
+  }
+  
+  mensagem += `\n📅 *Data:* ${new Date().toLocaleDateString('pt-BR', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  })}\n`;
+  
+  mensagem += `\n━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  mensagem += `✨ *Obrigado por usar o BeCash!*\n`;
+  mensagem += `📊 Seu controle financeiro simplificado.`;
 
-  // Se não for compartilhado
-  return `✅ Lançamento Registrado
-
-📝 ${descricaoLimpa}
-💰 ${valorFormatado}
-${cartaoEncontrado ? `💳 ${cartaoEncontrado.nome}\n` : ""}🏷️ ${categoriaEscolhida.nome}
-
-━━━━━━━━━━━━━━━
-Obrigado por usar o BeCash!`;
+  return mensagem;
 }
 
 // 🔥 FUNÇÃO PARA MENSAGEM DE CANCELAMENTO - VERSÃO MELHORADA
