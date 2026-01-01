@@ -660,7 +660,7 @@ async function processarConfirmacao(
   return { status: "invalid_confirmation" };
 }
 
-// 🔥 FUNÇÃO PARA GERAR MENSAGEM DE CONFIRMAÇÃO - VERSÃO PROFISSIONAL
+// 🔥 FUNÇÃO PARA GERAR MENSAGEM DE CONFIRMAÇÃO - VERSÃO MAIS CLARA
 async function gerarMensagemConfirmacao(
   dados: DadosLancamento,
   descricaoLimpa: string,
@@ -697,19 +697,12 @@ async function gerarMensagemConfirmacao(
   let mensagem = `📌 Confirmação de Lançamento
 ━━━━━━━━━━━━━━━
 
-Descrição: ${descricaoLimpa}
-Valor: ${valorFormatado}
-Categoria: ${categoriaEscolhida.nome}
-Tipo: ${dados.tipo === "DESPESA" ? "Despesa" : "Receita"}
-Data: ${dataFormatada}
-Método: ${
-    dados.metodoPagamento === "CREDITO"
-      ? "Cartão de Crédito"
-      : dados.metodoPagamento === "DEBITO"
-        ? "Cartão de Débito"
-        : dados.metodoPagamento
-  }
-${cartaoEncontrado ? `Cartão: ${cartaoEncontrado.nome}\n` : ""}${dados.ehParcelado && dados.parcelas ? `Parcelado: ${dados.parcelas}x\n` : ""}${dados.ehCompartilhado && dados.nomeUsuarioCompartilhado ? `Compartilhado com: ${dados.nomeUsuarioCompartilhado}\n` : ""}
+📝 ${descricaoLimpa}
+💰 ${valorFormatado}
+🏷️ ${categoriaEscolhida.nome}
+📅 ${dataFormatada}
+💳 ${dados.metodoPagamento === "CREDITO" ? "Cartão de Crédito" : dados.metodoPagamento === "DEBITO" ? "Cartão de Débito" : dados.metodoPagamento}
+${cartaoEncontrado ? `🔸 ${cartaoEncontrado.nome}\n` : ""}${dados.ehCompartilhado && dados.nomeUsuarioCompartilhado ? `👥 Compartilhado com: ${dados.nomeUsuarioCompartilhado}\n` : ""}
 ━━━━━━━━━━━━━━━
 
 _Responda com:_
@@ -721,7 +714,7 @@ _Responda com:_
   return mensagem;
 }
 
-// 🔥 FUNÇÃO PARA GERAR MENSAGEM FINAL - VERSÃO PROFISSIONAL
+// 🔥 FUNÇÃO PARA GERAR MENSAGEM FINAL - VERSÃO PERSONALIZADA
 async function gerarMensagemConfirmacaoFinal(
   dados: DadosLancamento,
   descricaoLimpa: string,
@@ -729,25 +722,54 @@ async function gerarMensagemConfirmacaoFinal(
   cartaoEncontrado: any,
   resultadoCriacao: any
 ): Promise<string> {
-  const valorFormatado = parseFloat(dados.valor).toLocaleString("pt-BR", {
+  const valorTotal = parseFloat(dados.valor);
+  const valorFormatado = valorTotal.toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
   });
 
-  let mensagem = `✅ Lançamento registrado
+  // Se for compartilhado
+  if (resultadoCriacao?.usuarioAlvo && resultadoCriacao.valorCompartilhado > 0) {
+    const valorUsuario = resultadoCriacao.valorUsuarioCriador.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+    
+    const valorCompartilhado = resultadoCriacao.valorCompartilhado.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
 
-${descricaoLimpa} • ${valorFormatado}
+    return `✅ Lançamento Registrado
 
-Obrigado por usar o BeCash.`;
+📝 ${descricaoLimpa}
+💰 Valor Total: ${valorFormatado}
+👤 Sua Parte: ${valorUsuario}
+👥 Compartilhado com ${resultadoCriacao.usuarioAlvo.name}: ${valorCompartilhado}
+${cartaoEncontrado ? `💳 ${cartaoEncontrado.nome}\n` : ""}🏷️ ${categoriaEscolhida.nome}
 
-  return mensagem;
+━━━━━━━━━━━━━━━
+Obrigado por usar o BeCash!`;
+  }
+
+  // Se não for compartilhado
+  return `✅ Lançamento Registrado
+
+📝 ${descricaoLimpa}
+💰 ${valorFormatado}
+${cartaoEncontrado ? `💳 ${cartaoEncontrado.nome}\n` : ""}🏷️ ${categoriaEscolhida.nome}
+
+━━━━━━━━━━━━━━━
+Obrigado por usar o BeCash!`;
 }
 
-// 🔥 FUNÇÃO PARA MENSAGEM DE CANCELAMENTO - VERSÃO PROFISSIONAL
+// 🔥 FUNÇÃO PARA MENSAGEM DE CANCELAMENTO - VERSÃO MELHORADA
 async function gerarMensagemCancelamento(): Promise<string> {
-  return `*Lançamento Cancelado*
+  return `❌ Lançamento Cancelado
 
-A transação foi cancelada e não foi registrada em seu extrato.`;
+A transação foi cancelada e não foi registrada em seu extrato.
+
+💡 Envie uma nova mensagem para criar outro lançamento.`;
 }
 
 function detectarCompartilhamento(mensagem: string): {
