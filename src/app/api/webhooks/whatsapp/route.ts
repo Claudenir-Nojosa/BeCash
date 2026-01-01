@@ -11,8 +11,8 @@ interface LancamentoTemporario {
   timestamp: number;
   descricaoLimpa: string;
   cartaoEncontrado?: any;
-  mensagemOriginal: string; 
-  descricaoOriginal: string; 
+  mensagemOriginal: string;
+  descricaoOriginal: string;
 }
 
 declare global {
@@ -340,8 +340,28 @@ async function processarMensagemTexto(message: any) {
     global.pendingLancamentos = new Map();
   }
 
-  // 🔥 VERIFICAR SE É UMA RESPOSTA DE CONFIRMAÇÃO (CORRIGIDO)
+  // 🔥 NORMALIZAR TELEFONE PARA BUSCA NO CACHE
+  const telefoneNormalizado = userPhone.replace(/\D/g, "");
+  let telefoneBusca = telefoneNormalizado;
+
+  // Aplicar mesma lógica de normalização do getUserByPhone
+  if (
+    telefoneNormalizado.startsWith("55") &&
+    telefoneNormalizado.length === 13
+  ) {
+    telefoneBusca = telefoneNormalizado.substring(2);
+  } else if (
+    telefoneNormalizado.startsWith("55") &&
+    telefoneNormalizado.length === 12
+  ) {
+    const ddd = telefoneNormalizado.substring(2, 4);
+    const resto = telefoneNormalizado.substring(4);
+    telefoneBusca = ddd + "9" + resto;
+  }
+
   console.log(`🔍 Verificando lançamentos pendentes...`);
+  console.log(`📞 Telefone original: ${userPhone}`);
+  console.log(`🔧 Telefone normalizado: ${telefoneBusca}`);
   console.log(
     `📊 Cache atual:`,
     global.pendingLancamentos
@@ -349,7 +369,8 @@ async function processarMensagemTexto(message: any) {
       : "vazio"
   );
 
-  const pendingLancamento = global.pendingLancamentos?.get(userPhone);
+  // 🔥 BUSCAR COM TELEFONE NORMALIZADO
+  const pendingLancamento = global.pendingLancamentos?.get(telefoneBusca);
 
   if (pendingLancamento) {
     console.log(`🎯 LANÇAMENTO PENDENTE ENCONTRADO para: ${userPhone}`);
@@ -373,7 +394,11 @@ async function processarMensagemTexto(message: any) {
       resposta === "✅"
     ) {
       console.log(`✅ USUÁRIO CONFIRMOU - Processando confirmação...`);
-      return await processarConfirmacao("sim", pendingLancamento, userPhone);
+      return await processarConfirmacao(
+        "sim",
+        pendingLancamento,
+        telefoneBusca
+      );
     }
 
     if (
@@ -385,7 +410,11 @@ async function processarMensagemTexto(message: any) {
       resposta === "❌"
     ) {
       console.log(`❌ USUÁRIO CANCELOU - Processando cancelamento...`);
-      return await processarConfirmacao("não", pendingLancamento, userPhone);
+      return await processarConfirmacao(
+        "não",
+        pendingLancamento,
+        telefoneBusca
+      );
     }
 
     // 🔥 SE NÃO FOR UMA RESPOSTA DE CONFIRMAÇÃO VÁLIDA, AVISA O USUÁRIO
@@ -404,7 +433,9 @@ async function processarMensagemTexto(message: any) {
 
     return { status: "invalid_confirmation_response" };
   } else {
-    console.log(`❌ NENHUM LANÇAMENTO PENDENTE encontrado para: ${userPhone}`);
+    console.log(
+      `❌ NENHUM LANÇAMENTO PENDENTE encontrado para: ${telefoneBusca}`
+    );
     console.log(
       `🔍 Telefones no cache:`,
       global.pendingLancamentos
@@ -508,10 +539,12 @@ async function processarMensagemTexto(message: any) {
       descricaoLimpa,
       cartaoEncontrado,
       mensagemOriginal: userMessage,
-      descricaoOriginal: dadosExtracao.dados.descricao
+      descricaoOriginal: dadosExtracao.dados.descricao,
     };
 
-    console.log(`💾 SALVANDO LANÇAMENTO PENDENTE para: ${userPhone}`);
+    console.log(
+      `💾 SALVANDO LANÇAMENTO PENDENTE para: ${telefoneBusca} (normalizado)`
+    );
     console.log(`📦 Dados salvos:`, {
       descricao: descricaoLimpa,
       valor: dadosExtracao.dados.valor,
@@ -520,7 +553,8 @@ async function processarMensagemTexto(message: any) {
       usuarioCompartilhado: dadosExtracao.dados.nomeUsuarioCompartilhado,
     });
 
-    global.pendingLancamentos.set(userPhone, lancamentoTemporario);
+    // 🔥 SALVAR COM TELEFONE NORMALIZADO
+    global.pendingLancamentos.set(telefoneBusca, lancamentoTemporario);
 
     // 🔥 DEBUG: Verificar se foi salvo corretamente
     console.log(
@@ -534,11 +568,11 @@ async function processarMensagemTexto(message: any) {
     // Limpar após 5 minutos
     setTimeout(
       () => {
-        if (global.pendingLancamentos?.has(userPhone)) {
+        if (global.pendingLancamentos?.has(telefoneBusca)) {
           console.log(
-            `🧹 LIMPANDO lançamento pendente expirado para: ${userPhone}`
+            `🧹 LIMPANDO lançamento pendente expirado para: ${telefoneBusca}`
           );
-          global.pendingLancamentos.delete(userPhone);
+          global.pendingLancamentos.delete(telefoneBusca);
         }
       },
       5 * 60 * 1000
@@ -560,10 +594,10 @@ async function processarConfirmacao(
   userPhone: string
 ) {
   console.log(`🎯 PROCESSANDO CONFIRMAÇÃO: ${resposta} para ${userPhone}`);
-console.log(`💾 Dados do lançamento pendente:`, {
+  console.log(`💾 Dados do lançamento pendente:`, {
     descricao: pendingLancamento.descricaoLimpa,
     cartao: pendingLancamento.cartaoEncontrado?.nome,
-    mensagemOriginal: pendingLancamento.mensagemOriginal // ← Adicione este campo no tipo!
+    mensagemOriginal: pendingLancamento.mensagemOriginal, // ← Adicione este campo no tipo!
   });
   // 🔥 VERIFICAR SE USUÁRIO AINDA EXISTE (SEGURANÇA)
   const session = await getUserByPhone(userPhone);
@@ -1415,7 +1449,7 @@ function extrairMetodoPagamento(
 // Função para identificar cartão específico
 async function identificarCartao(texto: string, userId: string) {
   const textoLower = texto.toLowerCase();
-  
+
   // Buscar cartões do usuário
   const cartoes = await db.cartao.findMany({
     where: {
@@ -1430,11 +1464,14 @@ async function identificarCartao(texto: string, userId: string) {
   });
 
   console.log(`🔍 Buscando cartão no texto: "${textoLower}"`);
-  console.log(`📋 Cartões disponíveis:`, cartoes.map(c => ({ 
-    id: c.id, 
-    nome: c.nome, 
-    bandeira: c.bandeira 
-  })));
+  console.log(
+    `📋 Cartões disponíveis:`,
+    cartoes.map((c) => ({
+      id: c.id,
+      nome: c.nome,
+      bandeira: c.bandeira,
+    }))
+  );
 
   if (cartoes.length === 0) {
     console.log(`❌ Nenhum cartão cadastrado para o usuário`);
@@ -1442,99 +1479,108 @@ async function identificarCartao(texto: string, userId: string) {
   }
 
   // 🔥 Mapeamento inteligente de cartões
-  const cartaoMatches = cartoes.map(cartao => {
+  const cartaoMatches = cartoes.map((cartao) => {
     const nomeCartaoLower = cartao.nome.toLowerCase();
     const bandeiraLower = cartao.bandeira.toLowerCase();
-    
+
     let pontuacao = 0;
     const palavrasCartao = nomeCartaoLower.split(/[\s-]+/);
     const palavrasTexto = textoLower.split(/[\s,]+/);
-    
+
     console.log(`🎯 Analisando cartão: "${cartao.nome}"`);
-    
+
     // 🔍 1. Busca por nome completo (maior peso)
     if (textoLower.includes(nomeCartaoLower)) {
       pontuacao += 10;
       console.log(`   ✅ Nome completo encontrado (+10)`);
     }
-    
+
     // 🔍 2. Busca por palavras-chave do nome do cartão
-    palavrasCartao.forEach(palavra => {
+    palavrasCartao.forEach((palavra) => {
       if (palavra.length > 3 && textoLower.includes(palavra)) {
         pontuacao += 5;
         console.log(`   ✅ Palavra "${palavra}" encontrada (+5)`);
       }
     });
-    
+
     // 🔍 3. Busca por bandeira
     if (textoLower.includes(bandeiraLower)) {
       pontuacao += 4;
       console.log(`   ✅ Bandeira "${cartao.bandeira}" encontrada (+4)`);
     }
-    
+
     // 🔍 4. Busca por nomes comuns/abreviações
     const mapeamentoCartoes: { [key: string]: string[] } = {
       // Nubank
-      'nubank': ['nu', 'nubank', 'nu bank', 'roxinho', 'roxo'],
+      nubank: ["nu", "nubank", "nu bank", "roxinho", "roxo"],
       // Itaú
-      'itau': ['itau', 'itau uniclass', 'uniclass', 'itaú'],
-      'personnalité': ['personnalité', 'personalite', 'personalité'],
+      itau: ["itau", "itau uniclass", "uniclass", "itaú"],
+      personnalité: ["personnalité", "personalite", "personalité"],
       // Bradesco
-      'bradesco': ['bradesco', 'brad', 'bradesco mastercard'],
-      'bradesco elo': ['bradesco elo', 'elo nanquim', 'nanquim'],
+      bradesco: ["bradesco", "brad", "bradesco mastercard"],
+      "bradesco elo": ["bradesco elo", "elo nanquim", "nanquim"],
       // Santander
-      'santander': ['santander', 'santa'],
-      'santander free': ['santander free', 'free'],
-      'santander universe': ['universe', 'santander universe'],
+      santander: ["santander", "santa"],
+      "santander free": ["santander free", "free"],
+      "santander universe": ["universe", "santander universe"],
       // C6
-      'c6': ['c6', 'c6 bank', 'c6bank', 'carbon'],
-      'c6 carbon': ['carbon', 'c6 carbon'],
+      c6: ["c6", "c6 bank", "c6bank", "carbon"],
+      "c6 carbon": ["carbon", "c6 carbon"],
       // Inter
-      'inter': ['inter', 'inter medium', 'inter mastercard'],
+      inter: ["inter", "inter medium", "inter mastercard"],
       // Original
-      'ourocard': ['ourocard', 'ouro', 'ouro card', 'visa infinite'],
-      'ourocard visa infinite': ['ourocard visa infinite', 'visa infinite', 'infinite'],
+      ourocard: ["ourocard", "ouro", "ouro card", "visa infinite"],
+      "ourocard visa infinite": [
+        "ourocard visa infinite",
+        "visa infinite",
+        "infinite",
+      ],
       // Nomes de bandeiras comuns
-      'visa': ['visa'],
-      'mastercard': ['mastercard', 'master'],
-      'elo': ['elo'],
-      'american express': ['american express', 'amex', 'american'],
-      'hipercard': ['hipercard', 'hiper'],
+      visa: ["visa"],
+      mastercard: ["mastercard", "master"],
+      elo: ["elo"],
+      "american express": ["american express", "amex", "american"],
+      hipercard: ["hipercard", "hiper"],
     };
-    
+
     // Verificar mapeamentos
     Object.entries(mapeamentoCartoes).forEach(([nomeMapeado, keywords]) => {
       if (nomeCartaoLower.includes(nomeMapeado)) {
-        keywords.forEach(keyword => {
+        keywords.forEach((keyword) => {
           if (textoLower.includes(keyword)) {
             pontuacao += 3;
-            console.log(`   ✅ Keyword "${keyword}" para "${nomeMapeado}" (+3)`);
+            console.log(
+              `   ✅ Keyword "${keyword}" para "${nomeMapeado}" (+3)`
+            );
           }
         });
       }
     });
-    
+
     // 🔍 5. Busca por padrões específicos
     const padroesEspeciais = [
-      { regex: /(cart[aã]o.*)(nubank|nu\s*bank)/i, cartao: 'nubank' },
-      { regex: /(cart[aã]o.*)(itau|ita[uú])/i, cartao: 'itau' },
-      { regex: /(cart[aã]o.*)(bradesco)/i, cartao: 'bradesco' },
-      { regex: /(cart[aã]o.*)(santander)/i, cartao: 'santander' },
-      { regex: /(cart[aã]o.*)(c6|c6\s*bank)/i, cartao: 'c6' },
-      { regex: /(cart[aã]o.*)(inter)/i, cartao: 'inter' },
-      { regex: /(cart[aã]o.*)(ourocard|ouro\s*card)/i, cartao: 'ourocard' },
-      { regex: /(visa\s*infinite)/i, cartao: 'visa infinite' },
+      { regex: /(cart[aã]o.*)(nubank|nu\s*bank)/i, cartao: "nubank" },
+      { regex: /(cart[aã]o.*)(itau|ita[uú])/i, cartao: "itau" },
+      { regex: /(cart[aã]o.*)(bradesco)/i, cartao: "bradesco" },
+      { regex: /(cart[aã]o.*)(santander)/i, cartao: "santander" },
+      { regex: /(cart[aã]o.*)(c6|c6\s*bank)/i, cartao: "c6" },
+      { regex: /(cart[aã]o.*)(inter)/i, cartao: "inter" },
+      { regex: /(cart[aã]o.*)(ourocard|ouro\s*card)/i, cartao: "ourocard" },
+      { regex: /(visa\s*infinite)/i, cartao: "visa infinite" },
     ];
-    
-    padroesEspeciais.forEach(padrao => {
-      if (padrao.regex.test(textoLower) && nomeCartaoLower.includes(padrao.cartao)) {
+
+    padroesEspeciais.forEach((padrao) => {
+      if (
+        padrao.regex.test(textoLower) &&
+        nomeCartaoLower.includes(padrao.cartao)
+      ) {
         pontuacao += 8;
         console.log(`   ✅ Padrão especial "${padrao.cartao}" encontrado (+8)`);
       }
     });
-    
+
     console.log(`   📊 Pontuação final: ${pontuacao}`);
-    
+
     return {
       cartao,
       pontuacao,
@@ -1544,30 +1590,40 @@ async function identificarCartao(texto: string, userId: string) {
 
   // 🔥 Encontrar o cartão com maior pontuação
   cartaoMatches.sort((a, b) => b.pontuacao - a.pontuacao);
-  
+
   console.log(`🏆 Ranking de cartões:`);
   cartaoMatches.forEach((match, index) => {
-    console.log(`   ${index + 1}. ${match.cartao.nome}: ${match.pontuacao} pontos`);
+    console.log(
+      `   ${index + 1}. ${match.cartao.nome}: ${match.pontuacao} pontos`
+    );
   });
 
   // 🔥 Retornar apenas se tiver uma pontuação mínima
   const melhorMatch = cartaoMatches[0];
-  
+
   if (melhorMatch && melhorMatch.pontuacao >= 3) {
-    console.log(`✅ Cartão selecionado: ${melhorMatch.cartao.nome} (${melhorMatch.pontuacao} pontos)`);
+    console.log(
+      `✅ Cartão selecionado: ${melhorMatch.cartao.nome} (${melhorMatch.pontuacao} pontos)`
+    );
     return melhorMatch.cartao;
   }
 
-  console.log(`❌ Nenhum cartão adequado encontrado (melhor pontuação: ${melhorMatch?.pontuacao || 0})`);
-  
+  console.log(
+    `❌ Nenhum cartão adequado encontrado (melhor pontuação: ${melhorMatch?.pontuacao || 0})`
+  );
+
   // 🔥 Fallback: Primeiro cartão de crédito do usuário (se for mencionado crédito)
-  if (textoLower.includes('crédito') || textoLower.includes('credito')) {
-    const cartaoCreditoFallback = cartoes.find(c => 
-      c.bandeira && ['VISA', 'MASTERCARD', 'ELO', 'AMERICAN_EXPRESS'].includes(c.bandeira)
+  if (textoLower.includes("crédito") || textoLower.includes("credito")) {
+    const cartaoCreditoFallback = cartoes.find(
+      (c) =>
+        c.bandeira &&
+        ["VISA", "MASTERCARD", "ELO", "AMERICAN_EXPRESS"].includes(c.bandeira)
     );
-    
+
     if (cartaoCreditoFallback) {
-      console.log(`⚠️ Usando fallback de crédito: ${cartaoCreditoFallback.nome}`);
+      console.log(
+        `⚠️ Usando fallback de crédito: ${cartaoCreditoFallback.nome}`
+      );
       return cartaoCreditoFallback;
     }
   }
