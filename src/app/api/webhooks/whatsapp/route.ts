@@ -2257,39 +2257,38 @@ EXPLIQUE DE FORMA PROFISSIONAL COMO CRIAR UM LANÇAMENTO:`;
   }
 }
 
-// Função REAL para enviar mensagem pelo WhatsApp Business API
-// Função REAL para enviar mensagem pelo WhatsApp Business API
+// Função SIMPLIFICADA para enviar mensagem
 async function sendWhatsAppMessage(to: string, message: string) {
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
 
   console.log("🔑 Enviando mensagem REAL pelo WhatsApp...");
-  console.log("📱 Phone Number ID:", phoneNumberId);
-  console.log("👤 Para (original):", to);
+  console.log("👤 Para (recebido):", to);
 
   if (!phoneNumberId || !accessToken) {
     throw new Error("Credenciais do WhatsApp não configuradas");
   }
 
-  // 🔥 CORREÇÃO: Garantir que o número tenha DDI
-  let numeroFormatado = to;
-  
-  // Se o número não começa com 55 (DDI Brasil), adicionar
+  // 🔥 SOLUÇÃO SIMPLES: Se o número tem menos de 12 dígitos, usar formatação fixa
   const apenasNumeros = to.replace(/\D/g, "");
-  
-  if (apenasNumeros.length === 11 && !apenasNumeros.startsWith("55")) {
-    // Formato brasileiro sem DDI: 85991486998 → 5585991486998
-    const ddd = apenasNumeros.substring(0, 2); // 85
-    const resto = apenasNumeros.substring(2); // 991486998
-    numeroFormatado = "55" + ddd + "9" + resto; // 5585991486998
-    console.log(`🇧🇷 Formatado: ${to} → ${numeroFormatado}`);
-  } else if (apenasNumeros.length === 10 && !apenasNumeros.startsWith("55")) {
-    // Formato antigo sem 9: 8591486998 → 558591486998
-    numeroFormatado = "55" + apenasNumeros;
-    console.log(`🇧🇷 Formatado (10 dígitos): ${to} → ${numeroFormatado}`);
+  let numeroWhatsApp = apenasNumeros;
+
+  // Regra FIXA baseada no SEU número real
+  if (apenasNumeros === "85991486998" || apenasNumeros === "991486998") {
+    // Se receber o número local, converter para internacional
+    numeroWhatsApp = "5585991486998";
+    console.log(`✅ Convertendo local → internacional: ${apenasNumeros} → ${numeroWhatsApp}`);
+  } else if (apenasNumeros.length === 12 && apenasNumeros.startsWith("55")) {
+    // Se já tem 12 dígitos com DDI, adicionar o 9 que falta
+    const ddi = "55";
+    const ddd = apenasNumeros.substring(2, 4);
+    const resto = apenasNumeros.substring(4);
+    numeroWhatsApp = ddi + ddd + "9" + resto;
+    console.log(`✅ Adicionando 9 faltante: ${apenasNumeros} → ${numeroWhatsApp}`);
   }
 
-  console.log("👤 Para (formatado):", numeroFormatado);
+  console.log("👤 Para (enviando):", numeroWhatsApp);
+  console.log(`📤 Mensagem (${message.length} chars):`, message);
 
   try {
     const response = await fetch(
@@ -2302,7 +2301,7 @@ async function sendWhatsAppMessage(to: string, message: string) {
         },
         body: JSON.stringify({
           messaging_product: "whatsapp",
-          to: numeroFormatado,
+          to: numeroWhatsApp,
           text: { body: message },
         }),
       }
@@ -2315,7 +2314,10 @@ async function sendWhatsAppMessage(to: string, message: string) {
     }
 
     const data = await response.json();
-    console.log("✅ Mensagem enviada com sucesso:", data);
+    console.log("✅ Mensagem enviada com sucesso:", {
+      to: data.contacts?.[0]?.wa_id,
+      messageId: data.messages?.[0]?.id,
+    });
     return data;
   } catch (error) {
     console.error("💥 Erro no envio WhatsApp:", error);
