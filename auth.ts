@@ -132,8 +132,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             },
           });
 
-          console.log("Usuário encontrado no banco:", user);
-
           if (user) {
             session.user.id = user.id;
             session.user.name = user.name;
@@ -146,7 +144,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
       }
 
-      console.log("Session callback - session.user DEPOIS:", session.user);
+      
       return session;
     },
   },
