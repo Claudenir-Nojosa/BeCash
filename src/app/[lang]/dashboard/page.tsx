@@ -1,9 +1,8 @@
-// app/[lang]/dashboard/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { useTranslation } from "react-i18next"; // ✅ Use react-i18next
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -54,18 +53,103 @@ const MESES = [
   { value: "12", label: "Dezembro" },
 ];
 
+// Função para obter saudação baseada na hora - se quiser manter dinâmico
+const obterSaudacaoDinamica = (t: any) => {
+  const hora = new Date().getHours();
+
+  if (hora < 12) {
+    return t("saudacoes.bomDia");
+  } else if (hora < 18) {
+    return t("saudacoes.boaTarde");
+  } else {
+    return t("saudacoes.boaNoite");
+  }
+};
+
+// Função CORRIGIDA que armazena frase por dia e por idioma
+const obterFraseDiariaPorIdioma = (userName: string, t: any, i18n: any) => {
+  if (typeof window === "undefined") {
+    return `${t("saudacoes.bomDia")}, ${userName || "..."}!`;
+  }
+
+  const hoje = new Date().toDateString();
+  const hora = new Date().getHours();
+  const idiomaAtual = i18n.language;
+
+  // ✅ Obter saudação baseada na hora
+  let saudacao = t("saudacoes.bomDia");
+  if (hora < 12) {
+    saudacao = t("saudacoes.bomDia");
+  } else if (hora < 18) {
+    saudacao = t("saudacoes.boaTarde");
+  } else {
+    saudacao = t("saudacoes.boaNoite");
+  }
+
+  // ✅ Pegar frases motivacionais
+  const frases = t("frasesMotivacionais", { returnObjects: true });
+
+  // ✅ Chave única por dia + idioma
+  const chaveFrase = `frase_motivacional_${hoje}_${idiomaAtual}`;
+  const chaveSaudacao = `frase_saudacao_${hoje}_${idiomaAtual}`;
+
+  // Verificar se já temos uma frase para hoje neste idioma
+  const fraseArmazenada = localStorage.getItem(chaveFrase);
+  const saudacaoArmazenada = localStorage.getItem(chaveSaudacao);
+
+  if (fraseArmazenada && saudacaoArmazenada) {
+    return fraseArmazenada;
+  }
+
+  // ✅ Escolher uma nova frase para hoje
+  const frasesArray = Array.isArray(frases) ? frases : [];
+  const fraseEscolhida =
+    frasesArray.length > 0
+      ? frasesArray[Math.floor(Math.random() * frasesArray.length)]
+      : "";
+
+  const fraseCompleta = `${saudacao}, ${userName || "..."}! ${fraseEscolhida}`;
+
+  // ✅ Armazenar para usar durante o dia neste idioma
+  localStorage.setItem(chaveFrase, fraseCompleta);
+  localStorage.setItem(chaveSaudacao, saudacao);
+
+  return fraseCompleta;
+};
+
+// Função para limpar frases antigas
+const limparFrasesAntigas = () => {
+  if (typeof window === "undefined") return;
+
+  const hoje = new Date().toDateString();
+
+  // Limpar todas as chaves antigas
+  Object.keys(localStorage).forEach((key) => {
+    if (
+      key.startsWith("frase_motivacional_") ||
+      key.startsWith("frase_saudacao_")
+    ) {
+      // Extrair a data da chave
+      const partes = key.split("_");
+      if (partes.length >= 4) {
+        const dataKey = partes[2]; // A data está na posição 2
+        if (dataKey !== hoje) {
+          localStorage.removeItem(key);
+        }
+      }
+    }
+  });
+};
+
 export default function DashboardPage() {
   const router = useRouter();
   const params = useParams();
   const { data: session, status } = useSession();
-  
-  // ✅ Use useTranslation do react-i18next
   const { t, i18n } = useTranslation("dashboard");
-  
-  // Para pegar o idioma atual
-  const currentLang = params?.lang as string || 'pt';
 
-  // Estados devem vir ANTES de qualquer condicional
+  const currentLang = (params?.lang as string) || "pt";
+
+  // ========== ESTADOS ==========
   const [resumo, setResumo] = useState<ResumoFinanceiro>({
     receita: 0,
     despesa: 0,
@@ -75,10 +159,9 @@ export default function DashboardPage() {
   });
   const [metas, setMetas] = useState<MetaPessoal[]>([]);
   const [limites, setLimites] = useState<LimiteCategoria[]>([]);
-  const [carregando, setCarregando] = useState(true);
+  const [carregando, setCarregando] = useState(false);
   const [nomeUsuario, setNomeUsuario] = useState("");
-
-  // Estado para o mês selecionado
+  const [fraseMotivacional, setFraseMotivacional] = useState("");
   const [mesSelecionado, setMesSelecionado] = useState<string>(
     (new Date().getMonth() + 1).toString()
   );
@@ -89,19 +172,45 @@ export default function DashboardPage() {
 
   const userName = session?.user?.name;
 
-  // Proteção de rota - redirecionar se não estiver autenticado
+  // ========== REFS (DEPOIS DOS ESTADOS, ANTES DOS USEEFFECTS!) ==========
+  const toastIdRef = useRef<string | number | undefined>(undefined);
+  const hasLoadedRef = useRef(false);
+  const hasLoadedUserRef = useRef(false);
+  const prevMesRef = useRef(mesSelecionado);
+  const prevAnoRef = useRef(anoSelecionado);
+  const prevRefreshRef = useRef(refreshTrigger);
+
+  // ========== USEEFFECTS ==========
+  useEffect(() => {
+    return () => {
+      if (toastIdRef.current) {
+        toast.dismiss(toastIdRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      limparFrasesAntigas();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (userName && typeof window !== "undefined") {
+      const frase = obterFraseDiariaPorIdioma(userName, t, i18n);
+      setFraseMotivacional(frase);
+    }
+  }, [userName, i18n.language]);
+
   useEffect(() => {
     if (status === "loading") return;
-
     if (!session) {
       router.push(`/${currentLang}/login`);
-      return;
     }
   }, [session, status, router, currentLang]);
 
-  // Buscar nome do usuário separadamente
   useEffect(() => {
-    if (!session) return;
+    if (!session || hasLoadedUserRef.current) return;
 
     const buscarUsuario = async () => {
       try {
@@ -109,6 +218,7 @@ export default function DashboardPage() {
         if (response.ok) {
           const usuarioData = await response.json();
           setNomeUsuario(usuarioData.name);
+          hasLoadedUserRef.current = true;
         }
       } catch (error) {
         console.error("Erro ao buscar usuário:", error);
@@ -118,23 +228,33 @@ export default function DashboardPage() {
     buscarUsuario();
   }, [session]);
 
-  // Recarregar dashboard quando mês/ano mudar
+  // ✅ useEffect OTIMIZADO para evitar carregamentos duplicados
   useEffect(() => {
     if (!session) return;
+    if (carregando) return;
 
-    carregarDashboard();
+    const mesChanged = prevMesRef.current !== mesSelecionado;
+    const anoChanged = prevAnoRef.current !== anoSelecionado;
+    const refreshChanged = prevRefreshRef.current !== refreshTrigger;
+
+    if (!hasLoadedRef.current || mesChanged || anoChanged || refreshChanged) {
+      prevMesRef.current = mesSelecionado;
+      prevAnoRef.current = anoSelecionado;
+      prevRefreshRef.current = refreshTrigger;
+
+      carregarDashboard();
+    }
   }, [mesSelecionado, anoSelecionado, refreshTrigger, session]);
 
   const carregarDashboard = async () => {
-    let toastId: string | number | undefined;
+    if (carregando) return;
 
     try {
       setCarregando(true);
-      toastId = toast.loading(t("botoes.carregando")); // ✅ Usar tradução
 
-      console.log("Iniciando carregamento do dashboard...");
+      const toastId = toast.loading(t("botoes.carregando"));
+      toastIdRef.current = toastId;
 
-      // Carregar dados em paralelo
       const [resumoRes, metasRes, limitesRes] = await Promise.all([
         fetch(
           `/api/dashboard/resumo?mes=${mesSelecionado}&ano=${anoSelecionado}`
@@ -186,28 +306,37 @@ export default function DashboardPage() {
       setMetas(metasData);
       setLimites(limitesData);
 
-      toast.success(t("status.dashboardCarregado"), { id: toastId }); // ✅ Usar tradução
+      // ✅ Marcar que já carregou uma vez (APÓS carregar com sucesso!)
+      hasLoadedRef.current = true;
+
+      // ✅ Descartar toast de loading e mostrar sucesso
+      toast.dismiss(toastId);
+      toast.success(t("status.dashboardCarregado"));
     } catch (error) {
       console.error("Erro completo ao carregar dashboard:", error);
-      toast.error(t("status.erroCarregar"), { id: toastId }); // ✅ Usar tradução
+
+      // ✅ Descartar toast de loading antes de mostrar erro
+      if (toastIdRef.current) {
+        toast.dismiss(toastIdRef.current);
+      }
+      toast.error(t("status.erroCarregar"));
     } finally {
       setCarregando(false);
-      console.log("Carregamento finalizado");
+      toastIdRef.current = undefined;
     }
   };
 
   const handleRefresh = () => {
+    if (carregando) return;
     setRefreshTrigger((prev) => prev + 1);
-    toast.info(t("botoes.atualizando")); // ✅ Usar tradução
   };
 
-  // Se estiver carregando a sessão, mostrar loading
   if (status === "loading") {
     return (
       <div className="min-h-screen p-6 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-gray-300">{t("status.verificando")}</p> {/* ✅ Usar tradução */}
+          <p className="text-gray-300">{t("status.verificando")}</p>
         </div>
       </div>
     );
@@ -220,30 +349,11 @@ export default function DashboardPage() {
 
   // ✅ Função para formatar moeda baseada no idioma
   const formatarMoeda = (valor: number) => {
-    const locale = i18n.language === 'pt' ? 'pt-BR' : 'en-US';
+    const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
     return new Intl.NumberFormat(locale, {
       style: "currency",
       currency: "BRL",
     }).format(valor);
-  };
-
-  const obterFraseMotivacional = () => {
-    const hora = new Date().getHours();
-    
-    // ✅ Pegar saudação do arquivo de tradução
-    let saudacao;
-    if (hora < 12) {
-      saudacao = t("saudacoes.bomDia");
-    } else if (hora < 18) {
-      saudacao = t("saudacoes.boaTarde");
-    } else {
-      saudacao = t("saudacoes.boaNoite");
-    }
-
-    // ✅ Pegar frases motivacionais
-    const frases = t("frasesMotivacionais", { returnObjects: true });
-    
-    return `${saudacao}, ${userName || "..."}! ${Array.isArray(frases) ? frases[Math.floor(Math.random() * frases.length)] : ''}`;
   };
 
   const obterStatusLimites = () => {
@@ -284,39 +394,37 @@ export default function DashboardPage() {
   // ✅ Função para pegar nome do mês traduzido
   const obterNomeMes = (mes: string) => {
     const mesesTraduzidos = {
-      '1': t("Meses:jan", { ns: "common" }),
-      '2': t("Meses:fev", { ns: "common" }),
-      '3': t("Meses:mar", { ns: "common" }),
-      '4': t("Meses:abr", { ns: "common" }),
-      '5': t("Meses:mai", { ns: "common" }),
-      '6': t("Meses:jun", { ns: "common" }),
-      '7': t("Meses:jul", { ns: "common" }),
-      '8': t("Meses:ago", { ns: "common" }),
-      '9': t("Meses:set", { ns: "common" }),
-      '10': t("Meses:out", { ns: "common" }),
-      '11': t("Meses:nov", { ns: "common" }),
-      '12': t("Meses:dez", { ns: "common" }),
+      "1": t("Meses.jan"),
+      "2": t("Meses.fev"),
+      "3": t("Meses.mar"),
+      "4": t("Meses.abr"),
+      "5": t("Meses.mai"),
+      "6": t("Meses.jun"),
+      "7": t("Meses.jul"),
+      "8": t("Meses.ago"),
+      "9": t("Meses.set"),
+      "10": t("Meses.out"),
+      "11": t("Meses.nov"),
+      "12": t("Meses.dez"),
     };
-    
     return mesesTraduzidos[mes as keyof typeof mesesTraduzidos] || "Mês";
   };
 
   const obterNomeMesAbreviado = (mes: string) => {
     const mesesAbreviados = {
-      '1': t("MesesAbreviados:jan", { ns: "common" }),
-      '2': t("MesesAbreviados:fev", { ns: "common" }),
-      '3': t("MesesAbreviados:mar", { ns: "common" }),
-      '4': t("MesesAbreviados:abr", { ns: "common" }),
-      '5': t("MesesAbreviados:mai", { ns: "common" }),
-      '6': t("MesesAbreviados:jun", { ns: "common" }),
-      '7': t("MesesAbreviados:jul", { ns: "common" }),
-      '8': t("MesesAbreviados:ago", { ns: "common" }),
-      '9': t("MesesAbreviados:set", { ns: "common" }),
-      '10': t("MesesAbreviados:out", { ns: "common" }),
-      '11': t("MesesAbreviados:nov", { ns: "common" }),
-      '12': t("MesesAbreviados:dez", { ns: "common" }),
+      "1": t("MesesAbreviados.jan"),
+      "2": t("MesesAbreviados.fev"),
+      "3": t("MesesAbreviados.mar"),
+      "4": t("MesesAbreviados.abr"),
+      "5": t("MesesAbreviados.mai"),
+      "6": t("MesesAbreviados.jun"),
+      "7": t("MesesAbreviados.jul"),
+      "8": t("MesesAbreviados.ago"),
+      "9": t("MesesAbreviados.set"),
+      "10": t("MesesAbreviados.out"),
+      "11": t("MesesAbreviados.nov"),
+      "12": t("MesesAbreviados.dez"),
     };
-    
     return mesesAbreviados[mes as keyof typeof mesesAbreviados] || "Mês";
   };
 
@@ -336,7 +444,7 @@ export default function DashboardPage() {
               <h1 className="text-3xl font-bold text-white">
                 {t("titulo")} {/* ✅ Texto traduzido */}
               </h1>
-              <p className="text-gray-300 mt-2">{obterFraseMotivacional()}</p>
+              <p className="text-gray-300 mt-2">{fraseMotivacional}</p>
             </div>
 
             {/* Controles do Header */}
@@ -420,7 +528,7 @@ export default function DashboardPage() {
                 onClick={handleRefresh}
                 disabled={carregando}
                 className="h-9 w-9 border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 disabled:opacity-50"
-                title={t("botoes.refresh")} 
+                title={t("botoes.refresh")}
               >
                 <RefreshCw
                   className={`h-4 w-4 ${carregando ? "animate-spin" : ""}`}
@@ -507,7 +615,8 @@ export default function DashboardPage() {
                       {formatarMoeda(resumo.despesasCompartilhadas)}
                     </p>
                     <p className="text-xs text-gray-400 mt-1">
-                      {t("cards.compartilhadas.subtitulo")} {/* ✅ Texto traduzido */}
+                      {t("cards.compartilhadas.subtitulo")}{" "}
+                      {/* ✅ Texto traduzido */}
                     </p>
                   </>
                 )}
@@ -567,7 +676,8 @@ export default function DashboardPage() {
                     {t("limites.titulo")} {/* ✅ Texto traduzido */}
                   </CardTitle>
                   <CardDescription className="text-gray-400">
-                    {obterNomeMes(mesSelecionado)} {t("limites.subtitulo")} {anoSelecionado}
+                    {obterNomeMes(mesSelecionado)} {t("limites.subtitulo")}{" "}
+                    {anoSelecionado}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -580,14 +690,18 @@ export default function DashboardPage() {
                   ) : limites.length === 0 ? (
                     <div className="text-center py-6 text-gray-400">
                       <Target className="h-12 w-12 mx-auto mb-3 text-gray-700" />
-                      <p className="mb-3">{t("limites.nenhumLimite")}</p> {/* ✅ Texto traduzido */}
+                      <p className="mb-3">{t("limites.nenhumLimite")}</p>{" "}
+                      {/* ✅ Texto traduzido */}
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => router.push(`/${currentLang}/dashboard/limites`)}
+                        onClick={() =>
+                          router.push(`/${currentLang}/dashboard/limites`)
+                        }
                         className="border-gray-700 text-gray-300 hover:bg-gray-800"
                       >
-                        {t("limites.configurarLimites")} {/* ✅ Texto traduzido */}
+                        {t("limites.configurarLimites")}{" "}
+                        {/* ✅ Texto traduzido */}
                       </Button>
                     </div>
                   ) : (
@@ -646,7 +760,9 @@ export default function DashboardPage() {
                           variant="ghost"
                           size="sm"
                           className="w-full text-gray-400 hover:text-white hover:bg-gray-800"
-                          onClick={() => router.push(`/${currentLang}/dashboard/limites`)}
+                          onClick={() =>
+                            router.push(`/${currentLang}/dashboard/limites`)
+                          }
                         >
                           {t("limites.verTodos")} {/* ✅ Texto traduzido */}
                           <ArrowRight className="ml-2 h-4 w-4" />

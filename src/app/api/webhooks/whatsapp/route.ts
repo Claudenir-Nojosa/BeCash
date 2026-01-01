@@ -848,7 +848,6 @@ async function gerarMensagemConfirmacaoFinal(
 
   mensagem += `\n━━━━━━━━━━━━━━━━━━━━━━━━\n`;
   mensagem += `✨ *Obrigado por usar o BeCash!*\n`;
-  mensagem += `📊 Seu controle financeiro simplificado.`;
 
   return mensagem;
 }

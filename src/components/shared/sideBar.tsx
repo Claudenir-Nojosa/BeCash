@@ -10,14 +10,10 @@ import {
   ChartNoAxesColumnIncreasing,
   Goal,
   WandSparkles,
-  Landmark,
   HandCoins,
   LogOut,
   X,
-  User,
-  Users,
   CreditCard,
-  Pointer,
   ReceiptCent,
   Coins,
   Target,
@@ -26,7 +22,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSession, signOut } from "next-auth/react";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useParams } from "next/navigation";
 
 interface SidebarProps {
   onClose?: () => void;
@@ -36,7 +32,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState<boolean | null>(null);
   const { data: session } = useSession();
   const pathname = usePathname();
+  const params = useParams(); // <-- Adicione este hook
   const [isMobile, setIsMobile] = useState(false);
+
+  // Pegue o idioma atual dos parâmetros da rota
+  const currentLang = params?.lang as string || 'pt';
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 1024);
@@ -84,8 +84,23 @@ export default function Sidebar({ onClose }: SidebarProps) {
       .toUpperCase();
   };
 
+  // Função para verificar se a rota está ativa considerando o idioma
   const isActiveRoute = (route: string) => {
-    return pathname === route;
+    // Remove o prefixo de idioma para comparação
+    const pathWithoutLang = pathname.replace(/^\/(pt|en)/, '');
+    const routeWithoutLang = route.replace(/^\/(pt|en)/, '');
+    return pathWithoutLang === routeWithoutLang;
+  };
+
+  // Função para criar links com o idioma atual
+  const createLink = (path: string) => {
+    // Se o path já começar com o idioma, não adicione novamente
+    if (path.startsWith(`/${currentLang}/`)) {
+      return path;
+    }
+    // Remove qualquer barra inicial duplicada
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return `/${currentLang}${cleanPath}`;
   };
 
   if (isCollapsed === null) {
@@ -142,7 +157,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           {/* Página Inicial */}
           <li>
             <Link
-              href="/dashboard"
+              href={createLink("/dashboard")}
               className={`
                 flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
@@ -160,11 +175,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
           {/* Lançamentos */}
           <li>
             <Link
-              href="/dashboard/lancamentos"
+              href={createLink("/dashboard/lancamentos")}
               className={`
                 flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${pathname.includes("/dashboard/lancamentos") ? "bg-gray-800 text-white border-l-2 border-gray-700" : ""}
+                ${pathname.includes("/lancamentos") ? "bg-gray-800 text-white border-l-2 border-gray-700" : ""}
               `}
               onClick={handleLinkClick}
             >
@@ -178,7 +193,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           {/* Limites */}
           <li>
             <Link
-              href="/dashboard/limites"
+              href={createLink("/dashboard/limites")}
               className={`
                 flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
@@ -196,7 +211,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           {/* Relatórios */}
           <li>
             <Link
-              href="/dashboard/relatorios"
+              href={createLink("/dashboard/relatorios")}
               className={`
                 flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
@@ -214,7 +229,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           {/* Cartões */}
           <li>
             <Link
-              href="/dashboard/cartoes"
+              href={createLink("/dashboard/cartoes")}
               className={`
                 flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
@@ -232,7 +247,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           {/* Categorias */}
           <li>
             <Link
-              href="/dashboard/categorias"
+              href={createLink("/dashboard/categorias")}
               className={`
                 flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
@@ -247,10 +262,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
             </Link>
           </li>
 
-          {/* Pontos */}
-          {/*  <li>
+          {/* Pontos (comentado) */}
+          {/* <li>
             <Link
-              href="/dashboard/pontos"
+              href={createLink("/dashboard/pontos")}
               className={`
                 flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
@@ -268,7 +283,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           {/* Metas */}
           <li>
             <Link
-              href="/dashboard/metas"
+              href={createLink("/dashboard/metas")}
               className={`
                 flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
@@ -282,10 +297,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
               )}
             </Link>
           </li>
+
           {/* Telefone */}
           <li>
             <Link
-              href="/dashboard/vincular-telefone"
+              href={createLink("/dashboard/vincular-telefone")}
               className={`
                 flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
@@ -305,7 +321,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           {/* Bicla */}
           <li>
             <Link
-              href="/dashboard/bicla"
+              href={createLink("/dashboard/bicla")}
               className={`
                 flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
