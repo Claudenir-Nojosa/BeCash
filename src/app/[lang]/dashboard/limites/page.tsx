@@ -40,6 +40,8 @@ import {
   MoreVertical,
   Edit,
   Trash2,
+  ChevronRight,
+  ChevronLeft,
 } from "lucide-react";
 import { LimiteCategoria } from "../../../../../types/dashboard";
 import {
@@ -318,14 +320,16 @@ export default function LimitesPage() {
   }
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-4 sm:p-6 bg-white dark:bg-transparent">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Cabeçalho */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center gap-3">
             <div>
-              <h1 className="text-3xl font-bold text-white">Limites</h1>
-              <p className="text-gray-300">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                Limites
+              </h1>
+              <p className="text-gray-600 dark:text-gray-300">
                 Controle seus gastos por categoria
               </p>
             </div>
@@ -333,7 +337,7 @@ export default function LimitesPage() {
           <div className="flex gap-3 items-center">
             {/* Seletor de Mês no Header */}
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2">
+              <div className="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-800 rounded-lg px-3 py-2 shadow-sm">
                 {/* Seta esquerda */}
                 <Button
                   variant="ghost"
@@ -348,26 +352,14 @@ export default function LimitesPage() {
                     setMesSelecionado(novoMes.toString());
                     setAnoSelecionado(novoAno.toString());
                   }}
-                  className="h-7 w-7 text-gray-400 hover:text-white hover:bg-gray-800"
+                  className="h-7 w-7 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
-                  <svg
-                    className="h-3 w-3"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 19l-7-7 7-7"
-                    />
-                  </svg>
+                  <ChevronLeft className="h-3 w-3" />
                 </Button>
 
                 {/* Mês atual */}
                 <div className="text-center min-w-20">
-                  <p className="text-sm font-medium text-white">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
                     {obterNomeMesAbreviado(mesSelecionado)}/{anoSelecionado}
                   </p>
                 </div>
@@ -386,21 +378,9 @@ export default function LimitesPage() {
                     setMesSelecionado(novoMes.toString());
                     setAnoSelecionado(novoAno.toString());
                   }}
-                  className="h-7 w-7 text-gray-400 hover:text-white hover:bg-gray-800"
+                  className="h-7 w-7 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
-                  <svg
-                    className="h-3 w-3"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
+                  <ChevronRight className="h-3 w-3" />
                 </Button>
               </div>
             </div>
@@ -410,13 +390,13 @@ export default function LimitesPage() {
         {/* Cards de Limites Existentes */}
         <div className="grid gap-4">
           {limites.length === 0 ? (
-            <Card className="bg-gray-900 border-gray-800">
+            <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
               <CardContent className="flex flex-col items-center justify-center py-12">
-                <Target className="h-16 w-16 text-gray-600 mb-4" />
-                <h3 className="text-lg font-medium text-white mb-2">
+                <Target className="h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                   Nenhum limite definido
                 </h3>
-                <p className="text-gray-400 text-center mb-6">
+                <p className="text-gray-600 dark:text-gray-400 text-center mb-6">
                   Comece definindo limites para suas categorias de despesas
                 </p>
                 <Button
@@ -427,7 +407,7 @@ export default function LimitesPage() {
                       setNovoLimite("");
                     }
                   }}
-                  className="bg-white text-gray-900 hover:bg-gray-100"
+                  className="bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Criar Primeiro Limite
@@ -442,7 +422,10 @@ export default function LimitesPage() {
               const valorSlider = Math.min(percentual, 100);
 
               return (
-                <Card key={limite.id} className="bg-gray-900 border-gray-800">
+                <Card
+                  key={limite.id}
+                  className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow"
+                >
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-4 flex-1">
@@ -452,7 +435,7 @@ export default function LimitesPage() {
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-3 mb-3">
-                            <h3 className="font-semibold text-white text-lg truncate">
+                            <h3 className="font-semibold text-gray-900 dark:text-white text-lg truncate">
                               {limite.categoria.nome}
                             </h3>
                             <Badge
@@ -475,9 +458,9 @@ export default function LimitesPage() {
                               className="w-full"
                               disabled
                             />
-                            <div className="flex justify-between text-sm text-gray-400">
+                            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
                               <span>{formatarMoeda(limite.gastoAtual)}</span>
-                              <span className="font-medium text-white">
+                              <span className="font-medium text-gray-900 dark:text-white">
                                 {percentual.toFixed(0)}%
                               </span>
                               <span>{formatarMoeda(limite.limiteMensal)}</span>
@@ -485,22 +468,22 @@ export default function LimitesPage() {
                           </div>
 
                           {/* Informações adicionais */}
-                          <div className="flex gap-4 text-sm text-gray-400">
+                          <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400">
                             <span>
                               Gasto:{" "}
-                              <span className="text-white">
+                              <span className="text-gray-900 dark:text-white">
                                 {formatarMoeda(limite.gastoAtual)}
                               </span>
                             </span>
                             <span>
                               Limite:{" "}
-                              <span className="text-white">
+                              <span className="text-gray-900 dark:text-white">
                                 {formatarMoeda(limite.limiteMensal)}
                               </span>
                             </span>
                             <span>
                               Restante:{" "}
-                              <span className="text-white">
+                              <span className="text-gray-900 dark:text-white">
                                 {formatarMoeda(
                                   limite.limiteMensal - limite.gastoAtual
                                 )}
@@ -524,14 +507,14 @@ export default function LimitesPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => setDropdownAberto(limite.id)}
-                            className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-800"
+                            className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
                           >
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
                           align="end"
-                          className="bg-gray-800 border-gray-700 text-white"
+                          className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white shadow-lg"
                           onInteractOutside={() => setDropdownAberto(null)}
                           onEscapeKeyDown={() => setDropdownAberto(null)}
                         >
@@ -539,9 +522,9 @@ export default function LimitesPage() {
                             onClick={() => {
                               setEditando(limite.id);
                               setNovoLimite(limite.limiteMensal.toString());
-                              setDropdownAberto(null); // 👈 FECHA O DROPDOWN
+                              setDropdownAberto(null);
                             }}
-                            className="flex items-center gap-2 hover:bg-gray-700 cursor-pointer"
+                            className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                           >
                             <Edit className="h-4 w-4" />
                             Ajustar Limite
@@ -549,9 +532,9 @@ export default function LimitesPage() {
                           <DropdownMenuItem
                             onClick={() => {
                               setDialogExclusaoAberto(limite.id);
-                              setDropdownAberto(null); // 👈 FECHA O DROPDOWN
+                              setDropdownAberto(null);
                             }}
-                            className="flex items-center gap-2 text-red-400 hover:bg-red-950 hover:text-red-300 cursor-pointer"
+                            className="flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 cursor-pointer"
                           >
                             <Trash2 className="h-4 w-4" />
                             Excluir Limite
@@ -562,17 +545,17 @@ export default function LimitesPage() {
 
                     {/* Modal de edição inline */}
                     {editando === limite.id && (
-                      <div className="mt-4 p-4 border border-gray-700 rounded-lg bg-gray-800">
+                      <div className="mt-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50/50 dark:bg-gray-800/50">
                         <div className="flex items-center gap-3">
                           <div className="flex-1">
                             <Label
                               htmlFor="ajuste-limite"
-                              className="text-white text-sm mb-2 block"
+                              className="text-gray-700 dark:text-white text-sm mb-2 block"
                             >
                               Novo valor do limite
                             </Label>
                             <div className="relative">
-                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
                                 R$
                               </span>
                               <Input
@@ -583,7 +566,7 @@ export default function LimitesPage() {
                                 placeholder="0,00"
                                 value={novoLimite}
                                 onChange={(e) => setNovoLimite(e.target.value)}
-                                className="pl-8 bg-gray-700 border-gray-600 text-white placeholder:text-gray-500"
+                                className="pl-8 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
                               />
                             </div>
                           </div>
@@ -594,8 +577,8 @@ export default function LimitesPage() {
                               onClick={() =>
                                 ajustarLimite(limite.id, parseFloat(novoLimite))
                               }
-                              disabled={salvando === limite.id} // 👈 ADICIONE ESTA LINHA
-                              className="bg-green-100 text-gray-900 hover:bg-green-100 hover:text-gray-600"
+                              disabled={salvando === limite.id}
+                              className="bg-emerald-600 hover:bg-emerald-700 dark:bg-green-600 dark:hover:bg-green-700 text-white border-emerald-600 dark:border-green-600"
                             >
                               {salvando === limite.id
                                 ? "Salvando..."
@@ -605,7 +588,7 @@ export default function LimitesPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => setEditando(null)}
-                              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                              className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                             >
                               Cancelar
                             </Button>
@@ -622,12 +605,12 @@ export default function LimitesPage() {
 
         {/* Seção para adicionar novos limites (apenas se houver categorias sem limite) */}
         {categoriasSemLimite.length > 0 && (
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-white">
+              <CardTitle className="text-gray-900 dark:text-white">
                 Adicionar Novo Limite
               </CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardDescription className="text-gray-600 dark:text-gray-400">
                 Selecione uma categoria para definir um limite mensal
               </CardDescription>
             </CardHeader>
@@ -636,14 +619,14 @@ export default function LimitesPage() {
                 {categoriasSemLimite.map((categoria) => (
                   <div
                     key={categoria.id}
-                    className="flex items-center justify-between p-3 border border-gray-800 rounded-lg hover:border-gray-700 transition-colors"
+                    className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-300 dark:hover:border-gray-700 transition-colors bg-gray-50/50 dark:bg-gray-800/50"
                   >
                     <div className="flex items-center gap-3">
                       <div
                         className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: categoria.cor }}
                       />
-                      <span className="font-medium text-white">
+                      <span className="font-medium text-gray-900 dark:text-white">
                         {categoria.nome}
                       </span>
                     </div>
@@ -651,7 +634,7 @@ export default function LimitesPage() {
                     {editando === categoria.id ? (
                       <div className="flex items-center gap-2">
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
                             R$
                           </span>
                           <Input
@@ -661,15 +644,15 @@ export default function LimitesPage() {
                             placeholder="0,00"
                             value={novoLimite}
                             onChange={(e) => setNovoLimite(e.target.value)}
-                            className="w-32 pl-8 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                            className="w-32 pl-8 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
                           />
                         </div>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => salvarLimite(categoria.id)}
-                          disabled={salvando === categoria.id} // 👈 ADICIONE ESTA LINHA
-                          className="bg-green-100 text-gray-900 hover:bg-green-100 hover:text-gray-600"
+                          disabled={salvando === categoria.id}
+                          className="bg-emerald-600 hover:bg-emerald-700 dark:bg-green-600 dark:hover:bg-green-700 text-white border-emerald-600 dark:border-green-600"
                         >
                           {salvando === categoria.id ? "Salvando..." : "Salvar"}
                         </Button>
@@ -677,7 +660,7 @@ export default function LimitesPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => setEditando(null)}
-                          className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                          className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                         >
                           Cancelar
                         </Button>
@@ -690,7 +673,7 @@ export default function LimitesPage() {
                           setEditando(categoria.id);
                           setNovoLimite("");
                         }}
-                        className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                        className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
                       >
                         <Plus className="mr-2 h-3 w-3" />
                         Definir Limite
@@ -712,10 +695,12 @@ export default function LimitesPage() {
           }
         }}
       >
-        <DialogContent className="bg-gray-900 border-gray-800 text-white">
+        <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white">
           <DialogHeader>
-            <DialogTitle className="text-white">Excluir Limite</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogTitle className="text-gray-900 dark:text-white">
+              Excluir Limite
+            </DialogTitle>
+            <DialogDescription className="text-gray-600 dark:text-gray-400">
               Tem certeza que deseja excluir o limite desta categoria? Esta ação
               não pode ser desfeita.
             </DialogDescription>
@@ -724,14 +709,14 @@ export default function LimitesPage() {
             <Button
               variant="outline"
               onClick={() => setDialogExclusaoAberto(null)}
-              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+              className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               Cancelar
             </Button>
             <Button
               variant="destructive"
               onClick={() => excluirLimite(dialogExclusaoAberto!)}
-              disabled={!!excluindoLimite} // 👈 ADICIONE ESTA LINHA
+              disabled={!!excluindoLimite}
             >
               {excluindoLimite ? "Excluindo..." : "Confirmar"}
             </Button>

@@ -575,7 +575,7 @@ export default function DetalhesCartaoPage() {
   )[0];
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-4 sm:p-6 bg-white dark:bg-transparent">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -584,7 +584,7 @@ export default function DetalhesCartaoPage() {
               variant="outline"
               size="icon"
               onClick={() => router.push("/dashboard/cartoes")}
-              className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+              className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -594,9 +594,11 @@ export default function DetalhesCartaoPage() {
                 style={{ backgroundColor: cartao.cor }}
               />
               <div>
-                <h1 className="text-3xl font-bold text-white">{cartao.nome}</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                  {cartao.nome}
+                </h1>
                 {cartao.ehCompartilhado && cartao.user && (
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
                     Compartilhado por {cartao.user.name}
                   </p>
                 )}
@@ -610,7 +612,7 @@ export default function DetalhesCartaoPage() {
               onClick={() =>
                 router.push(`/dashboard/cartoes/${cartaoId}/faturas`)
               }
-              className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+              className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
             >
               <Eye className="h-4 w-4 mr-2" />
               Ver Faturas
@@ -618,7 +620,7 @@ export default function DetalhesCartaoPage() {
             <Button
               variant="outline"
               onClick={() => setSheetEditarAberto(true)}
-              className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+              className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
             >
               <Edit className="h-4 w-4 mr-2" />
               Editar Cartão
@@ -629,38 +631,48 @@ export default function DetalhesCartaoPage() {
         {/* Grid de Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Card 1: Informações do Cartão */}
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <CreditCard className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
+                <div className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800">
+                  <CreditCard className="h-4 w-4 text-gray-700 dark:text-gray-300" />
+                </div>
                 Informações do Cartão
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm text-gray-400">Bandeira</p>
-                  <p className="text-white capitalize">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Bandeira
+                  </p>
+                  <p className="text-gray-900 dark:text-white capitalize">
                     {cartao.bandeira.toLowerCase()}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">Limite Total</p>
-                  <p className="text-xl font-bold text-white">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Limite Total
+                  </p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-white">
                     {formatarMoeda(cartao.limite)}
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-400">Fechamento</p>
-                    <p className="text-white flex items-center gap-1">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Fechamento
+                    </p>
+                    <p className="text-gray-900 dark:text-white flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
                       Dia {cartao.diaFechamento}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-400">Vencimento</p>
-                    <p className="text-white flex items-center gap-1">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Vencimento
+                    </p>
+                    <p className="text-gray-900 dark:text-white flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
                       Dia {cartao.diaVencimento}
                     </p>
@@ -668,23 +680,25 @@ export default function DetalhesCartaoPage() {
                 </div>
 
                 {/* 👇 SEÇÃO DE COLABORADORES ADICIONADA AQUI */}
-                <div className="pt-3 border-t border-gray-800">
+                <div className="pt-3 border-t border-gray-200 dark:border-gray-800">
                   <ColaboradoresSection />
                 </div>
 
                 {cartao.observacoes && (
                   <div>
-                    <p className="text-sm text-gray-400">Observações</p>
-                    <p className="text-sm text-gray-300">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Observações
+                    </p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
                       {cartao.observacoes}
                     </p>
                   </div>
                 )}
               </div>
 
-              <div className="pt-4 border-t border-gray-800">
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
                 <Button
-                  className="w-full bg-white text-gray-900 hover:bg-gray-100"
+                  className="w-full bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white"
                   onClick={() => router.push("/dashboard/lancamentos/")}
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -695,24 +709,30 @@ export default function DetalhesCartaoPage() {
           </Card>
 
           {/* Card 2: Status do Limite */}
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <TrendingUp className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
+                <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                  <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                </div>
                 Status do Limite
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <p className="text-sm text-gray-400">Utilizado</p>
-                  <p className="text-2xl font-bold text-white">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Utilizado
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
                     {formatarMoeda(totalFaturaAtual)}
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-gray-400">Disponível</p>
-                  <p className="text-2xl font-bold text-white">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Disponível
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
                     {formatarMoeda(cartao.limite - totalFaturaAtual)}
                   </p>
                 </div>
@@ -721,27 +741,29 @@ export default function DetalhesCartaoPage() {
               {/* Barra de progresso */}
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Utilização do limite</span>
+                  <span className="text-gray-600 dark:text-gray-400">
+                    Utilização do limite
+                  </span>
                   <span
                     className={`font-medium ${
                       utilizacao >= 90
-                        ? "text-red-400"
+                        ? "text-red-600 dark:text-red-400"
                         : utilizacao >= 70
-                          ? "text-orange-400"
-                          : "text-green-400"
+                          ? "text-amber-600 dark:text-orange-400"
+                          : "text-emerald-600 dark:text-green-400"
                     }`}
                   >
                     {utilizacao.toFixed(1)}%
                   </span>
                 </div>
-                <div className="w-full bg-gray-800 rounded-full h-3">
+                <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-3">
                   <div
                     className={`h-3 rounded-full ${
                       utilizacao >= 90
                         ? "bg-red-500"
                         : utilizacao >= 70
-                          ? "bg-orange-500"
-                          : "bg-green-500"
+                          ? "bg-amber-500 dark:bg-orange-500"
+                          : "bg-emerald-500 dark:bg-green-500"
                     }`}
                     style={{ width: `${Math.min(utilizacao, 100)}%` }}
                   />
@@ -752,8 +774,8 @@ export default function DetalhesCartaoPage() {
                 <div
                   className={`flex items-center gap-2 p-3 rounded-lg ${
                     utilizacao >= 90
-                      ? "bg-red-900/50 text-red-300 border border-red-800"
-                      : "bg-orange-900/50 text-orange-300 border border-orange-800"
+                      ? "bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800"
+                      : "bg-amber-50 dark:bg-orange-900/50 text-amber-700 dark:text-orange-300 border border-amber-200 dark:border-orange-800"
                   }`}
                 >
                   <AlertTriangle className="h-4 w-4" />
@@ -767,21 +789,27 @@ export default function DetalhesCartaoPage() {
 
               {/* Fatura Atual */}
               {proximaFatura && (
-                <div className="pt-4 border-t border-gray-800 space-y-3">
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-800 space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Próxima fatura:</span>
-                    <span className="text-lg font-bold text-white">
+                    <span className="text-gray-600 dark:text-gray-400">
+                      Próxima fatura:
+                    </span>
+                    <span className="text-lg font-bold text-gray-900 dark:text-white">
                       {formatarMoeda(proximaFatura.valorTotal)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Vencimento:</span>
-                    <span className="text-white">
+                    <span className="text-gray-600 dark:text-gray-400">
+                      Vencimento:
+                    </span>
+                    <span className="text-gray-900 dark:text-white">
                       {formatarData(proximaFatura.dataVencimento)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Status:</span>
+                    <span className="text-gray-600 dark:text-gray-400">
+                      Status:
+                    </span>
                     <Badge className={getStatusColor(proximaFatura.status)}>
                       {proximaFatura.status === "ABERTA"
                         ? "Em aberto"
@@ -796,13 +824,14 @@ export default function DetalhesCartaoPage() {
               )}
             </CardContent>
           </Card>
+
           {/* Card 3: Ranking de Despesas por Categoria */}
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-white">
+              <CardTitle className="text-gray-900 dark:text-white">
                 Despesas por Categoria
               </CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardDescription className="text-gray-600 dark:text-gray-400">
                 Distribuição dos gastos por categoria
               </CardDescription>
             </CardHeader>
@@ -844,7 +873,7 @@ export default function DetalhesCartaoPage() {
                 if (rankingCategorias.length === 0) {
                   return (
                     <div className="text-center py-4">
-                      <p className="text-gray-400">
+                      <p className="text-gray-500 dark:text-gray-400">
                         Nenhuma despesa encontrada
                       </p>
                     </div>
@@ -876,7 +905,7 @@ export default function DetalhesCartaoPage() {
                         return (
                           <div
                             key={categoriaNome}
-                            className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50 hover:bg-gray-800/70 transition-colors"
+                            className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800/50 hover:bg-gray-100/80 dark:hover:bg-gray-800/70 transition-colors"
                           >
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                               <div
@@ -886,10 +915,10 @@ export default function DetalhesCartaoPage() {
                                 {getIcone(categoriaData.icone)}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-white text-sm font-medium truncate">
+                                <p className="text-gray-900 dark:text-white text-sm font-medium truncate">
                                   {categoriaNome}
                                 </p>
-                                <div className="w-full bg-gray-700 rounded-full h-1.5 mt-1">
+                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-1">
                                   <div
                                     className="h-1.5 rounded-full"
                                     style={{
@@ -901,10 +930,10 @@ export default function DetalhesCartaoPage() {
                               </div>
                             </div>
                             <div className="text-right flex-shrink-0 ml-2">
-                              <p className="text-white font-medium">
+                              <p className="text-gray-900 dark:text-white font-medium">
                                 {formatarMoeda(categoriaData.total)}
                               </p>
-                              <p className="text-xs text-gray-400">
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
                                 {porcentagem.toFixed(1)}%
                               </p>
                             </div>
@@ -914,10 +943,12 @@ export default function DetalhesCartaoPage() {
                     )}
 
                     {/* Total geral */}
-                    <div className="pt-3 border-t border-gray-800">
+                    <div className="pt-3 border-t border-gray-200 dark:border-gray-800">
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-400 text-sm">Total:</span>
-                        <span className="text-white font-bold">
+                        <span className="text-gray-600 dark:text-gray-400 text-sm">
+                          Total:
+                        </span>
+                        <span className="text-gray-900 dark:text-white font-bold">
                           {formatarMoeda(totalDespesas)}
                         </span>
                       </div>
@@ -926,10 +957,10 @@ export default function DetalhesCartaoPage() {
                 );
               })()}
 
-              <div className="pt-3 border-t border-gray-800">
+              <div className="pt-3 border-t border-gray-200 dark:border-gray-800">
                 <Button
                   variant="outline"
-                  className="w-full border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                  className="w-full border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
                   onClick={() =>
                     router.push(`/dashboard/relatorios?cartaoId=${cartaoId}`)
                   }
@@ -942,20 +973,24 @@ export default function DetalhesCartaoPage() {
         </div>
 
         {/* Card 4: Lançamentos Recentes */}
-        <Card className="bg-gray-900 border-gray-800">
+        <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-white">Lançamentos Recentes</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardTitle className="text-gray-900 dark:text-white">
+              Lançamentos Recentes
+            </CardTitle>
+            <CardDescription className="text-gray-600 dark:text-gray-400">
               {cartao.lancamentos.length} lançamentos realizados
             </CardDescription>
           </CardHeader>
           <CardContent>
             {cartao.lancamentos.length === 0 ? (
               <div className="text-center py-8">
-                <CreditCard className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-400">Nenhum lançamento encontrado</p>
+                <CreditCard className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-600 dark:text-gray-400">
+                  Nenhum lançamento encontrado
+                </p>
                 <Button
-                  className="mt-4 bg-white text-gray-900 hover:bg-gray-100"
+                  className="mt-4 bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white"
                   onClick={() =>
                     router.push(
                       `/dashboard/lancamentos/novo?cartaoId=${cartaoId}`
@@ -967,30 +1002,40 @@ export default function DetalhesCartaoPage() {
                 </Button>
               </div>
             ) : (
-              <div className="border border-gray-800 rounded-lg">
+              <div className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-gray-800 hover:bg-gray-800/50">
-                      <TableHead className="text-gray-300">Descrição</TableHead>
-                      <TableHead className="text-gray-300">Data</TableHead>
-                      <TableHead className="text-gray-300">Valor</TableHead>
-                      <TableHead className="text-gray-300">Status</TableHead>
-                      <TableHead className="text-gray-300">Fatura</TableHead>
+                    <TableRow className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-800">
+                      <TableHead className="text-gray-700 dark:text-gray-300">
+                        Descrição
+                      </TableHead>
+                      <TableHead className="text-gray-700 dark:text-gray-300">
+                        Data
+                      </TableHead>
+                      <TableHead className="text-gray-700 dark:text-gray-300">
+                        Valor
+                      </TableHead>
+                      <TableHead className="text-gray-700 dark:text-gray-300">
+                        Status
+                      </TableHead>
+                      <TableHead className="text-gray-700 dark:text-gray-300">
+                        Fatura
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {lancamentosRecentes.map((lancamento) => (
                       <TableRow
                         key={lancamento.id}
-                        className="border-gray-800 hover:bg-gray-800/50"
+                        className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/50"
                       >
-                        <TableCell className="font-medium text-white">
+                        <TableCell className="font-medium text-gray-900 dark:text-white">
                           {lancamento.descricao}
                         </TableCell>
-                        <TableCell className="text-gray-300">
+                        <TableCell className="text-gray-600 dark:text-gray-300">
                           {formatarData(lancamento.data)}
                         </TableCell>
-                        <TableCell className="text-white">
+                        <TableCell className="text-gray-900 dark:text-white">
                           {formatarMoeda(lancamento.valor)}
                         </TableCell>
                         <TableCell>
@@ -998,14 +1043,14 @@ export default function DetalhesCartaoPage() {
                             variant={lancamento.pago ? "default" : "secondary"}
                             className={
                               lancamento.pago
-                                ? "bg-green-900/50 text-green-300 border-green-700"
-                                : "bg-yellow-900/50 text-yellow-300 border-yellow-700"
+                                ? "bg-emerald-100 dark:bg-green-900/50 text-emerald-700 dark:text-green-300 border-emerald-200 dark:border-green-700"
+                                : "bg-amber-100 dark:bg-yellow-900/50 text-amber-700 dark:text-yellow-300 border-amber-200 dark:border-yellow-700"
                             }
                           >
                             {lancamento.pago ? "Pago" : "Pendente"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-gray-300">
+                        <TableCell className="text-gray-600 dark:text-gray-300">
                           {lancamento.Fatura ? (
                             <Badge
                               className={getStatusColor(
@@ -1015,7 +1060,9 @@ export default function DetalhesCartaoPage() {
                               {lancamento.Fatura.mesReferencia}
                             </Badge>
                           ) : (
-                            <span className="text-gray-500">-</span>
+                            <span className="text-gray-500 dark:text-gray-500">
+                              -
+                            </span>
                           )}
                         </TableCell>
                       </TableRow>
@@ -1027,7 +1074,7 @@ export default function DetalhesCartaoPage() {
             {cartao.lancamentos.length > 10 && (
               <Button
                 variant="outline"
-                className="w-full mt-4 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                className="w-full mt-4 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
                 onClick={() =>
                   router.push(`/dashboard/lancamentos?cartaoId=${cartaoId}`)
                 }
@@ -1040,10 +1087,12 @@ export default function DetalhesCartaoPage() {
       </div>
 
       <Sheet open={sheetEditarAberto} onOpenChange={setSheetEditarAberto}>
-        <SheetContent className="bg-gray-900 border-gray-800 text-white overflow-y-auto w-full sm:max-w-2xl">
+        <SheetContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white overflow-y-auto w-full sm:max-w-2xl">
           <SheetHeader className="mb-6">
-            <SheetTitle className="text-white">Editar Cartão</SheetTitle>
-            <SheetDescription className="text-gray-400">
+            <SheetTitle className="text-gray-900 dark:text-white">
+              Editar Cartão
+            </SheetTitle>
+            <SheetDescription className="text-gray-600 dark:text-gray-400">
               Atualize as informações do seu cartão
             </SheetDescription>
           </SheetHeader>

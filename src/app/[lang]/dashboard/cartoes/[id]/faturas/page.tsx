@@ -279,7 +279,7 @@ export default function FaturasPage() {
   const pendente = faturaAtual.valorTotal - faturaAtual.valorPago;
 
   return (
-    <div className="min-h-screen p-6 ">
+    <div className="min-h-screen p-6 bg-gray-50 dark:bg-gray-900">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
@@ -287,12 +287,12 @@ export default function FaturasPage() {
             variant="outline"
             size="icon"
             onClick={() => router.push(`/dashboard/cartoes/${cartaoId}`)}
-            className="border-gray-300 dark:border-gray-600"
+            className="border-gray-300 hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-800"
           >
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
               Faturas do Cartão
             </h1>
             {cartao && (
@@ -304,7 +304,7 @@ export default function FaturasPage() {
         </div>
 
         {/* Seletor de Mês */}
-        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <Card className="bg-white border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <Button
@@ -312,7 +312,7 @@ export default function FaturasPage() {
                 size="sm"
                 disabled={indiceAtual >= faturas.length - 1}
                 onClick={() => mudarMes("anterior")}
-                className="border-gray-600 text-gray-300 hover:bg-gray-900 hover:text-white"
+                className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-900 dark:hover:text-white"
               >
                 <ChevronLeft className="w-4 h-4 mr-2" />
                 Mês Anterior
@@ -320,8 +320,8 @@ export default function FaturasPage() {
 
               <div className="text-center flex-1 mx-4">
                 <div className="flex items-center justify-center gap-2">
-                  <Calendar className="w-5 h-5 text-gray-500" />
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  <Calendar className="w-5 h-5 text-gray-600 dark:text-gray-500" />
+                  <h2 className="text-xl font-bold text-gray-800 dark:text-white">
                     {formatarMesReferencia(faturaAtual.mesReferencia)}
                   </h2>
                   <Badge variant="secondary" className={status.cor}>
@@ -339,7 +339,7 @@ export default function FaturasPage() {
                 size="sm"
                 disabled={indiceAtual === 0}
                 onClick={() => mudarMes("proximo")}
-                className="border-gray-600 text-gray-300 hover:bg-gray-900 hover:text-white"
+                className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-900 dark:hover:text-white"
               >
                 Próximo Mês
                 <ChevronRight className="w-4 h-4 ml-2" />
@@ -350,21 +350,21 @@ export default function FaturasPage() {
 
         {/* Resumo da Fatura */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+          <Card className="bg-white border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700">
             <CardContent className="p-6 text-center">
-              <PieChart className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+              <PieChart className="w-8 h-8 text-blue-600 dark:text-blue-500 mx-auto mb-2" />
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Total da Fatura
               </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="text-2xl font-bold text-gray-800 dark:text-white">
                 {formatarMoeda(faturaAtual.valorTotal)}
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+          <Card className="bg-white border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700">
             <CardContent className="p-6 text-center">
-              <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
+              <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-500 mx-auto mb-2" />
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Valor Pago
               </p>
@@ -374,9 +374,9 @@ export default function FaturasPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+          <Card className="bg-white border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700">
             <CardContent className="p-6 text-center">
-              <AlertTriangle className="w-8 h-8 text-orange-600 mx-auto mb-2" />
+              <AlertTriangle className="w-8 h-8 text-orange-600 dark:text-orange-500 mx-auto mb-2" />
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Pendente
               </p>
@@ -397,14 +397,14 @@ export default function FaturasPage() {
         <div className="space-y-6">
           {/* Compras Parceladas */}
           {comprasParceladas.length > 0 && (
-            <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+            <Card className="bg-white border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700">
               <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
-                  <Receipt className="w-5 h-5 text-purple-600" />
+                <CardTitle className="flex items-center gap-2 text-gray-800 dark:text-white">
+                  <Receipt className="w-5 h-5 text-purple-600 dark:text-purple-500" />
                   Compras Parceladas
                   <Badge
                     variant="outline"
-                    className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300"
+                    className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900 dark:text-purple-300 dark:border-purple-800"
                   >
                     {comprasParceladas.length}
                   </Badge>
@@ -415,20 +415,20 @@ export default function FaturasPage() {
                   {comprasParceladas.map((lancamento) => (
                     <div
                       key={lancamento.id}
-                      className="flex justify-between items-center p-4 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/20"
+                      className="flex justify-between items-center p-4 rounded-lg border border-purple-100 bg-purple-50 dark:border-purple-800 dark:bg-purple-900/20"
                     >
                       <div className="flex items-start gap-3 flex-1">
-                        <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-800 text-purple-600 dark:text-purple-400">
+                        <div className="p-2 rounded-lg bg-purple-100 text-purple-700 dark:bg-purple-800 dark:text-purple-400">
                           <CreditCard className="w-4 h-4" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <p className="font-medium text-gray-900 dark:text-white truncate">
+                            <p className="font-medium text-gray-800 dark:text-white truncate">
                               {lancamento.descricao}
                             </p>
                             <Badge
                               variant="outline"
-                              className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 text-xs"
+                              className="bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900 dark:text-purple-300 dark:border-purple-800 text-xs"
                             >
                               {lancamento.parcelaAtual}/
                               {lancamento.parcelasTotal}
@@ -458,14 +458,14 @@ export default function FaturasPage() {
 
           {/* Compras Normais */}
           {comprasNormais.length > 0 && (
-            <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+            <Card className="bg-white border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700">
               <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
-                  <ShoppingCart className="w-5 h-5 text-blue-600" />
+                <CardTitle className="flex items-center gap-2 text-gray-800 dark:text-white">
+                  <ShoppingCart className="w-5 h-5 text-blue-600 dark:text-blue-500" />
                   Compras
                   <Badge
                     variant="outline"
-                    className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+                    className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:border-blue-800"
                   >
                     {comprasNormais.length}
                   </Badge>
@@ -476,7 +476,7 @@ export default function FaturasPage() {
                   {comprasNormais.map((lancamento) => (
                     <div
                       key={lancamento.id}
-                      className="flex justify-between items-center p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                      className="flex justify-between items-center p-4 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50 dark:hover:bg-gray-800 transition-colors"
                     >
                       <div className="flex items-start gap-3 flex-1">
                         <div
@@ -484,7 +484,7 @@ export default function FaturasPage() {
                           style={{ backgroundColor: lancamento.categoria.cor }}
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-900 dark:text-white truncate">
+                          <p className="font-medium text-gray-800 dark:text-white truncate">
                             {lancamento.descricao}
                           </p>
                           <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -524,7 +524,7 @@ export default function FaturasPage() {
             <div className="flex justify-center">
               <Button
                 size="lg"
-                className="bg-gradient-to-br from-gray-600 to-gray-900 hover:from-gray-700 hover:to-black text-white px-8 border-0 shadow-md hover:shadow-lg transition-all duration-200"
+                className="bg-gradient-to-br from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white px-8 border-0 shadow-md hover:shadow-lg transition-all duration-200"
                 onClick={() =>
                   router.push(`/dashboard/faturas/${faturaAtual.id}/pagar`)
                 }

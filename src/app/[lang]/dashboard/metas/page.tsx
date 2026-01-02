@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -62,6 +63,7 @@ import { ColaboradoresMeta } from "@/components/shared/ColaboradoresMeta";
 export default function MetasPage() {
   const router = useRouter();
   const { data: session } = useSession();
+  const { t } = useTranslation("metas");
   const [colaboradoresCarregando, setColaboradoresCarregando] = useState<
     Set<string>
   >(new Set());
@@ -150,8 +152,8 @@ export default function MetasPage() {
         );
       }
     } catch (error) {
-      console.error("Erro ao carregar colaboradores:", error);
-      toast.error("Erro ao carregar colaboradores");
+      console.error(t("erros.carregarColaboradores"), error);
+      toast.error(t("erros.carregarColaboradores"));
     } finally {
       setColaboradoresCarregando((prev) => {
         const newSet = new Set(prev);
@@ -171,13 +173,13 @@ export default function MetasPage() {
       setCarregando(true);
       const response = await fetch("/api/dashboard/metas");
 
-      if (!response.ok) throw new Error("Erro ao carregar metas");
+      if (!response.ok) throw new Error(t("erros.carregarMetas"));
 
       const data = await response.json();
       setMetas(data);
     } catch (error) {
-      console.error("Erro ao carregar metas:", error);
-      toast.error("Erro ao carregar metas");
+      console.error(t("erros.carregarMetas"), error);
+      toast.error(t("erros.carregarMetas"));
     } finally {
       setCarregando(false);
     }
@@ -199,22 +201,23 @@ export default function MetasPage() {
         method: "DELETE",
       });
 
-      if (!response.ok) throw new Error("Erro ao excluir meta");
+      if (!response.ok) throw new Error(t("erros.excluirMeta"));
 
-      toast.success("Meta excluída com sucesso");
+      toast.success(t("mensagens.excluida"));
     } catch (error) {
-      console.error("Erro ao excluir meta:", error);
+      console.error(t("erros.excluirMeta"), error);
 
       // Revert se der erro - adiciona a meta de volta
       if (metaParaExcluir) {
         setMetas((prev) => [...prev, metaParaExcluir]);
       }
 
-      toast.error("Erro ao excluir meta");
+      toast.error(t("erros.excluirMeta"));
     } finally {
       setExcluindo(null);
     }
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setEnviando(true);
@@ -238,22 +241,21 @@ export default function MetasPage() {
 
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.error || "Erro ao salvar meta");
+        throw new Error(errorData.error || t("erros.salvarMeta"));
       }
 
       const metaSalva = await res.json();
-      console.log("Meta salva:", metaSalva);
 
       if (editandoMeta) {
         // Atualização otimista
         setMetas((prev) =>
           prev.map((meta) => (meta.id === editandoMeta.id ? metaSalva : meta))
         );
-        toast.success("Meta atualizada com sucesso!");
+        toast.success(t("mensagens.atualizada"));
       } else {
         // Criação otimista
         setMetas((prev) => [...prev, metaSalva]);
-        toast.success("Meta criada com sucesso!");
+        toast.success(t("mensagens.criada"));
       }
 
       setFormData({
@@ -270,8 +272,8 @@ export default function MetasPage() {
       setEditandoMeta(null);
       setIsSheetOpen(false);
     } catch (error) {
-      console.error("Erro ao salvar meta:", error);
-      toast.error("Erro ao salvar meta.");
+      console.error(t("erros.salvarMeta"), error);
+      toast.error(t("erros.salvarMeta"));
       // Em caso de erro, recarrega os dados do servidor
       carregarMetas();
     } finally {
@@ -290,14 +292,14 @@ export default function MetasPage() {
       categoria: meta.categoria,
       cor: meta.cor || "#3B82F6",
       icone: meta.icone || "🏠",
-      imagemUrl: meta.imagemUrl || "", // 👈 NOVO
+      imagemUrl: meta.imagemUrl || "",
     });
     setIsSheetOpen(true);
   };
 
   const adicionarValorCustomizado = async (id: string) => {
     if (!valorAdicional || parseFloat(valorAdicional) <= 0) {
-      toast.error("Digite um valor válido");
+      toast.error(t("erros.valorInvalido"));
       return;
     }
 
@@ -312,17 +314,19 @@ export default function MetasPage() {
         }),
       });
 
-      if (!response.ok) throw new Error("Erro ao contribuir para meta");
+      if (!response.ok) throw new Error(t("erros.contribuirMeta"));
 
       toast.success(
-        `Valor de R$ ${parseFloat(valorAdicional).toFixed(2)} adicionado com sucesso`
+        t("mensagens.valorAdicionado", {
+          valor: parseFloat(valorAdicional).toFixed(2),
+        })
       );
       setMostrarInputValor(null);
       setValorAdicional("100");
       carregarMetas();
     } catch (error) {
-      console.error("Erro ao adicionar valor:", error);
-      toast.error("Erro ao adicionar valor");
+      console.error(t("erros.adicionarValor"), error);
+      toast.error(t("erros.adicionarValor"));
     }
   };
 
@@ -350,6 +354,7 @@ export default function MetasPage() {
     if (progresso >= 75) return "proxima";
     return "em_andamento";
   };
+
   // Função para abrir o diálogo de contribuição
   const abrirDialogContribuicao = (metaId: string, metaTitulo: string) => {
     setMetaParaContribuir({ id: metaId, titulo: metaTitulo });
@@ -376,7 +381,7 @@ export default function MetasPage() {
         if (data.novaCategoriaNome) {
           payload.novaCategoria = {
             nome: data.novaCategoriaNome,
-            cor: "#8B5CF6", // Cor padrão para novas categorias de metas
+            cor: "#8B5CF6",
             icone: "🎯",
           };
         } else if (data.categoriaId) {
@@ -397,23 +402,25 @@ export default function MetasPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Erro ao contribuir para meta");
+        throw new Error(errorData.error || t("erros.contribuirMeta"));
       }
 
       const result = await response.json();
 
       toast.success(
-        `Valor de R$ ${parseFloat(valorParaContribuir).toFixed(2)} adicionado com sucesso!`
+        t("mensagens.valorAdicionado", {
+          valor: parseFloat(valorParaContribuir).toFixed(2),
+        })
       );
 
       setDialogContribuicaoAberto(false);
       setMetaParaContribuir(null);
       setValorParaContribuir("100");
-      carregarMetas(); // Recarrega as metas para atualizar a UI
+      carregarMetas();
     } catch (error) {
-      console.error("Erro ao contribuir:", error);
+      console.error(t("erros.contribuir"), error);
       toast.error(
-        error instanceof Error ? error.message : "Erro ao contribuir"
+        error instanceof Error ? error.message : t("erros.contribuir")
       );
     } finally {
       setCarregandoContribuicao(false);
@@ -421,15 +428,17 @@ export default function MetasPage() {
   };
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-6 bg-gray-50 dark:bg-gray-900">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Cabeçalho */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center gap-3">
             <div>
-              <h1 className="text-3xl font-bold text-white">Metas Pessoais</h1>
-              <p className="text-gray-300">
-                Gerencie seus objetivos financeiros
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                {t("titulo")}
+              </h1>
+              <p className="text-gray-600 dark:text-gray-300">
+                {t("subtitulo")}
               </p>
             </div>
           </div>
@@ -439,7 +448,7 @@ export default function MetasPage() {
               <SheetTrigger asChild>
                 <Button
                   variant={"outline"}
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                  className="border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
                   onClick={() => {
                     setEditandoMeta(null);
                     setFormData({
@@ -456,25 +465,30 @@ export default function MetasPage() {
                   }}
                 >
                   <Plus className="mr-2 h-4 w-4" />
-                  Nova Meta
+                  {t("botoes.novaMeta")}
                 </Button>
               </SheetTrigger>
-              <SheetContent className="bg-gray-900 border-gray-800 text-white overflow-y-auto">
+              <SheetContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white overflow-y-auto">
                 <SheetHeader>
-                  <SheetTitle className="text-white">
-                    {editandoMeta ? "Editar Meta" : "Nova Meta"}
-                  </SheetTitle>
-                  <SheetDescription className="text-gray-400">
+                  <SheetTitle className="text-gray-900 dark:text-white">
                     {editandoMeta
-                      ? "Atualize os dados da meta"
-                      : "Crie uma nova meta financeira"}
+                      ? t("formulario.tituloEditar")
+                      : t("formulario.tituloNovo")}
+                  </SheetTitle>
+                  <SheetDescription className="text-gray-600 dark:text-gray-400">
+                    {editandoMeta
+                      ? t("formulario.descricaoEditar")
+                      : t("formulario.descricaoNovo")}
                   </SheetDescription>
                 </SheetHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-6 mt-6">
                   <div className="space-y-2">
-                    <Label htmlFor="titulo" className="text-white">
-                      Título
+                    <Label
+                      htmlFor="titulo"
+                      className="text-gray-900 dark:text-white"
+                    >
+                      {t("formulario.tituloLabel")}
                     </Label>
                     <Input
                       id="titulo"
@@ -482,15 +496,18 @@ export default function MetasPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, titulo: e.target.value })
                       }
-                      placeholder="Ex: Comprar um carro, Viagem..."
-                      className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                      placeholder={t("formulario.tituloPlaceholder")}
+                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-500"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="descricao" className="text-white">
-                      Descrição
+                    <Label
+                      htmlFor="descricao"
+                      className="text-gray-900 dark:text-white"
+                    >
+                      {t("formulario.descricaoLabel")}
                     </Label>
                     <Input
                       id="descricao"
@@ -498,15 +515,18 @@ export default function MetasPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, descricao: e.target.value })
                       }
-                      placeholder="Descrição detalhada da meta..."
-                      className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                      placeholder={t("formulario.descricaoPlaceholder")}
+                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-500"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="valorAlvo" className="text-white">
-                        Valor Alvo
+                      <Label
+                        htmlFor="valorAlvo"
+                        className="text-gray-900 dark:text-white"
+                      >
+                        {t("formulario.valorAlvoLabel")}
                       </Label>
                       <Input
                         id="valorAlvo"
@@ -520,14 +540,17 @@ export default function MetasPage() {
                           })
                         }
                         placeholder="0,00"
-                        className="bg-gray-800 border-gray-700 text-white"
+                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
                         required
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="valorAtual" className="text-white">
-                        Valor Atual
+                      <Label
+                        htmlFor="valorAtual"
+                        className="text-gray-900 dark:text-white"
+                      >
+                        {t("formulario.valorAtualLabel")}
                       </Label>
                       <Input
                         id="valorAtual"
@@ -541,15 +564,18 @@ export default function MetasPage() {
                           })
                         }
                         placeholder="0,00"
-                        className="bg-gray-800 border-gray-700 text-white"
+                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
                         required
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="dataAlvo" className="text-white">
-                      Data Alvo
+                    <Label
+                      htmlFor="dataAlvo"
+                      className="text-gray-900 dark:text-white"
+                    >
+                      {t("formulario.dataAlvoLabel")}
                     </Label>
                     <Input
                       id="dataAlvo"
@@ -558,14 +584,17 @@ export default function MetasPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, dataAlvo: e.target.value })
                       }
-                      className="bg-gray-800 border-gray-700 text-white"
+                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="categoria" className="text-white">
-                      Categoria
+                    <Label
+                      htmlFor="categoria"
+                      className="text-gray-900 dark:text-white"
+                    >
+                      {t("formulario.categoriaLabel")}
                     </Label>
                     <Input
                       id="categoria"
@@ -573,17 +602,19 @@ export default function MetasPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, categoria: e.target.value })
                       }
-                      placeholder="Ex: Veículo, Casa, Educação..."
-                      className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                      placeholder={t("formulario.categoriaPlaceholder")}
+                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-500"
                       required
                     />
                   </div>
 
                   <div className="space-y-3">
-                    <Label className="text-white">Cor</Label>
+                    <Label className="text-gray-900 dark:text-white">
+                      {t("formulario.corLabel")}
+                    </Label>
                     <div className="flex items-center gap-3 mb-3">
                       <div
-                        className="w-10 h-10 rounded-lg border border-gray-700 shadow-sm"
+                        className="w-10 h-10 rounded-lg border border-gray-300 dark:border-gray-700 shadow-sm"
                         style={{ backgroundColor: formData.cor }}
                       />
                       <Input
@@ -592,7 +623,7 @@ export default function MetasPage() {
                         onChange={(e) =>
                           setFormData({ ...formData, cor: e.target.value })
                         }
-                        className="w-20 h-10 p-1 bg-gray-800 border-gray-700"
+                        className="w-20 h-10 p-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
                       />
                     </div>
                     <div className="grid grid-cols-5 gap-2">
@@ -603,8 +634,8 @@ export default function MetasPage() {
                           onClick={() => setFormData({ ...formData, cor })}
                           className={`w-8 h-8 rounded-lg border-2 transition-all hover:scale-110 ${
                             formData.cor === cor
-                              ? "border-white ring-2 ring-white/20"
-                              : "border-gray-700"
+                              ? "border-gray-900 dark:border-white ring-2 ring-gray-900/20 dark:ring-white/20"
+                              : "border-gray-300 dark:border-gray-700"
                           }`}
                           style={{ backgroundColor: cor }}
                         />
@@ -613,17 +644,19 @@ export default function MetasPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-white">Ícone</Label>
+                    <Label className="text-gray-900 dark:text-white">
+                      {t("formulario.iconeLabel")}
+                    </Label>
                     <div className="grid grid-cols-5 gap-2">
                       {iconesPredefinidos.map((icone) => (
                         <button
                           key={icone}
                           type="button"
                           onClick={() => setFormData({ ...formData, icone })}
-                          className={`p-2 border rounded-lg flex items-center justify-center hover:bg-gray-800 transition-all text-2xl ${
+                          className={`p-2 border rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-2xl ${
                             formData.icone === icone
-                              ? "border-white bg-gray-800"
-                              : "border-gray-700"
+                              ? "border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800"
+                              : "border-gray-300 dark:border-gray-700"
                           }`}
                         >
                           {icone}
@@ -644,16 +677,16 @@ export default function MetasPage() {
                   <div className="flex gap-3 pt-4">
                     <Button
                       type="submit"
-                      className="flex-1 bg-white text-gray-900 hover:bg-gray-100"
+                      className="flex-1 bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
                       disabled={enviando}
                     >
                       {enviando
                         ? editandoMeta
-                          ? "Atualizando..."
-                          : "Criando..."
+                          ? t("estados.atualizando")
+                          : t("estados.criando")
                         : editandoMeta
-                          ? "Atualizar"
-                          : "Criar Meta"}
+                          ? t("botoes.atualizar")
+                          : t("botoes.criarMeta")}
                     </Button>
 
                     {editandoMeta && (
@@ -673,11 +706,11 @@ export default function MetasPage() {
                             icone: "🏠",
                             imagemUrl: "",
                           });
-                          setIsSheetOpen(false); // 👈 ADICIONE ESTA LINHA PARA FECHAR O SHEET
+                          setIsSheetOpen(false);
                         }}
-                        className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                        className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
                       >
-                        Cancelar
+                        {t("botoes.cancelar")}
                       </Button>
                     )}
                   </div>
@@ -691,31 +724,34 @@ export default function MetasPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {carregando ? (
             Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i} className="bg-gray-900 border-gray-800">
+              <Card
+                key={i}
+                className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm"
+              >
                 <CardContent className="p-6">
-                  <Skeleton className="h-6 w-3/4 mb-4 bg-gray-800" />
-                  <Skeleton className="h-4 w-full mb-2 bg-gray-800" />
-                  <Skeleton className="h-4 w-2/3 mb-4 bg-gray-800" />
-                  <Skeleton className="h-2 w-full mb-2 bg-gray-800" />
-                  <Skeleton className="h-4 w-1/2 bg-gray-800" />
+                  <Skeleton className="h-6 w-3/4 mb-4 bg-gray-300 dark:bg-gray-800" />
+                  <Skeleton className="h-4 w-full mb-2 bg-gray-300 dark:bg-gray-800" />
+                  <Skeleton className="h-4 w-2/3 mb-4 bg-gray-300 dark:bg-gray-800" />
+                  <Skeleton className="h-2 w-full mb-2 bg-gray-300 dark:bg-gray-800" />
+                  <Skeleton className="h-4 w-1/2 bg-gray-300 dark:bg-gray-800" />
                 </CardContent>
               </Card>
             ))
           ) : metas.length === 0 ? (
             <div className="col-span-full text-center py-12">
-              <Trophy className="h-16 w-16 mx-auto mb-4 text-gray-600" />
-              <h3 className="text-lg font-medium text-white mb-2">
-                Nenhuma meta definida
+              <Trophy className="h-16 w-16 mx-auto mb-4 text-gray-400 dark:text-gray-600" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                {t("mensagens.nenhumaMeta")}
               </h3>
-              <p className="text-gray-400 mb-6">
-                Comece criando sua primeira meta financeira
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                {t("mensagens.comeceCriando")}
               </p>
               <Button
                 onClick={() => setIsSheetOpen(true)}
-                className="bg-white text-gray-900 hover:bg-gray-100"
+                className="bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Criar Primeira Meta
+                {t("botoes.criarPrimeiraMeta")}
               </Button>
             </div>
           ) : (
@@ -733,7 +769,7 @@ export default function MetasPage() {
               return (
                 <Card
                   key={meta.id}
-                  className="bg-gray-900 border-gray-800 group hover:border-gray-700 transition-colors"
+                  className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm group hover:border-gray-300 dark:hover:border-gray-700 transition-colors"
                 >
                   {/* Imagem de capa */}
                   {meta.imagemUrl && (
@@ -754,12 +790,12 @@ export default function MetasPage() {
                       <div className="flex items-center gap-2">
                         <span className="text-xl">{meta.icone}</span>
                         <div>
-                          <CardTitle className="text-lg text-white">
+                          <CardTitle className="text-lg text-gray-900 dark:text-white">
                             {meta.titulo}
                           </CardTitle>
                           {meta.ehCompartilhada && meta.user && (
-                            <p className="text-xs text-gray-400">
-                              Compartilhada por {meta.user.name}
+                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                              {t("compartilhada.por")} {meta.user.name}
                             </p>
                           )}
                         </div>
@@ -768,24 +804,18 @@ export default function MetasPage() {
                         variant="outline"
                         className={
                           status === "concluida"
-                            ? "bg-green-900/50 text-green-300 border-green-700"
+                            ? "bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 border-green-200 dark:border-green-700"
                             : status === "atrasada"
-                              ? "bg-red-900/50 text-red-300 border-red-700"
+                              ? "bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300 border-red-200 dark:border-red-700"
                               : status === "proxima"
-                                ? "bg-blue-900/50 text-blue-300 border-blue-700"
-                                : "bg-gray-800 text-gray-300 border-gray-700"
+                                ? "bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-700"
+                                : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-700"
                         }
                       >
-                        {status === "concluida"
-                          ? "Concluída"
-                          : status === "atrasada"
-                            ? "Atrasada"
-                            : status === "proxima"
-                              ? "Próxima"
-                              : "Em andamento"}
+                        {t(`status.${status}`)}
                       </Badge>
                     </div>
-                    <CardDescription className="text-gray-400">
+                    <CardDescription className="text-gray-600 dark:text-gray-400">
                       {meta.descricao}
                     </CardDescription>
                   </CardHeader>
@@ -794,12 +824,14 @@ export default function MetasPage() {
                     {/* Progresso */}
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-400">Progresso</span>
-                        <span className="font-medium text-white">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          {t("progresso.label")}
+                        </span>
+                        <span className="font-medium text-gray-900 dark:text-white">
                           {progresso.toFixed(1)}%
                         </span>
                       </div>
-                      <div className="w-full bg-gray-800 rounded-full h-2">
+                      <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2">
                         <div
                           className="h-2 rounded-full transition-all duration-300"
                           style={{
@@ -808,23 +840,25 @@ export default function MetasPage() {
                           }}
                         />
                       </div>
-                      <div className="flex justify-between text-sm text-gray-400">
+                      <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
                         <span>{formatarMoeda(meta.valorAtual)}</span>
                         <span>{formatarMoeda(meta.valorAlvo)}</span>
                       </div>
                     </div>
                     {/* Informações */}
-                    <div className="flex justify-between items-center text-sm text-gray-400">
+                    <div className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
                         {formatarData(meta.dataAlvo)}
                       </div>
-                      <span>{diasRestantes} dias</span>
+                      <span>
+                        {t("diasRestantes", { count: diasRestantes })}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <Badge
                         variant="outline"
-                        className="bg-gray-800 text-gray-300 border-gray-700"
+                        className="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-700"
                       >
                         {meta.categoria}
                       </Badge>
@@ -833,9 +867,9 @@ export default function MetasPage() {
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         {mostrarInputValor === meta.id ? (
                           // Modo de edição de valor - VISÍVEL PARA DONO E COLABORADORES
-                          <div className="flex items-center gap-1 bg-gray-800 rounded-lg border border-gray-700 p-1">
+                          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-700 p-1">
                             <div className="relative">
-                              <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs">
+                              <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 text-xs">
                                 R$
                               </span>
                               <Input
@@ -846,7 +880,7 @@ export default function MetasPage() {
                                 onChange={(e) =>
                                   setValorAdicional(e.target.value)
                                 }
-                                className="w-20 h-7 bg-gray-800 border-0 text-white text-xs pl-6 pr-2 focus:ring-0 focus:outline-none"
+                                className="w-20 h-7 bg-white dark:bg-gray-800 border-0 text-gray-900 dark:text-white text-xs pl-6 pr-2 focus:ring-0 focus:outline-none"
                                 placeholder="0,00"
                                 autoFocus
                                 onKeyDown={(e) => {
@@ -863,7 +897,7 @@ export default function MetasPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => adicionarValorCustomizado(meta.id)}
-                              className="h-7 w-7 p-0 text-green-400 hover:text-green-300 hover:bg-green-900/50 rounded-md transition-all"
+                              className="h-7 w-7 p-0 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/50 rounded-md transition-all"
                             >
                               <svg
                                 className="w-3 h-3"
@@ -884,7 +918,7 @@ export default function MetasPage() {
                                 setMostrarInputValor(null);
                                 setValorAdicional("100");
                               }}
-                              className="h-7 w-7 p-0 text-red-400 hover:text-red-300 hover:bg-red-900/50 rounded-md transition-all"
+                              className="h-7 w-7 p-0 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-md transition-all"
                             >
                               <svg
                                 className="w-3 h-3"
@@ -913,13 +947,13 @@ export default function MetasPage() {
                                       setMostrarInputValor(meta.id)
                                     }
                                     disabled={progresso >= 100}
-                                    className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-800"
+                                    className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800"
                                   >
                                     <span className="text-sm">+</span>
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent className="bg-gray-800 text-white border-gray-700">
-                                  <p>Adicionar valor</p>
+                                <TooltipContent className="bg-gray-900 dark:bg-gray-800 text-white dark:text-white border-gray-700">
+                                  <p>{t("tooltips.adicionarValor")}</p>
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
@@ -934,13 +968,13 @@ export default function MetasPage() {
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => startEdit(meta)}
-                                        className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-800"
+                                        className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800"
                                       >
                                         <Edit3 className="h-3 w-3" />
                                       </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent className="bg-gray-800 text-white border-gray-700">
-                                      <p>Editar meta</p>
+                                    <TooltipContent className="bg-gray-900 dark:bg-gray-800 text-white dark:text-white border-gray-700">
+                                      <p>{t("tooltips.editarMeta")}</p>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
@@ -958,20 +992,20 @@ export default function MetasPage() {
                                           <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-900/50"
+                                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/50"
                                           >
                                             <Trash2 className="h-3 w-3" />
                                           </Button>
                                         </DialogTrigger>
-                                        <DialogContent className="bg-gray-900 border-gray-800 text-white">
+                                        <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white">
                                           <DialogHeader>
-                                            <DialogTitle className="text-white">
-                                              Excluir Meta
+                                            <DialogTitle className="text-gray-900 dark:text-white">
+                                              {t("confirmacao.titulo")}
                                             </DialogTitle>
-                                            <DialogDescription className="text-gray-400">
-                                              Tem certeza que deseja excluir a
-                                              meta "{meta.titulo}"? Esta ação
-                                              não pode ser desfeita.
+                                            <DialogDescription className="text-gray-600 dark:text-gray-400">
+                                              {t("confirmacao.descricao", {
+                                                titulo: meta.titulo,
+                                              })}
                                             </DialogDescription>
                                           </DialogHeader>
                                           <div className="flex gap-3 justify-end">
@@ -980,9 +1014,9 @@ export default function MetasPage() {
                                               onClick={() =>
                                                 setDialogAberto(null)
                                               }
-                                              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                                              className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
                                             >
-                                              Cancelar
+                                              {t("botoes.cancelar")}
                                             </Button>
                                             <Button
                                               variant="destructive"
@@ -992,15 +1026,15 @@ export default function MetasPage() {
                                               disabled={excluindo === meta.id}
                                             >
                                               {excluindo === meta.id
-                                                ? "Excluindo..."
-                                                : "Confirmar"}
+                                                ? t("estados.excluindo")
+                                                : t("botoes.confirmar")}
                                             </Button>
                                           </div>
                                         </DialogContent>
                                       </Dialog>
                                     </TooltipTrigger>
-                                    <TooltipContent className="bg-gray-800 text-white border-gray-700">
-                                      <p>Excluir meta</p>
+                                    <TooltipContent className="bg-gray-900 dark:bg-gray-800 text-white dark:text-white border-gray-700">
+                                      <p>{t("tooltips.excluirMeta")}</p>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
@@ -1014,7 +1048,7 @@ export default function MetasPage() {
                     {(usuarioAtualEhDono ||
                       (meta.ColaboradorMeta &&
                         meta.ColaboradorMeta.length > 0)) && (
-                      <div className="pt-3 border-t border-gray-800">
+                      <div className="pt-3 border-t border-gray-200 dark:border-gray-800">
                         <ColaboradoresMeta
                           metaId={meta.id}
                           colaboradores={meta.ColaboradorMeta || []}

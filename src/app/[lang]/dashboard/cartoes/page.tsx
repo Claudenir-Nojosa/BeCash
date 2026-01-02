@@ -274,14 +274,16 @@ export default function CartoesPage() {
   };
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-4 sm:p-6 bg-white dark:bg-transparent">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center gap-3">
             <div>
-              <h1 className="text-3xl font-bold text-white">Cartões</h1>
-              <p className="text-gray-300">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                Cartões
+              </h1>
+              <p className="text-gray-600 dark:text-gray-300">
                 Gerencie seus cartões de crédito e débito
               </p>
             </div>
@@ -292,16 +294,18 @@ export default function CartoesPage() {
               <SheetTrigger asChild>
                 <Button
                   variant={"outline"}
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                  className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-500"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Novo Cartão
                 </Button>
               </SheetTrigger>
-              <SheetContent className="bg-gray-900 border-gray-800 text-white overflow-y-auto">
+              <SheetContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white overflow-y-auto">
                 <SheetHeader className="mb-6">
-                  <SheetTitle className="text-white">Novo Cartão</SheetTitle>
-                  <SheetDescription className="text-gray-400">
+                  <SheetTitle className="text-gray-900 dark:text-white">
+                    Novo Cartão
+                  </SheetTitle>
+                  <SheetDescription className="text-gray-600 dark:text-gray-400">
                     Adicione um novo cartão para gerenciar seus gastos
                   </SheetDescription>
                 </SheetHeader>
@@ -309,7 +313,10 @@ export default function CartoesPage() {
                 <form onSubmit={handleCriarCartao} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="nome" className="text-white">
+                      <Label
+                        htmlFor="nome"
+                        className="text-gray-700 dark:text-gray-300"
+                      >
                         Nome do Cartão *
                       </Label>
                       <Input
@@ -317,13 +324,16 @@ export default function CartoesPage() {
                         value={formData.nome}
                         onChange={(e) => handleChange("nome", e.target.value)}
                         placeholder="Ex: Nubank, Itaú Platinum..."
-                        className="bg-gray-800 border-gray-700 text-white"
+                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
                         required
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="bandeira" className="text-white">
+                      <Label
+                        htmlFor="bandeira"
+                        className="text-gray-700 dark:text-gray-300"
+                      >
                         Bandeira *
                       </Label>
                       <Select
@@ -333,10 +343,10 @@ export default function CartoesPage() {
                         }
                         required
                       >
-                        <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                        <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
                           <SelectValue placeholder="Selecione a bandeira" />
                         </SelectTrigger>
-                        <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                        <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                           {BANDEIRAS.map((bandeira) => (
                             <SelectItem
                               key={bandeira.value}
@@ -351,7 +361,10 @@ export default function CartoesPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="limite" className="text-white">
+                    <Label
+                      htmlFor="limite"
+                      className="text-gray-700 dark:text-gray-300"
+                    >
                       Limite do Cartão *
                     </Label>
                     <Input
@@ -362,14 +375,17 @@ export default function CartoesPage() {
                       value={formData.limite}
                       onChange={(e) => handleChange("limite", e.target.value)}
                       placeholder="0,00"
-                      className="bg-gray-800 border-gray-700 text-white"
+                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
                       required
                     />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="diaFechamento" className="text-white">
+                      <Label
+                        htmlFor="diaFechamento"
+                        className="text-gray-700 dark:text-gray-300"
+                      >
                         Dia de Fechamento *
                       </Label>
                       <Input
@@ -382,16 +398,19 @@ export default function CartoesPage() {
                           handleChange("diaFechamento", e.target.value)
                         }
                         placeholder="1-31"
-                        className="bg-gray-800 border-gray-700 text-white"
+                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
                         required
                       />
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         Dia que a fatura fecha
                       </p>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="diaVencimento" className="text-white">
+                      <Label
+                        htmlFor="diaVencimento"
+                        className="text-gray-700 dark:text-gray-300"
+                      >
                         Dia de Vencimento *
                       </Label>
                       <Input
@@ -404,32 +423,35 @@ export default function CartoesPage() {
                           handleChange("diaVencimento", e.target.value)
                         }
                         placeholder="1-31"
-                        className="bg-gray-800 border-gray-700 text-white"
+                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
                         required
                       />
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         Dia que a fatura vence
                       </p>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="cor" className="text-white">
+                    <Label
+                      htmlFor="cor"
+                      className="text-gray-700 dark:text-gray-300"
+                    >
                       Cor de Identificação
                     </Label>
                     <Select
                       value={formData.cor}
                       onValueChange={(value) => handleChange("cor", value)}
                     >
-                      <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                      <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
                         <SelectValue placeholder="Selecione uma cor" />
                       </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                      <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                         {CORES.map((cor) => (
                           <SelectItem key={cor.value} value={cor.value}>
                             <div className="flex items-center gap-2">
                               <div
-                                className="w-4 h-4 rounded-full border border-gray-600"
+                                className="w-4 h-4 rounded-full border border-gray-300 dark:border-gray-600"
                                 style={{ backgroundColor: cor.value }}
                               />
                               {cor.label}
@@ -441,7 +463,10 @@ export default function CartoesPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="observacoes" className="text-white">
+                    <Label
+                      htmlFor="observacoes"
+                      className="text-gray-700 dark:text-gray-300"
+                    >
                       Observações
                     </Label>
                     <Textarea
@@ -452,7 +477,7 @@ export default function CartoesPage() {
                       }
                       placeholder="Observações sobre o cartão..."
                       rows={3}
-                      className="bg-gray-800 border-gray-700 text-white"
+                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
                     />
                   </div>
 
@@ -461,14 +486,14 @@ export default function CartoesPage() {
                       type="button"
                       variant="outline"
                       onClick={() => setSheetAberto(false)}
-                      className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800"
+                      className="flex-1 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                     >
                       Cancelar
                     </Button>
                     <Button
                       type="submit"
                       disabled={enviando}
-                      className="flex-1 bg-white text-gray-900 hover:bg-gray-100"
+                      className="flex-1 bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white"
                     >
                       {enviando ? "Criando..." : "Criar Cartão"}
                     </Button>
@@ -483,39 +508,44 @@ export default function CartoesPage() {
         {carregando ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i} className="bg-gray-900 border-gray-800">
+              <Card
+                key={i}
+                className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm"
+              >
                 <CardContent className="p-6">
-                  <Skeleton className="h-6 w-3/4 mb-4 bg-gray-800" />
-                  <Skeleton className="h-4 w-full mb-2 bg-gray-800" />
-                  <Skeleton className="h-4 w-2/3 mb-4 bg-gray-800" />
-                  <Skeleton className="h-2 w-full mb-2 bg-gray-800" />
-                  <Skeleton className="h-4 w-1/2 bg-gray-800" />
+                  <Skeleton className="h-6 w-3/4 mb-4 bg-gray-200 dark:bg-gray-800" />
+                  <Skeleton className="h-4 w-full mb-2 bg-gray-200 dark:bg-gray-800" />
+                  <Skeleton className="h-4 w-2/3 mb-4 bg-gray-200 dark:bg-gray-800" />
+                  <Skeleton className="h-2 w-full mb-2 bg-gray-200 dark:bg-gray-800" />
+                  <Skeleton className="h-4 w-1/2 bg-gray-200 dark:bg-gray-800" />
                 </CardContent>
               </Card>
             ))}
           </div>
         ) : cartoes.length === 0 ? (
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardContent className="flex flex-col items-center justify-center py-12">
-              <CreditCard className="h-16 w-16 text-gray-600 mb-4" />
-              <h3 className="text-lg font-medium text-white mb-2">
+              <CreditCard className="h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                 Nenhum cartão cadastrado
               </h3>
-              <p className="text-gray-400 text-center mb-6">
+              <p className="text-gray-600 dark:text-gray-400 text-center mb-6">
                 Comece cadastrando seu primeiro cartão para acompanhar seus
                 gastos.
               </p>
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button className="bg-white text-gray-900 hover:bg-gray-100">
+                  <Button className="bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white">
                     <Plus className="mr-2 h-4 w-4" />
                     Cadastrar Primeiro Cartão
                   </Button>
                 </SheetTrigger>
-                <SheetContent className="bg-gray-900 border-gray-800 text-white overflow-y-auto">
+                <SheetContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white overflow-y-auto">
                   <SheetHeader className="mb-6">
-                    <SheetTitle className="text-white">Novo Cartão</SheetTitle>
-                    <SheetDescription className="text-gray-400">
+                    <SheetTitle className="text-gray-900 dark:text-white">
+                      Novo Cartão
+                    </SheetTitle>
+                    <SheetDescription className="text-gray-600 dark:text-gray-400">
                       Adicione um novo cartão para gerenciar seus gastos
                     </SheetDescription>
                   </SheetHeader>
@@ -524,7 +554,10 @@ export default function CartoesPage() {
                     {/* Formulário igual ao de cima */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label htmlFor="nome" className="text-white">
+                        <Label
+                          htmlFor="nome"
+                          className="text-gray-700 dark:text-gray-300"
+                        >
                           Nome do Cartão *
                         </Label>
                         <Input
@@ -532,13 +565,16 @@ export default function CartoesPage() {
                           value={formData.nome}
                           onChange={(e) => handleChange("nome", e.target.value)}
                           placeholder="Ex: Nubank, Itaú Platinum..."
-                          className="bg-gray-800 border-gray-700 text-white"
+                          className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
                           required
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="bandeira" className="text-white">
+                        <Label
+                          htmlFor="bandeira"
+                          className="text-gray-700 dark:text-gray-300"
+                        >
                           Bandeira *
                         </Label>
                         <Select
@@ -548,10 +584,10 @@ export default function CartoesPage() {
                           }
                           required
                         >
-                          <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
                             <SelectValue placeholder="Selecione a bandeira" />
                           </SelectTrigger>
-                          <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                          <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                             {BANDEIRAS.map((bandeira) => (
                               <SelectItem
                                 key={bandeira.value}
@@ -566,7 +602,10 @@ export default function CartoesPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="limite" className="text-white">
+                      <Label
+                        htmlFor="limite"
+                        className="text-gray-700 dark:text-gray-300"
+                      >
                         Limite do Cartão *
                       </Label>
                       <Input
@@ -577,14 +616,17 @@ export default function CartoesPage() {
                         value={formData.limite}
                         onChange={(e) => handleChange("limite", e.target.value)}
                         placeholder="0,00"
-                        className="bg-gray-800 border-gray-700 text-white"
+                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
                         required
                       />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label htmlFor="diaFechamento" className="text-white">
+                        <Label
+                          htmlFor="diaFechamento"
+                          className="text-gray-700 dark:text-gray-300"
+                        >
                           Dia de Fechamento *
                         </Label>
                         <Input
@@ -597,16 +639,19 @@ export default function CartoesPage() {
                             handleChange("diaFechamento", e.target.value)
                           }
                           placeholder="1-31"
-                          className="bg-gray-800 border-gray-700 text-white"
+                          className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
                           required
                         />
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                           Dia que a fatura fecha
                         </p>
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="diaVencimento" className="text-white">
+                        <Label
+                          htmlFor="diaVencimento"
+                          className="text-gray-700 dark:text-gray-300"
+                        >
                           Dia de Vencimento *
                         </Label>
                         <Input
@@ -619,32 +664,35 @@ export default function CartoesPage() {
                             handleChange("diaVencimento", e.target.value)
                           }
                           placeholder="1-31"
-                          className="bg-gray-800 border-gray-700 text-white"
+                          className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
                           required
                         />
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                           Dia que a fatura vence
                         </p>
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="cor" className="text-white">
+                      <Label
+                        htmlFor="cor"
+                        className="text-gray-700 dark:text-gray-300"
+                      >
                         Cor de Identificação
                       </Label>
                       <Select
                         value={formData.cor}
                         onValueChange={(value) => handleChange("cor", value)}
                       >
-                        <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                        <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
                           <SelectValue placeholder="Selecione uma cor" />
                         </SelectTrigger>
-                        <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                        <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                           {CORES.map((cor) => (
                             <SelectItem key={cor.value} value={cor.value}>
                               <div className="flex items-center gap-2">
                                 <div
-                                  className="w-4 h-4 rounded-full border border-gray-600"
+                                  className="w-4 h-4 rounded-full border border-gray-300 dark:border-gray-600"
                                   style={{ backgroundColor: cor.value }}
                                 />
                                 {cor.label}
@@ -656,7 +704,10 @@ export default function CartoesPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="observacoes" className="text-white">
+                      <Label
+                        htmlFor="observacoes"
+                        className="text-gray-700 dark:text-gray-300"
+                      >
                         Observações
                       </Label>
                       <Textarea
@@ -667,7 +718,7 @@ export default function CartoesPage() {
                         }
                         placeholder="Observações sobre o cartão..."
                         rows={3}
-                        className="bg-gray-800 border-gray-700 text-white"
+                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
                       />
                     </div>
 
@@ -676,14 +727,14 @@ export default function CartoesPage() {
                         type="button"
                         variant="outline"
                         onClick={() => setSheetAberto(false)}
-                        className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800"
+                        className="flex-1 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                       >
                         Cancelar
                       </Button>
                       <Button
                         type="submit"
                         disabled={enviando}
-                        className="flex-1 bg-white text-gray-900 hover:bg-gray-100"
+                        className="flex-1 bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white"
                       >
                         {enviando ? "Criando..." : "Criar Cartão"}
                       </Button>
@@ -701,20 +752,20 @@ export default function CartoesPage() {
               return (
                 <Card
                   key={cartao.id}
-                  className="bg-gray-900 border-gray-800 group hover:border-gray-700 transition-colors"
+                  className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm group hover:shadow-md transition-shadow"
                 >
                   <div
-                    className="w-full h-1"
+                    className="w-full h-1 rounded-t-lg"
                     style={{ backgroundColor: cartao.cor }}
                   />
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
                       <div>
-                        <CardTitle className="flex items-center gap-2 text-white">
+                        <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
                           <CreditCard className="w-5 h-5" />
                           {cartao.nome}
                         </CardTitle>
-                        <CardDescription className="text-gray-400">
+                        <CardDescription className="text-gray-600 dark:text-gray-400">
                           {cartao.bandeira}
                         </CardDescription>
                       </div>
@@ -733,23 +784,23 @@ export default function CartoesPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => setDropdownAberto(cartao.id)}
-                            className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-800"
+                            className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
                           >
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
                           align="end"
-                          className="bg-gray-800 border-gray-700 text-white"
+                          className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white shadow-lg"
                           onInteractOutside={() => setDropdownAberto(null)}
                           onEscapeKeyDown={() => setDropdownAberto(null)}
                         >
                           <DropdownMenuItem
                             onClick={() => {
                               router.push(`/dashboard/cartoes/${cartao.id}`);
-                              setDropdownAberto(null); // 👈 FECHA O DROPDOWN
+                              setDropdownAberto(null);
                             }}
-                            className="flex items-center gap-2 hover:bg-gray-700 cursor-pointer"
+                            className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                           >
                             <Eye className="h-4 w-4" />
                             Ver Detalhes
@@ -759,9 +810,9 @@ export default function CartoesPage() {
                               router.push(
                                 `/dashboard/cartoes/${cartao.id}/faturas`
                               );
-                              setDropdownAberto(null); // 👈 FECHA O DROPDOWN
+                              setDropdownAberto(null);
                             }}
-                            className="flex items-center gap-2 hover:bg-gray-700 cursor-pointer"
+                            className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                           >
                             <FileText className="h-4 w-4" />
                             Ver Faturas
@@ -771,9 +822,9 @@ export default function CartoesPage() {
                               router.push(
                                 `/dashboard/cartoes/${cartao.id}/editar`
                               );
-                              setDropdownAberto(null); // 👈 FECHA O DROPDOWN
+                              setDropdownAberto(null);
                             }}
-                            className="flex items-center gap-2 hover:bg-gray-700 cursor-pointer"
+                            className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                           >
                             <Edit className="h-4 w-4" />
                             Editar
@@ -781,9 +832,9 @@ export default function CartoesPage() {
                           <DropdownMenuItem
                             onClick={() => {
                               setDialogExclusaoAberto(cartao.id);
-                              setDropdownAberto(null); // 👈 FECHA O DROPDOWN
+                              setDropdownAberto(null);
                             }}
-                            className="flex items-center gap-2 text-red-400 hover:bg-red-950 hover:text-red-300 cursor-pointer"
+                            className="flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 cursor-pointer"
                           >
                             <Trash2 className="h-4 w-4" />
                             Excluir
@@ -795,20 +846,26 @@ export default function CartoesPage() {
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-400">Limite:</span>
-                        <span className="font-medium text-white">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          Limite:
+                        </span>
+                        <span className="font-medium text-gray-900 dark:text-white">
                           {formatarMoeda(cartao.limite)}
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-400">Utilizado:</span>
-                        <span className="font-medium text-white">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          Utilizado:
+                        </span>
+                        <span className="font-medium text-gray-900 dark:text-white">
                           {formatarMoeda(cartao.totalGasto || 0)}
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-400">Disponível:</span>
-                        <span className="font-medium text-white">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          Disponível:
+                        </span>
+                        <span className="font-medium text-gray-900 dark:text-white">
                           {formatarMoeda(
                             cartao.limite - (cartao.totalGasto || 0)
                           )}
@@ -818,19 +875,21 @@ export default function CartoesPage() {
 
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-400">Utilização:</span>
-                        <span className="font-medium text-white">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          Utilização:
+                        </span>
+                        <span className="font-medium text-gray-900 dark:text-white">
                           {Math.round(cartao.utilizacaoLimite || 0)}%
                         </span>
                       </div>
-                      <div className="w-full bg-gray-800 rounded-full h-2">
+                      <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2">
                         <div
                           className={`h-2 rounded-full ${
                             status === "critico"
                               ? "bg-red-500"
                               : status === "alerta"
-                                ? "bg-yellow-500"
-                                : "bg-green-500"
+                                ? "bg-amber-500 dark:bg-yellow-500"
+                                : "bg-emerald-500 dark:bg-green-500"
                           }`}
                           style={{
                             width: `${Math.min(cartao.utilizacaoLimite || 0, 100)}%`,
@@ -842,19 +901,19 @@ export default function CartoesPage() {
                     <div className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-1">
                         {status === "critico" ? (
-                          <AlertTriangle className="w-4 h-4 text-red-400" />
+                          <AlertTriangle className="w-4 h-4 text-red-500 dark:text-red-400" />
                         ) : status === "alerta" ? (
-                          <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                          <AlertTriangle className="w-4 h-4 text-amber-500 dark:text-yellow-400" />
                         ) : (
-                          <CheckCircle className="w-4 h-4 text-green-400" />
+                          <CheckCircle className="w-4 h-4 text-emerald-500 dark:text-green-400" />
                         )}
                         <span
                           className={
                             status === "critico"
-                              ? "text-red-400"
+                              ? "text-red-600 dark:text-red-400"
                               : status === "alerta"
-                                ? "text-yellow-400"
-                                : "text-green-400"
+                                ? "text-amber-600 dark:text-yellow-400"
+                                : "text-emerald-600 dark:text-green-400"
                           }
                         >
                           {status === "critico"
@@ -866,13 +925,13 @@ export default function CartoesPage() {
                       </div>
                       <Badge
                         variant="outline"
-                        className="bg-gray-800 text-gray-300 border-gray-700"
+                        className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700"
                       >
                         {cartao._count?.lancamentos || 0} lançamentos
                       </Badge>
                     </div>
 
-                    <div className="flex justify-between text-xs text-gray-500 pt-2 border-t border-gray-800">
+                    <div className="flex justify-between text-xs text-gray-500 dark:text-gray-500 pt-2 border-t border-gray-200 dark:border-gray-800">
                       <span>Fechamento: dia {cartao.diaFechamento}</span>
                       <span>Vencimento: dia {cartao.diaVencimento}</span>
                     </div>
@@ -882,7 +941,7 @@ export default function CartoesPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                        className="flex-1 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
                         onClick={(e) => {
                           e.stopPropagation();
                           router.push(`/dashboard/cartoes/${cartao.id}`);
@@ -894,7 +953,7 @@ export default function CartoesPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                        className="flex-1 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
                         onClick={(e) => {
                           e.stopPropagation();
                           router.push(
@@ -919,10 +978,12 @@ export default function CartoesPage() {
         open={!!dialogExclusaoAberto}
         onOpenChange={() => setDialogExclusaoAberto(null)}
       >
-        <DialogContent className="bg-gray-900 border-gray-800 text-white">
+        <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white">
           <DialogHeader>
-            <DialogTitle className="text-white">Excluir Cartão</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogTitle className="text-gray-900 dark:text-white">
+              Excluir Cartão
+            </DialogTitle>
+            <DialogDescription className="text-gray-600 dark:text-gray-400">
               Tem certeza que deseja excluir este cartão? Esta ação não pode ser
               desfeita.
             </DialogDescription>
@@ -931,7 +992,7 @@ export default function CartoesPage() {
             <Button
               variant="outline"
               onClick={() => setDialogExclusaoAberto(null)}
-              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+              className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               Cancelar
             </Button>

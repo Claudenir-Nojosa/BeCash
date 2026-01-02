@@ -3,6 +3,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,11 +19,11 @@ interface Message {
 
 export default function BiclaPage() {
   const router = useRouter();
+  const { t } = useTranslation("bicla");
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
-      content:
-        "Olá! Sou a Bicla, sua IA financeira. Posso analisar seus dados e responder perguntas sobre suas finanças. 💡",
+      content: t("mensagens.saudacao"),
       sender: "bicla",
       timestamp: new Date(),
     },
@@ -44,7 +45,10 @@ export default function BiclaPage() {
     return content.split("\n").map((line, index) => {
       if (line.startsWith("## ")) {
         return (
-          <h3 key={index} className="font-bold text-lg mt-4 mb-2 text-white">
+          <h3
+            key={index}
+            className="font-bold text-lg mt-4 mb-2 text-gray-900 dark:text-white"
+          >
             {line.replace("## ", "")}
           </h3>
         );
@@ -53,7 +57,7 @@ export default function BiclaPage() {
         return (
           <h4
             key={index}
-            className="font-semibold text-base mt-3 mb-1 text-white"
+            className="font-semibold text-base mt-3 mb-1 text-gray-900 dark:text-white"
           >
             {line.replace("### ", "")}
           </h4>
@@ -63,8 +67,12 @@ export default function BiclaPage() {
       if (line.startsWith("- ") || line.startsWith("• ")) {
         return (
           <div key={index} className="flex items-start gap-2 my-1">
-            <span className="flex-shrink-0 text-gray-300">•</span>
-            <span className="text-gray-300">{line.replace(/^[-•] /, "")}</span>
+            <span className="flex-shrink-0 text-gray-600 dark:text-gray-300">
+              •
+            </span>
+            <span className="text-gray-600 dark:text-gray-300">
+              {line.replace(/^[-•] /, "")}
+            </span>
           </div>
         );
       }
@@ -72,10 +80,13 @@ export default function BiclaPage() {
       if (line.includes("**")) {
         const parts = line.split("**");
         return (
-          <p key={index} className="my-2 text-gray-300">
+          <p key={index} className="my-2 text-gray-600 dark:text-gray-300">
             {parts.map((part, i) =>
               i % 2 === 1 ? (
-                <strong key={i} className="font-semibold text-white">
+                <strong
+                  key={i}
+                  className="font-semibold text-gray-900 dark:text-white"
+                >
                   {part}
                 </strong>
               ) : (
@@ -91,7 +102,7 @@ export default function BiclaPage() {
       }
 
       return (
-        <p key={index} className="my-2 text-gray-300">
+        <p key={index} className="my-2 text-gray-600 dark:text-gray-300">
           {line}
         </p>
       );
@@ -119,7 +130,7 @@ export default function BiclaPage() {
         body: JSON.stringify({ message: inputMessage }),
       });
 
-      if (!response.ok) throw new Error("Erro na resposta da Bicla");
+      if (!response.ok) throw new Error(t("erros.resposta"));
 
       const data = await response.json();
 
@@ -132,18 +143,17 @@ export default function BiclaPage() {
 
       setMessages((prev) => [...prev, biclaMessage]);
     } catch (error) {
-      console.error("Erro:", error);
+      console.error(t("erros.conexao"), error);
 
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content:
-          "Desculpe, estou com problemas técnicos no momento. Tente novamente em alguns instantes.",
+        content: t("mensagens.erroTecnico"),
         sender: "bicla",
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, errorMessage]);
-      toast.error("Erro ao conversar com a Bicla");
+      toast.error(t("toasts.erroConversa"));
     } finally {
       setIsTyping(false);
     }
@@ -160,8 +170,7 @@ export default function BiclaPage() {
     setMessages([
       {
         id: "1",
-        content:
-          "Olá! Sou a Bicla, sua IA financeira. Posso analisar seus dados e responder perguntas sobre suas finanças. 💡",
+        content: t("mensagens.saudacao"),
         sender: "bicla",
         timestamp: new Date(),
       },
@@ -169,25 +178,27 @@ export default function BiclaPage() {
   };
 
   const quickPrompts = [
-    "Analise minha saúde financeira",
-    "Quais áreas posso economizar?",
-    "Me dê dicas de investimento",
-    "Como melhorar meus gastos?",
+    t("prompts.rapidos.analise"),
+    t("prompts.rapidos.economia"),
+    t("prompts.rapidos.investimento"),
+    t("prompts.rapidos.gastos"),
   ];
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-6 bg-gray-50 dark:bg-gray-900">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-gray-500 to-gray-600 rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 dark:from-gray-500 dark:to-gray-600 rounded-lg flex items-center justify-center">
               <Brain className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-white">Bicla</h1>
-              <p className="text-gray-300">
-                Sua assistente financeira inteligente
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                {t("titulo")}
+              </h1>
+              <p className="text-gray-600 dark:text-gray-300">
+                {t("subtitulo")}
               </p>
             </div>
           </div>
@@ -196,16 +207,16 @@ export default function BiclaPage() {
             <Button
               variant="outline"
               onClick={clearChat}
-              className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+              className="border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
             >
               <RotateCcw className="mr-2 h-4 w-4" />
-              Limpar Chat
+              {t("botoes.limparChat")}
             </Button>
           </div>
         </div>
 
         {/* Área de Chat */}
-        <Card className="bg-gray-900 border-gray-800 flex flex-col h-[calc(100vh-12rem)]">
+        <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm flex flex-col h-[calc(100vh-12rem)]">
           <CardContent className="p-0 flex flex-col h-full">
             {/* Mensagens com Scroll */}
             <div
@@ -220,8 +231,8 @@ export default function BiclaPage() {
                   <div
                     className={`max-w-[80%] rounded-2xl p-4 ${
                       message.sender === "user"
-                        ? "bg-gray-600 text-white"
-                        : "bg-gray-800 border border-gray-700 text-gray-300"
+                        ? "bg-blue-500 text-white"
+                        : "bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-300"
                     }`}
                   >
                     <div className="text-sm whitespace-pre-wrap">
@@ -232,8 +243,8 @@ export default function BiclaPage() {
                     <div
                       className={`text-xs mt-2 ${
                         message.sender === "user"
-                          ? "text-gray-200"
-                          : "text-gray-500"
+                          ? "text-blue-100"
+                          : "text-gray-500 dark:text-gray-400"
                       }`}
                     >
                       {message.timestamp.toLocaleTimeString("pt-BR", {
@@ -247,8 +258,8 @@ export default function BiclaPage() {
 
               {isTyping && (
                 <div className="flex justify-start">
-                  <div className="bg-gray-800 border border-gray-700 rounded-2xl p-4 max-w-[80%]">
-                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                  <div className="bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-2xl p-4 max-w-[80%]">
+                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                       <div className="flex space-x-1">
                         <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                         <div
@@ -260,7 +271,7 @@ export default function BiclaPage() {
                           style={{ animationDelay: "0.2s" }}
                         ></div>
                       </div>
-                      Bicla está pensando...
+                      {t("estados.pensando")}
                     </div>
                   </div>
                 </div>
@@ -271,14 +282,14 @@ export default function BiclaPage() {
 
             {/* Quick Prompts */}
             {messages.length <= 1 && (
-              <div className="border-t border-gray-800 p-4 bg-gray-800/50">
+              <div className="border-t border-gray-200 dark:border-gray-800 p-4 bg-gray-50 dark:bg-gray-800/50">
                 <div className="flex flex-wrap gap-2 justify-center">
                   {quickPrompts.map((prompt, index) => (
                     <Button
                       key={index}
                       variant="outline"
                       size="sm"
-                      className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white text-xs"
+                      className="border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white text-xs"
                       onClick={() => {
                         setInputMessage(prompt);
                         setTimeout(handleSendMessage, 100);
@@ -292,21 +303,21 @@ export default function BiclaPage() {
             )}
 
             {/* Input Area */}
-            <div className="border-t border-gray-800 p-4 bg-gray-800/30">
+            <div className="border-t border-gray-200 dark:border-gray-800 p-4 bg-gray-50 dark:bg-gray-800/30">
               <div className="flex gap-3">
                 <Input
-                  placeholder="Pergunte sobre suas finanças..."
+                  placeholder={t("input.placeholder")}
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  className="flex-1 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 focus:border-blue-500"
+                  className="flex-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-500 focus:border-blue-500 dark:focus:border-blue-500"
                   disabled={isTyping}
                 />
                 <Button
                   onClick={handleSendMessage}
                   disabled={!inputMessage.trim() || isTyping}
                   size="icon"
-                  className="bg-white text-gray-900 hover:bg-gray-100 disabled:bg-gray-700 disabled:text-gray-500"
+                  className="bg-blue-500 hover:bg-blue-600 text-white disabled:bg-gray-300 disabled:text-gray-500 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 dark:disabled:bg-gray-700 dark:disabled:text-gray-500"
                 >
                   <Send className="h-4 w-4" />
                 </Button>
@@ -314,9 +325,8 @@ export default function BiclaPage() {
 
               {/* Footer */}
               <div className="text-center mt-3">
-                <p className="text-xs text-gray-500">
-                  💡 Dica: Pergunte sobre gastos, investimentos, economia ou
-                  análise geral
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {t("dicas.recomendacao")}
                 </p>
               </div>
             </div>

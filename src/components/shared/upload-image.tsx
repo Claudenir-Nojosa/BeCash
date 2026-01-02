@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +23,7 @@ export function UploadImage({
   userId,
   metaId,
 }: UploadImageProps) {
+  const { t } = useTranslation("upload");
   const [isUploading, setIsUploading] = useState(false);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -30,13 +32,13 @@ export function UploadImage({
 
     // Validar tipo de arquivo
     if (!file.type.startsWith("image/")) {
-      toast.error("Por favor, selecione uma imagem válida (PNG, JPG, JPEG)");
+      toast.error(t("erros.tipoInvalido"));
       return;
     }
 
     // Validar tamanho (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("A imagem deve ter no máximo 5MB");
+      toast.error(t("erros.tamanhoMaximo"));
       return;
     }
 
@@ -57,7 +59,7 @@ export function UploadImage({
 
       if (error) {
         console.error("Erro no upload:", error);
-        throw new Error(`Erro ao fazer upload: ${error.message}`);
+        throw new Error(`${t("erros.upload")}: ${error.message}`);
       }
 
       // Obter URL pública
@@ -67,10 +69,10 @@ export function UploadImage({
 
       console.log("Upload realizado com sucesso:", publicUrl);
       onImageChange(publicUrl);
-      toast.success("Imagem carregada com sucesso");
+      toast.success(t("mensagens.uploadSucesso"));
     } catch (error) {
       console.error("Erro ao fazer upload:", error);
-      toast.error("Erro ao fazer upload da imagem");
+      toast.error(t("erros.upload"));
     } finally {
       setIsUploading(false);
     }
@@ -101,14 +103,14 @@ export function UploadImage({
 
   return (
     <div className="space-y-3">
-      <Label className="text-white">Imagem de Capa</Label>
+      <Label className="text-gray-900 dark:text-white">{t("titulo")}</Label>
 
       {currentImage ? (
         <div className="relative group">
-          <div className="w-full h-40 rounded-lg overflow-hidden border border-gray-700">
+          <div className="w-full h-40 rounded-lg overflow-hidden border border-gray-300 dark:border-gray-700">
             <img
               src={currentImage}
-              alt="Capa da meta"
+              alt={t("alt.capaMeta")}
               className="w-full h-full object-cover"
             />
           </div>
@@ -123,7 +125,7 @@ export function UploadImage({
           </Button>
         </div>
       ) : (
-        <div className="border-2 border-dashed border-gray-700 rounded-lg p-6 text-center hover:border-gray-600 transition-colors">
+        <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center hover:border-gray-400 dark:hover:border-gray-600 transition-colors">
           <Input
             type="file"
             accept="image/*"
@@ -136,12 +138,16 @@ export function UploadImage({
             htmlFor="meta-image"
             className="cursor-pointer flex flex-col items-center gap-2"
           >
-            <Upload className="h-8 w-8 text-gray-400" />
+            <Upload className="h-8 w-8 text-gray-400 dark:text-gray-500" />
             <div>
-              <p className="text-sm font-medium text-white">
-                {isUploading ? "Fazendo upload..." : "Adicionar imagem de capa"}
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                {isUploading
+                  ? t("estados.uploading")
+                  : t("botoes.adicionarImagem")}
               </p>
-              <p className="text-xs text-gray-400">PNG, JPG, JPEG até 5MB</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                {t("instrucoes.formatos")}
+              </p>
             </div>
           </Label>
         </div>

@@ -19,7 +19,7 @@ i18nInstance
 
     // Namespaces
     defaultNS: "common",
-    ns: ["common", "dashboard", "limites", "dashboardTable", "metasCard", "sidebar"],
+    ns: ["common", "dashboard", "limites", "dashboardTable", "metasCard", "sidebar", "categorias", "bicla", "vincular", "metas", "upload"],
 
     // Interpolação
     interpolation: {

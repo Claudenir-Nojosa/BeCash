@@ -484,7 +484,7 @@ export default function RelatoriosPage() {
   }
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-4 sm:p-6 bg-white dark:bg-transparent">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -493,15 +493,15 @@ export default function RelatoriosPage() {
               variant="outline"
               size="icon"
               onClick={() => router.push("/dashboard/cartoes")}
-              className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+              className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-white">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
                 Relatórios Financeiros
               </h1>
-              <p className="text-gray-400">
+              <p className="text-gray-600 dark:text-gray-400">
                 Análise completa dos seus gastos e receitas
               </p>
             </div>
@@ -511,7 +511,7 @@ export default function RelatoriosPage() {
             <Button
               variant={"outline"}
               onClick={exportarPDF}
-              className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+              className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-500"
             >
               <Download className="h-4 w-4 mr-2" />
               Exportar PDF
@@ -520,17 +520,22 @@ export default function RelatoriosPage() {
         </div>
 
         {/* Filtros */}
-        <Card className="bg-gray-900 border-gray-800">
+        <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <Filter className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
+              <div className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800">
+                <Filter className="h-4 w-4 text-gray-700 dark:text-gray-300" />
+              </div>
               Filtros
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="cartao" className="text-white">
+                <Label
+                  htmlFor="cartao"
+                  className="text-gray-700 dark:text-gray-300"
+                >
                   Cartão
                 </Label>
                 <Select
@@ -539,10 +544,10 @@ export default function RelatoriosPage() {
                     setFiltros((prev) => ({ ...prev, cartaoId: value }))
                   }
                 >
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
                     <SelectValue placeholder="Selecione o cartão" />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                     <SelectItem value="todos">Todos os cartões</SelectItem>
                     {cartoes.map((cartao) => (
                       <SelectItem key={cartao.id} value={cartao.id}>
@@ -560,7 +565,10 @@ export default function RelatoriosPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="periodo" className="text-white">
+                <Label
+                  htmlFor="periodo"
+                  className="text-gray-700 dark:text-gray-300"
+                >
                   Período
                 </Label>
                 <Select
@@ -569,10 +577,10 @@ export default function RelatoriosPage() {
                     setFiltros((prev) => ({ ...prev, periodo: value }))
                   }
                 >
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
                     <SelectValue placeholder="Selecione o período" />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                     <SelectItem value="7">Últimos 7 dias</SelectItem>
                     <SelectItem value="30">Últimos 30 dias</SelectItem>
                     <SelectItem value="90">Últimos 90 dias</SelectItem>
@@ -583,7 +591,10 @@ export default function RelatoriosPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="tipo" className="text-white">
+                <Label
+                  htmlFor="tipo"
+                  className="text-gray-700 dark:text-gray-300"
+                >
                   Tipo
                 </Label>
                 <Select
@@ -592,10 +603,10 @@ export default function RelatoriosPage() {
                     setFiltros((prev) => ({ ...prev, tipo: value }))
                   }
                 >
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
                     <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                     <SelectItem value="todos">Todos</SelectItem>
                     <SelectItem value="DESPESA">Despesas</SelectItem>
                     <SelectItem value="RECEITA">Receitas</SelectItem>
@@ -604,12 +615,15 @@ export default function RelatoriosPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="data" className="text-white">
+                <Label
+                  htmlFor="data"
+                  className="text-gray-700 dark:text-gray-300"
+                >
                   Data Customizada
                 </Label>
                 <Input
                   type="date"
-                  className="bg-gray-800 border-gray-700 text-white"
+                  className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
                   onChange={(e) =>
                     console.log("Data customizada:", e.target.value)
                   }
@@ -621,53 +635,57 @@ export default function RelatoriosPage() {
 
         {/* Estatísticas Gerais */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-white text-lg">
+              <CardTitle className="text-gray-900 dark:text-white text-lg">
                 Total de Despesas
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-red-400">
+              <p className="text-2xl sm:text-3xl font-bold text-red-600 dark:text-red-400">
                 {formatarMoeda(estatisticas.totalDespesas)}
               </p>
-              <p className="text-gray-400 text-sm mt-2">
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">
                 {lancamentos.filter((l) => l.tipo === "DESPESA").length}{" "}
                 lançamentos
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-white text-lg">
+              <CardTitle className="text-gray-900 dark:text-white text-lg">
                 Total de Receitas
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-green-400">
+              <p className="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-green-400">
                 {formatarMoeda(estatisticas.totalReceitas)}
               </p>
-              <p className="text-gray-400 text-sm mt-2">
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">
                 {lancamentos.filter((l) => l.tipo === "RECEITA").length}{" "}
                 lançamentos
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-white text-lg">Saldo</CardTitle>
+              <CardTitle className="text-gray-900 dark:text-white text-lg">
+                Saldo
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <p
-                className={`text-3xl font-bold ${
-                  estatisticas.saldo >= 0 ? "text-green-400" : "text-red-400"
+                className={`text-2xl sm:text-3xl font-bold ${
+                  estatisticas.saldo >= 0
+                    ? "text-emerald-600 dark:text-green-400"
+                    : "text-red-600 dark:text-red-400"
                 }`}
               >
                 {formatarMoeda(estatisticas.saldo)}
               </p>
-              <p className="text-gray-400 text-sm mt-2">
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">
                 {estatisticas.saldo >= 0 ? "Superávit" : "Déficit"}
               </p>
             </CardContent>
@@ -676,13 +694,15 @@ export default function RelatoriosPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Ranking por Categoria */}
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <PieChart className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
+                <div className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                  <PieChart className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                </div>
                 Despesas por Categoria
               </CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardDescription className="text-gray-600 dark:text-gray-400">
                 Distribuição dos gastos por categoria
               </CardDescription>
             </CardHeader>
@@ -699,7 +719,7 @@ export default function RelatoriosPage() {
                     return (
                       <div
                         key={categoriaNome}
-                        className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50"
+                        className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800/50"
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <div
@@ -709,19 +729,19 @@ export default function RelatoriosPage() {
                             {getIcone(categoriaData.icone)}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-white text-sm font-medium truncate">
+                            <p className="text-gray-900 dark:text-white text-sm font-medium truncate">
                               {categoriaNome}
                             </p>
-                            <p className="text-gray-400 text-xs">
+                            <p className="text-gray-500 dark:text-gray-400 text-xs">
                               {categoriaData.quantidade} lançamentos
                             </p>
                           </div>
                         </div>
                         <div className="text-right flex-shrink-0 ml-2">
-                          <p className="text-white font-medium">
+                          <p className="text-gray-900 dark:text-white font-medium">
                             {formatarMoeda(categoriaData.total)}
                           </p>
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
                             {porcentagem.toFixed(1)}%
                           </p>
                         </div>
@@ -731,14 +751,14 @@ export default function RelatoriosPage() {
                 )}
                 {rankingCategorias.length === 0 && !carregando && (
                   <div className="text-center py-8">
-                    <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <PieChart className="h-8 w-8 text-gray-600" />
+                    <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <PieChart className="h-8 w-8 text-gray-400 dark:text-gray-600" />
                     </div>
-                    <h3 className="text-lg font-semibold text-white mb-2">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                       Sem dados de categorias
                     </h3>
-                    <p className="text-gray-400 text-sm">
-                      Adicone despesas categorizadas para ver a distribuição
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">
+                      Adicione despesas categorizadas para ver a distribuição
                     </p>
                   </div>
                 )}
@@ -747,13 +767,15 @@ export default function RelatoriosPage() {
           </Card>
 
           {/* Ranking por Cartão */}
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <CreditCard className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
+                <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                  <CreditCard className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                </div>
                 Despesas por Cartão
               </CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardDescription className="text-gray-600 dark:text-gray-400">
                 Distribuição dos gastos por cartão
               </CardDescription>
             </CardHeader>
@@ -768,7 +790,7 @@ export default function RelatoriosPage() {
                   return (
                     <div
                       key={cartaoNome}
-                      className="flex justify-between items-center p-3 rounded-lg bg-gray-800/50"
+                      className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800/50"
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         <div
@@ -778,19 +800,19 @@ export default function RelatoriosPage() {
                           <CreditCard className="w-5 h-5 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-white text-sm font-medium truncate">
+                          <p className="text-gray-900 dark:text-white text-sm font-medium truncate">
                             {cartaoNome}
                           </p>
-                          <p className="text-gray-400 text-xs">
+                          <p className="text-gray-500 dark:text-gray-400 text-xs">
                             {cartaoData.quantidade} lançamentos
                           </p>
                         </div>
                       </div>
                       <div className="text-right flex-shrink-0 ml-2">
-                        <p className="text-white font-medium">
+                        <p className="text-gray-900 dark:text-white font-medium">
                           {formatarMoeda(cartaoData.total)}
                         </p>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                           {porcentagem.toFixed(1)}%
                         </p>
                       </div>
@@ -800,8 +822,10 @@ export default function RelatoriosPage() {
 
                 {rankingCartoes.length === 0 && (
                   <div className="text-center py-8">
-                    <CreditCard className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-                    <p className="text-gray-400">Nenhuma despesa encontrada</p>
+                    <CreditCard className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                    <p className="text-gray-500 dark:text-gray-400">
+                      Nenhuma despesa encontrada
+                    </p>
                   </div>
                 )}
               </div>
@@ -810,13 +834,15 @@ export default function RelatoriosPage() {
         </div>
 
         {/* Últimos Lançamentos */}
-        <Card className="bg-gray-900 border-gray-800">
+        <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <BarChart3 className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
+              <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/30">
+                <BarChart3 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              </div>
               Últimos Lançamentos
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-gray-600 dark:text-gray-400">
               {lancamentos.length} lançamentos encontrados
             </CardDescription>
           </CardHeader>
@@ -825,7 +851,7 @@ export default function RelatoriosPage() {
               {lancamentos.slice(0, 10).map((lancamento) => (
                 <div
                   key={lancamento.id}
-                  className="flex justify-between items-center p-4 rounded-lg bg-gray-800/50 hover:bg-gray-800/70 transition-colors"
+                  className="flex justify-between items-center p-4 rounded-lg bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/70 transition-colors"
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div
@@ -844,10 +870,10 @@ export default function RelatoriosPage() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-white font-medium truncate">
+                      <p className="text-gray-900 dark:text-white font-medium truncate">
                         {lancamento.descricao}
                       </p>
-                      <p className="text-gray-400 text-sm">
+                      <p className="text-gray-500 dark:text-gray-400 text-sm">
                         {new Date(lancamento.data).toLocaleDateString("pt-BR")}
                         {lancamento.cartao && ` • ${lancamento.cartao.nome}`}
                       </p>
@@ -857,8 +883,8 @@ export default function RelatoriosPage() {
                     <p
                       className={`font-medium ${
                         lancamento.tipo === "DESPESA"
-                          ? "text-red-400"
-                          : "text-green-400"
+                          ? "text-red-600 dark:text-red-400"
+                          : "text-emerald-600 dark:text-green-400"
                       }`}
                     >
                       {formatarMoeda(lancamento.valor)}
@@ -867,8 +893,8 @@ export default function RelatoriosPage() {
                       variant="outline"
                       className={
                         lancamento.tipo === "DESPESA"
-                          ? "bg-red-900/50 text-red-300 border-red-700"
-                          : "bg-green-900/50 text-green-300 border-green-700"
+                          ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700"
+                          : "bg-emerald-100 dark:bg-green-900/50 text-emerald-700 dark:text-green-300 border-emerald-200 dark:border-green-700"
                       }
                     >
                       {lancamento.tipo === "DESPESA" ? "Despesa" : "Receita"}
@@ -879,8 +905,10 @@ export default function RelatoriosPage() {
 
               {lancamentos.length === 0 && (
                 <div className="text-center py-8">
-                  <BarChart3 className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-                  <p className="text-gray-400">Nenhum lançamento encontrado</p>
+                  <BarChart3 className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                  <p className="text-gray-500 dark:text-gray-400">
+                    Nenhum lançamento encontrado
+                  </p>
                 </div>
               )}
             </div>
@@ -888,7 +916,7 @@ export default function RelatoriosPage() {
             {lancamentos.length > 10 && (
               <Button
                 variant="outline"
-                className="w-full mt-4 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                className="w-full mt-4 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
                 onClick={() => router.push("/dashboard/lancamentos")}
               >
                 Ver todos os lançamentos

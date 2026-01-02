@@ -22,7 +22,7 @@ export function Loading() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen flex items-start justify-center pt-40">
       <div className="text-center">
         {/* Container principal ampliado */}
         <div className="relative h-64 w-64 mx-auto flex items-center justify-center">

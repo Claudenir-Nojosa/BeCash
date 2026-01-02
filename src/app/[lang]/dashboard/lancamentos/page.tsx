@@ -101,9 +101,9 @@ interface Cartao {
   nome: string;
   bandeira: string;
   cor: string;
-  diaFechamento?: number; // ✅ ADICIONAR ESTA PROPRIEDADE
-  diaVencimento?: number; // ✅ ADICIONAR TAMBÉM SE PRECISAR
-  limite?: number; // ✅ ADICIONAR SE PRECISAR
+  diaFechamento?: number;
+  diaVencimento?: number;
+  limite?: number;
 }
 
 interface Usuario {
@@ -272,11 +272,10 @@ export default function LancamentosPage() {
   const handleChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
-  // Adicione esta função no seu componente, antes do filtro de lançamentos
+
   const calcularMesReferenciaLancamento = (
     lancamento: Lancamento
   ): { ano: number; mes: number } => {
-    // Se não for cartão de crédito, usar a data normal do lançamento
     if (lancamento.metodoPagamento !== "CREDITO" || !lancamento.cartao) {
       const data = new Date(lancamento.data);
       return {
@@ -285,7 +284,6 @@ export default function LancamentosPage() {
       };
     }
 
-    // Para cartão de crédito, calcular baseado no dia de fechamento
     const dataLancamento = new Date(lancamento.data);
     const diaLancamento = dataLancamento.getDate();
     const diaFechamento = lancamento.cartao.diaFechamento || 1;
@@ -293,7 +291,6 @@ export default function LancamentosPage() {
     let ano = dataLancamento.getFullYear();
     let mes = dataLancamento.getMonth() + 1;
 
-    // Se a data do lançamento for depois do dia de fechamento, vai para o próximo mês
     if (diaLancamento > diaFechamento) {
       mes += 1;
       if (mes > 12) {
@@ -304,29 +301,24 @@ export default function LancamentosPage() {
 
     return { ano, mes };
   };
-  // Filtrar lançamentos
+
   const lancamentosFiltrados = lancamentos.filter((lancamento) => {
-    // ✅ CORREÇÃO: Usar a lógica do cartão de crédito para determinar o mês
     const { ano, mes } = calcularMesReferenciaLancamento(lancamento);
 
-    // Filtro por mês/ano baseado na lógica do cartão
     if (ano !== anoSelecionado || mes !== mesSelecionado) return false;
 
-    // Filtro por busca
     if (
       searchTerm &&
       !lancamento.descricao.toLowerCase().includes(searchTerm.toLowerCase())
     )
       return false;
 
-    // Filtro por categoria
     if (
       filtros.categoria !== "all" &&
       lancamento.categoria.id !== filtros.categoria
     )
       return false;
 
-    // Filtro por tipo de lançamento (individual/compartilhado)
     if (filtros.tipoLancamento !== "all") {
       const compartilhamento = getStatusCompartilhamento(lancamento);
       if (filtros.tipoLancamento === "individual" && compartilhamento)
@@ -335,17 +327,14 @@ export default function LancamentosPage() {
         return false;
     }
 
-    // Filtro por tipo (receita/despesa)
     if (filtros.tipo !== "all" && lancamento.tipo !== filtros.tipo)
       return false;
 
-    // Filtro por status
     if (filtros.status !== "all") {
       if (filtros.status === "pago" && !lancamento.pago) return false;
       if (filtros.status === "pendente" && lancamento.pago) return false;
     }
 
-    // Filtro por método de pagamento
     if (
       filtros.metodoPagamento !== "all" &&
       lancamento.metodoPagamento !== filtros.metodoPagamento
@@ -355,7 +344,6 @@ export default function LancamentosPage() {
     return true;
   });
 
-  // Calcular totais
   const receitas = lancamentosFiltrados.filter((l) => l.tipo === "RECEITA");
   const despesas = lancamentosFiltrados.filter((l) => l.tipo === "DESPESA");
 
@@ -370,20 +358,15 @@ export default function LancamentosPage() {
     .reduce((sum, l) => sum + l.valor, 0);
 
   const saldo = totalReceitas - totalDespesas;
-  // Função para corrigir a exibição da data (remover problema de timezone)
+
   const formatarDataSemTimezone = (dataString: string): string => {
     try {
-      // Para datas no formato "YYYY-MM-DD HH:MM:SS" do Supabase
       if (dataString.includes(" ")) {
         const [datePart, timePart] = dataString.split(" ");
         const [year, month, day] = datePart.split("-").map(Number);
-
-        // Criar data sem considerar timezone (usar UTC)
         const data = new Date(Date.UTC(year, month - 1, day));
         return data.toLocaleDateString("pt-BR");
       }
-
-      // Para datas ISO (fallback)
       const data = new Date(dataString);
       return data.toLocaleDateString("pt-BR");
     } catch (error) {
@@ -391,7 +374,7 @@ export default function LancamentosPage() {
       return new Date(dataString).toLocaleDateString("pt-BR");
     }
   };
-  // Função para criar lançamento
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setEnviando(true);
@@ -498,19 +481,15 @@ export default function LancamentosPage() {
     }
   };
 
-  // Função para extrair e formatar a data diretamente da string do Supabase
   const formatarDataSupabase = (dataString: string): string => {
-    // Formato do Supabase: "2025-11-07 00:00:00"
     if (dataString.includes(" ")) {
       const [datePart] = dataString.split(" ");
       const [year, month, day] = datePart.split("-");
       return `${day}/${month}/${year}`;
     }
-
-    // Se não for o formato esperado, fallback
     return dataString;
   };
-  // Função para excluir lançamento
+
   const handleDelete = async (id: string) => {
     setExcluindo(id);
     const lancamentoParaExcluir = lancamentos.find((lanc) => lanc.id === id);
@@ -533,10 +512,10 @@ export default function LancamentosPage() {
       setExcluindo(null);
     }
   };
-  // Função para visualizar lançamento
+
   const handleVisualizar = async (lancamentoId: string) => {
     try {
-      setCarregandoVisualizacao(lancamentoId); // Define qual lançamento está carregando
+      setCarregandoVisualizacao(lancamentoId);
       console.log("Buscando lançamento:", lancamentoId);
 
       const response = await fetch(
@@ -562,22 +541,19 @@ export default function LancamentosPage() {
       console.error("Erro ao visualizar lançamento:", error);
       toast.error("Erro ao carregar dados do lançamento");
     } finally {
-      setCarregandoVisualizacao(null); // Limpa o estado de loading
+      setCarregandoVisualizacao(null);
     }
   };
 
-  // E atualize o useEffect de limpeza:
   useEffect(() => {
     if (!mostrarDialogVisualizar) {
       setLancamentoSelecionado(null);
-      setCarregandoVisualizacao(null); // Limpa também aqui
+      setCarregandoVisualizacao(null);
     }
   }, [mostrarDialogVisualizar]);
 
-  // Função para editar lançamento
   const handleEditar = (lancamento: Lancamento) => {
     setLancamentoSelecionado(lancamento);
-    // Preencher o formulário com os dados existentes
     setFormData({
       descricao: lancamento.descricao,
       valor: lancamento.valor.toString(),
@@ -588,7 +564,7 @@ export default function LancamentosPage() {
         : "individual",
       tipoTransacao: lancamento.metodoPagamento,
       cartaoId: lancamento.cartao?.id || "",
-      responsavel: "Claudenir", // Você precisará ajustar isso conforme seu modelo
+      responsavel: "Claudenir",
       pago: lancamento.pago,
       recorrente: lancamento.recorrente || false,
       tipoRecorrencia:
@@ -611,7 +587,6 @@ export default function LancamentosPage() {
     setMostrarDialogEditar(true);
   };
 
-  // Função para atualizar lançamento
   const handleAtualizar = async (e: React.FormEvent) => {
     e.preventDefault();
     setEditando(true);
@@ -688,7 +663,6 @@ export default function LancamentosPage() {
 
       if (res.ok) {
         const lancamentoAtualizado = await res.json();
-        // Atualizar a lista de lançamentos
         setLancamentos((prev) =>
           prev.map((lanc) =>
             lanc.id === lancamentoSelecionado.id ? lancamentoAtualizado : lanc
@@ -708,7 +682,7 @@ export default function LancamentosPage() {
       setEditando(false);
     }
   };
-  // Função para alternar status
+
   const toggleStatus = async (lancamentoId: string, atualStatus: boolean) => {
     try {
       const response = await fetch(`/api/lancamentos/${lancamentoId}`, {
@@ -733,23 +707,20 @@ export default function LancamentosPage() {
       carregarDados();
     }
   };
-  // Função para formatar data ISO bonitinha
+
   const formatarDataBonita = (dataString: string): string => {
-    // Se for formato ISO: "2025-11-07T00:00:00.000Z"
     if (dataString.includes("T")) {
       const [datePart] = dataString.split("T");
       const [year, month, day] = datePart.split("-");
       return `${day}/${month}/${year}`;
     }
 
-    // Se for formato Supabase antigo: "2025-11-07 00:00:00"
     if (dataString.includes(" ")) {
       const [datePart] = dataString.split(" ");
       const [year, month, day] = datePart.split("-");
       return `${day}/${month}/${year}`;
     }
 
-    // Fallback
     return dataString;
   };
 
@@ -758,20 +729,24 @@ export default function LancamentosPage() {
   }
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-4 sm:p-6 bg-white dark:bg-transparent">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white">Lançamentos</h1>
-            <p className="text-gray-300">Gerencie suas receitas e despesas</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+              Lançamentos
+            </h1>
+            <p className="text-gray-600 dark:text-gray-300 mt-1">
+              Gerencie suas receitas e despesas
+            </p>
           </div>
 
           <div className="flex gap-2">
             <Button
               variant="outline"
               onClick={() => setMostrarFiltros(!mostrarFiltros)}
-              className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white gap-2"
+              className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-600 gap-2"
             >
               <Filter className="w-4 h-4" />
               Filtros
@@ -780,7 +755,7 @@ export default function LancamentosPage() {
             <Button
               variant={"outline"}
               onClick={() => setIsSheetOpen(true)}
-              className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+              className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-500"
             >
               <Plus className="w-4 h-4" />
               Novo Lançamento
@@ -797,28 +772,30 @@ export default function LancamentosPage() {
               exit={{ opacity: 0, height: 0 }}
               className="overflow-hidden"
             >
-              <Card className="bg-gray-900 border-gray-800">
-                <CardContent className="p-4">
+              <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
+                <CardContent className="p-4 sm:p-6">
                   <div className="space-y-4">
-                    {/* Pesquisar - Ocupa toda a largura */}
+                    {/* Pesquisar */}
                     <div className="space-y-2">
-                      <Label className="text-gray-300 text-sm">Pesquisar</Label>
+                      <Label className="text-gray-700 dark:text-gray-300 text-sm">
+                        Pesquisar
+                      </Label>
                       <div className="relative">
                         <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                         <Input
                           placeholder="Buscar lançamentos por descrição..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          className="pl-9 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 w-full"
+                          className="pl-9 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 w-full"
                         />
                       </div>
                     </div>
 
                     {/* Demais filtros em grid abaixo */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                       {/* Categoria */}
                       <div className="space-y-2">
-                        <Label className="text-gray-300 text-sm">
+                        <Label className="text-gray-700 dark:text-gray-300 text-sm">
                           Categoria
                         </Label>
                         <Select
@@ -827,10 +804,10 @@ export default function LancamentosPage() {
                             setFiltros({ ...filtros, categoria: value })
                           }
                         >
-                          <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
                             <SelectValue placeholder="Todas" />
                           </SelectTrigger>
-                          <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                          <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                             <SelectItem value="all">Todas</SelectItem>
                             {categorias.map((cat) => (
                               <SelectItem key={cat.id} value={cat.id}>
@@ -849,17 +826,19 @@ export default function LancamentosPage() {
 
                       {/* Individual ou Compartilhado */}
                       <div className="space-y-2">
-                        <Label className="text-gray-300 text-sm">Tipo</Label>
+                        <Label className="text-gray-700 dark:text-gray-300 text-sm">
+                          Tipo
+                        </Label>
                         <Select
                           value={filtros.tipoLancamento}
                           onValueChange={(value) =>
                             setFiltros({ ...filtros, tipoLancamento: value })
                           }
                         >
-                          <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
                             <SelectValue placeholder="Todos" />
                           </SelectTrigger>
-                          <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                          <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                             <SelectItem value="all">Todos</SelectItem>
                             <SelectItem value="individual">
                               Individual
@@ -873,7 +852,7 @@ export default function LancamentosPage() {
 
                       {/* Receita ou Despesa */}
                       <div className="space-y-2">
-                        <Label className="text-gray-300 text-sm">
+                        <Label className="text-gray-700 dark:text-gray-300 text-sm">
                           Receita/Despesa
                         </Label>
                         <Select
@@ -882,10 +861,10 @@ export default function LancamentosPage() {
                             setFiltros({ ...filtros, tipo: value })
                           }
                         >
-                          <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
                             <SelectValue placeholder="Todos" />
                           </SelectTrigger>
-                          <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                          <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                             <SelectItem value="all">Todos</SelectItem>
                             <SelectItem value="RECEITA">Receita</SelectItem>
                             <SelectItem value="DESPESA">Despesa</SelectItem>
@@ -895,17 +874,19 @@ export default function LancamentosPage() {
 
                       {/* Status */}
                       <div className="space-y-2">
-                        <Label className="text-gray-300 text-sm">Status</Label>
+                        <Label className="text-gray-700 dark:text-gray-300 text-sm">
+                          Status
+                        </Label>
                         <Select
                           value={filtros.status}
                           onValueChange={(value) =>
                             setFiltros({ ...filtros, status: value })
                           }
                         >
-                          <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
                             <SelectValue placeholder="Todos" />
                           </SelectTrigger>
-                          <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                          <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                             <SelectItem value="all">Todos</SelectItem>
                             <SelectItem value="pago">Pago/Recebido</SelectItem>
                             <SelectItem value="pendente">Pendente</SelectItem>
@@ -915,7 +896,7 @@ export default function LancamentosPage() {
 
                       {/* Método de Pagamento */}
                       <div className="space-y-2">
-                        <Label className="text-gray-300 text-sm">
+                        <Label className="text-gray-700 dark:text-gray-300 text-sm">
                           Pagamento
                         </Label>
                         <Select
@@ -924,10 +905,10 @@ export default function LancamentosPage() {
                             setFiltros({ ...filtros, metodoPagamento: value })
                           }
                         >
-                          <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
                             <SelectValue placeholder="Todos" />
                           </SelectTrigger>
-                          <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                          <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
                             <SelectItem value="all">Todos</SelectItem>
                             <SelectItem value="PIX">PIX</SelectItem>
                             <SelectItem value="CREDITO">
@@ -951,12 +932,14 @@ export default function LancamentosPage() {
         </AnimatePresence>
 
         {/* Cards de Resumo */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Seletor de Mês */}
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardContent className="p-4">
               <div className="space-y-3">
-                <Label className="text-gray-300 text-sm">Período</Label>
+                <Label className="text-gray-700 dark:text-gray-300 text-sm">
+                  Período
+                </Label>
                 <div className="flex items-center space-x-2">
                   <Button
                     variant="ghost"
@@ -971,13 +954,13 @@ export default function LancamentosPage() {
                       setMesSelecionado(novoMes);
                       setAnoSelecionado(novoAno);
                     }}
-                    className="hover:bg-gray-800 text-gray-300"
+                    className="hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
 
                   <div className="flex-1 text-center">
-                    <p className="text-white font-medium">
+                    <p className="text-gray-900 dark:text-white font-medium text-sm sm:text-base">
                       {new Date(anoSelecionado, mesSelecionado - 1)
                         .toLocaleDateString("pt-BR", {
                           month: "long",
@@ -1000,7 +983,7 @@ export default function LancamentosPage() {
                       setMesSelecionado(novoMes);
                       setAnoSelecionado(novoAno);
                     }}
-                    className="hover:bg-gray-800 text-gray-300"
+                    className="hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
@@ -1010,65 +993,71 @@ export default function LancamentosPage() {
           </Card>
 
           {/* Receita */}
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-400">Receita</p>
-                  <p className="text-2xl font-bold text-green-400">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    Receita
+                  </p>
+                  <p className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-green-400">
                     R$ {totalReceitas.toFixed(2)}
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     Falta receber: R${" "}
                     {(totalReceitas - receitasPagas).toFixed(2)}
                   </p>
                 </div>
-                <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 bg-emerald-100 dark:bg-green-600 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-emerald-600 dark:text-white" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Despesa */}
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-400">Despesa</p>
-                  <p className="text-2xl font-bold text-red-400">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    Despesa
+                  </p>
+                  <p className="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400">
                     R$ {totalDespesas.toFixed(2)}
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     Falta pagar: R$ {(totalDespesas - despesasPagas).toFixed(2)}
                   </p>
                 </div>
-                <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
-                  <TrendingDown className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 bg-red-100 dark:bg-red-600 rounded-lg flex items-center justify-center">
+                  <TrendingDown className="w-5 h-5 text-red-600 dark:text-white" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Saldo */}
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-400">Saldo</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    Saldo
+                  </p>
                   <p
-                    className={`text-2xl font-bold ${saldo >= 0 ? "text-green-400" : "text-red-400"}`}
+                    className={`text-xl sm:text-2xl font-bold ${saldo >= 0 ? "text-emerald-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
                   >
                     R$ {saldo.toFixed(2)}
                   </p>
                 </div>
                 <div
-                  className={`w-10 h-10 rounded-lg flex items-center justify-center ${saldo >= 0 ? "bg-green-600" : "bg-red-600"}`}
+                  className={`w-10 h-10 rounded-lg flex items-center justify-center ${saldo >= 0 ? "bg-emerald-100 dark:bg-green-600" : "bg-red-100 dark:bg-red-600"}`}
                 >
                   {saldo >= 0 ? (
-                    <TrendingUp className="w-5 h-5 text-white" />
+                    <TrendingUp className="w-5 h-5 text-emerald-600 dark:text-white" />
                   ) : (
-                    <TrendingDown className="w-5 h-5 text-white" />
+                    <TrendingDown className="w-5 h-5 text-red-600 dark:text-white" />
                   )}
                 </div>
               </div>
@@ -1077,34 +1066,36 @@ export default function LancamentosPage() {
         </div>
 
         {/* Tabela de Lançamentos */}
-        <Card className="bg-gray-900 border-gray-800">
+        <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-white">Lançamentos</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardTitle className="text-gray-900 dark:text-white">
+              Lançamentos
+            </CardTitle>
+            <CardDescription className="text-gray-600 dark:text-gray-400">
               {lancamentosFiltrados.length} lançamentos encontrados
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="rounded-lg border border-gray-700 overflow-hidden">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-gray-800 border-b border-gray-700">
-                    <th className="text-left py-3 px-4 text-gray-300 font-medium">
+                  <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                    <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium">
                       Tipo
                     </th>
-                    <th className="text-left py-3 px-4 text-gray-300 font-medium">
+                    <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium">
                       Categoria
                     </th>
-                    <th className="text-left py-3 px-4 text-gray-300 font-medium">
+                    <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium">
                       Descrição
                     </th>
-                    <th className="text-left py-3 px-4 text-gray-300 font-medium">
+                    <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium">
                       Valor
                     </th>
-                    <th className="text-left py-3 px-4 text-gray-300 font-medium">
+                    <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium">
                       Status
                     </th>
-                    <th className="text-left py-3 px-4 text-gray-300 font-medium">
+                    <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium">
                       Ações
                     </th>
                   </tr>
@@ -1117,7 +1108,7 @@ export default function LancamentosPage() {
                     return (
                       <tr
                         key={lancamento.id}
-                        className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
+                        className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors"
                       >
                         {/* Tipo */}
                         <td className="py-3 px-4">
@@ -1125,8 +1116,8 @@ export default function LancamentosPage() {
                             variant="outline"
                             className={
                               lancamento.tipo === "RECEITA"
-                                ? "bg-green-900/50 text-green-400 border-green-700"
-                                : "bg-red-900/50 text-red-400 border-red-700"
+                                ? "bg-emerald-100 dark:bg-green-900/50 text-emerald-700 dark:text-green-400 border-emerald-200 dark:border-green-700"
+                                : "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400 border-red-200 dark:border-red-700"
                             }
                           >
                             {lancamento.tipo === "RECEITA"
@@ -1145,7 +1136,6 @@ export default function LancamentosPage() {
                               }}
                             >
                               {(() => {
-                                // Tenta carregar o ícone da categoria
                                 try {
                                   const IconComponent =
                                     require("lucide-react")[
@@ -1155,12 +1145,11 @@ export default function LancamentosPage() {
                                     <IconComponent className="w-4 h-4 text-white" />
                                   );
                                 } catch {
-                                  // Fallback para um ícone padrão se o ícone não existir
                                   return <Tag className="w-4 h-4 text-white" />;
                                 }
                               })()}
                             </div>
-                            <span className="text-white">
+                            <span className="text-gray-900 dark:text-white">
                               {lancamento.categoria.nome}
                             </span>
                           </div>
@@ -1169,17 +1158,17 @@ export default function LancamentosPage() {
                         {/* Descrição */}
                         <td className="py-3 px-4">
                           <div>
-                            <p className="text-white font-medium">
+                            <p className="text-gray-900 dark:text-white font-medium">
                               {lancamento.descricao}
                             </p>
                             <div className="flex items-center gap-2 mt-1">
-                              <span className="text-xs text-gray-400">
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
                                 {formatarDataBonita(lancamento.data)}
                               </span>
                               {compartilhamento && (
                                 <div className="group relative">
-                                  <Users className="h-3 w-3 text-blue-400" />
-                                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                  <Users className="h-3 w-3 text-blue-500 dark:text-blue-400" />
+                                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 dark:bg-gray-700 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                                     Lançamento compartilhado
                                   </div>
                                 </div>
@@ -1192,8 +1181,8 @@ export default function LancamentosPage() {
                           <span
                             className={`font-semibold ${
                               lancamento.tipo === "RECEITA"
-                                ? "text-green-400"
-                                : "text-red-400"
+                                ? "text-emerald-600 dark:text-green-400"
+                                : "text-red-600 dark:text-red-400"
                             }`}
                           >
                             R$ {lancamento.valor.toFixed(2)}
@@ -1210,8 +1199,8 @@ export default function LancamentosPage() {
                             }
                             className={
                               lancamento.pago
-                                ? "bg-green-600 hover:bg-green-700"
-                                : "border-gray-600 text-gray-300 hover:bg-gray-800"
+                                ? "bg-emerald-600 hover:bg-emerald-700 dark:bg-green-600 dark:hover:bg-green-700"
+                                : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                             }
                           >
                             {lancamento.pago ? (
@@ -1246,18 +1235,18 @@ export default function LancamentosPage() {
                                     }
                                     disabled={
                                       carregandoVisualizacao === lancamento.id
-                                    } // Desabilita apenas este
-                                    className="text-gray-400 hover:text-blue-400 hover:bg-gray-800"
+                                    }
+                                    className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30"
                                   >
                                     {carregandoVisualizacao ===
                                     lancamento.id ? (
-                                      <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                                      <div className="w-4 h-4 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin" />
                                     ) : (
                                       <Eye className="w-4 h-4" />
                                     )}
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent className="bg-gray-800 text-white border-gray-700">
+                                <TooltipContent className="bg-gray-800 dark:bg-gray-700 text-white border-gray-700 dark:border-gray-600">
                                   <p>Visualizar dados</p>
                                 </TooltipContent>
                               </Tooltip>
@@ -1270,12 +1259,12 @@ export default function LancamentosPage() {
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => handleEditar(lancamento)}
-                                    className="text-gray-400 hover:text-yellow-400 hover:bg-gray-800"
+                                    className="text-gray-600 dark:text-gray-400 hover:text-amber-600 dark:hover:text-yellow-400 hover:bg-amber-50 dark:hover:bg-yellow-900/30"
                                   >
                                     <Edit3 className="w-4 h-4" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent className="bg-gray-800 text-white border-gray-700">
+                                <TooltipContent className="bg-gray-800 dark:bg-gray-700 text-white border-gray-700 dark:border-gray-600">
                                   <p>Editar</p>
                                 </TooltipContent>
                               </Tooltip>
@@ -1296,17 +1285,17 @@ export default function LancamentosPage() {
                                       <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="text-gray-400 hover:text-red-400 hover:bg-gray-800"
+                                        className="text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30"
                                       >
                                         <Trash2 className="w-4 h-4" />
                                       </Button>
                                     </DialogTrigger>
-                                    <DialogContent className="bg-gray-900 border-gray-800 text-white">
+                                    <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white">
                                       <DialogHeader>
-                                        <DialogTitle className="text-white">
+                                        <DialogTitle className="text-gray-900 dark:text-white">
                                           Excluir Lançamento
                                         </DialogTitle>
-                                        <DialogDescription className="text-gray-400">
+                                        <DialogDescription className="text-gray-600 dark:text-gray-400">
                                           Tem certeza que deseja excluir este
                                           lançamento? Esta ação não pode ser
                                           desfeita.
@@ -1316,7 +1305,7 @@ export default function LancamentosPage() {
                                         <Button
                                           variant="outline"
                                           onClick={() => setDialogAberto(null)}
-                                          className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                                          className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                                         >
                                           Cancelar
                                         </Button>
@@ -1335,7 +1324,7 @@ export default function LancamentosPage() {
                                     </DialogContent>
                                   </Dialog>
                                 </TooltipTrigger>
-                                <TooltipContent className="bg-gray-800 text-white border-gray-700">
+                                <TooltipContent className="bg-gray-800 dark:bg-gray-700 text-white border-gray-700 dark:border-gray-600">
                                   <p>Excluir</p>
                                 </TooltipContent>
                               </Tooltip>
@@ -1349,7 +1338,7 @@ export default function LancamentosPage() {
               </table>
 
               {lancamentosFiltrados.length === 0 && (
-                <div className="text-center py-8 text-gray-400">
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                   <p>Nenhum lançamento encontrado</p>
                 </div>
               )}
@@ -1359,31 +1348,38 @@ export default function LancamentosPage() {
 
         {/* Sheet para Novo Lançamento */}
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <SheetContent className="bg-gray-900 border-gray-800 text-white sm:max-w-md">
+          <SheetContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white sm:max-w-md">
             <SheetHeader>
-              <SheetTitle className="text-white">Novo Lançamento</SheetTitle>
-              <SheetDescription className="text-gray-400">
+              <SheetTitle className="text-gray-900 dark:text-white">
+                Novo Lançamento
+              </SheetTitle>
+              <SheetDescription className="text-gray-600 dark:text-gray-400">
                 Adicione uma nova receita ou despesa
               </SheetDescription>
             </SheetHeader>
 
             <form
               onSubmit={handleSubmit}
-              className="space-y-4 mt-6 max-h-[80vh] overflow-y-auto"
+              className="space-y-4 mt-6 max-h-[80vh] overflow-y-auto pr-2"
             >
               {/* Tipo e Categoria */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="tipo">Tipo *</Label>
+                  <Label
+                    htmlFor="tipo"
+                    className="text-gray-700 dark:text-gray-300"
+                  >
+                    Tipo *
+                  </Label>
                   <Select
                     value={formData.tipo}
                     onValueChange={(value) => handleChange("tipo", value)}
                     required
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
                       <SelectValue placeholder="Selecione o tipo" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                       <SelectItem value="receita">Receita</SelectItem>
                       <SelectItem value="despesa">Despesa</SelectItem>
                     </SelectContent>
@@ -1391,14 +1387,19 @@ export default function LancamentosPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="categoria">Categoria *</Label>
+                  <Label
+                    htmlFor="categoria"
+                    className="text-gray-700 dark:text-gray-300"
+                  >
+                    Categoria *
+                  </Label>
                   <Select
                     value={formData.categoria}
                     onValueChange={(value) => handleChange("categoria", value)}
                     required
                     disabled={!formData.tipo}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
                       <SelectValue
                         placeholder={
                           !formData.tipo
@@ -1407,7 +1408,7 @@ export default function LancamentosPage() {
                         }
                       />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                       {categorias
                         .filter(
                           (cat) =>
@@ -1434,18 +1435,29 @@ export default function LancamentosPage() {
 
               {/* Descrição e Valor */}
               <div className="space-y-2">
-                <Label htmlFor="descricao">Descrição *</Label>
+                <Label
+                  htmlFor="descricao"
+                  className="text-gray-700 dark:text-gray-300"
+                >
+                  Descrição *
+                </Label>
                 <Input
                   id="descricao"
                   value={formData.descricao}
                   onChange={(e) => handleChange("descricao", e.target.value)}
                   placeholder="Ex: Salário, Aluguel, Mercado..."
                   required
+                  className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="valor">Valor *</Label>
+                <Label
+                  htmlFor="valor"
+                  className="text-gray-700 dark:text-gray-300"
+                >
+                  Valor *
+                </Label>
                 <Input
                   id="valor"
                   type="number"
@@ -1455,13 +1467,19 @@ export default function LancamentosPage() {
                   onChange={(e) => handleChange("valor", e.target.value)}
                   placeholder="0,00"
                   required
+                  className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
                 />
               </div>
 
               {/* Tipo de Transação e Lançamento */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="tipoTransacao">Tipo de Transação *</Label>
+                  <Label
+                    htmlFor="tipoTransacao"
+                    className="text-gray-700 dark:text-gray-300"
+                  >
+                    Tipo de Transação *
+                  </Label>
                   <Select
                     value={formData.tipoTransacao}
                     onValueChange={(value) =>
@@ -1469,10 +1487,10 @@ export default function LancamentosPage() {
                     }
                     required
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
                       <SelectValue placeholder="Selecione o tipo" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                       <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
                       <SelectItem value="PIX">PIX</SelectItem>
                       <SelectItem value="CARTAO_DEBITO">
@@ -1489,7 +1507,12 @@ export default function LancamentosPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="tipoLancamento">Tipo de Lançamento *</Label>
+                  <Label
+                    htmlFor="tipoLancamento"
+                    className="text-gray-700 dark:text-gray-300"
+                  >
+                    Tipo de Lançamento *
+                  </Label>
                   <Select
                     value={formData.tipoLancamento}
                     onValueChange={(value) =>
@@ -1497,10 +1520,10 @@ export default function LancamentosPage() {
                     }
                     required
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
                       <SelectValue placeholder="Selecione o tipo" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                       <SelectItem value="individual">Individual</SelectItem>
                       <SelectItem value="compartilhado">
                         Compartilhado
@@ -1512,10 +1535,15 @@ export default function LancamentosPage() {
 
               {/* Seção de Compartilhamento */}
               {formData.tipoLancamento === "compartilhado" && (
-                <div className="space-y-4 p-3 rounded-lg border">
+                <div className="space-y-4 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="usuarioAlvoId">Compartilhar com *</Label>
+                      <Label
+                        htmlFor="usuarioAlvoId"
+                        className="text-gray-700 dark:text-gray-300"
+                      >
+                        Compartilhar com *
+                      </Label>
                       <Select
                         value={formData.usuarioAlvoId}
                         onValueChange={(value) =>
@@ -1524,7 +1552,7 @@ export default function LancamentosPage() {
                         required
                         disabled={carregandoUsuarios}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
                           <SelectValue
                             placeholder={
                               carregandoUsuarios
@@ -1533,7 +1561,7 @@ export default function LancamentosPage() {
                             }
                           />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                           {carregandoUsuarios ? (
                             <SelectItem value="loading" disabled>
                               Carregando usuários...
@@ -1563,7 +1591,10 @@ export default function LancamentosPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="valorCompartilhado">
+                      <Label
+                        htmlFor="valorCompartilhado"
+                        className="text-gray-700 dark:text-gray-300"
+                      >
                         Valor compartilhado (R$)
                       </Label>
                       <Input
@@ -1577,6 +1608,7 @@ export default function LancamentosPage() {
                           handleChange("valorCompartilhado", e.target.value)
                         }
                         placeholder="0,00"
+                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
                       />
                     </div>
                   </div>
@@ -1586,16 +1618,21 @@ export default function LancamentosPage() {
               {/* Cartão de Crédito */}
               {formData.tipoTransacao === "CARTAO_CREDITO" && (
                 <div className="space-y-2">
-                  <Label htmlFor="cartaoId">Cartão *</Label>
+                  <Label
+                    htmlFor="cartaoId"
+                    className="text-gray-700 dark:text-gray-300"
+                  >
+                    Cartão *
+                  </Label>
                   <Select
                     value={formData.cartaoId}
                     onValueChange={(value) => handleChange("cartaoId", value)}
                     required
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
                       <SelectValue placeholder="Selecione o cartão" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                       {cartoes.map((cartao) => (
                         <SelectItem key={cartao.id} value={cartao.id}>
                           <div className="flex items-center gap-2">
@@ -1614,16 +1651,21 @@ export default function LancamentosPage() {
 
               {/* Responsável */}
               <div className="space-y-2">
-                <Label htmlFor="responsavel">Responsável *</Label>
+                <Label
+                  htmlFor="responsavel"
+                  className="text-gray-700 dark:text-gray-300"
+                >
+                  Responsável *
+                </Label>
                 <Select
                   value={formData.responsavel}
                   onValueChange={(value) => handleChange("responsavel", value)}
                   required
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
                     <SelectValue placeholder="Selecione o responsável" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                     <SelectItem value="Claudenir">Claudenir</SelectItem>
                     <SelectItem value="Beatriz">Beatriz</SelectItem>
                     <SelectItem value="Compartilhado">Compartilhado</SelectItem>
@@ -1633,17 +1675,23 @@ export default function LancamentosPage() {
 
               {/* Data */}
               <div className="space-y-2">
-                <Label htmlFor="data">Data *</Label>
+                <Label
+                  htmlFor="data"
+                  className="text-gray-700 dark:text-gray-300"
+                >
+                  Data *
+                </Label>
                 <Input
                   type="date"
                   value={formData.data}
                   onChange={(e) => handleChange("data", e.target.value)}
                   required
+                  className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
                 />
               </div>
 
               {/* Recorrência */}
-              <div className="space-y-3 border rounded-lg p-3">
+              <div className="space-y-3 border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50/50 dark:bg-gray-800/30">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="recorrente"
@@ -1652,7 +1700,10 @@ export default function LancamentosPage() {
                       handleChange("recorrente", checked === true)
                     }
                   />
-                  <Label htmlFor="recorrente" className="font-medium">
+                  <Label
+                    htmlFor="recorrente"
+                    className="font-medium text-gray-700 dark:text-gray-300"
+                  >
                     Lançamento recorrente/parcelado
                   </Label>
                 </div>
@@ -1660,17 +1711,22 @@ export default function LancamentosPage() {
                 {formData.recorrente && (
                   <div className="grid grid-cols-2 gap-4 pl-4">
                     <div className="space-y-2">
-                      <Label htmlFor="tipoRecorrencia">Tipo</Label>
+                      <Label
+                        htmlFor="tipoRecorrencia"
+                        className="text-gray-700 dark:text-gray-300"
+                      >
+                        Tipo
+                      </Label>
                       <Select
                         value={formData.tipoRecorrencia}
                         onValueChange={(value) =>
                           handleChange("tipoRecorrencia", value)
                         }
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
                           <SelectValue placeholder="Selecione o tipo" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                           <SelectItem value="RECORRENCIA">
                             Recorrência
                           </SelectItem>
@@ -1683,17 +1739,22 @@ export default function LancamentosPage() {
 
                     {formData.tipoRecorrencia === "RECORRENCIA" && (
                       <div className="space-y-2">
-                        <Label htmlFor="frequencia">Frequência</Label>
+                        <Label
+                          htmlFor="frequencia"
+                          className="text-gray-700 dark:text-gray-300"
+                        >
+                          Frequência
+                        </Label>
                         <Select
                           value={formData.frequencia}
                           onValueChange={(value) =>
                             handleChange("frequencia", value)
                           }
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
                             <SelectValue placeholder="Selecione a frequência" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                             <SelectItem value="mensal">Mensal</SelectItem>
                             <SelectItem value="trimestral">
                               Trimestral
@@ -1706,7 +1767,12 @@ export default function LancamentosPage() {
 
                     {formData.tipoRecorrencia === "PARCELAMENTO" && (
                       <div className="space-y-2">
-                        <Label htmlFor="parcelas">Número de Parcelas</Label>
+                        <Label
+                          htmlFor="parcelas"
+                          className="text-gray-700 dark:text-gray-300"
+                        >
+                          Número de Parcelas
+                        </Label>
                         <Input
                           id="parcelas"
                           type="number"
@@ -1717,14 +1783,17 @@ export default function LancamentosPage() {
                             handleChange("parcelas", e.target.value)
                           }
                           placeholder="Ex: 3, 6, 12"
+                          className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
                         />
                       </div>
                     )}
 
-                    {/* ADICIONE ESTE CAMPO AQUI */}
                     {formData.tipoRecorrencia === "RECORRENCIA" && (
                       <div className="space-y-2 col-span-2">
-                        <Label htmlFor="dataFimRecorrencia">
+                        <Label
+                          htmlFor="dataFimRecorrencia"
+                          className="text-gray-700 dark:text-gray-300"
+                        >
                           Data Final da Recorrência *
                         </Label>
                         <Input
@@ -1735,8 +1804,9 @@ export default function LancamentosPage() {
                             handleChange("dataFimRecorrencia", e.target.value)
                           }
                           required
+                          className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
                         />
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                           Até quando este lançamento se repetirá
                         </p>
                       </div>
@@ -1747,20 +1817,26 @@ export default function LancamentosPage() {
 
               {/* Observações */}
               <div className="space-y-2">
-                <Label htmlFor="observacoes">Observações</Label>
+                <Label
+                  htmlFor="observacoes"
+                  className="text-gray-700 dark:text-gray-300"
+                >
+                  Observações
+                </Label>
                 <Textarea
                   id="observacoes"
                   value={formData.observacoes}
                   onChange={(e) => handleChange("observacoes", e.target.value)}
                   placeholder="Observações adicionais..."
                   rows={3}
+                  className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
                 />
               </div>
 
               <Button
                 variant={"outline"}
                 type="submit"
-                className="w-full border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                className="w-full border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-500"
                 disabled={enviando}
               >
                 {enviando ? "Criando..." : "Criar Lançamento"}
@@ -1774,9 +1850,9 @@ export default function LancamentosPage() {
         open={mostrarDialogVisualizar}
         onOpenChange={setMostrarDialogVisualizar}
       >
-        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl">
+        <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-white">
+            <DialogTitle className="text-gray-900 dark:text-white">
               Detalhes do Lançamento
             </DialogTitle>
           </DialogHeader>
@@ -1784,28 +1860,38 @@ export default function LancamentosPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-gray-400 text-sm">Descrição</Label>
-                  <p className="text-white font-medium mt-1">
+                  <Label className="text-gray-600 dark:text-gray-400 text-sm">
+                    Descrição
+                  </Label>
+                  <p className="text-gray-900 dark:text-white font-medium mt-1">
                     {lancamentoSelecionado.descricao}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-gray-400 text-sm">Valor</Label>
+                  <Label className="text-gray-600 dark:text-gray-400 text-sm">
+                    Valor
+                  </Label>
                   <p
-                    className={`text-lg font-bold mt-1 ${lancamentoSelecionado.tipo === "RECEITA" ? "text-green-400" : "text-red-400"}`}
+                    className={`text-lg font-bold mt-1 ${
+                      lancamentoSelecionado.tipo === "RECEITA"
+                        ? "text-emerald-600 dark:text-green-400"
+                        : "text-red-600 dark:text-red-400"
+                    }`}
                   >
                     R$ {lancamentoSelecionado.valor.toFixed(2)}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-gray-400 text-sm">Tipo</Label>
+                  <Label className="text-gray-600 dark:text-gray-400 text-sm">
+                    Tipo
+                  </Label>
                   <div className="mt-1">
                     <Badge
                       variant="outline"
                       className={
                         lancamentoSelecionado.tipo === "RECEITA"
-                          ? "bg-green-900/50 text-green-400 border-green-700"
-                          : "bg-red-900/50 text-red-400 border-red-700"
+                          ? "bg-emerald-100 dark:bg-green-900/50 text-emerald-700 dark:text-green-400 border-emerald-200 dark:border-green-700"
+                          : "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400 border-red-200 dark:border-red-700"
                       }
                     >
                       {lancamentoSelecionado.tipo === "RECEITA"
@@ -1815,31 +1901,41 @@ export default function LancamentosPage() {
                   </div>
                 </div>
                 <div>
-                  <Label className="text-gray-400 text-sm">Status</Label>
+                  <Label className="text-gray-600 dark:text-gray-400 text-sm">
+                    Status
+                  </Label>
                   <p
-                    className={`mt-1 ${lancamentoSelecionado.pago ? "text-green-400" : "text-yellow-400"}`}
+                    className={`mt-1 ${
+                      lancamentoSelecionado.pago
+                        ? "text-emerald-600 dark:text-green-400"
+                        : "text-amber-600 dark:text-yellow-400"
+                    }`}
                   >
                     {lancamentoSelecionado.pago ? "Pago/Recebido" : "Pendente"}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-gray-400 text-sm">Data</Label>
-                  <p className="text-white mt-1">
+                  <Label className="text-gray-600 dark:text-gray-400 text-sm">
+                    Data
+                  </Label>
+                  <p className="text-gray-900 dark:text-white mt-1">
                     {new Date(lancamentoSelecionado.data).toLocaleDateString(
                       "pt-BR"
                     )}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-gray-400 text-sm">
+                  <Label className="text-gray-600 dark:text-gray-400 text-sm">
                     Método de Pagamento
                   </Label>
-                  <p className="text-white mt-1">
+                  <p className="text-gray-900 dark:text-white mt-1">
                     {lancamentoSelecionado.metodoPagamento}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-gray-400 text-sm">Categoria</Label>
+                  <Label className="text-gray-600 dark:text-gray-400 text-sm">
+                    Categoria
+                  </Label>
                   <div className="flex items-center gap-2 mt-1">
                     <div
                       className="w-4 h-4 rounded-full"
@@ -1847,15 +1943,17 @@ export default function LancamentosPage() {
                         backgroundColor: lancamentoSelecionado.categoria.cor,
                       }}
                     />
-                    <p className="text-white">
+                    <p className="text-gray-900 dark:text-white">
                       {lancamentoSelecionado.categoria.nome}
                     </p>
                   </div>
                 </div>
                 {lancamentoSelecionado.cartao && (
                   <div>
-                    <Label className="text-gray-400 text-sm">Cartão</Label>
-                    <p className="text-white mt-1">
+                    <Label className="text-gray-600 dark:text-gray-400 text-sm">
+                      Cartão
+                    </Label>
+                    <p className="text-gray-900 dark:text-white mt-1">
                       {lancamentoSelecionado.cartao.nome}
                     </p>
                   </div>
@@ -1864,29 +1962,35 @@ export default function LancamentosPage() {
 
               {lancamentoSelecionado.observacoes && (
                 <div>
-                  <Label className="text-gray-400 text-sm">Observações</Label>
-                  <p className="text-white bg-gray-800 p-3 rounded-md mt-1">
+                  <Label className="text-gray-600 dark:text-gray-400 text-sm">
+                    Observações
+                  </Label>
+                  <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 p-3 rounded-md mt-1">
                     {lancamentoSelecionado.observacoes}
                   </p>
                 </div>
               )}
 
               {lancamentoSelecionado.recorrente && (
-                <div className="p-3 border border-gray-700 rounded-lg">
-                  <Label className="text-gray-400 text-sm">
+                <div className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50/50 dark:bg-gray-800/30">
+                  <Label className="text-gray-600 dark:text-gray-400 text-sm">
                     Informações de Recorrência
                   </Label>
                   <div className="grid grid-cols-2 gap-4 mt-2">
                     <div>
-                      <p className="text-gray-400 text-sm">Tipo</p>
-                      <p className="text-white mt-1">
+                      <p className="text-gray-600 dark:text-gray-400 text-sm">
+                        Tipo
+                      </p>
+                      <p className="text-gray-900 dark:text-white mt-1">
                         {lancamentoSelecionado.tipoParcelamento}
                       </p>
                     </div>
                     {lancamentoSelecionado.parcelasTotal && (
                       <div>
-                        <p className="text-gray-400 text-sm">Parcelas</p>
-                        <p className="text-white mt-1">
+                        <p className="text-gray-600 dark:text-gray-400 text-sm">
+                          Parcelas
+                        </p>
+                        <p className="text-gray-900 dark:text-white mt-1">
                           {lancamentoSelecionado.parcelaAtual}/
                           {lancamentoSelecionado.parcelasTotal}
                         </p>
@@ -1902,24 +2006,31 @@ export default function LancamentosPage() {
 
       {/* Dialog para Editar Lançamento */}
       <Dialog open={mostrarDialogEditar} onOpenChange={setMostrarDialogEditar}>
-        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-white">Editar Lançamento</DialogTitle>
+            <DialogTitle className="text-gray-900 dark:text-white">
+              Editar Lançamento
+            </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleAtualizar} className="space-y-4">
             {/* Tipo e Categoria */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="tipo">Tipo *</Label>
+                <Label
+                  htmlFor="tipo"
+                  className="text-gray-700 dark:text-gray-300"
+                >
+                  Tipo *
+                </Label>
                 <Select
                   value={formData.tipo}
                   onValueChange={(value) => handleChange("tipo", value)}
                   required
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
                     <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                     <SelectItem value="receita">Receita</SelectItem>
                     <SelectItem value="despesa">Despesa</SelectItem>
                   </SelectContent>
@@ -1927,14 +2038,19 @@ export default function LancamentosPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="categoria">Categoria *</Label>
+                <Label
+                  htmlFor="categoria"
+                  className="text-gray-700 dark:text-gray-300"
+                >
+                  Categoria *
+                </Label>
                 <Select
                   value={formData.categoria}
                   onValueChange={(value) => handleChange("categoria", value)}
                   required
                   disabled={!formData.tipo}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
                     <SelectValue
                       placeholder={
                         !formData.tipo
@@ -1943,7 +2059,7 @@ export default function LancamentosPage() {
                       }
                     />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                     {categorias
                       .filter(
                         (cat) =>
@@ -1968,18 +2084,29 @@ export default function LancamentosPage() {
 
             {/* Descrição e Valor */}
             <div className="space-y-2">
-              <Label htmlFor="descricao">Descrição *</Label>
+              <Label
+                htmlFor="descricao"
+                className="text-gray-700 dark:text-gray-300"
+              >
+                Descrição *
+              </Label>
               <Input
                 id="descricao"
                 value={formData.descricao}
                 onChange={(e) => handleChange("descricao", e.target.value)}
                 placeholder="Ex: Salário, Aluguel, Mercado..."
                 required
+                className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="valor">Valor *</Label>
+              <Label
+                htmlFor="valor"
+                className="text-gray-700 dark:text-gray-300"
+              >
+                Valor *
+              </Label>
               <Input
                 id="valor"
                 type="number"
@@ -1989,13 +2116,19 @@ export default function LancamentosPage() {
                 onChange={(e) => handleChange("valor", e.target.value)}
                 placeholder="0,00"
                 required
+                className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
               />
             </div>
 
             {/* Tipo de Transação e Lançamento */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="tipoTransacao">Tipo de Transação *</Label>
+                <Label
+                  htmlFor="tipoTransacao"
+                  className="text-gray-700 dark:text-gray-300"
+                >
+                  Tipo de Transação *
+                </Label>
                 <Select
                   value={formData.tipoTransacao}
                   onValueChange={(value) =>
@@ -2003,10 +2136,10 @@ export default function LancamentosPage() {
                   }
                   required
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
                     <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                     <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
                     <SelectItem value="PIX">PIX</SelectItem>
                     <SelectItem value="CARTAO_DEBITO">Cartão Débito</SelectItem>
@@ -2019,7 +2152,12 @@ export default function LancamentosPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="tipoLancamento">Tipo de Lançamento *</Label>
+                <Label
+                  htmlFor="tipoLancamento"
+                  className="text-gray-700 dark:text-gray-300"
+                >
+                  Tipo de Lançamento *
+                </Label>
                 <Select
                   value={formData.tipoLancamento}
                   onValueChange={(value) =>
@@ -2027,10 +2165,10 @@ export default function LancamentosPage() {
                   }
                   required
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
                     <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                     <SelectItem value="individual">Individual</SelectItem>
                     <SelectItem value="compartilhado">Compartilhado</SelectItem>
                   </SelectContent>
@@ -2040,10 +2178,15 @@ export default function LancamentosPage() {
 
             {/* Seção de Compartilhamento */}
             {formData.tipoLancamento === "compartilhado" && (
-              <div className="space-y-4 p-3 rounded-lg border">
+              <div className="space-y-4 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="usuarioAlvoId">Compartilhar com *</Label>
+                    <Label
+                      htmlFor="usuarioAlvoId"
+                      className="text-gray-700 dark:text-gray-300"
+                    >
+                      Compartilhar com *
+                    </Label>
                     <Select
                       value={formData.usuarioAlvoId}
                       onValueChange={(value) =>
@@ -2051,10 +2194,10 @@ export default function LancamentosPage() {
                       }
                       required
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
                         <SelectValue placeholder="Selecione o usuário" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                         {usuarios.map((usuario) => (
                           <SelectItem key={usuario.id} value={usuario.id}>
                             <div className="flex items-center gap-2">
@@ -2074,7 +2217,10 @@ export default function LancamentosPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="valorCompartilhado">
+                    <Label
+                      htmlFor="valorCompartilhado"
+                      className="text-gray-700 dark:text-gray-300"
+                    >
                       Valor compartilhado (R$)
                     </Label>
                     <Input
@@ -2088,6 +2234,7 @@ export default function LancamentosPage() {
                         handleChange("valorCompartilhado", e.target.value)
                       }
                       placeholder="0,00"
+                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
                     />
                   </div>
                 </div>
@@ -2097,16 +2244,21 @@ export default function LancamentosPage() {
             {/* Cartão de Crédito */}
             {formData.tipoTransacao === "CARTAO_CREDITO" && (
               <div className="space-y-2">
-                <Label htmlFor="cartaoId">Cartão *</Label>
+                <Label
+                  htmlFor="cartaoId"
+                  className="text-gray-700 dark:text-gray-300"
+                >
+                  Cartão *
+                </Label>
                 <Select
                   value={formData.cartaoId}
                   onValueChange={(value) => handleChange("cartaoId", value)}
                   required
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
                     <SelectValue placeholder="Selecione o cartão" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                     {cartoes.map((cartao) => (
                       <SelectItem key={cartao.id} value={cartao.id}>
                         <div className="flex items-center gap-2">
@@ -2125,16 +2277,21 @@ export default function LancamentosPage() {
 
             {/* Responsável */}
             <div className="space-y-2">
-              <Label htmlFor="responsavel">Responsável *</Label>
+              <Label
+                htmlFor="responsavel"
+                className="text-gray-700 dark:text-gray-300"
+              >
+                Responsável *
+              </Label>
               <Select
                 value={formData.responsavel}
                 onValueChange={(value) => handleChange("responsavel", value)}
                 required
               >
-                <SelectTrigger>
+                <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
                   <SelectValue placeholder="Selecione o responsável" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                   <SelectItem value="Claudenir">Claudenir</SelectItem>
                   <SelectItem value="Beatriz">Beatriz</SelectItem>
                   <SelectItem value="Compartilhado">Compartilhado</SelectItem>
@@ -2144,17 +2301,23 @@ export default function LancamentosPage() {
 
             {/* Data */}
             <div className="space-y-2">
-              <Label htmlFor="data">Data *</Label>
+              <Label
+                htmlFor="data"
+                className="text-gray-700 dark:text-gray-300"
+              >
+                Data *
+              </Label>
               <Input
                 type="date"
                 value={formData.data}
                 onChange={(e) => handleChange("data", e.target.value)}
                 required
+                className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
               />
             </div>
 
             {/* Recorrência */}
-            <div className="space-y-3 border rounded-lg p-3">
+            <div className="space-y-3 border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50/50 dark:bg-gray-800/30">
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="recorrente"
@@ -2163,7 +2326,10 @@ export default function LancamentosPage() {
                     handleChange("recorrente", checked === true)
                   }
                 />
-                <Label htmlFor="recorrente" className="font-medium">
+                <Label
+                  htmlFor="recorrente"
+                  className="font-medium text-gray-700 dark:text-gray-300"
+                >
                   Lançamento recorrente/parcelado
                 </Label>
               </div>
@@ -2171,17 +2337,22 @@ export default function LancamentosPage() {
               {formData.recorrente && (
                 <div className="grid grid-cols-2 gap-4 pl-4">
                   <div className="space-y-2">
-                    <Label htmlFor="tipoRecorrencia">Tipo</Label>
+                    <Label
+                      htmlFor="tipoRecorrencia"
+                      className="text-gray-700 dark:text-gray-300"
+                    >
+                      Tipo
+                    </Label>
                     <Select
                       value={formData.tipoRecorrencia}
                       onValueChange={(value) =>
                         handleChange("tipoRecorrencia", value)
                       }
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
                         <SelectValue placeholder="Selecione o tipo" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                         <SelectItem value="RECORRENCIA">Recorrência</SelectItem>
                         <SelectItem value="PARCELAMENTO">
                           Parcelamento
@@ -2192,17 +2363,22 @@ export default function LancamentosPage() {
 
                   {formData.tipoRecorrencia === "RECORRENCIA" && (
                     <div className="space-y-2">
-                      <Label htmlFor="frequencia">Frequência</Label>
+                      <Label
+                        htmlFor="frequencia"
+                        className="text-gray-700 dark:text-gray-300"
+                      >
+                        Frequência
+                      </Label>
                       <Select
                         value={formData.frequencia}
                         onValueChange={(value) =>
                           handleChange("frequencia", value)
                         }
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
                           <SelectValue placeholder="Selecione a frequência" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                           <SelectItem value="mensal">Mensal</SelectItem>
                           <SelectItem value="trimestral">Trimestral</SelectItem>
                           <SelectItem value="anual">Anual</SelectItem>
@@ -2213,7 +2389,12 @@ export default function LancamentosPage() {
 
                   {formData.tipoRecorrencia === "PARCELAMENTO" && (
                     <div className="space-y-2">
-                      <Label htmlFor="parcelas">Número de Parcelas</Label>
+                      <Label
+                        htmlFor="parcelas"
+                        className="text-gray-700 dark:text-gray-300"
+                      >
+                        Número de Parcelas
+                      </Label>
                       <Input
                         id="parcelas"
                         type="number"
@@ -2224,14 +2405,17 @@ export default function LancamentosPage() {
                           handleChange("parcelas", e.target.value)
                         }
                         placeholder="Ex: 3, 6, 12"
+                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
                       />
                     </div>
                   )}
 
-                  {/* ADICIONE ESTE CAMPO AQUI */}
                   {formData.tipoRecorrencia === "RECORRENCIA" && (
                     <div className="space-y-2 col-span-2">
-                      <Label htmlFor="dataFimRecorrencia">
+                      <Label
+                        htmlFor="dataFimRecorrencia"
+                        className="text-gray-700 dark:text-gray-300"
+                      >
                         Data Final da Recorrência *
                       </Label>
                       <Input
@@ -2242,8 +2426,9 @@ export default function LancamentosPage() {
                           handleChange("dataFimRecorrencia", e.target.value)
                         }
                         required
+                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
                       />
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         Até quando este lançamento se repetirá
                       </p>
                     </div>
@@ -2254,13 +2439,19 @@ export default function LancamentosPage() {
 
             {/* Observações */}
             <div className="space-y-2">
-              <Label htmlFor="observacoes">Observações</Label>
+              <Label
+                htmlFor="observacoes"
+                className="text-gray-700 dark:text-gray-300"
+              >
+                Observações
+              </Label>
               <Textarea
                 id="observacoes"
                 value={formData.observacoes}
                 onChange={(e) => handleChange("observacoes", e.target.value)}
                 placeholder="Observações adicionais..."
                 rows={3}
+                className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
               />
             </div>
 
@@ -2269,13 +2460,13 @@ export default function LancamentosPage() {
                 type="button"
                 variant="outline"
                 onClick={() => setMostrarDialogEditar(false)}
-                className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800"
+                className="flex-1 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
-                className="flex-1 bg-white text-gray-900 hover:bg-gray-100"
+                className="flex-1 bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white"
                 disabled={editando}
               >
                 {editando ? "Atualizando..." : "Atualizar Lançamento"}

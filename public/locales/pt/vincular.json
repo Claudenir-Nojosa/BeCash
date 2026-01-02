@@ -1,0 +1,37 @@
+{
+  "titulo": "Vincular WhatsApp",
+  "subtitulo": "Conecte seu número para criar lançamentos por voz",
+  "formulario": {
+    "titulo": "Seu Número do WhatsApp",
+    "descricao": "Digite seu número com DDD para vincular ao BeCash",
+    "labelTelefone": "Número do WhatsApp",
+    "placeholderTelefone": "(11) 99999-9999",
+    "instrucaoTelefone": "Digite seu número com DDD. Exemplo: (11) 99999-9999"
+  },
+  "beneficios": {
+    "titulo": "Benefícios",
+    "descricao": "O que você ganha ao vincular",
+    "lancamentos": {
+      "titulo": "Lançamentos por Áudio",
+      "descricao": "Crie gastos e receitas por voz"
+    },
+    "whatsapp": {
+      "titulo": "WhatsApp Direto",
+      "descricao": "Registre gastos sem abrir o app"
+    },
+    "rapido": {
+      "titulo": "Rápido e Prático",
+      "descricao": "Registre em segundos"
+    }
+  },
+  "mensagens": {
+    "sucesso": "Telefone vinculado com sucesso! Redirecionando..."
+  },
+  "botoes": {
+    "vincular": "Vincular Telefone",
+    "vincularLoading": "Vinculando..."
+  },
+  "erros": {
+    "erroVincular": "Erro ao vincular telefone"
+  }
+}
