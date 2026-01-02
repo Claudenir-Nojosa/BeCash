@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   Home,
@@ -31,12 +32,12 @@ interface SidebarProps {
 export default function Sidebar({ onClose }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState<boolean | null>(null);
   const { data: session } = useSession();
+  const { t, i18n } = useTranslation("sidebar");
   const pathname = usePathname();
-  const params = useParams(); // <-- Adicione este hook
+  const params = useParams();
   const [isMobile, setIsMobile] = useState(false);
 
-  // Pegue o idioma atual dos parâmetros da rota
-  const currentLang = params?.lang as string || 'pt';
+  const currentLang = (params?.lang as string) || i18n.language || "pt";
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 1024);
@@ -76,7 +77,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   };
 
   const getInitials = (name: string | undefined | null) => {
-    if (!name) return "U";
+    if (!name) return t("usuario.usuarioPadrao").charAt(0);
     const nameParts = name.split(" ");
     return nameParts
       .map((part) => part[0])
@@ -84,22 +85,17 @@ export default function Sidebar({ onClose }: SidebarProps) {
       .toUpperCase();
   };
 
-  // Função para verificar se a rota está ativa considerando o idioma
   const isActiveRoute = (route: string) => {
-    // Remove o prefixo de idioma para comparação
-    const pathWithoutLang = pathname.replace(/^\/(pt|en)/, '');
-    const routeWithoutLang = route.replace(/^\/(pt|en)/, '');
+    const pathWithoutLang = pathname.replace(/^\/(pt|en)/, "");
+    const routeWithoutLang = route.replace(/^\/(pt|en)/, "");
     return pathWithoutLang === routeWithoutLang;
   };
 
-  // Função para criar links com o idioma atual
   const createLink = (path: string) => {
-    // Se o path já começar com o idioma, não adicione novamente
     if (path.startsWith(`/${currentLang}/`)) {
       return path;
     }
-    // Remove qualquer barra inicial duplicada
-    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    const cleanPath = path.startsWith("/") ? path : `/${path}`;
     return `/${currentLang}${cleanPath}`;
   };
 
@@ -110,13 +106,14 @@ export default function Sidebar({ onClose }: SidebarProps) {
   return (
     <div
       className={`
-        flex flex-col h-full bg-gradient-to-b from-gray-900 to-gray-950 border-r border-gray-800
+        flex flex-col h-full bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 
+        border-r border-gray-200 dark:border-gray-800 shadow-lg dark:shadow-none
         ${isCollapsed ? "w-20" : "w-64"} 
         transition-all duration-300
       `}
     >
       {/* Topo da Sidebar */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-800">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
         {!isCollapsed && (
           <div className="flex items-center space-x-3">
             <Image
@@ -126,7 +123,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
               height={40}
               className="w-10 h-10"
             />
-            <span className="text-xl font-bold text-white">BeCash</span>
+            <span className="text-xl font-bold text-gray-900 dark:text-white">
+              BeCash
+            </span>
           </div>
         )}
 
@@ -135,7 +134,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="lg:hidden hover:bg-gray-800 text-gray-300 h-10 w-10"
+            className="lg:hidden hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 h-10 w-10"
           >
             <X className="h-5 w-5" />
           </Button>
@@ -144,7 +143,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
             variant="ghost"
             size="icon"
             onClick={toggleSidebar}
-            className="hidden lg:flex hover:bg-gray-800 text-gray-300 h-10 w-10"
+            className="hidden lg:flex hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 h-10 w-10"
           >
             <Menu className="h-5 w-5" />
           </Button>
@@ -153,21 +152,27 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
       {/* Navegação */}
       <nav className="flex-1 p-4 overflow-y-auto">
-        <ul className="space-y-2">
+        <ul className="space-y-1">
           {/* Página Inicial */}
           <li>
             <Link
               href={createLink("/dashboard")}
               className={`
-                flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
+                flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 
+                text-gray-700 dark:text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard") ? "bg-gray-800 text-white border-l-2 border-gray-700" : ""}
+                ${isActiveRoute("/dashboard") ? 
+                  "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700" : 
+                  ""
+                }
               `}
               onClick={handleLinkClick}
             >
               <Home className="h-5 w-5" />
               {!isCollapsed && (
-                <span className="ml-4 text-sm font-medium">Página Inicial</span>
+                <span className="ml-4 text-sm font-medium">
+                  {t("menu.paginaInicial")}
+                </span>
               )}
             </Link>
           </li>
@@ -177,15 +182,21 @@ export default function Sidebar({ onClose }: SidebarProps) {
             <Link
               href={createLink("/dashboard/lancamentos")}
               className={`
-                flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
+                flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 
+                text-gray-700 dark:text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${pathname.includes("/lancamentos") ? "bg-gray-800 text-white border-l-2 border-gray-700" : ""}
+                ${pathname.includes("/lancamentos") ? 
+                  "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700" : 
+                  ""
+                }
               `}
               onClick={handleLinkClick}
             >
               <HandCoins className="h-5 w-5" />
               {!isCollapsed && (
-                <span className="ml-4 text-sm font-medium">Lançamentos</span>
+                <span className="ml-4 text-sm font-medium">
+                  {t("menu.lancamentos")}
+                </span>
               )}
             </Link>
           </li>
@@ -195,15 +206,21 @@ export default function Sidebar({ onClose }: SidebarProps) {
             <Link
               href={createLink("/dashboard/limites")}
               className={`
-                flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
+                flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 
+                text-gray-700 dark:text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/limites") ? "bg-gray-800 text-white border-l-2 border-gray-700" : ""}
+                ${isActiveRoute("/dashboard/limites") ? 
+                  "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700" : 
+                  ""
+                }
               `}
               onClick={handleLinkClick}
             >
               <Target className="h-5 w-5" />
               {!isCollapsed && (
-                <span className="ml-4 text-sm font-medium">Limites</span>
+                <span className="ml-4 text-sm font-medium">
+                  {t("menu.limites")}
+                </span>
               )}
             </Link>
           </li>
@@ -213,15 +230,21 @@ export default function Sidebar({ onClose }: SidebarProps) {
             <Link
               href={createLink("/dashboard/relatorios")}
               className={`
-                flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
+                flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 
+                text-gray-700 dark:text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/relatorios") ? "bg-gray-800 text-white border-l-2 border-gray-700" : ""}
+                ${isActiveRoute("/dashboard/relatorios") ? 
+                  "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700" : 
+                  ""
+                }
               `}
               onClick={handleLinkClick}
             >
               <ChartNoAxesColumnIncreasing className="h-5 w-5" />
               {!isCollapsed && (
-                <span className="ml-4 text-sm font-medium">Relatórios</span>
+                <span className="ml-4 text-sm font-medium">
+                  {t("menu.relatorios")}
+                </span>
               )}
             </Link>
           </li>
@@ -231,15 +254,21 @@ export default function Sidebar({ onClose }: SidebarProps) {
             <Link
               href={createLink("/dashboard/cartoes")}
               className={`
-                flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
+                flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 
+                text-gray-700 dark:text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/cartoes") ? "bg-gray-800 text-white border-l-2 border-gray-700" : ""}
+                ${isActiveRoute("/dashboard/cartoes") ? 
+                  "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700" : 
+                  ""
+                }
               `}
               onClick={handleLinkClick}
             >
               <CreditCard className="h-5 w-5" />
               {!isCollapsed && (
-                <span className="ml-4 text-sm font-medium">Cartões</span>
+                <span className="ml-4 text-sm font-medium">
+                  {t("menu.cartoes")}
+                </span>
               )}
             </Link>
           </li>
@@ -249,51 +278,45 @@ export default function Sidebar({ onClose }: SidebarProps) {
             <Link
               href={createLink("/dashboard/categorias")}
               className={`
-                flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
+                flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 
+                text-gray-700 dark:text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/categorias") ? "bg-gray-800 text-white border-l-2 border-gray-700" : ""}
+                ${isActiveRoute("/dashboard/categorias") ? 
+                  "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700" : 
+                  ""
+                }
               `}
               onClick={handleLinkClick}
             >
               <ReceiptCent className="h-5 w-5" />
               {!isCollapsed && (
-                <span className="ml-4 text-sm font-medium">Categorias</span>
+                <span className="ml-4 text-sm font-medium">
+                  {t("menu.categorias")}
+                </span>
               )}
             </Link>
           </li>
-
-          {/* Pontos (comentado) */}
-          {/* <li>
-            <Link
-              href={createLink("/dashboard/pontos")}
-              className={`
-                flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
-                ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/pontos") ? "bg-gray-800 text-white border-l-2 border-gray-700" : ""}
-              `}
-              onClick={handleLinkClick}
-            >
-              <Coins className="h-5 w-5" />
-              {!isCollapsed && (
-                <span className="ml-4 text-sm font-medium">Pontos</span>
-              )}
-            </Link>
-          </li> */}
 
           {/* Metas */}
           <li>
             <Link
               href={createLink("/dashboard/metas")}
               className={`
-                flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
+                flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 
+                text-gray-700 dark:text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/metas") ? "bg-gray-800 text-white border-l-2 border-gray-700" : ""}
+                ${isActiveRoute("/dashboard/metas") ? 
+                  "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700" : 
+                  ""
+                }
               `}
               onClick={handleLinkClick}
             >
               <Goal className="h-5 w-5" />
               {!isCollapsed && (
-                <span className="ml-4 text-sm font-medium">Metas</span>
+                <span className="ml-4 text-sm font-medium">
+                  {t("menu.metas")}
+                </span>
               )}
             </Link>
           </li>
@@ -303,16 +326,20 @@ export default function Sidebar({ onClose }: SidebarProps) {
             <Link
               href={createLink("/dashboard/vincular-telefone")}
               className={`
-                flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
+                flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 
+                text-gray-700 dark:text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/vincular-telefone") ? "bg-gray-800 text-white border-l-2 border-gray-700" : ""}
+                ${isActiveRoute("/dashboard/vincular-telefone") ? 
+                  "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700" : 
+                  ""
+                }
               `}
               onClick={handleLinkClick}
             >
               <PhoneIncoming className="h-5 w-5" />
               {!isCollapsed && (
                 <span className="ml-4 text-sm font-medium">
-                  Vincular Telefone
+                  {t("menu.vincularTelefone")}
                 </span>
               )}
             </Link>
@@ -323,15 +350,21 @@ export default function Sidebar({ onClose }: SidebarProps) {
             <Link
               href={createLink("/dashboard/bicla")}
               className={`
-                flex items-center rounded-lg hover:bg-gray-800 text-gray-300 transition-all duration-200
+                flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 
+                text-gray-700 dark:text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/bicla") ? "bg-gray-800 text-white border-l-2 border-gray-700" : ""}
+                ${isActiveRoute("/dashboard/bicla") ? 
+                  "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700" : 
+                  ""
+                }
               `}
               onClick={handleLinkClick}
             >
               <WandSparkles className="h-5 w-5" />
               {!isCollapsed && (
-                <span className="ml-4 text-sm font-medium">Bicla</span>
+                <span className="ml-4 text-sm font-medium">
+                  {t("menu.bicla")}
+                </span>
               )}
             </Link>
           </li>
@@ -339,7 +372,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       </nav>
 
       {/* Rodapé da Sidebar */}
-      <div className="p-4 border-t border-gray-800">
+      <div className="p-4 border-t border-gray-200 dark:border-gray-800">
         <div className="space-y-3">
           {/* Perfil do Usuário */}
           <div
@@ -348,21 +381,21 @@ export default function Sidebar({ onClose }: SidebarProps) {
               ${isCollapsed ? "justify-center" : ""}
             `}
           >
-            <Avatar className="h-8 w-8 border border-gray-700">
+            <Avatar className="h-8 w-8 border border-gray-300 dark:border-gray-700">
               <AvatarImage
                 src={session?.user?.image || ""}
-                alt={session?.user?.name || "Usuário"}
+                alt={session?.user?.name || t("usuario.usuarioPadrao")}
               />
-              <AvatarFallback className="bg-gray-800 text-gray-300 text-sm">
+              <AvatarFallback className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm">
                 {getInitials(session?.user?.name)}
               </AvatarFallback>
             </Avatar>
             {!isCollapsed && (
               <div className="ml-3 min-w-0 flex-1">
-                <p className="text-sm font-medium text-white truncate">
+                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                   {session?.user?.name}
                 </p>
-                <p className="text-xs text-gray-400 truncate">
+                <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
                   {session?.user?.email}
                 </p>
               </div>
@@ -373,13 +406,17 @@ export default function Sidebar({ onClose }: SidebarProps) {
           <Button
             variant="ghost"
             className={`
-              w-full rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition-all duration-200
+              w-full rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 
+              text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white 
+              transition-all duration-200
               ${isCollapsed ? "justify-center p-3" : "justify-start p-3"}
             `}
             onClick={() => signOut()}
           >
             <LogOut className="h-4 w-4" />
-            {!isCollapsed && <span className="ml-3 text-sm">Sair</span>}
+            {!isCollapsed && (
+              <span className="ml-3 text-sm">{t("usuario.sair")}</span>
+            )}
           </Button>
         </div>
       </div>

@@ -25,6 +25,8 @@ import {
   Clock,
   ArrowRight,
   RefreshCw,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import DashboardTable from "@/components/dashboard/DashboardTable";
 import MetasCard from "@/components/dashboard/MetasCard";
@@ -333,10 +335,12 @@ export default function DashboardPage() {
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen p-6 flex items-center justify-center">
+      <div className="min-h-screen p-6 flex items-center justify-center bg-white dark:bg-transparent">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-gray-300">{t("status.verificando")}</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-800 dark:border-white mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-300">
+            {t("status.verificando")}
+          </p>
         </div>
       </div>
     );
@@ -369,7 +373,9 @@ export default function DashboardPage() {
     if (limitesEstourados.length > 0) {
       return {
         texto: `${limitesEstourados.length} ${t("limites.status.estourado")}`,
-        cor: "text-red-400",
+        cor: "text-red-600 dark:text-red-400",
+        corClaro: "text-red-600",
+        corEscuro: "dark:text-red-400",
         icone: <AlertTriangle className="h-4 w-4" />,
       };
     }
@@ -377,14 +383,18 @@ export default function DashboardPage() {
     if (limitesProximos.length > 0) {
       return {
         texto: `${limitesProximos.length} ${t("limites.status.proximo")}`,
-        cor: "text-yellow-400",
+        cor: "text-amber-600 dark:text-yellow-400",
+        corClaro: "text-amber-600",
+        corEscuro: "dark:text-yellow-400",
         icone: <Clock className="h-4 w-4" />,
       };
     }
 
     return {
       texto: t("limites.status.controle"),
-      cor: "text-green-400",
+      cor: "text-emerald-600 dark:text-green-400",
+      corClaro: "text-emerald-600",
+      corEscuro: "dark:text-green-400",
       icone: <CheckCircle2 className="h-4 w-4" />,
     };
   };
@@ -436,22 +446,23 @@ export default function DashboardPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen p-6">
+      <div className="min-h-screen p-4 sm:p-6 bg-white dark:bg-transparent">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Cabeçalho */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-white">
-                {t("titulo")} {/* ✅ Texto traduzido */}
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
+                {t("titulo")}
               </h1>
-              <p className="text-gray-300 mt-2">{fraseMotivacional}</p>
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1 sm:mt-2">
+                {fraseMotivacional}
+              </p>
             </div>
 
             {/* Controles do Header */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               {/* Seletor de Mês */}
-              <div className="flex items-center gap-2 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2">
-                {/* Seta esquerda */}
+              <div className="flex items-center gap-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 shadow-sm hover:shadow-md transition-shadow">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -465,31 +476,17 @@ export default function DashboardPage() {
                     setMesSelecionado(novoMes.toString());
                     setAnoSelecionado(novoAno.toString());
                   }}
-                  className="h-7 w-7 text-gray-400 hover:text-white hover:bg-gray-800"
+                  className="h-7 w-7 sm:h-8 sm:w-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
-                  <svg
-                    className="h-3 w-3"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 19l-7-7 7-7"
-                    />
-                  </svg>
+                  <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
                 </Button>
 
-                {/* Mês atual */}
-                <div className="text-center min-w-20">
-                  <p className="text-sm font-medium text-white">
+                <div className="text-center min-w-16 sm:min-w-20">
+                  <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">
                     {obterNomeMesAbreviado(mesSelecionado)}/{anoSelecionado}
                   </p>
                 </div>
 
-                {/* Seta direita */}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -503,35 +500,23 @@ export default function DashboardPage() {
                     setMesSelecionado(novoMes.toString());
                     setAnoSelecionado(novoAno.toString());
                   }}
-                  className="h-7 w-7 text-gray-400 hover:text-white hover:bg-gray-800"
+                  className="h-7 w-7 sm:h-8 sm:w-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
-                  <svg
-                    className="h-3 w-3"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
+                  <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
                 </Button>
               </div>
 
-              {/* 👈 BOTÃO DE REFRESH */}
+              {/* Botão de Refresh */}
               <Button
-                variant="ghost"
+                variant="outline"
                 size="icon"
                 onClick={handleRefresh}
                 disabled={carregando}
-                className="h-9 w-9 border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 disabled:opacity-50"
+                className="h-8 w-8 sm:h-9 sm:w-9 border-gray-300 dark:border-gray-700 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 shadow-sm"
                 title={t("botoes.refresh")}
               >
                 <RefreshCw
-                  className={`h-4 w-4 ${carregando ? "animate-spin" : ""}`}
+                  className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${carregando ? "animate-spin" : ""}`}
                 />
               </Button>
 
@@ -540,28 +525,31 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Cards de Resumo */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
             {/* Receita */}
-            <Card className="bg-gray-900 border-gray-800 hover:border-gray-700 transition-colors h-32">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center gap-2 text-white">
-                  <TrendingUp className="h-5 w-5 text-green-400" />
-                  {t("cards.receita.titulo")} {/* ✅ Texto traduzido */}
+            <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-300 hover:shadow-lg">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2 text-gray-800 dark:text-white">
+                  <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/30">
+                    <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  {t("cards.receita.titulo")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {carregando ? (
                   <div className="space-y-2">
-                    <Skeleton className="h-7 w-32 bg-gray-800" />
-                    <Skeleton className="h-4 w-20 bg-gray-800" />
+                    <Skeleton className="h-7 sm:h-8 w-32 bg-gray-200 dark:bg-gray-800" />
+                    <Skeleton className="h-3 w-20 bg-gray-200 dark:bg-gray-800" />
                   </div>
                 ) : (
                   <>
-                    <p className="text-2xl font-bold text-green-400">
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-emerald-400">
                       {formatarMoeda(resumo.receita)}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      {t("cards.receita.subtitulo")} {/* ✅ Texto traduzido */}
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {t("cards.receita.subtitulo")}
                     </p>
                   </>
                 )}
@@ -569,26 +557,28 @@ export default function DashboardPage() {
             </Card>
 
             {/* Despesa */}
-            <Card className="bg-gray-900 border-gray-800 hover:border-gray-700 transition-colors h-32">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center gap-2 text-white">
-                  <TrendingDown className="h-5 w-5 text-red-400" />
-                  {t("cards.despesa.titulo")} {/* ✅ Texto traduzido */}
+            <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-300 hover:shadow-lg">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2 text-gray-800 dark:text-white">
+                  <div className="p-1.5 sm:p-2 rounded-lg bg-red-50 dark:bg-red-900/30">
+                    <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5 text-red-600 dark:text-red-400" />
+                  </div>
+                  {t("cards.despesa.titulo")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {carregando ? (
                   <div className="space-y-2">
-                    <Skeleton className="h-7 w-32 bg-gray-800" />
-                    <Skeleton className="h-4 w-20 bg-gray-800" />
+                    <Skeleton className="h-7 sm:h-8 w-32 bg-gray-200 dark:bg-gray-800" />
+                    <Skeleton className="h-3 w-20 bg-gray-200 dark:bg-gray-800" />
                   </div>
                 ) : (
                   <>
-                    <p className="text-2xl font-bold text-red-400">
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-red-400">
                       {formatarMoeda(resumo.despesa)}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      {t("cards.despesa.subtitulo")} {/* ✅ Texto traduzido */}
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {t("cards.despesa.subtitulo")}
                     </p>
                   </>
                 )}
@@ -596,27 +586,28 @@ export default function DashboardPage() {
             </Card>
 
             {/* Despesas Compartilhadas */}
-            <Card className="bg-gray-900 border-gray-800 hover:border-gray-700 transition-colors h-32">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center gap-2 text-white">
-                  <Users className="h-5 w-5 text-blue-400" />
-                  {t("cards.compartilhadas.titulo")} {/* ✅ Texto traduzido */}
+            <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-300 hover:shadow-lg">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2 text-gray-800 dark:text-white">
+                  <div className="p-1.5 sm:p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30">
+                    <Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  {t("cards.compartilhadas.titulo")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {carregando ? (
                   <div className="space-y-2">
-                    <Skeleton className="h-7 w-32 bg-gray-800" />
-                    <Skeleton className="h-4 w-20 bg-gray-800" />
+                    <Skeleton className="h-7 sm:h-8 w-32 bg-gray-200 dark:bg-gray-800" />
+                    <Skeleton className="h-3 w-20 bg-gray-200 dark:bg-gray-800" />
                   </div>
                 ) : (
                   <>
-                    <p className="text-2xl font-bold text-blue-400">
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-blue-400">
                       {formatarMoeda(resumo.despesasCompartilhadas)}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      {t("cards.compartilhadas.subtitulo")}{" "}
-                      {/* ✅ Texto traduzido */}
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {t("cards.compartilhadas.subtitulo")}
                     </p>
                   </>
                 )}
@@ -624,36 +615,41 @@ export default function DashboardPage() {
             </Card>
 
             {/* Saldo */}
-            <Card className="bg-gray-900 border-gray-800 hover:border-gray-700 transition-colors h-32">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center gap-2 text-white">
-                  <Wallet className="h-5 w-5 text-purple-400" />
-                  {t("cards.saldo.titulo")} {/* ✅ Texto traduzido */}
+            <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-300 hover:shadow-lg">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2 text-gray-800 dark:text-white">
+                  <div className="p-1.5 sm:p-2 rounded-lg bg-purple-50 dark:bg-purple-900/30">
+                    <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  {t("cards.saldo.titulo")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {carregando ? (
                   <div className="space-y-2">
-                    <Skeleton className="h-7 w-32 bg-gray-800" />
-                    <Skeleton className="h-4 w-20 bg-gray-800" />
+                    <Skeleton className="h-7 sm:h-8 w-32 bg-gray-200 dark:bg-gray-800" />
+                    <Skeleton className="h-3 w-20 bg-gray-200 dark:bg-gray-800" />
                   </div>
                 ) : (
                   <>
                     <p
-                      className={`text-2xl font-bold ${
-                        resumo.saldo >= 0 ? "text-green-400" : "text-red-400"
+                      className={`text-xl sm:text-2xl font-bold ${
+                        resumo.saldo >= 0
+                          ? "text-emerald-600 dark:text-green-400"
+                          : "text-red-600 dark:text-red-400"
                       }`}
                     >
                       {formatarMoeda(resumo.saldo)}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      {t("cards.saldo.subtitulo")} {/* ✅ Texto traduzido */}
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {t("cards.saldo.subtitulo")}
                     </p>
                   </>
                 )}
               </CardContent>
             </Card>
           </div>
+
           {/* Conteúdo Principal */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Tabela de Lançamentos */}
@@ -668,14 +664,17 @@ export default function DashboardPage() {
             {/* Sidebar - Metas e Limites */}
             <div className="space-y-6">
               <MetasCard metas={metas} carregando={carregando} />
+
               {/* Limites por Categoria */}
-              <Card className="bg-gray-900 border-gray-800">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-white">
-                    <Target className="h-5 w-5" />
-                    {t("limites.titulo")} {/* ✅ Texto traduzido */}
+              <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white text-lg font-semibold">
+                    <div className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800">
+                      <Target className="h-4 w-4 text-gray-700 dark:text-gray-300" />
+                    </div>
+                    {t("limites.titulo")}
                   </CardTitle>
-                  <CardDescription className="text-gray-400">
+                  <CardDescription className="text-gray-600 dark:text-gray-400 text-sm">
                     {obterNomeMes(mesSelecionado)} {t("limites.subtitulo")}{" "}
                     {anoSelecionado}
                   </CardDescription>
@@ -684,24 +683,27 @@ export default function DashboardPage() {
                   {carregando ? (
                     <div className="space-y-3">
                       {Array.from({ length: 3 }).map((_, i) => (
-                        <Skeleton key={i} className="h-16 w-full bg-gray-800" />
+                        <Skeleton
+                          key={i}
+                          className="h-16 w-full bg-gray-200 dark:bg-gray-800"
+                        />
                       ))}
                     </div>
                   ) : limites.length === 0 ? (
-                    <div className="text-center py-6 text-gray-400">
-                      <Target className="h-12 w-12 mx-auto mb-3 text-gray-700" />
-                      <p className="mb-3">{t("limites.nenhumLimite")}</p>{" "}
-                      {/* ✅ Texto traduzido */}
+                    <div className="text-center py-6">
+                      <Target className="h-12 w-12 mx-auto mb-3 text-gray-300 dark:text-gray-700" />
+                      <p className="mb-3 text-gray-600 dark:text-gray-400">
+                        {t("limites.nenhumLimite")}
+                      </p>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() =>
                           router.push(`/${currentLang}/dashboard/limites`)
                         }
-                        className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                        className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                       >
-                        {t("limites.configurarLimites")}{" "}
-                        {/* ✅ Texto traduzido */}
+                        {t("limites.configurarLimites")}
                       </Button>
                     </div>
                   ) : (
@@ -715,7 +717,7 @@ export default function DashboardPage() {
                         return (
                           <div
                             key={limite.id}
-                            className="flex items-center justify-between p-3 border border-gray-800 rounded-lg hover:border-gray-700 transition-colors"
+                            className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-300 dark:hover:border-gray-700 transition-colors bg-gray-50/50 dark:bg-gray-800/50"
                           >
                             <div className="flex items-center gap-3">
                               <div
@@ -725,10 +727,10 @@ export default function DashboardPage() {
                                 }}
                               />
                               <div>
-                                <p className="font-medium text-white text-sm">
+                                <p className="font-medium text-gray-900 dark:text-white text-sm">
                                   {limite.categoria.nome}
                                 </p>
-                                <p className="text-xs text-gray-400">
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
                                   {formatarMoeda(limite.gastoAtual)} /{" "}
                                   {formatarMoeda(limite.limiteMensal)}
                                 </p>
@@ -742,13 +744,15 @@ export default function DashboardPage() {
                                     ? "secondary"
                                     : "outline"
                               }
-                              className={
-                                estaEstourado
-                                  ? "bg-red-900/50 text-red-300 border-red-700"
-                                  : estaProximo
-                                    ? "bg-yellow-900/50 text-yellow-300 border-yellow-700"
-                                    : "bg-gray-800 text-gray-300 border-gray-700"
-                              }
+                              className={`
+                                ${
+                                  estaEstourado
+                                    ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700"
+                                    : estaProximo
+                                      ? "bg-amber-100 dark:bg-yellow-900/50 text-amber-700 dark:text-yellow-300 border-amber-200 dark:border-yellow-700"
+                                      : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700"
+                                } font-medium
+                              `}
                             >
                               {percentual.toFixed(0)}%
                             </Badge>
@@ -759,13 +763,13 @@ export default function DashboardPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="w-full text-gray-400 hover:text-white hover:bg-gray-800"
+                          className="w-full text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
                           onClick={() =>
                             router.push(`/${currentLang}/dashboard/limites`)
                           }
                         >
-                          {t("limites.verTodos")} {/* ✅ Texto traduzido */}
-                          <ArrowRight className="ml-2 h-4 w-4" />
+                          {t("limites.verTodos")}
+                          <ArrowRight className="ml-2 h-3.5 w-3.5" />
                         </Button>
                       )}
                     </div>

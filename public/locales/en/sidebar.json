@@ -1,0 +1,18 @@
+{
+  "menu": {
+    "paginaInicial": "Home",
+    "lancamentos": "Transactions",
+    "limites": "Limits",
+    "relatorios": "Reports",
+    "cartoes": "Cards",
+    "categorias": "Categories",
+    "pontos": "Points",
+    "metas": "Goals",
+    "vincularTelefone": "Link Phone",
+    "bicla": "Bicla"
+  },
+  "usuario": {
+    "sair": "Sign Out",
+    "usuarioPadrao": "User"
+  }
+}

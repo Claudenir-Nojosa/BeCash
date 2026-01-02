@@ -1,0 +1,24 @@
+{
+  "titulo": "Últimos Lançamentos",
+  "subtitulo": "Suas {{limit}} transações mais recentes",
+  "botoes": {
+    "verTodos": "Ver Todos",
+    "adicionarPrimeiro": "Adicionar Primeiro Lançamento"
+  },
+  "tabela": {
+    "colunas": {
+      "descricao": "Descrição",
+      "categoria": "Categoria",
+      "data": "Data",
+      "valor": "Valor"
+    }
+  },
+  "mensagens": {
+    "nenhumLancamento": "Nenhum lançamento encontrado",
+    "mostrandoLimite": "Mostrando os {{limit}} lançamentos mais recentes",
+    "carregando": "Carregando lançamentos..."
+  },
+  "erros": {
+    "erroCarregar": "Erro ao carregar lançamentos"
+  }
+}

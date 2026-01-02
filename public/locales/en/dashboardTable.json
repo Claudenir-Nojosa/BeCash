@@ -1,0 +1,24 @@
+{
+  "titulo": "Recent Entries",
+  "subtitulo": "Your {{limit}} most recent transactions",
+  "botoes": {
+    "verTodos": "View All",
+    "adicionarPrimeiro": "Add First Entry"
+  },
+  "tabela": {
+    "colunas": {
+      "descricao": "Description",
+      "categoria": "Category",
+      "data": "Date",
+      "valor": "Amount"
+    }
+  },
+  "mensagens": {
+    "nenhumLancamento": "No entries found",
+    "mostrandoLimite": "Showing the {limit} most recent entries",
+    "carregando": "Loading entries..."
+  },
+  "erros": {
+    "erroCarregar": "Error loading entries"
+  }
+}

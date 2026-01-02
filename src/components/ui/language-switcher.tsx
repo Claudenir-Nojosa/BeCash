@@ -49,7 +49,7 @@ export function LanguageSwitcher() {
         <Button
           variant="ghost"
           size="sm"
-          className="gap-2 text-gray-300 hover:text-white hover:bg-gray-800"
+          className="gap-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 hover:border-gray-400 dark:hover:border-gray-600"
         >
           <Globe className="h-4 w-4" />
           <span className="hidden md:inline">
@@ -57,12 +57,21 @@ export function LanguageSwitcher() {
           </span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
+      <DropdownMenuContent 
+        align="end" 
+        className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-lg dark:shadow-none"
+      >
         {languages.map((language) => (
           <DropdownMenuItem
             key={language.code}
             onClick={() => handleLanguageChange(language.code)}
-            className={`cursor-pointer ${i18n.language === language.code ? "bg-gray-700" : "hover:bg-gray-700"}`}
+            className={`
+              cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-700 
+              ${i18n.language === language.code 
+                ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white" 
+                : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+              }
+            `}
           >
             <span className="mr-2">{language.flag}</span>
             {language.name}
