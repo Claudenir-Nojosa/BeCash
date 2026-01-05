@@ -61,32 +61,56 @@ export default function MetasCard({ metas, carregando }: MetasCardProps) {
   };
 
   return (
-    <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow">
-      <CardHeader className="flex flex-row items-center justify-between pb-4">
-        <div>
-          <CardTitle className="flex items-center gap-2 dark:text-white ">
-            <Trophy className="h-5 w-5" />
-            {t("titulo")}
-          </CardTitle>
+    <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow w-full overflow-hidden">
+      <CardHeader className="flex flex-col lg:flex-row items-start lg:items-center justify-between pb-4 gap-3 px-4 sm:px-6">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <Trophy className="h-5 w-5 text-gray-700 dark:text-gray-300 flex-shrink-0" />
+            <CardTitle className="dark:text-white text-lg lg:text-xl">
+              {t("titulo")}
+            </CardTitle>
+          </div>
           <CardDescription className="text-gray-600 dark:text-gray-400 text-sm">
             {t("subtitulo")}
           </CardDescription>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => router.push(getLocalizedPath("/dashboard/metas"))}
-          className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-500"
-        >
-          <Plus className="mr-2 h-3.5 w-3.5" />
-          {t("botoes.novaMeta")}
-        </Button>
+
+        {/* Botão responsivo para todas as resoluções */}
+        <div className="w-full lg:w-auto mt-2 lg:mt-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push(getLocalizedPath("/dashboard/metas"))}
+            className="
+              w-full lg:w-auto 
+              min-h-9 lg:h-9
+              px-4
+              border-gray-300 dark:border-gray-600 
+              text-gray-700 dark:text-gray-300 
+              hover:bg-gray-50 dark:hover:bg-gray-700 
+              hover:text-gray-900 dark:hover:text-white 
+              hover:border-gray-400 dark:hover:border-gray-500
+              transition-all
+              flex items-center justify-center
+              gap-2
+              whitespace-nowrap
+            "
+          >
+            <Plus className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className="text-sm font-medium truncate">
+              {t("botoes.novaMeta")}
+            </span>
+          </Button>
+        </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-4 sm:px-6">
         {carregando ? (
           <div className="space-y-4">
             {Array.from({ length: 2 }).map((_, i) => (
-              <div key={i} className="p-3 border border-gray-200 dark:border-gray-800 rounded-lg">
+              <div
+                key={i}
+                className="p-3 border border-gray-200 dark:border-gray-800 rounded-lg"
+              >
                 <div className="flex items-start justify-between mb-2">
                   <Skeleton className="h-4 w-32 bg-gray-200 dark:bg-gray-800" />
                   <Skeleton className="h-5 w-16 bg-gray-200 dark:bg-gray-800" />
@@ -103,19 +127,27 @@ export default function MetasCard({ metas, carregando }: MetasCardProps) {
             <div className="mx-auto w-14 h-14 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-3">
               <Trophy className="h-7 w-7 text-gray-400 dark:text-gray-600" />
             </div>
-            <p className="text-gray-600 dark:text-gray-400 mb-3">
+            <p className="text-gray-600 dark:text-gray-400 mb-3 px-2">
               {t("mensagens.nenhumaMeta")}
             </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                router.push(getLocalizedPath("/dashboard/metas"))
-              }
-              className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-            >
-              {t("botoes.criarPrimeira")}
-            </Button>
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  router.push(getLocalizedPath("/dashboard/metas"))
+                }
+                className="
+                  border-gray-300 dark:border-gray-600 
+                  text-gray-700 dark:text-gray-300 
+                  hover:bg-gray-50 dark:hover:bg-gray-700
+                  w-full max-w-xs
+                  px-4
+                "
+              >
+                {t("botoes.criarPrimeira")}
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
@@ -131,47 +163,50 @@ export default function MetasCard({ metas, carregando }: MetasCardProps) {
                     router.push(getLocalizedPath("/dashboard/metas/"))
                   }
                 >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-col md:flex-row md:items-start justify-between mb-2 gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       <div
                         className="w-2 h-2 rounded-full flex-shrink-0"
                         style={{ backgroundColor: meta.cor }}
                       />
-                      <h4 className="font-medium text-gray-900 dark:text-white text-sm">
+                      <h4 className="font-medium text-gray-900 dark:text-white text-sm truncate">
                         {meta.titulo}
                       </h4>
                     </div>
-                    <Badge
-                      variant={
-                        status === "concluida"
-                          ? "default"
-                          : status === "atrasada"
-                            ? "destructive"
-                            : "outline"
-                      }
-                      className={`
-                        text-xs font-medium
-                        ${status === "concluida"
-                          ? "bg-emerald-100 dark:bg-green-900/50 text-emerald-700 dark:text-green-300 border-emerald-200 dark:border-green-700"
-                          : status === "atrasada"
-                            ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700"
-                            : status === "proxima"
-                              ? "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700"
-                              : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600"
+                    <div className="md:self-start md:flex-shrink-0">
+                      <Badge
+                        variant={
+                          status === "concluida"
+                            ? "default"
+                            : status === "atrasada"
+                              ? "destructive"
+                              : "outline"
                         }
-                      `}
-                    >
-                      {obterTextoStatus(status)}
-                    </Badge>
+                        className={`
+                          text-xs font-medium w-full md:w-auto text-center md:text-left
+                          ${
+                            status === "concluida"
+                              ? "bg-emerald-100 dark:bg-green-900/50 text-emerald-700 dark:text-green-300 border-emerald-200 dark:border-green-700"
+                              : status === "atrasada"
+                                ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700"
+                                : status === "proxima"
+                                  ? "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700"
+                                  : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600"
+                          }
+                        `}
+                      >
+                        {obterTextoStatus(status)}
+                      </Badge>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">
+                    <div className="flex flex-col sm:flex-row justify-between text-sm gap-1">
+                      <span className="text-gray-600 dark:text-gray-400 truncate">
                         {formatarMoeda(meta.valorAtual)} /{" "}
                         {formatarMoeda(meta.valorAlvo)}
                       </span>
-                      <span className="font-semibold text-gray-900 dark:text-white">
+                      <span className="font-semibold text-gray-900 dark:text-white sm:text-right min-w-[40px]">
                         {progresso.toFixed(0)}%
                       </span>
                     </div>
@@ -186,12 +221,14 @@ export default function MetasCard({ metas, carregando }: MetasCardProps) {
                       />
                     </div>
 
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
-                        <Calendar className="h-3 w-3" />
-                        {formatarData(meta.dataAlvo)}
+                    <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between text-xs gap-1">
+                      <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400 min-w-0">
+                        <Calendar className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">
+                          {formatarData(meta.dataAlvo)}
+                        </span>
                       </div>
-                      <span className="text-gray-600 dark:text-gray-300 font-medium">
+                      <span className="text-gray-600 dark:text-gray-300 font-medium truncate">
                         {meta.categoria}
                       </span>
                     </div>
@@ -204,12 +241,19 @@ export default function MetasCard({ metas, carregando }: MetasCardProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="
+                  w-full 
+                  text-gray-600 dark:text-gray-400 
+                  hover:text-gray-900 dark:hover:text-white 
+                  hover:bg-gray-100 dark:hover:bg-gray-700
+                  h-9
+                  flex items-center justify-center
+                "
                 onClick={() =>
                   router.push(getLocalizedPath("/dashboard/metas"))
                 }
               >
-                {t("botoes.verTodas")}
+                <span className="text-sm">{t("botoes.verTodas")}</span>
                 <ArrowRight className="ml-2 h-3.5 w-3.5" />
               </Button>
             )}

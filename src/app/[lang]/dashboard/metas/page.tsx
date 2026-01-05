@@ -54,6 +54,7 @@ import {
   Edit3,
   Trash2,
   ArrowLeft,
+  DollarSign,
 } from "lucide-react";
 import { MetaPessoal } from "../../../../../types/dashboard";
 import { UploadImage } from "@/components/shared/upload-image";
@@ -432,27 +433,27 @@ export default function MetasPage() {
   }
 
   return (
-    <div className="min-h-screen p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen p-3 sm:p-4 md:p-6">
+      <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
         {/* Cabeçalho */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
                 {t("titulo")}
               </h1>
-              <p className="text-gray-600 dark:text-gray-300">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                 {t("subtitulo")}
               </p>
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
                 <Button
                   variant={"outline"}
-                  className="border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
+                  className="flex-1 sm:flex-none border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white text-xs sm:text-sm"
                   onClick={() => {
                     setEditandoMeta(null);
                     setFormData({
@@ -468,29 +469,32 @@ export default function MetasPage() {
                     });
                   }}
                 >
-                  <Plus className="mr-2 h-4 w-4" />
-                  {t("botoes.novaMeta")}
+                  <Plus className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                  <span>{t("botoes.novaMeta")}</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white overflow-y-auto">
+              <SheetContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white overflow-y-auto w-full sm:max-w-md">
                 <SheetHeader>
-                  <SheetTitle className="text-gray-900 dark:text-white">
+                  <SheetTitle className="text-gray-900 dark:text-white text-lg sm:text-xl">
                     {editandoMeta
                       ? t("formulario.tituloEditar")
                       : t("formulario.tituloNovo")}
                   </SheetTitle>
-                  <SheetDescription className="text-gray-600 dark:text-gray-400">
+                  <SheetDescription className="text-gray-600 dark:text-gray-400 text-sm">
                     {editandoMeta
                       ? t("formulario.descricaoEditar")
                       : t("formulario.descricaoNovo")}
                   </SheetDescription>
                 </SheetHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-6 mt-6">
-                  <div className="space-y-2">
+                <form
+                  onSubmit={handleSubmit}
+                  className="space-y-4 sm:space-y-6 mt-4 sm:mt-6"
+                >
+                  <div className="space-y-1 sm:space-y-2">
                     <Label
                       htmlFor="titulo"
-                      className="text-gray-900 dark:text-white"
+                      className="text-gray-900 dark:text-white text-sm sm:text-base"
                     >
                       {t("formulario.tituloLabel")}
                     </Label>
@@ -501,15 +505,15 @@ export default function MetasPage() {
                         setFormData({ ...formData, titulo: e.target.value })
                       }
                       placeholder={t("formulario.tituloPlaceholder")}
-                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-500"
+                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-500 text-sm sm:text-base"
                       required
                     />
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-1 sm:space-y-2">
                     <Label
                       htmlFor="descricao"
-                      className="text-gray-900 dark:text-white"
+                      className="text-gray-900 dark:text-white text-sm sm:text-base"
                     >
                       {t("formulario.descricaoLabel")}
                     </Label>
@@ -520,15 +524,15 @@ export default function MetasPage() {
                         setFormData({ ...formData, descricao: e.target.value })
                       }
                       placeholder={t("formulario.descricaoPlaceholder")}
-                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-500"
+                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-500 text-sm sm:text-base"
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div className="space-y-1 sm:space-y-2">
                       <Label
                         htmlFor="valorAlvo"
-                        className="text-gray-900 dark:text-white"
+                        className="text-gray-900 dark:text-white text-sm sm:text-base"
                       >
                         {t("formulario.valorAlvoLabel")}
                       </Label>
@@ -544,15 +548,15 @@ export default function MetasPage() {
                           })
                         }
                         placeholder="0,00"
-                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
+                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm sm:text-base"
                         required
                       />
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-1 sm:space-y-2">
                       <Label
                         htmlFor="valorAtual"
-                        className="text-gray-900 dark:text-white"
+                        className="text-gray-900 dark:text-white text-sm sm:text-base"
                       >
                         {t("formulario.valorAtualLabel")}
                       </Label>
@@ -568,16 +572,16 @@ export default function MetasPage() {
                           })
                         }
                         placeholder="0,00"
-                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
+                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm sm:text-base"
                         required
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-1 sm:space-y-2">
                     <Label
                       htmlFor="dataAlvo"
-                      className="text-gray-900 dark:text-white"
+                      className="text-gray-900 dark:text-white text-sm sm:text-base"
                     >
                       {t("formulario.dataAlvoLabel")}
                     </Label>
@@ -588,15 +592,15 @@ export default function MetasPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, dataAlvo: e.target.value })
                       }
-                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
+                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm sm:text-base"
                       required
                     />
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-1 sm:space-y-2">
                     <Label
                       htmlFor="categoria"
-                      className="text-gray-900 dark:text-white"
+                      className="text-gray-900 dark:text-white text-sm sm:text-base"
                     >
                       {t("formulario.categoriaLabel")}
                     </Label>
@@ -607,18 +611,18 @@ export default function MetasPage() {
                         setFormData({ ...formData, categoria: e.target.value })
                       }
                       placeholder={t("formulario.categoriaPlaceholder")}
-                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-500"
+                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-500 text-sm sm:text-base"
                       required
                     />
                   </div>
 
-                  <div className="space-y-3">
-                    <Label className="text-gray-900 dark:text-white">
+                  <div className="space-y-2 sm:space-y-3">
+                    <Label className="text-gray-900 dark:text-white text-sm sm:text-base">
                       {t("formulario.corLabel")}
                     </Label>
-                    <div className="flex items-center gap-3 mb-3">
+                    <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
                       <div
-                        className="w-10 h-10 rounded-lg border border-gray-300 dark:border-gray-700 shadow-sm"
+                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-gray-300 dark:border-gray-700 shadow-sm"
                         style={{ backgroundColor: formData.cor }}
                       />
                       <Input
@@ -627,16 +631,16 @@ export default function MetasPage() {
                         onChange={(e) =>
                           setFormData({ ...formData, cor: e.target.value })
                         }
-                        className="w-20 h-10 p-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+                        className="w-16 h-8 sm:w-20 sm:h-10 p-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
                       />
                     </div>
-                    <div className="grid grid-cols-5 gap-2">
+                    <div className="grid grid-cols-5 sm:grid-cols-5 gap-1 sm:gap-2">
                       {coresPredefinidas.map((cor) => (
                         <button
                           key={cor}
                           type="button"
                           onClick={() => setFormData({ ...formData, cor })}
-                          className={`w-8 h-8 rounded-lg border-2 transition-all hover:scale-110 ${
+                          className={`w-6 h-6 sm:w-8 sm:h-8 rounded-lg border-2 transition-all hover:scale-110 ${
                             formData.cor === cor
                               ? "border-gray-900 dark:border-white ring-2 ring-gray-900/20 dark:ring-white/20"
                               : "border-gray-300 dark:border-gray-700"
@@ -647,17 +651,17 @@ export default function MetasPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-gray-900 dark:text-white">
+                  <div className="space-y-1 sm:space-y-2">
+                    <Label className="text-gray-900 dark:text-white text-sm sm:text-base">
                       {t("formulario.iconeLabel")}
                     </Label>
-                    <div className="grid grid-cols-5 gap-2">
+                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-1 sm:gap-2">
                       {iconesPredefinidos.map((icone) => (
                         <button
                           key={icone}
                           type="button"
                           onClick={() => setFormData({ ...formData, icone })}
-                          className={`p-2 border rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-2xl ${
+                          className={`p-1 sm:p-2 border rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-xl sm:text-2xl ${
                             formData.icone === icone
                               ? "border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800"
                               : "border-gray-300 dark:border-gray-700"
@@ -668,7 +672,8 @@ export default function MetasPage() {
                       ))}
                     </div>
                   </div>
-                  <div className="space-y-2">
+
+                  <div className="space-y-1 sm:space-y-2">
                     <UploadImage
                       onImageChange={(url) =>
                         setFormData({ ...formData, imagemUrl: url || "" })
@@ -678,10 +683,11 @@ export default function MetasPage() {
                       metaId={editandoMeta?.id || "new"}
                     />
                   </div>
-                  <div className="flex gap-3 pt-4">
+
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2 sm:pt-4">
                     <Button
                       type="submit"
-                      className="flex-1 bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
+                      className="flex-1 bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 text-sm sm:text-base"
                       disabled={enviando}
                     >
                       {enviando
@@ -712,7 +718,7 @@ export default function MetasPage() {
                           });
                           setIsSheetOpen(false);
                         }}
-                        className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                        className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 text-sm sm:text-base"
                       >
                         {t("botoes.cancelar")}
                       </Button>
@@ -725,21 +731,21 @@ export default function MetasPage() {
         </div>
 
         {/* Grid de Metas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {metas.length === 0 ? (
-            <div className="col-span-full text-center py-12">
-              <Trophy className="h-16 w-16 mx-auto mb-4 text-gray-400 dark:text-gray-600" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            <div className="col-span-full text-center py-8 sm:py-12">
+              <Trophy className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-3 sm:mb-4 text-gray-400 dark:text-gray-600" />
+              <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-1 sm:mb-2">
                 {t("mensagens.nenhumaMeta")}
               </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4 sm:mb-6 px-4">
                 {t("mensagens.comeceCriando")}
               </p>
               <Button
                 onClick={() => setIsSheetOpen(true)}
-                className="bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
+                className="bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 text-sm"
               >
-                <Plus className="mr-2 h-4 w-4" />
+                <Plus className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                 {t("botoes.criarPrimeiraMeta")}
               </Button>
             </div>
@@ -763,7 +769,7 @@ export default function MetasPage() {
                   {/* Imagem de capa */}
                   {meta.imagemUrl && (
                     <div
-                      className="w-full h-32 overflow-hidden cursor-pointer"
+                      className="w-full h-28 sm:h-32 overflow-hidden cursor-pointer"
                       onClick={() => setFotoAmpliada(meta.imagemUrl!)}
                     >
                       <img
@@ -776,14 +782,14 @@ export default function MetasPage() {
 
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">{meta.icone}</span>
-                        <div>
-                          <CardTitle className="text-lg text-gray-900 dark:text-white">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-lg sm:text-xl">{meta.icone}</span>
+                        <div className="min-w-0 flex-1">
+                          <CardTitle className="text-base sm:text-lg text-gray-900 dark:text-white truncate">
                             {meta.titulo}
                           </CardTitle>
                           {meta.ehCompartilhada && meta.user && (
-                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                            <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
                               {t("compartilhada.por")} {meta.user.name}
                             </p>
                           )}
@@ -791,7 +797,7 @@ export default function MetasPage() {
                       </div>
                       <Badge
                         variant="outline"
-                        className={
+                        className={`text-xs ${
                           status === "concluida"
                             ? "bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 border-green-200 dark:border-green-700"
                             : status === "atrasada"
@@ -799,20 +805,20 @@ export default function MetasPage() {
                               : status === "proxima"
                                 ? "bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-700"
                                 : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-700"
-                        }
+                        }`}
                       >
                         {t(`status.${status}`)}
                       </Badge>
                     </div>
-                    <CardDescription className="text-gray-600 dark:text-gray-400">
+                    <CardDescription className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm line-clamp-2">
                       {meta.descricao}
                     </CardDescription>
                   </CardHeader>
 
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-3 sm:space-y-4">
                     {/* Progresso */}
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
+                    <div className="space-y-1 sm:space-y-2">
+                      <div className="flex justify-between text-xs sm:text-sm">
                         <span className="text-gray-600 dark:text-gray-400">
                           {t("progresso.label")}
                         </span>
@@ -820,40 +826,46 @@ export default function MetasPage() {
                           {progresso.toFixed(1)}%
                         </span>
                       </div>
-                      <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2">
+                      <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-1.5 sm:h-2">
                         <div
-                          className="h-2 rounded-full transition-all duration-300"
+                          className="h-1.5 sm:h-2 rounded-full transition-all duration-300"
                           style={{
                             width: `${Math.min(progresso, 100)}%`,
                             backgroundColor: meta.cor,
                           }}
                         />
                       </div>
-                      <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                        <span>{formatarMoeda(meta.valorAtual)}</span>
-                        <span>{formatarMoeda(meta.valorAlvo)}</span>
+                      <div className="flex justify-between text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                        <span className="truncate">
+                          {formatarMoeda(meta.valorAtual)}
+                        </span>
+                        <span className="truncate">
+                          {formatarMoeda(meta.valorAlvo)}
+                        </span>
                       </div>
                     </div>
+
                     {/* Informações */}
-                    <div className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center text-xs sm:text-sm text-gray-600 dark:text-gray-400 gap-1 sm:gap-0">
                       <div className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        {formatarData(meta.dataAlvo)}
+                        <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <span>{formatarData(meta.dataAlvo)}</span>
                       </div>
                       <span>
                         {t("diasRestantes", { count: diasRestantes })}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between">
+
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
                       <Badge
                         variant="outline"
-                        className="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-700"
+                        className="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-700 text-xs w-fit"
                       >
                         {meta.categoria}
                       </Badge>
 
                       {/* Ações */}
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
                         {mostrarInputValor === meta.id ? (
                           // Modo de edição de valor - VISÍVEL PARA DONO E COLABORADORES
                           <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-700 p-1">
@@ -869,7 +881,7 @@ export default function MetasPage() {
                                 onChange={(e) =>
                                   setValorAdicional(e.target.value)
                                 }
-                                className="w-20 h-7 bg-white dark:bg-gray-800 border-0 text-gray-900 dark:text-white text-xs pl-6 pr-2 focus:ring-0 focus:outline-none"
+                                className="w-16 sm:w-20 h-7 bg-white dark:bg-gray-800 border-0 text-gray-900 dark:text-white text-xs sm:text-sm pl-6 pr-2 focus:ring-0 focus:outline-none"
                                 placeholder="0,00"
                                 autoFocus
                                 onKeyDown={(e) => {
@@ -936,12 +948,14 @@ export default function MetasPage() {
                                       setMostrarInputValor(meta.id)
                                     }
                                     disabled={progresso >= 100}
-                                    className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800"
+                                    className="h-7 w-7 sm:h-8 sm:w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800"
                                   >
-                                    <span className="text-sm">+</span>
+                                    <span className="text-xs sm:text-sm">
+                                      +
+                                    </span>
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent className="bg-gray-900 dark:bg-gray-800 text-white dark:text-white border-gray-700">
+                                <TooltipContent className="bg-gray-900 dark:bg-gray-800 text-white dark:text-white border-gray-700 text-xs">
                                   <p>{t("tooltips.adicionarValor")}</p>
                                 </TooltipContent>
                               </Tooltip>
@@ -957,12 +971,12 @@ export default function MetasPage() {
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => startEdit(meta)}
-                                        className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800"
+                                        className="h-7 w-7 sm:h-8 sm:w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800"
                                       >
-                                        <Edit3 className="h-3 w-3" />
+                                        <Edit3 className="h-3 w-3 sm:h-3 sm:w-3" />
                                       </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent className="bg-gray-900 dark:bg-gray-800 text-white dark:text-white border-gray-700">
+                                    <TooltipContent className="bg-gray-900 dark:bg-gray-800 text-white dark:text-white border-gray-700 text-xs">
                                       <p>{t("tooltips.editarMeta")}</p>
                                     </TooltipContent>
                                   </Tooltip>
@@ -981,29 +995,29 @@ export default function MetasPage() {
                                           <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/50"
+                                            className="h-7 w-7 sm:h-8 sm:w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/50"
                                           >
-                                            <Trash2 className="h-3 w-3" />
+                                            <Trash2 className="h-3 w-3 sm:h-3 sm:w-3" />
                                           </Button>
                                         </DialogTrigger>
-                                        <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white">
+                                        <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white w-[90vw] sm:max-w-md">
                                           <DialogHeader>
-                                            <DialogTitle className="text-gray-900 dark:text-white">
+                                            <DialogTitle className="text-gray-900 dark:text-white text-lg">
                                               {t("confirmacao.titulo")}
                                             </DialogTitle>
-                                            <DialogDescription className="text-gray-600 dark:text-gray-400">
+                                            <DialogDescription className="text-gray-600 dark:text-gray-400 text-sm">
                                               {t("confirmacao.descricao", {
                                                 titulo: meta.titulo,
                                               })}
                                             </DialogDescription>
                                           </DialogHeader>
-                                          <div className="flex gap-3 justify-end">
+                                          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
                                             <Button
                                               variant="outline"
                                               onClick={() =>
                                                 setDialogAberto(null)
                                               }
-                                              className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                                              className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 text-sm"
                                             >
                                               {t("botoes.cancelar")}
                                             </Button>
@@ -1013,6 +1027,7 @@ export default function MetasPage() {
                                                 excluirMeta(meta.id)
                                               }
                                               disabled={excluindo === meta.id}
+                                              className="text-sm"
                                             >
                                               {excluindo === meta.id
                                                 ? t("estados.excluindo")
@@ -1022,7 +1037,7 @@ export default function MetasPage() {
                                         </DialogContent>
                                       </Dialog>
                                     </TooltipTrigger>
-                                    <TooltipContent className="bg-gray-900 dark:bg-gray-800 text-white dark:text-white border-gray-700">
+                                    <TooltipContent className="bg-gray-900 dark:bg-gray-800 text-white dark:text-white border-gray-700 text-xs">
                                       <p>{t("tooltips.excluirMeta")}</p>
                                     </TooltipContent>
                                   </Tooltip>
@@ -1033,11 +1048,12 @@ export default function MetasPage() {
                         )}
                       </div>
                     </div>
+
                     {/* 👇 SEÇÃO DE COLABORADORES - CORRIGIDA ESTRUTURALMENTE */}
                     {(usuarioAtualEhDono ||
                       (meta.ColaboradorMeta &&
                         meta.ColaboradorMeta.length > 0)) && (
-                      <div className="pt-3 border-t border-gray-200 dark:border-gray-800">
+                      <div className="pt-2 sm:pt-3 border-t border-gray-200 dark:border-gray-800">
                         <ColaboradoresMeta
                           metaId={meta.id}
                           colaboradores={meta.ColaboradorMeta || []}
@@ -1058,7 +1074,7 @@ export default function MetasPage() {
       </div>
 
       <Dialog open={!!fotoAmpliada} onOpenChange={() => setFotoAmpliada(null)}>
-        <DialogContent className="max-w-4xl bg-black border-0 p-0 overflow-hidden">
+        <DialogContent className="max-w-4xl bg-black border-0 p-0 overflow-hidden w-[95vw] sm:w-auto">
           <div className="relative">
             <img
               src={fotoAmpliada || ""}
