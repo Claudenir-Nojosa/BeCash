@@ -59,6 +59,7 @@ import { MetaPessoal } from "../../../../../types/dashboard";
 import { UploadImage } from "@/components/shared/upload-image";
 import { useSession } from "next-auth/react";
 import { ColaboradoresMeta } from "@/components/shared/ColaboradoresMeta";
+import { Loading } from "@/components/ui/loading-barrinhas";
 
 export default function MetasPage() {
   const router = useRouter();
@@ -426,9 +427,12 @@ export default function MetasPage() {
       setCarregandoContribuicao(false);
     }
   };
+  if (carregando) {
+    return <Loading />;
+  }
 
   return (
-    <div className="min-h-screen p-6 bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Cabeçalho */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -722,22 +726,7 @@ export default function MetasPage() {
 
         {/* Grid de Metas */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {carregando ? (
-            Array.from({ length: 6 }).map((_, i) => (
-              <Card
-                key={i}
-                className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm"
-              >
-                <CardContent className="p-6">
-                  <Skeleton className="h-6 w-3/4 mb-4 bg-gray-300 dark:bg-gray-800" />
-                  <Skeleton className="h-4 w-full mb-2 bg-gray-300 dark:bg-gray-800" />
-                  <Skeleton className="h-4 w-2/3 mb-4 bg-gray-300 dark:bg-gray-800" />
-                  <Skeleton className="h-2 w-full mb-2 bg-gray-300 dark:bg-gray-800" />
-                  <Skeleton className="h-4 w-1/2 bg-gray-300 dark:bg-gray-800" />
-                </CardContent>
-              </Card>
-            ))
-          ) : metas.length === 0 ? (
+          {metas.length === 0 ? (
             <div className="col-span-full text-center py-12">
               <Trophy className="h-16 w-16 mx-auto mb-4 text-gray-400 dark:text-gray-600" />
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">

@@ -22,6 +22,7 @@ import {
   Mic,
   Zap,
 } from "lucide-react";
+import { Loading } from "@/components/ui/loading-barrinhas";
 
 export default function VincularTelefone() {
   const { data: session, status } = useSession();
@@ -32,30 +33,7 @@ export default function VincularTelefone() {
   const [message, setMessage] = useState("");
 
   if (status === "loading") {
-    return (
-      <div className="min-h-screen p-6 bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-4xl mx-auto space-y-6">
-          {/* Header Skeleton */}
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-gray-300 dark:bg-gray-800/30 border border-gray-400 dark:border-gray-700/50 rounded-lg animate-pulse"></div>
-            <div className="space-y-2">
-              <div className="h-8 bg-gray-300 dark:bg-gray-800/30 border border-gray-400 dark:border-gray-700/50 rounded w-64 animate-pulse"></div>
-              <div className="h-4 bg-gray-300 dark:bg-gray-800/30 border border-gray-400 dark:border-gray-700/50 rounded w-96 animate-pulse"></div>
-            </div>
-          </div>
-
-          {/* Card Skeleton */}
-          <div className="bg-gray-100 dark:bg-gray-800/30 border border-gray-300 dark:border-gray-700/50 rounded-lg p-6 animate-pulse">
-            <div className="h-6 bg-gray-300 dark:bg-gray-700/50 rounded w-1/4 mb-6"></div>
-            <div className="space-y-4">
-              <div className="h-4 bg-gray-300 dark:bg-gray-700/50 rounded w-1/2 mb-2"></div>
-              <div className="h-10 bg-gray-300 dark:bg-gray-700/50 rounded"></div>
-              <div className="h-10 bg-gray-300 dark:bg-gray-700/50 rounded w-32"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <Loading />;
   }
 
   if (!session) {
@@ -112,19 +90,11 @@ export default function VincularTelefone() {
   };
 
   return (
-    <div className="min-h-screen p-6 bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="min-h-screen p-6">
+      <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => router.push("/dashboard")}
-              className="border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {t("titulo")}

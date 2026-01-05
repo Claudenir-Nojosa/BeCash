@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -63,6 +64,7 @@ interface Categoria {
 
 export default function LimitesPage() {
   const router = useRouter();
+  const { t, i18n } = useTranslation("limites");
   const [limites, setLimites] = useState<LimiteCategoria[]>([]);
   const [dropdownAberto, setDropdownAberto] = useState<string | null>(null);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -80,20 +82,38 @@ export default function LimitesPage() {
   const [anoSelecionado, setAnoSelecionado] = useState<string>(
     new Date().getFullYear().toString()
   );
-  const MESES = [
-    { value: "1", label: "Janeiro" },
-    { value: "2", label: "Fevereiro" },
-    { value: "3", label: "Março" },
-    { value: "4", label: "Abril" },
-    { value: "5", label: "Maio" },
-    { value: "6", label: "Junho" },
-    { value: "7", label: "Julho" },
-    { value: "8", label: "Agosto" },
-    { value: "9", label: "Setembro" },
-    { value: "10", label: "Outubro" },
-    { value: "11", label: "Novembro" },
-    { value: "12", label: "Dezembro" },
-  ];
+
+  // MESES localizados
+  const MESES =
+    i18n.language === "pt"
+      ? [
+          { value: "0", label: t("meses.janeiro") },
+          { value: "1", label: t("meses.fevereiro") },
+          { value: "2", label: t("meses.marco") },
+          { value: "3", label: t("meses.abril") },
+          { value: "4", label: t("meses.maio") },
+          { value: "5", label: t("meses.junho") },
+          { value: "6", label: t("meses.julho") },
+          { value: "7", label: t("meses.agosto") },
+          { value: "8", label: t("meses.setembro") },
+          { value: "9", label: t("meses.outubro") },
+          { value: "10", label: t("meses.novembro") },
+          { value: "11", label: t("meses.dezembro") },
+        ]
+      : [
+          { value: "0", label: t("meses.janeiro") },
+          { value: "1", label: t("meses.fevereiro") },
+          { value: "2", label: t("meses.marco") },
+          { value: "3", label: t("meses.abril") },
+          { value: "4", label: t("meses.maio") },
+          { value: "5", label: t("meses.junho") },
+          { value: "6", label: t("meses.julho") },
+          { value: "7", label: t("meses.agosto") },
+          { value: "8", label: t("meses.setembro") },
+          { value: "9", label: t("meses.outubro") },
+          { value: "10", label: t("meses.novembro") },
+          { value: "11", label: t("meses.dezembro") },
+        ];
 
   useEffect(() => {
     carregarDados();
@@ -108,7 +128,7 @@ export default function LimitesPage() {
       ]);
 
       if (!limitesRes.ok || !categoriasRes.ok) {
-        throw new Error("Erro ao carregar dados");
+        throw new Error(t("mensagens.erroCarregarDados"));
       }
 
       const [limitesData, categoriasData] = await Promise.all([
@@ -119,8 +139,8 @@ export default function LimitesPage() {
       setLimites(limitesData);
       setCategorias(categoriasData);
     } catch (error) {
-      console.error("Erro ao carregar dados:", error);
-      toast.error("Erro ao carregar limites e categorias");
+      console.error(t("mensagens.erroCarregarDados"), error);
+      toast.error(t("mensagens.erroCarregarLimites"));
     } finally {
       setCarregando(false);
     }
@@ -128,7 +148,7 @@ export default function LimitesPage() {
 
   const salvarLimite = async (categoriaId: string) => {
     if (!novoLimite || parseFloat(novoLimite) <= 0) {
-      toast.error("Digite um valor válido");
+      toast.error(t("validacao.valorInvalido"));
       return;
     }
 
@@ -148,21 +168,19 @@ export default function LimitesPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Erro ao salvar limite");
+        throw new Error(error.error || t("mensagens.erroSalvarLimite"));
       }
 
       const limiteSalvo = await response.json();
 
-      // Adiciona o novo limite à lista sem recarregar
       setLimites((prev) => [...prev, limiteSalvo]);
 
-      toast.success("Limite definido com sucesso");
+      toast.success(t("mensagens.limiteDefinidoSucesso"));
       setEditando(null);
       setNovoLimite("");
     } catch (error) {
-      console.error("Erro ao salvar limite:", error);
-      toast.error("Erro ao salvar limite");
-      // Em caso de erro, recarrega os dados
+      console.error(t("mensagens.erroSalvarLimite"), error);
+      toast.error(t("mensagens.erroSalvarLimite"));
       carregarDados();
     } finally {
       setSalvando(null);
@@ -171,7 +189,7 @@ export default function LimitesPage() {
 
   const ajustarLimite = async (limiteId: string, novoValor: number) => {
     if (!novoValor || novoValor <= 0) {
-      toast.error("Digite um valor válido");
+      toast.error(t("validacao.valorInvalido"));
       return;
     }
 
@@ -190,25 +208,23 @@ export default function LimitesPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Erro ao ajustar limite");
+        throw new Error(error.error || t("mensagens.erroAjustarLimite"));
       }
 
       const limiteAtualizado = await response.json();
 
-      // Atualiza o limite na lista sem recarregar
       setLimites((prev) =>
         prev.map((limite) =>
           limite.id === limiteId ? limiteAtualizado : limite
         )
       );
 
-      toast.success("Limite ajustado com sucesso");
+      toast.success(t("mensagens.limiteAjustadoSucesso"));
       setEditando(null);
       setNovoLimite("");
     } catch (error) {
-      console.error("Erro ao ajustar limite:", error);
-      toast.error("Erro ao ajustar limite");
-      // Em caso de erro, recarrega os dados
+      console.error(t("mensagens.erroAjustarLimite"), error);
+      toast.error(t("mensagens.erroAjustarLimite"));
       carregarDados();
     } finally {
       setSalvando(null);
@@ -221,10 +237,7 @@ export default function LimitesPage() {
     const limiteParaExcluir = limites.find((limite) => limite.id === limiteId);
 
     try {
-      // Fecha o dialog primeiro
       setDialogExclusaoAberto(null);
-
-      // Remove da lista
       setLimites((prev) => prev.filter((limite) => limite.id !== limiteId));
 
       const response = await fetch(`/api/dashboard/limites/${limiteId}`, {
@@ -233,15 +246,14 @@ export default function LimitesPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Erro ao excluir limite");
+        throw new Error(error.error || t("mensagens.erroExcluirLimite"));
       }
 
-      toast.success("Limite excluído com sucesso");
+      toast.success(t("mensagens.limiteExcluidoSucesso"));
     } catch (error) {
-      console.error("Erro ao excluir limite:", error);
-      toast.error("Erro ao excluir limite");
+      console.error(t("mensagens.erroExcluirLimite"), error);
+      toast.error(t("mensagens.erroExcluirLimite"));
 
-      // Reverte se der erro
       if (limiteParaExcluir) {
         setLimites((prev) => [...prev, limiteParaExcluir]);
       }
@@ -251,7 +263,8 @@ export default function LimitesPage() {
   };
 
   const formatarMoeda = (valor: number) => {
-    return new Intl.NumberFormat("pt-BR", {
+    const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
+    return new Intl.NumberFormat(locale, {
       style: "currency",
       currency: "BRL",
     }).format(valor);
@@ -262,7 +275,7 @@ export default function LimitesPage() {
 
     if (percentual > 100) {
       return {
-        texto: "Estourado",
+        texto: t("status.estourado"),
         cor: "text-red-400",
         bgCor: "bg-red-900/50",
         borderCor: "border-red-700",
@@ -272,7 +285,7 @@ export default function LimitesPage() {
 
     if (percentual > 80) {
       return {
-        texto: "Próximo do limite",
+        texto: t("status.proximoLimite"),
         cor: "text-yellow-400",
         bgCor: "bg-yellow-900/50",
         borderCor: "border-yellow-700",
@@ -281,7 +294,7 @@ export default function LimitesPage() {
     }
 
     return {
-      texto: "Dentro do limite",
+      texto: t("status.dentroLimite"),
       cor: "text-green-400",
       bgCor: "bg-green-900/50",
       borderCor: "border-green-700",
@@ -294,29 +307,46 @@ export default function LimitesPage() {
   );
 
   const obterNomeMesAbreviado = (mes: string) => {
-    const mesesAbreviados = [
-      "Jan",
-      "Fev",
-      "Mar",
-      "Abr",
-      "Mai",
-      "Jun",
-      "Jul",
-      "Ago",
-      "Set",
-      "Out",
-      "Nov",
-      "Dez",
-    ];
-    return mesesAbreviados[Number(mes) - 1] || "Mês";
+    const mesesAbreviados =
+      i18n.language === "pt"
+        ? [
+            t("mesesAbreviados.jan"),
+            t("mesesAbreviados.fev"),
+            t("mesesAbreviados.mar"),
+            t("mesesAbreviados.abr"),
+            t("mesesAbreviados.mai"),
+            t("mesesAbreviados.jun"),
+            t("mesesAbreviados.jul"),
+            t("mesesAbreviados.ago"),
+            t("mesesAbreviados.set"),
+            t("mesesAbreviados.out"),
+            t("mesesAbreviados.nov"),
+            t("mesesAbreviados.dez"),
+          ]
+        : [
+            t("mesesAbreviados.jan"),
+            t("mesesAbreviados.fev"),
+            t("mesesAbreviados.mar"),
+            t("mesesAbreviados.abr"),
+            t("mesesAbreviados.mai"),
+            t("mesesAbreviados.jun"),
+            t("mesesAbreviados.jul"),
+            t("mesesAbreviados.ago"),
+            t("mesesAbreviados.set"),
+            t("mesesAbreviados.out"),
+            t("mesesAbreviados.nov"),
+            t("mesesAbreviados.dez"),
+          ];
+    return mesesAbreviados[Number(mes)] || t("mesesAbreviados.mes");
   };
 
-  console.log("Estado editando:", editando);
-  console.log("Estado dialogExclusaoAberto:", dialogExclusaoAberto);
-
-  // 🔥 AQUI ESTÁ A MUDANÇA PRINCIPAL: Loading em tela cheia
+  // Loading em tela cheia
   if (carregando) {
-    return <Loading />;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loading />
+      </div>
+    );
   }
 
   return (
@@ -327,10 +357,10 @@ export default function LimitesPage() {
           <div className="flex items-center gap-3">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-                Limites
+                {t("titulos.limites")}
               </h1>
               <p className="text-gray-600 dark:text-gray-300">
-                Controle seus gastos por categoria
+                {t("subtitulos.controleGastos")}
               </p>
             </div>
           </div>
@@ -345,8 +375,8 @@ export default function LimitesPage() {
                   onClick={() => {
                     let novoMes = parseInt(mesSelecionado) - 1;
                     let novoAno = parseInt(anoSelecionado);
-                    if (novoMes < 1) {
-                      novoMes = 12;
+                    if (novoMes < 0) {
+                      novoMes = 11;
                       novoAno = novoAno - 1;
                     }
                     setMesSelecionado(novoMes.toString());
@@ -371,8 +401,8 @@ export default function LimitesPage() {
                   onClick={() => {
                     let novoMes = parseInt(mesSelecionado) + 1;
                     let novoAno = parseInt(anoSelecionado);
-                    if (novoMes > 12) {
-                      novoMes = 1;
+                    if (novoMes > 11) {
+                      novoMes = 0;
                       novoAno = novoAno + 1;
                     }
                     setMesSelecionado(novoMes.toString());
@@ -394,10 +424,10 @@ export default function LimitesPage() {
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Target className="h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                  Nenhum limite definido
+                  {t("mensagens.nenhumLimiteDefinido")}
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400 text-center mb-6">
-                  Comece definindo limites para suas categorias de despesas
+                  {t("mensagens.iniciarLimites")}
                 </p>
                 <Button
                   onClick={() => {
@@ -410,7 +440,7 @@ export default function LimitesPage() {
                   className="bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white"
                 >
                   <Plus className="mr-2 h-4 w-4" />
-                  Criar Primeiro Limite
+                  {t("botoes.criarPrimeiroLimite")}
                 </Button>
               </CardContent>
             </Card>
@@ -470,19 +500,19 @@ export default function LimitesPage() {
                           {/* Informações adicionais */}
                           <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400">
                             <span>
-                              Gasto:{" "}
+                              {t("limites.gasto")}:{" "}
                               <span className="text-gray-900 dark:text-white">
                                 {formatarMoeda(limite.gastoAtual)}
                               </span>
                             </span>
                             <span>
-                              Limite:{" "}
+                              {t("limites.limite")}:{" "}
                               <span className="text-gray-900 dark:text-white">
                                 {formatarMoeda(limite.limiteMensal)}
                               </span>
                             </span>
                             <span>
-                              Restante:{" "}
+                              {t("limites.restante")}:{" "}
                               <span className="text-gray-900 dark:text-white">
                                 {formatarMoeda(
                                   limite.limiteMensal - limite.gastoAtual
@@ -527,7 +557,7 @@ export default function LimitesPage() {
                             className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                           >
                             <Edit className="h-4 w-4" />
-                            Ajustar Limite
+                            {t("menu.ajustarLimite")}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
@@ -537,7 +567,7 @@ export default function LimitesPage() {
                             className="flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 cursor-pointer"
                           >
                             <Trash2 className="h-4 w-4" />
-                            Excluir Limite
+                            {t("menu.excluirLimite")}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -552,11 +582,11 @@ export default function LimitesPage() {
                               htmlFor="ajuste-limite"
                               className="text-gray-700 dark:text-white text-sm mb-2 block"
                             >
-                              Novo valor do limite
+                              {t("formularios.novoValorLimite")}
                             </Label>
                             <div className="relative">
                               <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                                R$
+                                {i18n.language === "pt" ? "R$" : "$"}
                               </span>
                               <Input
                                 id="ajuste-limite"
@@ -581,8 +611,8 @@ export default function LimitesPage() {
                               className="bg-emerald-600 hover:bg-emerald-700 dark:bg-green-600 dark:hover:bg-green-700 text-white border-emerald-600 dark:border-green-600"
                             >
                               {salvando === limite.id
-                                ? "Salvando..."
-                                : "Salvar"}
+                                ? t("botoes.salvando")
+                                : t("botoes.salvar")}
                             </Button>
                             <Button
                               variant="outline"
@@ -590,7 +620,7 @@ export default function LimitesPage() {
                               onClick={() => setEditando(null)}
                               className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                             >
-                              Cancelar
+                              {t("botoes.cancelar")}
                             </Button>
                           </div>
                         </div>
@@ -603,15 +633,15 @@ export default function LimitesPage() {
           )}
         </div>
 
-        {/* Seção para adicionar novos limites (apenas se houver categorias sem limite) */}
+        {/* Seção para adicionar novos limites */}
         {categoriasSemLimite.length > 0 && (
           <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardHeader>
               <CardTitle className="text-gray-900 dark:text-white">
-                Adicionar Novo Limite
+                {t("titulos.adicionarNovoLimite")}
               </CardTitle>
               <CardDescription className="text-gray-600 dark:text-gray-400">
-                Selecione uma categoria para definir um limite mensal
+                {t("subtitulos.selecioneCategoria")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -635,7 +665,7 @@ export default function LimitesPage() {
                       <div className="flex items-center gap-2">
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                            R$
+                            {i18n.language === "pt" ? "R$" : "$"}
                           </span>
                           <Input
                             type="number"
@@ -654,7 +684,9 @@ export default function LimitesPage() {
                           disabled={salvando === categoria.id}
                           className="bg-emerald-600 hover:bg-emerald-700 dark:bg-green-600 dark:hover:bg-green-700 text-white border-emerald-600 dark:border-green-600"
                         >
-                          {salvando === categoria.id ? "Salvando..." : "Salvar"}
+                          {salvando === categoria.id
+                            ? t("botoes.salvando")
+                            : t("botoes.salvar")}
                         </Button>
                         <Button
                           variant="outline"
@@ -662,7 +694,7 @@ export default function LimitesPage() {
                           onClick={() => setEditando(null)}
                           className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                         >
-                          Cancelar
+                          {t("botoes.cancelar")}
                         </Button>
                       </div>
                     ) : (
@@ -676,7 +708,7 @@ export default function LimitesPage() {
                         className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
                       >
                         <Plus className="mr-2 h-3 w-3" />
-                        Definir Limite
+                        {t("botoes.definirLimite")}
                       </Button>
                     )}
                   </div>
@@ -698,11 +730,10 @@ export default function LimitesPage() {
         <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white">
           <DialogHeader>
             <DialogTitle className="text-gray-900 dark:text-white">
-              Excluir Limite
+              {t("dialogs.excluirLimiteTitulo")}
             </DialogTitle>
             <DialogDescription className="text-gray-600 dark:text-gray-400">
-              Tem certeza que deseja excluir o limite desta categoria? Esta ação
-              não pode ser desfeita.
+              {t("dialogs.excluirLimiteDescricao")}
             </DialogDescription>
           </DialogHeader>
           <div className="flex gap-3 justify-end">
@@ -711,14 +742,14 @@ export default function LimitesPage() {
               onClick={() => setDialogExclusaoAberto(null)}
               className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
-              Cancelar
+              {t("botoes.cancelar")}
             </Button>
             <Button
               variant="destructive"
               onClick={() => excluirLimite(dialogExclusaoAberto!)}
               disabled={!!excluindoLimite}
             >
-              {excluindoLimite ? "Excluindo..." : "Confirmar"}
+              {excluindoLimite ? t("botoes.excluindo") : t("botoes.confirmar")}
             </Button>
           </div>
         </DialogContent>

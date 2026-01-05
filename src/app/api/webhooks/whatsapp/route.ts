@@ -713,7 +713,7 @@ async function gerarMensagemConfirmacao(
 
   // 🔥 CONSTRUIR MENSAGEM PROFISSIONAL
   let mensagem = `*📋 CONFIRMAÇÃO DE LANÇAMENTO*\n`;
-  mensagem += `━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+  mensagem += `━━━━━━━━━━━━━━\n\n`;
 
   mensagem += `*📝 Descrição:* ${descricaoLimpa}\n`;
   mensagem += `*💰 Valor:* ${valorFormatado}\n`;
@@ -767,7 +767,7 @@ async function gerarMensagemConfirmacao(
     mensagem += `*🔢 Parcelamento:* ${dados.parcelas}x de ${valorParcela.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
   }
 
-  mensagem += `\n━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+  mensagem += `\n━━━━━━━━━━━━━━\n\n`;
   mensagem += `*Por favor, confirme:*\n\n`;
   mensagem += `✅ *SIM* - Para confirmar este lançamento\n`;
   mensagem += `❌ *NÃO* - Para cancelar\n\n`;
@@ -792,7 +792,7 @@ async function gerarMensagemConfirmacaoFinal(
 
   // 🔥 VERSÃO PROFISSIONAL COM DESTAQUES
   let mensagem = `✅ *LANÇAMENTO REGISTRADO*\n`;
-  mensagem += `━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+  mensagem += `━━━━━━━━━━━━━━\n\n`;
 
   mensagem += `📝 *Descrição:* ${descricaoLimpa}\n`;
   mensagem += `💰 *Valor total:* ${valorFormatado}\n`;
@@ -846,7 +846,7 @@ async function gerarMensagemConfirmacaoFinal(
     day: "numeric",
   })}\n`;
 
-  mensagem += `\n━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  mensagem += `\n━━━━━━━━━━━━━━\n`;
   mensagem += `✨ *Obrigado por usar o BeCash!*\n`;
 
   return mensagem;

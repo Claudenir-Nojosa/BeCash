@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,17 +19,12 @@ import {
   CreditCard,
   AlertTriangle,
   Calendar,
-  DollarSign,
   TrendingUp,
-  FileText,
   Eye,
   Plus,
-  MoreVertical,
   Tag,
   Users,
   UserPlus,
-  Mail,
-  User,
   Trash2,
   Bell,
 } from "lucide-react";
@@ -62,6 +58,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FormEditarCartao } from "@/components/shared/FormEditarCartao";
 import { useSession } from "next-auth/react";
 import { ConviteColaboradorDialog } from "@/components/shared/ConviteColaboradorDialog";
+import { Loading } from "@/components/ui/loading-barrinhas";
 
 interface Cartao {
   id: string;
@@ -74,16 +71,12 @@ interface Cartao {
   ativo: boolean;
   observacoes?: string;
   userId: string;
-
-  // Informações do dono (para cartões compartilhados)
   user?: {
     id: string;
     name: string;
     email: string;
-    image?: string; // 👈 ADICIONE image AQUI
+    image?: string;
   };
-
-  // ... resto da interface permanece igual
   ehCompartilhado?: boolean;
   lancamentos: Array<{
     id: string;
@@ -103,7 +96,6 @@ interface Cartao {
       mesReferencia: string;
     } | null;
   }>;
-
   Fatura: Array<{
     id: string;
     valorTotal: number;
@@ -131,18 +123,16 @@ interface Cartao {
       observacoes?: string;
     }>;
   }>;
-
   ColaboradorCartao: Array<{
     id: string;
     user: {
       id: string;
       name: string;
       email: string;
-      image?: string; // 👈 Já está aqui
+      image?: string;
     };
     permissao: string;
   }>;
-
   ConviteCartao: Array<{
     id: string;
     emailConvidado: string;
@@ -154,6 +144,7 @@ interface Cartao {
 export default function DetalhesCartaoPage() {
   const params = useParams();
   const router = useRouter();
+  const { t, i18n } = useTranslation("cartaoDetalhes");
   const [cartao, setCartao] = useState<Cartao | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [sheetEditarAberto, setSheetEditarAberto] = useState(false);
@@ -161,8 +152,11 @@ export default function DetalhesCartaoPage() {
   const [emailConvidado, setEmailConvidado] = useState("");
   const [dialogConvidarAberto, setDialogConvidarAberto] = useState(false);
   const cartaoId = params.id as string;
-
   const session = useSession();
+
+  const getLocalizedPath = (path: string) => {
+    return `/${i18n.language}${path}`;
+  };
 
   useEffect(() => {
     if (cartaoId) {
@@ -170,9 +164,8 @@ export default function DetalhesCartaoPage() {
     }
   }, [cartaoId]);
 
-  // Função para quando o convite for enviado com sucesso
   const handleConviteEnviado = () => {
-    carregarCartao(); // Recarrega os dados
+    carregarCartao();
   };
 
   const carregarCartao = async () => {
@@ -182,11 +175,11 @@ export default function DetalhesCartaoPage() {
         const data = await response.json();
         setCartao(data);
       } else {
-        throw new Error("Erro ao carregar cartão");
+        throw new Error(t("mensagens.erroCarregar"));
       }
     } catch (error) {
-      console.error("Erro ao carregar cartão:", error);
-      toast.error("Erro ao carregar cartão");
+      console.error(t("mensagens.erroCarregar"), error);
+      toast.error(t("mensagens.erroCarregar"));
     } finally {
       setCarregando(false);
     }
@@ -196,14 +189,13 @@ export default function DetalhesCartaoPage() {
     e.preventDefault();
 
     if (!emailConvidado.trim()) {
-      toast.error("Digite um email válido");
+      toast.error(t("mensagens.emailInvalido"));
       return;
     }
 
-    // Validação básica de email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(emailConvidado)) {
-      toast.error("Digite um email válido");
+      toast.error(t("mensagens.emailInvalido"));
       return;
     }
 
@@ -216,17 +208,17 @@ export default function DetalhesCartaoPage() {
       });
 
       if (response.ok) {
-        toast.success("Convite enviado com sucesso!");
-        setEmailConvidado(""); // Limpa o input
-        setDialogConvidarAberto(false); // Fecha o dialog
-        carregarCartao(); // Recarrega os dados para mostrar o convite pendente
+        toast.success(t("mensagens.conviteEnviado"));
+        setEmailConvidado("");
+        setDialogConvidarAberto(false);
+        carregarCartao();
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Erro ao enviar convite");
+        throw new Error(errorData.error || t("mensagens.erroEnviarConvite"));
       }
     } catch (error: any) {
-      console.error("Erro ao enviar convite:", error);
-      toast.error(error.message || "Erro ao enviar convite");
+      console.error(t("mensagens.erroEnviarConvite"), error);
+      toast.error(error.message || t("mensagens.erroEnviarConvite"));
     } finally {
       setEnviandoConvite(false);
     }
@@ -234,21 +226,11 @@ export default function DetalhesCartaoPage() {
 
   const handleRemoverColaborador = async (userId: string) => {
     try {
-      console.log(
-        `Tentando remover colaborador ${userId} do cartão ${cartaoId}`
-      );
-
       const response = await fetch(
         `/api/cartoes/${cartaoId}/colaboradores/${userId}`,
-        {
-          method: "DELETE",
-        }
+        { method: "DELETE" }
       );
 
-      console.log("Status da resposta:", response.status);
-      console.log("Content-Type:", response.headers.get("content-type"));
-
-      // Verificar se a resposta é JSON
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         const textResponse = await response.text();
@@ -259,27 +241,30 @@ export default function DetalhesCartaoPage() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || "Erro ao remover colaborador");
+        throw new Error(result.error || t("mensagens.erroRemoverColaborador"));
       }
 
-      toast.success("Colaborador removido com sucesso!");
-      carregarCartao(); // Recarrega os dados
+      toast.success(t("mensagens.colaboradorRemovido"));
+      carregarCartao();
     } catch (error: any) {
-      console.error("Erro completo ao remover colaborador:", error);
-      toast.error(error.message || "Erro ao remover colaborador");
+      console.error(t("mensagens.erroRemoverColaborador"), error);
+      toast.error(error.message || t("mensagens.erroRemoverColaborador"));
     }
   };
 
   const getStatusColor = (status: string) => {
     const colors = {
-      ABERTA: "bg-blue-900/50 text-blue-300 border-blue-700",
-      FECHADA: "bg-orange-900/50 text-orange-300 border-orange-700",
-      PAGA: "bg-green-900/50 text-green-300 border-green-700",
-      VENCIDA: "bg-red-900/50 text-red-300 border-red-700",
+      ABERTA:
+        "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700",
+      FECHADA:
+        "bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-700",
+      PAGA: "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700",
+      VENCIDA:
+        "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700",
     };
     return (
       colors[status as keyof typeof colors] ||
-      "bg-gray-900/50 text-gray-300 border-gray-700"
+      "bg-gray-100 dark:bg-gray-900/50 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-700"
     );
   };
 
@@ -297,12 +282,12 @@ export default function DetalhesCartaoPage() {
     const lancamentosAtivos = cartao.lancamentos.filter(
       (l) => !l.pago && l.Fatura?.status !== "PAGA"
     );
-    const total = lancamentosAtivos.reduce((sum, l) => sum + l.valor, 0);
-    return total;
+    return lancamentosAtivos.reduce((sum, l) => sum + l.valor, 0);
   };
 
   const formatarMoeda = (valor: number) => {
-    return new Intl.NumberFormat("pt-BR", {
+    const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
+    return new Intl.NumberFormat(locale, {
       style: "currency",
       currency: "BRL",
     }).format(valor);
@@ -310,26 +295,23 @@ export default function DetalhesCartaoPage() {
 
   const formatarData = (dataString: string) => {
     if (!dataString || dataString === "Invalid Date") return "Data inválida";
+    const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
     const dataPart = dataString.substring(0, 10);
     const [ano, mes, dia] = dataPart.split("-");
     return `${dia}/${mes}/${ano}`;
   };
 
-  // Componente para mostrar colaboradores
   const ColaboradoresSection = () => {
     if (!cartao) return null;
 
-    // Verificar se o usuário atual é o dono do cartão
     const usuarioAtualEhDono = cartao.userId === session?.data?.user?.id;
-    const usuarioAtualEhColaborador = cartao.ColaboradorCartao.some(
-      (colab) => colab.user.id === session?.data?.user?.id
-    );
 
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-400">Colaboradores</p>
-          {/* Só mostrar botão de convidar se for o dono do cartão */}
+          <p className="text-sm text-gray-700 dark:text-gray-400">
+            {t("titulos.colaboradores")}
+          </p>
           {usuarioAtualEhDono && (
             <Dialog
               open={dialogConvidarAberto}
@@ -339,17 +321,19 @@ export default function DetalhesCartaoPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 px-2 text-xs border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                  className="h-8 px-2 text-xs border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
                 >
                   <UserPlus className="h-3 w-3 mr-1" />
-                  Convidar
+                  {t("botoes.convidar")}
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-gray-900 border-gray-800 text-white">
+              <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white">
                 <DialogHeader>
-                  <DialogTitle>Convidar Colaborador</DialogTitle>
-                  <DialogDescription className="text-gray-400">
-                    Envie um convite para alguém acessar este cartão
+                  <DialogTitle className="text-gray-900 dark:text-white">
+                    {t("dialogs.convidarTitulo")}
+                  </DialogTitle>
+                  <DialogDescription className="text-gray-600 dark:text-gray-400">
+                    {t("dialogs.convidarDescricao")}
                   </DialogDescription>
                 </DialogHeader>
                 <form
@@ -357,8 +341,11 @@ export default function DetalhesCartaoPage() {
                   className="space-y-4"
                 >
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-white">
-                      Email do Colaborador
+                    <Label
+                      htmlFor="email"
+                      className="text-gray-900 dark:text-white"
+                    >
+                      {t("labels.emailColaborador")}
                     </Label>
                     <Input
                       id="email"
@@ -366,7 +353,7 @@ export default function DetalhesCartaoPage() {
                       value={emailConvidado}
                       onChange={(e) => setEmailConvidado(e.target.value)}
                       placeholder="colaborador@email.com"
-                      className="bg-gray-800 border-gray-700 text-white"
+                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
                       required
                     />
                   </div>
@@ -375,16 +362,18 @@ export default function DetalhesCartaoPage() {
                       type="button"
                       variant="outline"
                       onClick={() => setDialogConvidarAberto(false)}
-                      className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                      className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                     >
-                      Cancelar
+                      {t("botoes.cancelar")}
                     </Button>
                     <Button
                       type="submit"
                       disabled={enviandoConvite}
-                      className="bg-white text-gray-900 hover:bg-gray-100"
+                      className="bg-gray-900 hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-gray-900"
                     >
-                      {enviandoConvite ? "Enviando..." : "Enviar Convite"}
+                      {enviandoConvite
+                        ? t("botoes.enviando")
+                        : t("botoes.enviarConvite")}
                     </Button>
                   </div>
                 </form>
@@ -393,10 +382,9 @@ export default function DetalhesCartaoPage() {
           )}
         </div>
 
-        {/* Lista de Colaboradores */}
         <div className="space-y-2">
           {/* Dono do Cartão */}
-          <div className="flex items-center justify-between p-2 rounded-lg bg-gray-800/30">
+          <div className="flex items-center justify-between p-2 rounded-lg bg-blue-50 dark:bg-gray-800/30 border border-blue-200 dark:border-gray-700">
             <div className="flex items-center gap-3">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={cartao.user?.image || ""} />
@@ -409,15 +397,17 @@ export default function DetalhesCartaoPage() {
                 </AvatarFallback>
               </Avatar>
               <div>
-                <p className="text-sm font-medium text-white">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
                   {cartao.user?.name || "Usuário"}
-                  {usuarioAtualEhDono && " (Você)"}
+                  {usuarioAtualEhDono && t("badges.voce")}
                 </p>
-                <p className="text-xs text-gray-400">{cartao.user?.email}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  {cartao.user?.email}
+                </p>
               </div>
             </div>
-            <Badge className="bg-blue-900/50 text-blue-300 border-blue-700">
-              Dono
+            <Badge className="bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700">
+              {t("badges.dono")}
             </Badge>
           </div>
 
@@ -428,7 +418,7 @@ export default function DetalhesCartaoPage() {
             return (
               <div
                 key={colaborador.id}
-                className="flex items-center justify-between p-2 rounded-lg bg-gray-800/30 hover:bg-gray-800/50 transition-colors"
+                className="flex items-center justify-between p-2 rounded-lg bg-green-50 dark:bg-gray-800/30 border border-green-200 dark:border-gray-700 hover:bg-green-100 dark:hover:bg-gray-800/50 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <Avatar className="h-8 w-8">
@@ -442,22 +432,21 @@ export default function DetalhesCartaoPage() {
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="text-sm font-medium text-white">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
                       {colaborador.user.name}
-                      {ehUsuarioAtual && " (Você)"}
+                      {ehUsuarioAtual && t("badges.voce")}
                     </p>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
                       {colaborador.user.email}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-green-900/50 text-green-300 border-green-700">
+                  <Badge className="bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700">
                     {colaborador.permissao === "LEITURA"
-                      ? "Colaborador"
-                      : "Escrita"}
+                      ? t("badges.colaborador")
+                      : t("badges.escrita")}
                   </Badge>
-                  {/* Só mostrar botão de remover se for o dono do cartão */}
                   {usuarioAtualEhDono && (
                     <Button
                       variant="ghost"
@@ -465,7 +454,7 @@ export default function DetalhesCartaoPage() {
                       onClick={() =>
                         handleRemoverColaborador(colaborador.user.id)
                       }
-                      className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-900/50"
+                      className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/50"
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>
@@ -475,41 +464,43 @@ export default function DetalhesCartaoPage() {
             );
           })}
 
-          {/* Convites Pendentes - Só mostrar para o dono */}
+          {/* Convites Pendentes */}
           {usuarioAtualEhDono &&
             cartao.ConviteCartao.map((convite) => (
               <div
                 key={convite.id}
-                className="flex items-center justify-between p-2 rounded-lg bg-yellow-900/20 border border-yellow-800/50"
+                className="flex items-center justify-between p-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-800/50"
               >
                 <div className="flex items-center gap-3">
                   <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-yellow-600 text-white text-xs">
+                    <AvatarFallback className="bg-yellow-500 dark:bg-yellow-600 text-white text-xs">
                       <Bell className="h-4 w-4" />
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="text-sm font-medium text-yellow-300">
+                    <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
                       {convite.emailConvidado}
                     </p>
-                    <p className="text-xs text-yellow-400">
-                      Convite pendente - Expira {formatarData(convite.expiraEm)}
+                    <p className="text-xs text-yellow-700 dark:text-yellow-400">
+                      {t("mensagens.convitePendente", {
+                        data: formatarData(convite.expiraEm),
+                      })}
                     </p>
                   </div>
                 </div>
-                <Badge className="bg-yellow-900/50 text-yellow-300 border-yellow-700">
-                  Pendente
+                <Badge className="bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700">
+                  {t("status.pendenteBadge")}
                 </Badge>
               </div>
             ))}
 
           {cartao.ColaboradorCartao.length === 0 &&
             (!usuarioAtualEhDono || cartao.ConviteCartao.length === 0) && (
-              <div className="text-center py-4 text-gray-500">
+              <div className="text-center py-4 text-gray-600 dark:text-gray-500">
                 <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Nenhum colaborador</p>
+                <p className="text-sm">{t("mensagens.nenhumColaborador")}</p>
                 {usuarioAtualEhDono && (
-                  <p className="text-xs">Convide alguém para colaborar</p>
+                  <p className="text-xs">{t("mensagens.convideAlguem")}</p>
                 )}
               </div>
             )}
@@ -519,40 +510,21 @@ export default function DetalhesCartaoPage() {
   };
 
   if (carregando) {
-    return (
-      <div className="min-h-screen p-6">
-        <div className="max-w-7xl mx-auto space-y-6">
-          <div className="flex items-center gap-4">
-            <div className="h-8 w-8 bg-gray-800 rounded-lg animate-pulse" />
-            <div className="h-8 bg-gray-800 rounded w-64 animate-pulse" />
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-4">
-              <div className="h-40 bg-gray-800 rounded-lg animate-pulse" />
-              <div className="h-96 bg-gray-800 rounded-lg animate-pulse" />
-            </div>
-            <div className="space-y-4">
-              <div className="h-48 bg-gray-800 rounded-lg animate-pulse" />
-              <div className="h-32 bg-gray-800 rounded-lg animate-pulse" />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <Loading />;
   }
 
   if (!cartao) {
     return (
       <div className="min-h-screen p-6">
         <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">
-            Cartão não encontrado
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            {t("mensagens.cartaoNaoEncontrado")}
           </h1>
           <Button
-            onClick={() => router.push("/dashboard/cartoes")}
-            className="bg-white text-gray-900 hover:bg-gray-100"
+            onClick={() => router.push(getLocalizedPath("/dashboard/cartoes"))}
+            className="bg-gray-900 hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-gray-900"
           >
-            Voltar para Cartões
+            {t("botoes.voltar")}
           </Button>
         </div>
       </div>
@@ -561,11 +533,9 @@ export default function DetalhesCartaoPage() {
 
   const utilizacao = calcularUtilizacao();
   const totalFaturaAtual = calcularTotalFaturaAtual();
-  const faturaAberta = cartao.Fatura.find((f) => f.status === "ABERTA");
   const lancamentosRecentes = cartao.lancamentos.slice(0, 10);
   const hoje = new Date();
 
-  // Encontrar a próxima fatura que ainda não venceu
   const proximaFatura = cartao.Fatura.filter(
     (fatura) => new Date(fatura.dataVencimento) >= hoje
   ).sort(
@@ -583,7 +553,9 @@ export default function DetalhesCartaoPage() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => router.push("/dashboard/cartoes")}
+              onClick={() =>
+                router.push(getLocalizedPath("/dashboard/cartoes"))
+              }
               className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -599,7 +571,7 @@ export default function DetalhesCartaoPage() {
                 </h1>
                 {cartao.ehCompartilhado && cartao.user && (
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Compartilhado por {cartao.user.name}
+                    {t("labels.compartilhadoPor", { nome: cartao.user.name })}
                   </p>
                 )}
               </div>
@@ -610,12 +582,14 @@ export default function DetalhesCartaoPage() {
             <Button
               variant="outline"
               onClick={() =>
-                router.push(`/dashboard/cartoes/${cartaoId}/faturas`)
+                router.push(
+                  getLocalizedPath(`/dashboard/cartoes/${cartaoId}/faturas`)
+                )
               }
               className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
             >
               <Eye className="h-4 w-4 mr-2" />
-              Ver Faturas
+              {t("botoes.verFaturas")}
             </Button>
             <Button
               variant="outline"
@@ -623,7 +597,7 @@ export default function DetalhesCartaoPage() {
               className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
             >
               <Edit className="h-4 w-4 mr-2" />
-              Editar Cartão
+              {t("botoes.editarCartao")}
             </Button>
           </div>
         </div>
@@ -637,14 +611,14 @@ export default function DetalhesCartaoPage() {
                 <div className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800">
                   <CreditCard className="h-4 w-4 text-gray-700 dark:text-gray-300" />
                 </div>
-                Informações do Cartão
+                {t("titulos.informacoes")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3">
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Bandeira
+                    {t("labels.bandeira")}
                   </p>
                   <p className="text-gray-900 dark:text-white capitalize">
                     {cartao.bandeira.toLowerCase()}
@@ -652,7 +626,7 @@ export default function DetalhesCartaoPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Limite Total
+                    {t("labels.limiteTotal")}
                   </p>
                   <p className="text-xl font-bold text-gray-900 dark:text-white">
                     {formatarMoeda(cartao.limite)}
@@ -661,25 +635,24 @@ export default function DetalhesCartaoPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Fechamento
+                      {t("labels.fechamento")}
                     </p>
                     <p className="text-gray-900 dark:text-white flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
-                      Dia {cartao.diaFechamento}
+                      {t("labels.dia", { dia: cartao.diaFechamento })}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Vencimento
+                      {t("labels.vencimento")}
                     </p>
                     <p className="text-gray-900 dark:text-white flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
-                      Dia {cartao.diaVencimento}
+                      {t("labels.dia", { dia: cartao.diaVencimento })}
                     </p>
                   </div>
                 </div>
 
-                {/* 👇 SEÇÃO DE COLABORADORES ADICIONADA AQUI */}
                 <div className="pt-3 border-t border-gray-200 dark:border-gray-800">
                   <ColaboradoresSection />
                 </div>
@@ -687,7 +660,7 @@ export default function DetalhesCartaoPage() {
                 {cartao.observacoes && (
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Observações
+                      {t("labels.observacoes")}
                     </p>
                     <p className="text-sm text-gray-700 dark:text-gray-300">
                       {cartao.observacoes}
@@ -699,10 +672,12 @@ export default function DetalhesCartaoPage() {
               <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
                 <Button
                   className="w-full bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white"
-                  onClick={() => router.push("/dashboard/lancamentos/")}
+                  onClick={() =>
+                    router.push(getLocalizedPath("/dashboard/lancamentos/"))
+                  }
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Novo Lançamento
+                  {t("botoes.novoLancamento")}
                 </Button>
               </div>
             </CardContent>
@@ -715,14 +690,14 @@ export default function DetalhesCartaoPage() {
                 <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/30">
                   <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 </div>
-                Status do Limite
+                {t("titulos.statusLimite")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Utilizado
+                    {t("labels.utilizado")}
                   </p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
                     {formatarMoeda(totalFaturaAtual)}
@@ -730,7 +705,7 @@ export default function DetalhesCartaoPage() {
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Disponível
+                    {t("labels.disponivel")}
                   </p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
                     {formatarMoeda(cartao.limite - totalFaturaAtual)}
@@ -738,11 +713,10 @@ export default function DetalhesCartaoPage() {
                 </div>
               </div>
 
-              {/* Barra de progresso */}
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600 dark:text-gray-400">
-                    Utilização do limite
+                    {t("labels.utilizacaoLimite")}
                   </span>
                   <span
                     className={`font-medium ${
@@ -781,8 +755,8 @@ export default function DetalhesCartaoPage() {
                   <AlertTriangle className="h-4 w-4" />
                   <span className="text-sm font-medium">
                     {utilizacao >= 90
-                      ? "Limite quase esgotado - considere reduzir gastos"
-                      : "Limite elevado - atenção aos próximos gastos"}
+                      ? t("alertas.limiteCritico")
+                      : t("alertas.limiteElevado")}
                   </span>
                 </div>
               )}
@@ -792,7 +766,7 @@ export default function DetalhesCartaoPage() {
                 <div className="pt-4 border-t border-gray-200 dark:border-gray-800 space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600 dark:text-gray-400">
-                      Próxima fatura:
+                      {t("labels.proximaFatura")}
                     </span>
                     <span className="text-lg font-bold text-gray-900 dark:text-white">
                       {formatarMoeda(proximaFatura.valorTotal)}
@@ -800,7 +774,7 @@ export default function DetalhesCartaoPage() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600 dark:text-gray-400">
-                      Vencimento:
+                      {t("labels.vencimento")}
                     </span>
                     <span className="text-gray-900 dark:text-white">
                       {formatarData(proximaFatura.dataVencimento)}
@@ -808,16 +782,16 @@ export default function DetalhesCartaoPage() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600 dark:text-gray-400">
-                      Status:
+                      {t("labels.status")}
                     </span>
                     <Badge className={getStatusColor(proximaFatura.status)}>
                       {proximaFatura.status === "ABERTA"
-                        ? "Em aberto"
+                        ? t("status.aberta")
                         : proximaFatura.status === "FECHADA"
-                          ? "Fechada"
+                          ? t("status.fechada")
                           : proximaFatura.status === "PAGA"
-                            ? "Paga"
-                            : "Vencida"}
+                            ? t("status.paga")
+                            : t("status.vencida")}
                     </Badge>
                   </div>
                 </div>
@@ -829,10 +803,10 @@ export default function DetalhesCartaoPage() {
           <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardHeader>
               <CardTitle className="text-gray-900 dark:text-white">
-                Despesas por Categoria
+                {t("titulos.despesasCategoria")}
               </CardTitle>
               <CardDescription className="text-gray-600 dark:text-gray-400">
-                Distribuição dos gastos por categoria
+                {t("subtitulos.distribuicaoGastos")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -873,8 +847,8 @@ export default function DetalhesCartaoPage() {
                 if (rankingCategorias.length === 0) {
                   return (
                     <div className="text-center py-4">
-                      <p className="text-gray-500 dark:text-gray-400">
-                        Nenhuma despesa encontrada
+                      <p className="text-gray-700 dark:text-gray-400">
+                        {t("mensagens.nenhumaDespesa")}
                       </p>
                     </div>
                   );
@@ -965,7 +939,7 @@ export default function DetalhesCartaoPage() {
                     router.push(`/dashboard/relatorios?cartaoId=${cartaoId}`)
                   }
                 >
-                  Ver Relatório Completo
+                  {t("botoes.verRelatorioCompleto")}
                 </Button>
               </div>
             </CardContent>
@@ -976,10 +950,12 @@ export default function DetalhesCartaoPage() {
         <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
           <CardHeader>
             <CardTitle className="text-gray-900 dark:text-white">
-              Lançamentos Recentes
+              {t("titulos.lancamentosRecentes")}
             </CardTitle>
             <CardDescription className="text-gray-600 dark:text-gray-400">
-              {cartao.lancamentos.length} lançamentos realizados
+              {t("subtitulos.totalLancamentos", {
+                count: cartao.lancamentos.length,
+              })}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -987,7 +963,7 @@ export default function DetalhesCartaoPage() {
               <div className="text-center py-8">
                 <CreditCard className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                 <p className="text-gray-600 dark:text-gray-400">
-                  Nenhum lançamento encontrado
+                  {t("mensagens.nenhumLancamento")}
                 </p>
                 <Button
                   className="mt-4 bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white"
@@ -998,7 +974,7 @@ export default function DetalhesCartaoPage() {
                   }
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Adicionar Primeiro Lançamento
+                  {t("botoes.adicionarPrimeiro")}
                 </Button>
               </div>
             ) : (
@@ -1007,19 +983,19 @@ export default function DetalhesCartaoPage() {
                   <TableHeader>
                     <TableRow className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-800">
                       <TableHead className="text-gray-700 dark:text-gray-300">
-                        Descrição
+                        {t("labels.descricao")}
                       </TableHead>
                       <TableHead className="text-gray-700 dark:text-gray-300">
-                        Data
+                        {t("labels.data")}
                       </TableHead>
                       <TableHead className="text-gray-700 dark:text-gray-300">
-                        Valor
+                        {t("labels.valor")}
                       </TableHead>
                       <TableHead className="text-gray-700 dark:text-gray-300">
-                        Status
+                        {t("labels.status")}
                       </TableHead>
                       <TableHead className="text-gray-700 dark:text-gray-300">
-                        Fatura
+                        {t("labels.fatura")}
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1047,7 +1023,9 @@ export default function DetalhesCartaoPage() {
                                 : "bg-amber-100 dark:bg-yellow-900/50 text-amber-700 dark:text-yellow-300 border-amber-200 dark:border-yellow-700"
                             }
                           >
-                            {lancamento.pago ? "Pago" : "Pendente"}
+                            {lancamento.pago
+                              ? t("status.pago")
+                              : t("status.pendenteBadge")}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-gray-600 dark:text-gray-300">
@@ -1079,7 +1057,7 @@ export default function DetalhesCartaoPage() {
                   router.push(`/dashboard/lancamentos?cartaoId=${cartaoId}`)
                 }
               >
-                Ver todos os lançamentos
+                {t("botoes.verTodosLancamentos")}
               </Button>
             )}
           </CardContent>
@@ -1090,10 +1068,10 @@ export default function DetalhesCartaoPage() {
         <SheetContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white overflow-y-auto w-full sm:max-w-2xl">
           <SheetHeader className="mb-6">
             <SheetTitle className="text-gray-900 dark:text-white">
-              Editar Cartão
+              {t("titulos.editarCartao")}
             </SheetTitle>
             <SheetDescription className="text-gray-600 dark:text-gray-400">
-              Atualize as informações do seu cartão
+              {t("subtitulos.atualizarInformacoes")}
             </SheetDescription>
           </SheetHeader>
 

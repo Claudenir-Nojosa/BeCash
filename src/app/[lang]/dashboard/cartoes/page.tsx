@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,7 +24,6 @@ import {
   MoreVertical,
   Eye,
   FileText,
-  ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -57,6 +57,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Loading } from "@/components/ui/loading-barrinhas";
 
 interface Cartao {
   faturaAtual: any;
@@ -81,26 +82,9 @@ interface Cartao {
   utilizacaoLimite?: number;
 }
 
-const BANDEIRAS = [
-  { value: "VISA", label: "Visa" },
-  { value: "MASTERCARD", label: "Mastercard" },
-  { value: "ELO", label: "Elo" },
-  { value: "AMERICAN_EXPRESS", label: "American Express" },
-  { value: "HIPERCARD", label: "Hipercard" },
-  { value: "OUTROS", label: "Outros" },
-];
-
-const CORES = [
-  { value: "#3B82F6", label: "Azul" },
-  { value: "#EF4444", label: "Vermelho" },
-  { value: "#10B981", label: "Verde" },
-  { value: "#F59E0B", label: "Amarelo" },
-  { value: "#8B5CF6", label: "Roxo" },
-  { value: "#EC4899", label: "Rosa" },
-];
-
 export default function CartoesPage() {
   const router = useRouter();
+  const { t, i18n } = useTranslation("cartoes");
   const [cartoes, setCartoes] = useState<Cartao[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [excluindo, setExcluindo] = useState<string | null>(null);
@@ -109,7 +93,7 @@ export default function CartoesPage() {
   >(null);
   const [sheetAberto, setSheetAberto] = useState(false);
   const [enviando, setEnviando] = useState(false);
-  const [dropdownAberto, setDropdownAberto] = useState<string | null>(null); // 👈 NOVO ESTADO
+  const [dropdownAberto, setDropdownAberto] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     nome: "",
@@ -120,6 +104,28 @@ export default function CartoesPage() {
     cor: "#3B82F6",
     observacoes: "",
   });
+
+  const BANDEIRAS = [
+    { value: "VISA", label: t("bandeiras.VISA") },
+    { value: "MASTERCARD", label: t("bandeiras.MASTERCARD") },
+    { value: "ELO", label: t("bandeiras.ELO") },
+    { value: "AMERICAN_EXPRESS", label: t("bandeiras.AMERICAN_EXPRESS") },
+    { value: "HIPERCARD", label: t("bandeiras.HIPERCARD") },
+    { value: "OUTROS", label: t("bandeiras.OUTROS") },
+  ];
+
+  const CORES = [
+    { value: "#3B82F6", label: t("cores.#3B82F6") },
+    { value: "#EF4444", label: t("cores.#EF4444") },
+    { value: "#10B981", label: t("cores.#10B981") },
+    { value: "#F59E0B", label: t("cores.#F59E0B") },
+    { value: "#8B5CF6", label: t("cores.#8B5CF6") },
+    { value: "#EC4899", label: t("cores.#EC4899") },
+  ];
+
+  const getLocalizedPath = (path: string) => {
+    return `/${i18n.language}${path}`;
+  };
 
   useEffect(() => {
     carregarCartoes();
@@ -132,12 +138,11 @@ export default function CartoesPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Erro ao carregar cartões");
+        throw new Error(errorData.error || t("mensagens.erroCarregar"));
       }
 
       const data = await response.json();
 
-      // Para cada cartão, carregar o limite real (opcional)
       const cartoesComLimiteReal = await Promise.all(
         data.map(async (cartao: Cartao) => {
           try {
@@ -165,9 +170,9 @@ export default function CartoesPage() {
 
       setCartoes(cartoesComLimiteReal);
     } catch (error) {
-      console.error("Erro ao carregar cartões:", error);
+      console.error(t("mensagens.erroCarregar"), error);
       toast.error(
-        error instanceof Error ? error.message : "Erro ao carregar cartões"
+        error instanceof Error ? error.message : t("mensagens.erroCarregar")
       );
     } finally {
       setCarregando(false);
@@ -176,13 +181,11 @@ export default function CartoesPage() {
 
   const handleDeletarCartao = async (cartaoId: string) => {
     setExcluindo(cartaoId);
-    setDropdownAberto(null); // 👈 FECHA QUALQUER DROPDOWN ABERTO
+    setDropdownAberto(null);
 
-    // Salva o cartão para possível rollback
     const cartaoParaExcluir = cartoes.find((cartao) => cartao.id === cartaoId);
 
     try {
-      // Remove da lista imediatamente
       setCartoes((prev) => prev.filter((cartao) => cartao.id !== cartaoId));
       setDialogExclusaoAberto(null);
 
@@ -192,17 +195,16 @@ export default function CartoesPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Erro ao excluir cartão");
+        throw new Error(errorData.error || t("mensagens.erroExcluir"));
       }
 
-      toast.success("Cartão excluído com sucesso");
+      toast.success(t("mensagens.excluido"));
     } catch (error) {
-      console.error("Erro ao excluir cartão:", error);
+      console.error(t("mensagens.erroExcluir"), error);
       toast.error(
-        error instanceof Error ? error.message : "Erro ao excluir cartão"
+        error instanceof Error ? error.message : t("mensagens.erroExcluir")
       );
 
-      // Reverte se der erro
       if (cartaoParaExcluir) {
         setCartoes((prev) => [...prev, cartaoParaExcluir]);
       }
@@ -229,12 +231,11 @@ export default function CartoesPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Erro ao criar cartão");
+        throw new Error(errorData.error || t("mensagens.erroCriar"));
       }
 
-      toast.success("Cartão criado com sucesso!");
+      toast.success(t("mensagens.criado"));
 
-      // Fecha o sheet e reseta o formulário
       setSheetAberto(false);
       setFormData({
         nome: "",
@@ -246,10 +247,9 @@ export default function CartoesPage() {
         observacoes: "",
       });
 
-      // Recarrega a lista de cartões
       carregarCartoes();
     } catch (error: any) {
-      toast.error(error.message || "Erro ao criar cartão");
+      toast.error(error.message || t("mensagens.erroCriar"));
       console.error(error);
     } finally {
       setEnviando(false);
@@ -267,11 +267,192 @@ export default function CartoesPage() {
   };
 
   const formatarMoeda = (valor: number) => {
-    return new Intl.NumberFormat("pt-BR", {
+    const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
+    return new Intl.NumberFormat(locale, {
       style: "currency",
       currency: "BRL",
     }).format(valor);
   };
+
+  const FormularioCartao = () => (
+    <form onSubmit={handleCriarCartao} className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Label htmlFor="nome" className="text-gray-700 dark:text-gray-300">
+            {t("formulario.nomeLabel")}
+          </Label>
+          <Input
+            id="nome"
+            value={formData.nome}
+            onChange={(e) => handleChange("nome", e.target.value)}
+            placeholder={t("formulario.nomePlaceholder")}
+            className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label
+            htmlFor="bandeira"
+            className="text-gray-700 dark:text-gray-300"
+          >
+            {t("formulario.bandeiraLabel")}
+          </Label>
+          <Select
+            value={formData.bandeira}
+            onValueChange={(value) => handleChange("bandeira", value)}
+            required
+          >
+            <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
+              <SelectValue placeholder={t("formulario.bandeiraPlaceholder")} />
+            </SelectTrigger>
+            <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+              {BANDEIRAS.map((bandeira) => (
+                <SelectItem key={bandeira.value} value={bandeira.value}>
+                  {bandeira.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="limite" className="text-gray-700 dark:text-gray-300">
+          {t("formulario.limiteLabel")}
+        </Label>
+        <Input
+          id="limite"
+          type="number"
+          step="0.01"
+          min="0"
+          value={formData.limite}
+          onChange={(e) => handleChange("limite", e.target.value)}
+          placeholder={t("formulario.limitePlaceholder")}
+          className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
+          required
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Label
+            htmlFor="diaFechamento"
+            className="text-gray-700 dark:text-gray-300"
+          >
+            {t("formulario.diaFechamentoLabel")}
+          </Label>
+          <Input
+            id="diaFechamento"
+            type="number"
+            min="1"
+            max="31"
+            value={formData.diaFechamento}
+            onChange={(e) => handleChange("diaFechamento", e.target.value)}
+            placeholder={t("formulario.diaFechamentoPlaceholder")}
+            className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
+            required
+          />
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {t("formulario.diaFechamentoHelper")}
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label
+            htmlFor="diaVencimento"
+            className="text-gray-700 dark:text-gray-300"
+          >
+            {t("formulario.diaVencimentoLabel")}
+          </Label>
+          <Input
+            id="diaVencimento"
+            type="number"
+            min="1"
+            max="31"
+            value={formData.diaVencimento}
+            onChange={(e) => handleChange("diaVencimento", e.target.value)}
+            placeholder={t("formulario.diaVencimentoPlaceholder")}
+            className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
+            required
+          />
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {t("formulario.diaVencimentoHelper")}
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="cor" className="text-gray-700 dark:text-gray-300">
+          {t("formulario.corLabel")}
+        </Label>
+        <Select
+          value={formData.cor}
+          onValueChange={(value) => handleChange("cor", value)}
+        >
+          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
+            <SelectValue placeholder={t("formulario.corPlaceholder")} />
+          </SelectTrigger>
+          <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+            {CORES.map((cor) => (
+              <SelectItem key={cor.value} value={cor.value}>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-4 h-4 rounded-full border border-gray-300 dark:border-gray-600"
+                    style={{ backgroundColor: cor.value }}
+                  />
+                  {cor.label}
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label
+          htmlFor="observacoes"
+          className="text-gray-700 dark:text-gray-300"
+        >
+          {t("formulario.observacoesLabel")}
+        </Label>
+        <Textarea
+          id="observacoes"
+          value={formData.observacoes}
+          onChange={(e) => handleChange("observacoes", e.target.value)}
+          placeholder={t("formulario.observacoesPlaceholder")}
+          rows={3}
+          className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
+        />
+      </div>
+
+      <div className="flex gap-4 pt-4">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setSheetAberto(false)}
+          className="flex-1 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+        >
+          {t("botoes.cancelar")}
+        </Button>
+        <Button
+          type="submit"
+          disabled={enviando}
+          className="flex-1 bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white"
+        >
+          {enviando ? t("estados.criando") : t("botoes.criar")}
+        </Button>
+      </div>
+    </form>
+  );
+
+  if (carregando) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loading />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-4 sm:p-6 bg-white dark:bg-transparent">
@@ -281,10 +462,10 @@ export default function CartoesPage() {
           <div className="flex items-center gap-3">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-                Cartões
+                {t("titulo")}
               </h1>
               <p className="text-gray-600 dark:text-gray-300">
-                Gerencie seus cartões de crédito e débito
+                {t("subtitulo")}
               </p>
             </div>
           </div>
@@ -297,449 +478,52 @@ export default function CartoesPage() {
                   className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-500"
                 >
                   <Plus className="mr-2 h-4 w-4" />
-                  Novo Cartão
+                  {t("botoes.novoCartao")}
                 </Button>
               </SheetTrigger>
               <SheetContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white overflow-y-auto">
                 <SheetHeader className="mb-6">
                   <SheetTitle className="text-gray-900 dark:text-white">
-                    Novo Cartão
+                    {t("formulario.tituloNovo")}
                   </SheetTitle>
                   <SheetDescription className="text-gray-600 dark:text-gray-400">
-                    Adicione um novo cartão para gerenciar seus gastos
+                    {t("formulario.descricaoNovo")}
                   </SheetDescription>
                 </SheetHeader>
-
-                <form onSubmit={handleCriarCartao} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="nome"
-                        className="text-gray-700 dark:text-gray-300"
-                      >
-                        Nome do Cartão *
-                      </Label>
-                      <Input
-                        id="nome"
-                        value={formData.nome}
-                        onChange={(e) => handleChange("nome", e.target.value)}
-                        placeholder="Ex: Nubank, Itaú Platinum..."
-                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="bandeira"
-                        className="text-gray-700 dark:text-gray-300"
-                      >
-                        Bandeira *
-                      </Label>
-                      <Select
-                        value={formData.bandeira}
-                        onValueChange={(value) =>
-                          handleChange("bandeira", value)
-                        }
-                        required
-                      >
-                        <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
-                          <SelectValue placeholder="Selecione a bandeira" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
-                          {BANDEIRAS.map((bandeira) => (
-                            <SelectItem
-                              key={bandeira.value}
-                              value={bandeira.value}
-                            >
-                              {bandeira.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="limite"
-                      className="text-gray-700 dark:text-gray-300"
-                    >
-                      Limite do Cartão *
-                    </Label>
-                    <Input
-                      id="limite"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={formData.limite}
-                      onChange={(e) => handleChange("limite", e.target.value)}
-                      placeholder="0,00"
-                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="diaFechamento"
-                        className="text-gray-700 dark:text-gray-300"
-                      >
-                        Dia de Fechamento *
-                      </Label>
-                      <Input
-                        id="diaFechamento"
-                        type="number"
-                        min="1"
-                        max="31"
-                        value={formData.diaFechamento}
-                        onChange={(e) =>
-                          handleChange("diaFechamento", e.target.value)
-                        }
-                        placeholder="1-31"
-                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
-                        required
-                      />
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Dia que a fatura fecha
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="diaVencimento"
-                        className="text-gray-700 dark:text-gray-300"
-                      >
-                        Dia de Vencimento *
-                      </Label>
-                      <Input
-                        id="diaVencimento"
-                        type="number"
-                        min="1"
-                        max="31"
-                        value={formData.diaVencimento}
-                        onChange={(e) =>
-                          handleChange("diaVencimento", e.target.value)
-                        }
-                        placeholder="1-31"
-                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
-                        required
-                      />
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Dia que a fatura vence
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="cor"
-                      className="text-gray-700 dark:text-gray-300"
-                    >
-                      Cor de Identificação
-                    </Label>
-                    <Select
-                      value={formData.cor}
-                      onValueChange={(value) => handleChange("cor", value)}
-                    >
-                      <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
-                        <SelectValue placeholder="Selecione uma cor" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
-                        {CORES.map((cor) => (
-                          <SelectItem key={cor.value} value={cor.value}>
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="w-4 h-4 rounded-full border border-gray-300 dark:border-gray-600"
-                                style={{ backgroundColor: cor.value }}
-                              />
-                              {cor.label}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="observacoes"
-                      className="text-gray-700 dark:text-gray-300"
-                    >
-                      Observações
-                    </Label>
-                    <Textarea
-                      id="observacoes"
-                      value={formData.observacoes}
-                      onChange={(e) =>
-                        handleChange("observacoes", e.target.value)
-                      }
-                      placeholder="Observações sobre o cartão..."
-                      rows={3}
-                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
-                    />
-                  </div>
-
-                  <div className="flex gap-4 pt-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setSheetAberto(false)}
-                      className="flex-1 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                    >
-                      Cancelar
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={enviando}
-                      className="flex-1 bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white"
-                    >
-                      {enviando ? "Criando..." : "Criar Cartão"}
-                    </Button>
-                  </div>
-                </form>
+                <FormularioCartao />
               </SheetContent>
             </Sheet>
           </div>
         </div>
 
         {/* Grid de Cartões */}
-        {carregando ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Card
-                key={i}
-                className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm"
-              >
-                <CardContent className="p-6">
-                  <Skeleton className="h-6 w-3/4 mb-4 bg-gray-200 dark:bg-gray-800" />
-                  <Skeleton className="h-4 w-full mb-2 bg-gray-200 dark:bg-gray-800" />
-                  <Skeleton className="h-4 w-2/3 mb-4 bg-gray-200 dark:bg-gray-800" />
-                  <Skeleton className="h-2 w-full mb-2 bg-gray-200 dark:bg-gray-800" />
-                  <Skeleton className="h-4 w-1/2 bg-gray-200 dark:bg-gray-800" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : cartoes.length === 0 ? (
+        {cartoes.length === 0 ? (
           <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <CreditCard className="h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                Nenhum cartão cadastrado
+                {t("mensagens.nenhumCartao")}
               </h3>
               <p className="text-gray-600 dark:text-gray-400 text-center mb-6">
-                Comece cadastrando seu primeiro cartão para acompanhar seus
-                gastos.
+                {t("mensagens.nenhumCartaoDescricao")}
               </p>
               <Sheet>
                 <SheetTrigger asChild>
                   <Button className="bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white">
                     <Plus className="mr-2 h-4 w-4" />
-                    Cadastrar Primeiro Cartão
+                    {t("botoes.cadastrarPrimeiro")}
                   </Button>
                 </SheetTrigger>
                 <SheetContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white overflow-y-auto">
                   <SheetHeader className="mb-6">
                     <SheetTitle className="text-gray-900 dark:text-white">
-                      Novo Cartão
+                      {t("formulario.tituloNovo")}
                     </SheetTitle>
                     <SheetDescription className="text-gray-600 dark:text-gray-400">
-                      Adicione um novo cartão para gerenciar seus gastos
+                      {t("formulario.descricaoNovo")}
                     </SheetDescription>
                   </SheetHeader>
-
-                  <form onSubmit={handleCriarCartao} className="space-y-6">
-                    {/* Formulário igual ao de cima */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="nome"
-                          className="text-gray-700 dark:text-gray-300"
-                        >
-                          Nome do Cartão *
-                        </Label>
-                        <Input
-                          id="nome"
-                          value={formData.nome}
-                          onChange={(e) => handleChange("nome", e.target.value)}
-                          placeholder="Ex: Nubank, Itaú Platinum..."
-                          className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
-                          required
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="bandeira"
-                          className="text-gray-700 dark:text-gray-300"
-                        >
-                          Bandeira *
-                        </Label>
-                        <Select
-                          value={formData.bandeira}
-                          onValueChange={(value) =>
-                            handleChange("bandeira", value)
-                          }
-                          required
-                        >
-                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
-                            <SelectValue placeholder="Selecione a bandeira" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
-                            {BANDEIRAS.map((bandeira) => (
-                              <SelectItem
-                                key={bandeira.value}
-                                value={bandeira.value}
-                              >
-                                {bandeira.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="limite"
-                        className="text-gray-700 dark:text-gray-300"
-                      >
-                        Limite do Cartão *
-                      </Label>
-                      <Input
-                        id="limite"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={formData.limite}
-                        onChange={(e) => handleChange("limite", e.target.value)}
-                        placeholder="0,00"
-                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
-                        required
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="diaFechamento"
-                          className="text-gray-700 dark:text-gray-300"
-                        >
-                          Dia de Fechamento *
-                        </Label>
-                        <Input
-                          id="diaFechamento"
-                          type="number"
-                          min="1"
-                          max="31"
-                          value={formData.diaFechamento}
-                          onChange={(e) =>
-                            handleChange("diaFechamento", e.target.value)
-                          }
-                          placeholder="1-31"
-                          className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
-                          required
-                        />
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Dia que a fatura fecha
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="diaVencimento"
-                          className="text-gray-700 dark:text-gray-300"
-                        >
-                          Dia de Vencimento *
-                        </Label>
-                        <Input
-                          id="diaVencimento"
-                          type="number"
-                          min="1"
-                          max="31"
-                          value={formData.diaVencimento}
-                          onChange={(e) =>
-                            handleChange("diaVencimento", e.target.value)
-                          }
-                          placeholder="1-31"
-                          className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
-                          required
-                        />
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Dia que a fatura vence
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="cor"
-                        className="text-gray-700 dark:text-gray-300"
-                      >
-                        Cor de Identificação
-                      </Label>
-                      <Select
-                        value={formData.cor}
-                        onValueChange={(value) => handleChange("cor", value)}
-                      >
-                        <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
-                          <SelectValue placeholder="Selecione uma cor" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
-                          {CORES.map((cor) => (
-                            <SelectItem key={cor.value} value={cor.value}>
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="w-4 h-4 rounded-full border border-gray-300 dark:border-gray-600"
-                                  style={{ backgroundColor: cor.value }}
-                                />
-                                {cor.label}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="observacoes"
-                        className="text-gray-700 dark:text-gray-300"
-                      >
-                        Observações
-                      </Label>
-                      <Textarea
-                        id="observacoes"
-                        value={formData.observacoes}
-                        onChange={(e) =>
-                          handleChange("observacoes", e.target.value)
-                        }
-                        placeholder="Observações sobre o cartão..."
-                        rows={3}
-                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
-                      />
-                    </div>
-
-                    <div className="flex gap-4 pt-4">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setSheetAberto(false)}
-                        className="flex-1 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                      >
-                        Cancelar
-                      </Button>
-                      <Button
-                        type="submit"
-                        disabled={enviando}
-                        className="flex-1 bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white"
-                      >
-                        {enviando ? "Criando..." : "Criar Cartão"}
-                      </Button>
-                    </div>
-                  </form>
+                  <FormularioCartao />
                 </SheetContent>
               </Sheet>
             </CardContent>
@@ -766,11 +550,10 @@ export default function CartoesPage() {
                           {cartao.nome}
                         </CardTitle>
                         <CardDescription className="text-gray-600 dark:text-gray-400">
-                          {cartao.bandeira}
+                          {t(`bandeiras.${cartao.bandeira}`)}
                         </CardDescription>
                       </div>
 
-                      {/* DropdownMenu Corrigido */}
                       <DropdownMenu
                         open={dropdownAberto === cartao.id}
                         onOpenChange={(open) => {
@@ -797,37 +580,45 @@ export default function CartoesPage() {
                         >
                           <DropdownMenuItem
                             onClick={() => {
-                              router.push(`/dashboard/cartoes/${cartao.id}`);
+                              router.push(
+                                getLocalizedPath(
+                                  `/dashboard/cartoes/${cartao.id}`
+                                )
+                              );
                               setDropdownAberto(null);
                             }}
                             className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                           >
                             <Eye className="h-4 w-4" />
-                            Ver Detalhes
+                            {t("menu.verDetalhes")}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
                               router.push(
-                                `/dashboard/cartoes/${cartao.id}/faturas`
+                                getLocalizedPath(
+                                  `/dashboard/cartoes/${cartao.id}/faturas`
+                                )
                               );
                               setDropdownAberto(null);
                             }}
                             className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                           >
                             <FileText className="h-4 w-4" />
-                            Ver Faturas
+                            {t("menu.verFaturas")}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
                               router.push(
-                                `/dashboard/cartoes/${cartao.id}/editar`
+                                getLocalizedPath(
+                                  `/dashboard/cartoes/${cartao.id}/editar`
+                                )
                               );
                               setDropdownAberto(null);
                             }}
                             className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                           >
                             <Edit className="h-4 w-4" />
-                            Editar
+                            {t("menu.editar")}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
@@ -837,7 +628,7 @@ export default function CartoesPage() {
                             className="flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 cursor-pointer"
                           >
                             <Trash2 className="h-4 w-4" />
-                            Excluir
+                            {t("menu.excluir")}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -847,7 +638,7 @@ export default function CartoesPage() {
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600 dark:text-gray-400">
-                          Limite:
+                          {t("cartao.limite")}
                         </span>
                         <span className="font-medium text-gray-900 dark:text-white">
                           {formatarMoeda(cartao.limite)}
@@ -855,7 +646,7 @@ export default function CartoesPage() {
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600 dark:text-gray-400">
-                          Utilizado:
+                          {t("cartao.utilizado")}
                         </span>
                         <span className="font-medium text-gray-900 dark:text-white">
                           {formatarMoeda(cartao.totalGasto || 0)}
@@ -863,7 +654,7 @@ export default function CartoesPage() {
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600 dark:text-gray-400">
-                          Disponível:
+                          {t("cartao.disponivel")}
                         </span>
                         <span className="font-medium text-gray-900 dark:text-white">
                           {formatarMoeda(
@@ -876,7 +667,7 @@ export default function CartoesPage() {
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600 dark:text-gray-400">
-                          Utilização:
+                          {t("cartao.utilizacao")}
                         </span>
                         <span className="font-medium text-gray-900 dark:text-white">
                           {Math.round(cartao.utilizacaoLimite || 0)}%
@@ -916,27 +707,28 @@ export default function CartoesPage() {
                                 : "text-emerald-600 dark:text-green-400"
                           }
                         >
-                          {status === "critico"
-                            ? "Limite crítico"
-                            : status === "alerta"
-                              ? "Atenção"
-                              : "Dentro do limite"}
+                          {t(`status.${status}`)}
                         </span>
                       </div>
                       <Badge
                         variant="outline"
                         className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700"
                       >
-                        {cartao._count?.lancamentos || 0} lançamentos
+                        {t("cartao.lancamentos", {
+                          count: cartao._count?.lancamentos || 0,
+                        })}
                       </Badge>
                     </div>
 
                     <div className="flex justify-between text-xs text-gray-500 dark:text-gray-500 pt-2 border-t border-gray-200 dark:border-gray-800">
-                      <span>Fechamento: dia {cartao.diaFechamento}</span>
-                      <span>Vencimento: dia {cartao.diaVencimento}</span>
+                      <span>
+                        {t("cartao.fechamento", { dia: cartao.diaFechamento })}
+                      </span>
+                      <span>
+                        {t("cartao.vencimento", { dia: cartao.diaVencimento })}
+                      </span>
                     </div>
 
-                    {/* Botões de ação rápida */}
                     <div className="flex gap-2 pt-2">
                       <Button
                         variant="outline"
@@ -944,11 +736,13 @@ export default function CartoesPage() {
                         className="flex-1 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
                         onClick={(e) => {
                           e.stopPropagation();
-                          router.push(`/dashboard/cartoes/${cartao.id}`);
+                          router.push(
+                            getLocalizedPath(`/dashboard/cartoes/${cartao.id}`)
+                          );
                         }}
                       >
                         <Eye className="w-3 h-3 mr-1" />
-                        Detalhes
+                        {t("botoes.detalhes")}
                       </Button>
                       <Button
                         variant="outline"
@@ -957,12 +751,14 @@ export default function CartoesPage() {
                         onClick={(e) => {
                           e.stopPropagation();
                           router.push(
-                            `/dashboard/cartoes/${cartao.id}/faturas`
+                            getLocalizedPath(
+                              `/dashboard/cartoes/${cartao.id}/faturas`
+                            )
                           );
                         }}
                       >
                         <FileText className="w-3 h-3 mr-1" />
-                        Faturas
+                        {t("botoes.faturas")}
                       </Button>
                     </div>
                   </CardContent>
@@ -981,11 +777,10 @@ export default function CartoesPage() {
         <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white">
           <DialogHeader>
             <DialogTitle className="text-gray-900 dark:text-white">
-              Excluir Cartão
+              {t("confirmacao.titulo")}
             </DialogTitle>
             <DialogDescription className="text-gray-600 dark:text-gray-400">
-              Tem certeza que deseja excluir este cartão? Esta ação não pode ser
-              desfeita.
+              {t("confirmacao.descricao")}
             </DialogDescription>
           </DialogHeader>
           <div className="flex gap-3 justify-end">
@@ -994,14 +789,14 @@ export default function CartoesPage() {
               onClick={() => setDialogExclusaoAberto(null)}
               className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
-              Cancelar
+              {t("botoes.cancelar")}
             </Button>
             <Button
               variant="destructive"
               onClick={() => handleDeletarCartao(dialogExclusaoAberto!)}
               disabled={!!excluindo}
             >
-              {excluindo ? "Excluindo..." : "Confirmar"}
+              {excluindo ? t("estados.excluindo") : t("botoes.confirmar")}
             </Button>
           </div>
         </DialogContent>

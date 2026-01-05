@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
   ArrowLeft,
@@ -23,8 +23,12 @@ import {
   PieChart,
   ShoppingCart,
   Receipt,
+  Sparkles,
+  Wallet,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Loading } from "@/components/ui/loading-barrinhas";
 
 interface Fatura {
   id: string;
@@ -69,6 +73,7 @@ interface Cartao {
 export default function FaturasPage() {
   const params = useParams();
   const router = useRouter();
+  const { t, i18n } = useTranslation("faturas");
   const cartaoId = params.id as string;
 
   const [faturas, setFaturas] = useState<Fatura[]>([]);
@@ -84,18 +89,10 @@ export default function FaturasPage() {
     try {
       setCarregando(true);
       const faturasResponse = await fetch(`/api/cartoes/${cartaoId}/faturas`);
-      if (!faturasResponse.ok) throw new Error("Erro ao carregar faturas");
+      if (!faturasResponse.ok)
+        throw new Error(t("mensagens.erroCarregarFaturas"));
       const faturasData = await faturasResponse.json();
-      console.log("=== DEBUG FATURAS ===");
-      console.log("Hoje:", new Date().toISOString().slice(0, 7));
-      console.log(
-        "Todas as faturas carregadas:",
-        faturasData.map((f: Fatura) => ({
-          mes: f.mesReferencia,
-          status: f.status,
-          ehPrevisao: f.ehPrevisao,
-        }))
-      );
+
       // Ordenar por mês decrescente (mês mais recente primeiro)
       faturasData.sort((a: Fatura, b: Fatura) =>
         b.mesReferencia.localeCompare(a.mesReferencia)
@@ -103,7 +100,7 @@ export default function FaturasPage() {
 
       setFaturas(faturasData);
 
-      // 🔥 CORREÇÃO: Encontrar a PRÓXIMA fatura (a que está aberta e é a mais próxima)
+      // Encontrar a PRÓXIMA fatura
       const hoje = new Date();
       const hojeMes = hoje.toISOString().slice(0, 7);
 
@@ -147,78 +144,95 @@ export default function FaturasPage() {
       }
     } catch (e) {
       console.error(e);
-      toast.error("Erro ao carregar faturas");
+      toast.error(t("mensagens.erroCarregar"));
     } finally {
       setCarregando(false);
     }
   };
 
-  const formatarMoeda = (v: number) =>
-    new Intl.NumberFormat("pt-BR", {
+  const formatarMoeda = (v: number) => {
+    const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
+    return new Intl.NumberFormat(locale, {
       style: "currency",
       currency: "BRL",
     }).format(v);
+  };
 
   const formatarData = (dataString: string) => {
-    if (!dataString || dataString === "Invalid Date") return "Data inválida";
+    if (!dataString || dataString === "Invalid Date")
+      return t("formatos.dataInvalida");
 
-    // Extrair ANO, MÊS, DIA diretamente da string SEM conversão de timezone
-    const dataPart = dataString.substring(0, 10); // "2025-11-04"
+    const dataPart = dataString.substring(0, 10);
     const [ano, mes, dia] = dataPart.split("-");
-
-    // Retornar NO MESMO FORMATO que está no banco
     return `${dia}/${mes}/${ano}`;
   };
 
   const formatarMesReferencia = (mesReferencia: string) => {
     const [ano, mes] = mesReferencia.split("-");
-    const meses = [
-      "Janeiro",
-      "Fevereiro",
-      "Março",
-      "Abril",
-      "Maio",
-      "Junho",
-      "Julho",
-      "Agosto",
-      "Setembro",
-      "Outubro",
-      "Novembro",
-      "Dezembro",
-    ];
+    const meses =
+      i18n.language === "pt"
+        ? [
+            "Janeiro",
+            "Fevereiro",
+            "Março",
+            "Abril",
+            "Maio",
+            "Junho",
+            "Julho",
+            "Agosto",
+            "Setembro",
+            "Outubro",
+            "Novembro",
+            "Dezembro",
+          ]
+        : [
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December",
+          ];
     return `${meses[parseInt(mes) - 1]} ${ano}`;
   };
 
   const getStatus = (f: Fatura) => {
     const hoje = new Date();
     const vencimento = new Date(f.dataVencimento);
+
     if (f.ehPrevisao)
       return {
-        label: "Prevista",
-        cor: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
+        label: t("status.prevista"),
+        cor: "bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 dark:from-blue-900/30 dark:to-cyan-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800",
         icone: Calendar,
       };
     if (f.status === "PAGA")
       return {
-        label: "Paga",
-        cor: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+        label: t("status.paga"),
+        cor: "bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 dark:from-emerald-900/30 dark:to-green-900/30 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800",
         icone: CheckCircle,
       };
     if (f.status === "FECHADA" && vencimento < hoje)
       return {
-        label: "Atrasada",
-        cor: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+        label: t("status.atrasada"),
+        cor: "bg-gradient-to-r from-rose-100 to-red-100 text-rose-800 dark:from-rose-900/30 dark:to-red-900/30 dark:text-rose-300 border border-rose-200 dark:border-rose-800",
         icone: AlertTriangle,
       };
     if (f.status === "FECHADA")
       return {
-        label: "Fechada",
-        cor: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+        label: t("status.fechada"),
+        cor: "bg-gradient-to-r from-sky-100 to-blue-100 text-sky-800 dark:from-sky-900/30 dark:to-blue-900/30 dark:text-sky-300 border border-sky-200 dark:border-sky-800",
         icone: FileText,
       };
     return {
-      label: "Aberta",
-      cor: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+      label: t("status.aberta"),
+      cor: "bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 dark:from-amber-900/30 dark:to-yellow-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800",
       icone: Clock,
     };
   };
@@ -252,23 +266,24 @@ export default function FaturasPage() {
     if (direcao === "proximo" && indiceAtual > 0) setIndiceAtual((i) => i - 1);
   };
 
-  if (carregando)
-    return (
-      <div className="min-h-screen p-6 ">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex justify-center items-center h-72 text-muted-foreground">
-            Carregando faturas...
-          </div>
-        </div>
-      </div>
-    );
+  if (carregando) return <Loading />;
 
   if (!faturaAtual)
     return (
-      <div className="min-h-screen p-6 ">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex flex-col items-center justify-center h-72 text-muted-foreground">
-            Nenhuma fatura disponível.
+      <div className="min-h-screen p-6 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-950">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col items-center justify-center h-72 text-center space-y-4">
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
+              <FileText className="w-12 h-12 text-gray-400 dark:text-gray-600" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">
+                {t("mensagens.nenhumaFatura")}
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                {t("mensagens.nenhumaFaturaDescricao")}
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -279,175 +294,249 @@ export default function FaturasPage() {
   const pendente = faturaAtual.valorTotal - faturaAtual.valorPago;
 
   return (
-    <div className="min-h-screen p-6 bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => router.push(`/dashboard/cartoes/${cartaoId}`)}
-            className="border-gray-300 hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-800"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
-              Faturas do Cartão
-            </h1>
-            {cartao && (
-              <p className="text-gray-600 dark:text-gray-400">
-                {cartao.nome} • {cartao.bandeira}
-              </p>
-            )}
+    <div className="min-h-screen p-4 sm:p-6 ">
+      <div className="max-w-6xl mx-auto space-y-8">
+        {/* Header com gradiente */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 rounded-2xl bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => router.push(`/dashboard/cartoes/${cartaoId}`)}
+              className="rounded-full border-gray-300 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800 transition-all hover:scale-101"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                {t("titulos.faturasCartao")}
+              </h1>
+              {cartao && (
+                <div className="flex items-center gap-2 mt-1">
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: cartao.cor }}
+                  />
+                  <p className="text-gray-600 dark:text-gray-400">
+                    {cartao.nome} • {t(`bandeiras.${cartao.bandeira}`)}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
+
+          {cartao && (
+            <div className="px-4 py-2 rounded-full bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 border border-gray-300 dark:border-gray-700">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {t("cartao.limite")}:{" "}
+                <span className="font-bold">
+                  {formatarMoeda(cartao.limite)}
+                </span>
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* Seletor de Mês */}
-        <Card className="bg-white border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
+        {/* Seletor de Mês Moderno */}
+        <Card className="bg-white dark:bg-gray-800/50 border-0 shadow-xl rounded-2xl overflow-hidden backdrop-blur-sm bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900/50">
+          <div className="p-1 bg-gradient-to-r from-blue-500 via-blue-500 to-cyan-500"></div>
+          <CardContent className="p-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               <Button
                 variant="outline"
-                size="sm"
+                size="lg"
                 disabled={indiceAtual >= faturas.length - 1}
                 onClick={() => mudarMes("anterior")}
-                className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-900 dark:hover:text-white"
+                className="rounded-full border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900 hover:border-gray-400 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900 dark:hover:text-white dark:hover:border-gray-600 transition-all hover:scale-101 group min-w-[140px]"
               >
-                <ChevronLeft className="w-4 h-4 mr-2" />
-                Mês Anterior
+                <ChevronLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+                {t("botoes.mesAnterior")}
               </Button>
 
-              <div className="text-center flex-1 mx-4">
-                <div className="flex items-center justify-center gap-2">
-                  <Calendar className="w-5 h-5 text-gray-600 dark:text-gray-500" />
-                  <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+              <div className="text-center flex-1 space-y-3">
+                <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-900 dark:to-gray-800">
+                  <Calendar className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                  <h2 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
                     {formatarMesReferencia(faturaAtual.mesReferencia)}
                   </h2>
-                  <Badge variant="secondary" className={status.cor}>
-                    <Icone className="w-3 h-3 mr-1" />
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <Badge
+                    variant="secondary"
+                    className={`rounded-full px-4 py-1.5 ${status.cor}`}
+                  >
+                    <Icone className="w-4 h-4 mr-2" />
                     {status.label}
                   </Badge>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" />
+                    {t("labels.vencimento")}{" "}
+                    {formatarData(faturaAtual.dataVencimento)}
+                  </p>
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  Vence em {formatarData(faturaAtual.dataVencimento)}
-                </p>
               </div>
 
               <Button
                 variant="outline"
-                size="sm"
+                size="lg"
                 disabled={indiceAtual === 0}
                 onClick={() => mudarMes("proximo")}
-                className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-900 dark:hover:text-white"
+                className="rounded-full border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900 hover:border-gray-400 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900 dark:hover:text-white dark:hover:border-gray-600 transition-all hover:scale-101 group min-w-[140px]"
               >
-                Próximo Mês
-                <ChevronRight className="w-4 h-4 ml-2" />
+                {t("botoes.proximoMes")}
+                <ChevronRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Resumo da Fatura */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-white border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700">
-            <CardContent className="p-6 text-center">
-              <PieChart className="w-8 h-8 text-blue-600 dark:text-blue-500 mx-auto mb-2" />
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Total da Fatura
+        {/* Resumo da Fatura com Cards Modernos */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-blue-900/20 border-0 shadow-lg rounded-2xl overflow-hidden group hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30">
+                  <PieChart className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                </div>
+              </div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                {t("resumo.totalFatura")}
               </p>
-              <p className="text-2xl font-bold text-gray-800 dark:text-white">
+              <p className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">
                 {formatarMoeda(faturaAtual.valorTotal)}
               </p>
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-500">
+                  {t("resumo.totalFaturaDescricao")}
+                </p>
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700">
-            <CardContent className="p-6 text-center">
-              <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-500 mx-auto mb-2" />
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Valor Pago
+          <Card className="bg-gradient-to-br from-white to-emerald-50 dark:from-gray-800 dark:to-emerald-900/20 border-0 shadow-lg rounded-2xl overflow-hidden group hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-800/30">
+                  <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                </div>
+              </div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                {t("resumo.valorPago")}
               </p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+              <p className="text-2xl md:text-3xl font-bold text-emerald-600 dark:text-emerald-400">
                 {formatarMoeda(faturaAtual.valorPago)}
               </p>
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-500">
+                  {faturaAtual.PagamentoFatura.length > 0
+                    ? t("resumo.pagamentosRealizados", {
+                        count: faturaAtual.PagamentoFatura.length,
+                      })
+                    : t("resumo.semPagamentos")}
+                </p>
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700">
-            <CardContent className="p-6 text-center">
-              <AlertTriangle className="w-8 h-8 text-orange-600 dark:text-orange-500 mx-auto mb-2" />
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Pendente
+          <Card
+            className={`bg-gradient-to-br from-white to-${pendente > 0 ? "orange" : "emerald"}-50 dark:from-gray-800 dark:to-${pendente > 0 ? "orange" : "emerald"}-900/20 border-0 shadow-lg rounded-2xl overflow-hidden group hover:shadow-xl transition-all duration-300 hover:-translate-y-1`}
+          >
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div
+                  className={`p-3 rounded-xl bg-gradient-to-br from-${pendente > 0 ? "orange" : "emerald"}-100 to-${pendente > 0 ? "amber" : "green"}-100 dark:from-${pendente > 0 ? "orange" : "emerald"}-900/30 dark:to-${pendente > 0 ? "amber" : "green"}-800/30`}
+                >
+                  {pendente > 0 ? (
+                    <AlertTriangle className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+                  ) : (
+                    <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                  )}
+                </div>
+              </div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                {t("resumo.pendente")}
               </p>
               <p
-                className={`text-2xl font-bold ${
-                  pendente > 0
-                    ? "text-orange-600 dark:text-orange-400"
-                    : "text-green-600 dark:text-green-400"
-                }`}
+                className={`text-2xl md:text-3xl font-bold ${pendente > 0 ? "text-orange-600 dark:text-orange-400" : "text-emerald-600 dark:text-emerald-400"}`}
               >
                 {formatarMoeda(pendente)}
               </p>
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-500">
+                  {pendente > 0
+                    ? t("resumo.pendenteDescricao")
+                    : t("resumo.quitadoDescricao")}
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Lançamentos */}
-        <div className="space-y-6">
+        {/* Lançamentos com Design Moderno */}
+        <div className="space-y-8">
           {/* Compras Parceladas */}
           {comprasParceladas.length > 0 && (
-            <Card className="bg-white border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-gray-800 dark:text-white">
-                  <Receipt className="w-5 h-5 text-purple-600 dark:text-purple-500" />
-                  Compras Parceladas
-                  <Badge
-                    variant="outline"
-                    className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900 dark:text-purple-300 dark:border-purple-800"
-                  >
+            <Card className="bg-white dark:bg-gray-800/50 border-0 shadow-xl rounded-2xl overflow-hidden">
+              <div className="p-1 bg-gradient-to-r from-blue-500 to-cyan-500"></div>
+              <CardHeader className="pb-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30">
+                      <Receipt className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-gray-800 dark:text-white">
+                        {t("secoes.comprasParceladas")}
+                      </CardTitle>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        {t("secoes.comprasParceladasDescricao")}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge className="rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0">
                     {comprasParceladas.length}
                   </Badge>
-                </CardTitle>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {comprasParceladas.map((lancamento) => (
                     <div
                       key={lancamento.id}
-                      className="flex justify-between items-center p-4 rounded-lg border border-purple-100 bg-purple-50 dark:border-purple-800 dark:bg-purple-900/20"
+                      className="group p-4 rounded-xl bg-gradient-to-r from-blue-50/50 to-cyan-50/50 dark:from-blue-900/10 dark:to-cyan-900/10 border border-blue-200 dark:border-blue-800/50 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-300 hover:shadow-md"
                     >
-                      <div className="flex items-start gap-3 flex-1">
-                        <div className="p-2 rounded-lg bg-purple-100 text-purple-700 dark:bg-purple-800 dark:text-purple-400">
-                          <CreditCard className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="font-medium text-gray-800 dark:text-white truncate">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                          <div className="relative">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                              <CreditCard className="w-4 h-4 text-white" />
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-gray-800 dark:text-white truncate">
                               {lancamento.descricao}
                             </p>
-                            <Badge
-                              variant="outline"
-                              className="bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900 dark:text-purple-300 dark:border-purple-800 text-xs"
-                            >
-                              {lancamento.parcelaAtual}/
-                              {lancamento.parcelasTotal}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-                            <span>{formatarData(lancamento.data)}</span>
-                            <span>•</span>
-                            <span>{lancamento.categoria.nome}</span>
+                            <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400 mt-1">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {formatarData(lancamento.data)}
+                              </span>
+                              <span>•</span>
+                              <span className="px-2 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-800">
+                                {lancamento.categoria.nome}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-red-600 dark:text-red-400">
-                          - {formatarMoeda(lancamento.valor)}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Parcela {lancamento.parcelaAtual}
-                        </p>
+                        <div className="text-right ml-4">
+                          <p className="font-bold text-lg text-red-600 dark:text-red-400">
+                            - {formatarMoeda(lancamento.valor)}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-500">
+                            {t("labels.parcela")} {lancamento.parcelaAtual}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -458,57 +547,104 @@ export default function FaturasPage() {
 
           {/* Compras Normais */}
           {comprasNormais.length > 0 && (
-            <Card className="bg-white border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-gray-800 dark:text-white">
-                  <ShoppingCart className="w-5 h-5 text-blue-600 dark:text-blue-500" />
-                  Compras
-                  <Badge
-                    variant="outline"
-                    className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:border-blue-800"
-                  >
+            <Card className="bg-white dark:bg-gray-800/50 border-0 shadow-xl rounded-2xl overflow-hidden">
+              <div className="p-1 bg-gradient-to-r from-blue-500 to-cyan-500"></div>
+              <CardHeader className="pb-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30">
+                      <ShoppingCart className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-gray-800 dark:text-white">
+                        {t("secoes.compras")}
+                      </CardTitle>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        {t("secoes.comprasDescricao")}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge className="rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0">
                     {comprasNormais.length}
                   </Badge>
-                </CardTitle>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {comprasNormais.map((lancamento) => (
                     <div
                       key={lancamento.id}
-                      className="flex justify-between items-center p-4 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50 dark:hover:bg-gray-800 transition-colors"
+                      className="group p-4 rounded-xl bg-gradient-to-r from-white to-gray-50 dark:from-gray-800/50 dark:to-gray-900/50 border border-gray-200 dark:border-gray-800 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-300 hover:shadow-md"
                     >
-                      <div className="flex items-start gap-3 flex-1">
-                        <div
-                          className="w-3 h-3 rounded-full mt-2 flex-shrink-0"
-                          style={{ backgroundColor: lancamento.categoria.cor }}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-800 dark:text-white truncate">
-                            {lancamento.descricao}
-                          </p>
-                          <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400 mt-1">
-                            <span>{formatarData(lancamento.data)}</span>
-                            <span>•</span>
-                            <span>{lancamento.categoria.nome}</span>
-                            <span>•</span>
-                            <span className="flex items-center gap-1">
-                              <CreditCard className="w-3 h-3" />
-                              {lancamento.metodoPagamento}
-                            </span>
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                          <div className="relative">
+                            <div
+                              className="w-10 h-10 rounded-xl flex items-center justify-center"
+                              style={{
+                                backgroundColor: `${lancamento.categoria.cor}20`,
+                              }}
+                            >
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{
+                                  backgroundColor: lancamento.categoria.cor,
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-gray-800 dark:text-white truncate">
+                              {lancamento.descricao}
+                            </p>
+                            <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400 mt-1">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {formatarData(lancamento.data)}
+                              </span>
+                              <span>•</span>
+                              <span
+                                className="px-2 py-0.5 rounded-full text-xs"
+                                style={{
+                                  backgroundColor: `${lancamento.categoria.cor}20`,
+                                  color: lancamento.categoria.cor,
+                                }}
+                              >
+                                {lancamento.categoria.nome}
+                              </span>
+                              <span>•</span>
+                              <span className="flex items-center gap-1 text-xs">
+                                <Wallet className="w-3 h-3" />
+                                {lancamento.metodoPagamento}
+                              </span>
+                            </div>
                           </div>
                         </div>
+                        <div className="text-right ml-4">
+                          <p
+                            className={`font-bold text-lg ${
+                              lancamento.tipo === "RECEITA"
+                                ? "text-emerald-600 dark:text-emerald-400"
+                                : "text-red-600 dark:text-red-400"
+                            }`}
+                          >
+                            {lancamento.tipo === "RECEITA" ? "+ " : "- "}
+                            {formatarMoeda(lancamento.valor)}
+                          </p>
+                          <Badge
+                            variant="outline"
+                            className={`mt-1 text-xs rounded-full ${
+                              lancamento.pago
+                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 border-emerald-200"
+                                : "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 border-amber-200"
+                            }`}
+                          >
+                            {lancamento.pago
+                              ? t("status.pago")
+                              : t("status.pendenteBadge")}
+                          </Badge>
+                        </div>
                       </div>
-                      <p
-                        className={`font-semibold ${
-                          lancamento.tipo === "RECEITA"
-                            ? "text-green-600 dark:text-green-400"
-                            : "text-red-600 dark:text-red-400"
-                        }`}
-                      >
-                        {lancamento.tipo === "RECEITA" ? "+ " : "- "}
-                        {formatarMoeda(lancamento.valor)}
-                      </p>
                     </div>
                   ))}
                 </div>
@@ -517,20 +653,65 @@ export default function FaturasPage() {
           )}
         </div>
 
-        {/* Botão de Pagamento */}
+        {/* Botão de Pagamento – White mais sóbrio / Dark mais vibrante */}
         {!faturaAtual.ehPrevisao &&
           pendente > 0 &&
           faturaAtual.status !== "PAGA" && (
             <div className="flex justify-center">
               <Button
                 size="lg"
-                className="bg-gradient-to-br from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white px-8 border-0 shadow-md hover:shadow-lg transition-all duration-200"
                 onClick={() =>
                   router.push(`/dashboard/faturas/${faturaAtual.id}/pagar`)
                 }
+                className="
+  group
+  rounded-xl
+  px-8 py-6
+  font-medium
+  text-base
+  text-white
+
+  /* WHITE MODE */
+  bg-blue-900
+  hover:bg-blue-950
+
+  /* DARK MODE */
+  dark:bg-blue-900
+  dark:hover:bg-blue-950
+
+  shadow-sm
+  hover:shadow-md
+
+  transition-colors transition-shadow duration-200
+
+  active:scale-[0.99]
+
+  focus-visible:outline-none
+  focus-visible:ring-2
+  focus-visible:ring-blue-600
+  focus-visible:ring-offset-2
+  dark:focus-visible:ring-offset-zinc-900
+"
               >
-                <DollarSign className="w-5 h-5 mr-3" />
-                Pagar Fatura de {formatarMoeda(pendente)}
+                <div className="flex items-center gap-3">
+                  <DollarSign className="w-5 h-5 opacity-90" />
+
+                  <span className="tracking-wide">
+                    {t("botoes.pagarFatura")}
+                    <span className="ml-2 font-bold">
+                      {formatarMoeda(pendente)}
+                    </span>
+                  </span>
+
+                  <ChevronRight
+                    className="
+              w-4 h-4
+              opacity-70
+              group-hover:translate-x-1
+              transition-transform
+            "
+                  />
+                </div>
               </Button>
             </div>
           )}

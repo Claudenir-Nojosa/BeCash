@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -34,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Loading } from "@/components/ui/loading-barrinhas";
 
 interface Categoria {
   id: string;
@@ -67,6 +69,7 @@ interface Cartao {
 export default function RelatoriosPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t, i18n } = useTranslation("relatorios");
   const cartaoId = searchParams.get("cartaoId");
 
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
@@ -91,34 +94,40 @@ export default function RelatoriosPage() {
 
   const exportarPDF = () => {
     const doc = new jsPDF();
+    const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
 
     // Cabeçalho
     doc.setFillColor(30, 41, 59);
     doc.rect(0, 0, 210, 40, "F");
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(20);
-    doc.text("Relatório Financeiro", 105, 20, { align: "center" });
+    doc.text(t("pdf.titulo"), 105, 20, { align: "center" });
 
     doc.setFontSize(12);
-    doc.text(`Gerado em: ${new Date().toLocaleDateString("pt-BR")}`, 105, 30, {
-      align: "center",
-    });
+    doc.text(
+      `${t("pdf.geradoEm")}: ${new Date().toLocaleDateString(locale)}`,
+      105,
+      30,
+      {
+        align: "center",
+      }
+    );
 
     // Informações do Filtro
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(10);
     let yPos = 50;
 
-    doc.text("Filtros Aplicados:", 14, yPos);
+    doc.text(t("pdf.filtrosAplicados"), 14, yPos);
     yPos += 7;
     doc.text(
-      `• Período: ${filtros.periodo === "todos" ? "Todo período" : `Últimos ${filtros.periodo} dias`}`,
+      `• ${t("pdf.periodo")}: ${filtros.periodo === "todos" ? t("periodos.todos") : t("periodos.ultimosNDias", { dias: filtros.periodo })}`,
       20,
       yPos
     );
     yPos += 5;
     doc.text(
-      `• Cartão: ${filtros.cartaoId === "todos" ? "Todos" : cartoes.find((c) => c.id === filtros.cartaoId)?.nome}`,
+      `• ${t("pdf.cartao")}: ${filtros.cartaoId === "todos" ? t("filtros.todosCartoes") : cartoes.find((c) => c.id === filtros.cartaoId)?.nome}`,
       20,
       yPos
     );
@@ -126,9 +135,9 @@ export default function RelatoriosPage() {
     // Estatísticas
     yPos += 15;
     doc.setFontSize(14);
-    doc.setTextColor(0, 0, 0); // Preto puro
+    doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "bold");
-    doc.text("ESTATÍSTICAS GERAIS", 14, yPos);
+    doc.text(t("pdf.estatisticasGerais"), 14, yPos);
 
     yPos += 10;
     doc.setFontSize(10);
@@ -136,11 +145,17 @@ export default function RelatoriosPage() {
 
     autoTable(doc, {
       startY: yPos,
-      head: [["Descrição", "Valor"]],
+      head: [[t("pdf.descricao"), t("pdf.valor")]],
       body: [
-        ["Total de Despesas", formatarMoeda(estatisticas.totalDespesas)],
-        ["Total de Receitas", formatarMoeda(estatisticas.totalReceitas)],
-        ["Saldo", formatarMoeda(estatisticas.saldo)],
+        [
+          t("estatisticas.totalDespesas"),
+          formatarMoeda(estatisticas.totalDespesas),
+        ],
+        [
+          t("estatisticas.totalReceitas"),
+          formatarMoeda(estatisticas.totalReceitas),
+        ],
+        [t("estatisticas.saldo"), formatarMoeda(estatisticas.saldo)],
       ],
       styles: { fontSize: 10 },
       headStyles: { fillColor: [30, 41, 59] },
@@ -150,9 +165,9 @@ export default function RelatoriosPage() {
 
     // Ranking por Categoria
     doc.setFontSize(14);
-    doc.setTextColor(0, 0, 0); // Preto puro
+    doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "bold");
-    doc.text("TOP CATEGORIAS", 14, yPos);
+    doc.text(t("pdf.topCategorias"), 14, yPos);
 
     yPos += 10;
     const categoriaData = rankingCategorias
@@ -165,7 +180,7 @@ export default function RelatoriosPage() {
 
     autoTable(doc, {
       startY: yPos,
-      head: [["Categoria", "Valor Gasto", "%"]],
+      head: [[t("pdf.categoria"), t("pdf.valorGasto"), "%"]],
       body: categoriaData,
       styles: { fontSize: 10 },
       headStyles: { fillColor: [30, 41, 59] },
@@ -175,23 +190,25 @@ export default function RelatoriosPage() {
 
     // Últimos Lançamentos
     doc.setFontSize(14);
-    doc.setTextColor(0, 0, 0); // Preto puro
+    doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "bold");
-    doc.text("ÚLTIMOS LANÇAMENTOS", 14, yPos);
+    doc.text(t("pdf.ultimosLancamentos"), 14, yPos);
 
     yPos += 10;
     const lancamentosData = lancamentos
       .slice(0, 10)
       .map((lanc) => [
-        new Date(lanc.data).toLocaleDateString("pt-BR"),
+        new Date(lanc.data).toLocaleDateString(locale),
         lanc.descricao.substring(0, 30),
-        lanc.tipo === "DESPESA" ? "Despesa" : "Receita",
+        lanc.tipo === "DESPESA" ? t("tipos.despesa") : t("tipos.receita"),
         formatarMoeda(lanc.valor),
       ]);
 
     autoTable(doc, {
       startY: yPos,
-      head: [["Data", "Descrição", "Tipo", "Valor"]],
+      head: [
+        [t("pdf.data"), t("pdf.descricao"), t("pdf.tipo"), t("pdf.valor")],
+      ],
       body: lancamentosData,
       styles: { fontSize: 8 },
       headStyles: { fillColor: [30, 41, 59] },
@@ -204,7 +221,7 @@ export default function RelatoriosPage() {
       doc.setFontSize(8);
       doc.setTextColor(100, 100, 100);
       doc.text(
-        `Página ${i} de ${pageCount} • Gerado pelo Finanças Pessoais`,
+        `${t("pdf.pagina")} ${i} ${t("pdf.de")} ${pageCount} • ${t("pdf.geradoPor")}`,
         105,
         290,
         { align: "center" }
@@ -212,7 +229,7 @@ export default function RelatoriosPage() {
     }
 
     doc.save(
-      `relatorio-financeiro-${new Date().toISOString().split("T")[0]}.pdf`
+      `${t("pdf.nomeArquivo")}-${new Date().toISOString().split("T")[0]}.pdf`
     );
   };
 
@@ -227,7 +244,7 @@ export default function RelatoriosPage() {
         setCartoes(cartoesData);
       }
     } catch (error) {
-      console.error("Erro ao carregar dados:", error);
+      console.error(t("mensagens.erroCarregarDados"), error);
     } finally {
       setCarregando(false);
     }
@@ -256,7 +273,7 @@ export default function RelatoriosPage() {
         setLancamentos(data);
       }
     } catch (error) {
-      console.error("Erro ao carregar lançamentos:", error);
+      console.error(t("mensagens.erroCarregarLancamentos"), error);
     }
   };
 
@@ -282,7 +299,8 @@ export default function RelatoriosPage() {
     .filter((l) => l.tipo === "DESPESA")
     .reduce(
       (acc, lancamento) => {
-        const categoriaNome = lancamento.categoria?.nome || "Sem Categoria";
+        const categoriaNome =
+          lancamento.categoria?.nome || t("categorias.semCategoria");
         if (!acc[categoriaNome]) {
           acc[categoriaNome] = {
             total: 0,
@@ -304,73 +322,13 @@ export default function RelatoriosPage() {
   const rankingCategorias = Object.entries(despesasPorCategoria).sort(
     ([, a], [, b]) => b.total - a.total
   );
-  // Componente Skeleton para cards
-  const SkeletonCard = () => (
-    <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded-lg p-6 animate-pulse">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 bg-gray-700/50 rounded-lg"></div>
-        <div className="space-y-2 flex-1">
-          <div className="h-4 bg-gray-700/50 rounded w-3/4"></div>
-          <div className="h-3 bg-gray-700/50 rounded w-1/2"></div>
-        </div>
-      </div>
-      <div className="space-y-3">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="flex items-center gap-3 p-3 bg-gray-700/30 rounded-lg border border-gray-600/30"
-          >
-            <div className="w-8 h-8 bg-gray-700/50 rounded-full flex-shrink-0"></div>
-            <div className="flex-1 space-y-2">
-              <div className="h-3 bg-gray-700/50 rounded w-2/3"></div>
-              <div className="h-2 bg-gray-700/50 rounded w-1/2"></div>
-            </div>
-            <div className="text-right space-y-1">
-              <div className="h-4 bg-gray-700/50 rounded w-16"></div>
-              <div className="h-3 bg-gray-700/50 rounded w-12"></div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 
-  // Skeleton para estatísticas
-  const SkeletonStats = () => (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {Array.from({ length: 3 }).map((_, i) => (
-        <div
-          key={i}
-          className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded-lg p-6 animate-pulse"
-        >
-          <div className="h-5 bg-gray-700/50 rounded w-1/2 mb-4"></div>
-          <div className="h-8 bg-gray-700/50 rounded w-3/4 mb-2"></div>
-          <div className="h-4 bg-gray-700/50 rounded w-1/2"></div>
-        </div>
-      ))}
-    </div>
-  );
-
-  // Skeleton para filtros
-  const SkeletonFilters = () => (
-    <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded-lg p-6 animate-pulse">
-      <div className="h-6 bg-gray-700/50 rounded w-1/4 mb-4"></div>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="space-y-2">
-            <div className="h-4 bg-gray-700/50 rounded w-20"></div>
-            <div className="h-10 bg-gray-700/50 rounded"></div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
   // Agrupar por cartão
   const despesasPorCartao = lancamentos
     .filter((l) => l.tipo === "DESPESA")
     .reduce(
       (acc, lancamento) => {
-        const cartaoNome = lancamento.cartao?.nome || "Sem Cartão";
+        const cartaoNome = lancamento.cartao?.nome || t("cartoes.semCartao");
         if (!acc[cartaoNome]) {
           acc[cartaoNome] = {
             total: 0,
@@ -390,7 +348,8 @@ export default function RelatoriosPage() {
   );
 
   const formatarMoeda = (valor: number) => {
-    return new Intl.NumberFormat("pt-BR", {
+    const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
+    return new Intl.NumberFormat(locale, {
       style: "currency",
       currency: "BRL",
     }).format(valor);
@@ -410,12 +369,12 @@ export default function RelatoriosPage() {
       periodo: filtros.periodo,
       cartao:
         filtros.cartaoId === "todos"
-          ? "Todos os cartões"
+          ? t("filtros.todosCartoes")
           : cartoes.find((c) => c.id === filtros.cartaoId)?.nome,
       estatisticas,
       categorias: rankingCategorias,
       cartoes: rankingCartoes,
-      lancamentos: lancamentos.slice(0, 100), // Limitar para não ficar muito grande
+      lancamentos: lancamentos.slice(0, 100),
     };
 
     const blob = new Blob([JSON.stringify(dados, null, 2)], {
@@ -424,7 +383,7 @@ export default function RelatoriosPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `relatorio-financeiro-${new Date().toISOString().split("T")[0]}.json`;
+    a.download = `${t("pdf.nomeArquivo")}-${new Date().toISOString().split("T")[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -433,52 +392,8 @@ export default function RelatoriosPage() {
 
   if (carregando) {
     return (
-      <div className="min-h-screen ">
-        <div className="max-w-7xl mx-auto space-y-6">
-          {/* Header Skeleton */}
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded-lg animate-pulse"></div>
-            <div className="space-y-2">
-              <div className="h-8 bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded w-64 animate-pulse"></div>
-              <div className="h-4 bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded w-96 animate-pulse"></div>
-            </div>
-          </div>
-
-          {/* Filtros Skeleton */}
-          <SkeletonFilters />
-
-          {/* Stats Skeleton */}
-          <SkeletonStats />
-
-          {/* Cards Skeleton */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <SkeletonCard />
-            <SkeletonCard />
-          </div>
-
-          {/* Lançamentos Skeleton */}
-          <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded-lg p-6 animate-pulse">
-            <div className="h-6 bg-gray-700/50 rounded w-1/4 mb-6"></div>
-            <div className="space-y-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-4 p-4 bg-gray-700/30 rounded-lg border border-gray-600/30"
-                >
-                  <div className="w-12 h-12 bg-gray-700/50 rounded-lg flex-shrink-0"></div>
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-gray-700/50 rounded w-3/4"></div>
-                    <div className="h-3 bg-gray-700/50 rounded w-1/2"></div>
-                  </div>
-                  <div className="text-right space-y-2">
-                    <div className="h-5 bg-gray-700/50 rounded w-20"></div>
-                    <div className="h-4 bg-gray-700/50 rounded w-16"></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <Loading />
       </div>
     );
   }
@@ -499,10 +414,10 @@ export default function RelatoriosPage() {
             </Button>
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-                Relatórios Financeiros
+                {t("titulos.relatoriosFinanceiros")}
               </h1>
               <p className="text-gray-600 dark:text-gray-400">
-                Análise completa dos seus gastos e receitas
+                {t("subtitulos.analiseCompleta")}
               </p>
             </div>
           </div>
@@ -514,7 +429,7 @@ export default function RelatoriosPage() {
               className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-500"
             >
               <Download className="h-4 w-4 mr-2" />
-              Exportar PDF
+              {t("botoes.exportarPDF")}
             </Button>
           </div>
         </div>
@@ -526,7 +441,7 @@ export default function RelatoriosPage() {
               <div className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800">
                 <Filter className="h-4 w-4 text-gray-700 dark:text-gray-300" />
               </div>
-              Filtros
+              {t("titulos.filtros")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -536,7 +451,7 @@ export default function RelatoriosPage() {
                   htmlFor="cartao"
                   className="text-gray-700 dark:text-gray-300"
                 >
-                  Cartão
+                  {t("filtros.cartao")}
                 </Label>
                 <Select
                   value={filtros.cartaoId}
@@ -545,10 +460,12 @@ export default function RelatoriosPage() {
                   }
                 >
                   <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
-                    <SelectValue placeholder="Selecione o cartão" />
+                    <SelectValue placeholder={t("filtros.selecioneCartao")} />
                   </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
-                    <SelectItem value="todos">Todos os cartões</SelectItem>
+                    <SelectItem value="todos">
+                      {t("filtros.todosCartoes")}
+                    </SelectItem>
                     {cartoes.map((cartao) => (
                       <SelectItem key={cartao.id} value={cartao.id}>
                         <div className="flex items-center gap-2">
@@ -569,7 +486,7 @@ export default function RelatoriosPage() {
                   htmlFor="periodo"
                   className="text-gray-700 dark:text-gray-300"
                 >
-                  Período
+                  {t("filtros.periodo")}
                 </Label>
                 <Select
                   value={filtros.periodo}
@@ -578,14 +495,22 @@ export default function RelatoriosPage() {
                   }
                 >
                   <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
-                    <SelectValue placeholder="Selecione o período" />
+                    <SelectValue placeholder={t("filtros.selecionePeriodo")} />
                   </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
-                    <SelectItem value="7">Últimos 7 dias</SelectItem>
-                    <SelectItem value="30">Últimos 30 dias</SelectItem>
-                    <SelectItem value="90">Últimos 90 dias</SelectItem>
-                    <SelectItem value="365">Últimos 12 meses</SelectItem>
-                    <SelectItem value="todos">Todo o período</SelectItem>
+                    <SelectItem value="7">
+                      {t("periodos.ultimos7Dias")}
+                    </SelectItem>
+                    <SelectItem value="30">
+                      {t("periodos.ultimos30Dias")}
+                    </SelectItem>
+                    <SelectItem value="90">
+                      {t("periodos.ultimos90Dias")}
+                    </SelectItem>
+                    <SelectItem value="365">
+                      {t("periodos.ultimos12Meses")}
+                    </SelectItem>
+                    <SelectItem value="todos">{t("periodos.todos")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -595,7 +520,7 @@ export default function RelatoriosPage() {
                   htmlFor="tipo"
                   className="text-gray-700 dark:text-gray-300"
                 >
-                  Tipo
+                  {t("filtros.tipo")}
                 </Label>
                 <Select
                   value={filtros.tipo}
@@ -604,12 +529,16 @@ export default function RelatoriosPage() {
                   }
                 >
                   <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
-                    <SelectValue placeholder="Selecione o tipo" />
+                    <SelectValue placeholder={t("filtros.selecioneTipo")} />
                   </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
-                    <SelectItem value="todos">Todos</SelectItem>
-                    <SelectItem value="DESPESA">Despesas</SelectItem>
-                    <SelectItem value="RECEITA">Receitas</SelectItem>
+                    <SelectItem value="todos">{t("filtros.todos")}</SelectItem>
+                    <SelectItem value="DESPESA">
+                      {t("tipos.despesa")}
+                    </SelectItem>
+                    <SelectItem value="RECEITA">
+                      {t("tipos.receita")}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -619,7 +548,7 @@ export default function RelatoriosPage() {
                   htmlFor="data"
                   className="text-gray-700 dark:text-gray-300"
                 >
-                  Data Customizada
+                  {t("filtros.dataCustomizada")}
                 </Label>
                 <Input
                   type="date"
@@ -638,7 +567,7 @@ export default function RelatoriosPage() {
           <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-gray-900 dark:text-white text-lg">
-                Total de Despesas
+                {t("estatisticas.totalDespesas")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -646,8 +575,9 @@ export default function RelatoriosPage() {
                 {formatarMoeda(estatisticas.totalDespesas)}
               </p>
               <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">
-                {lancamentos.filter((l) => l.tipo === "DESPESA").length}{" "}
-                lançamentos
+                {t("estatisticas.lancamentosDespesa", {
+                  count: lancamentos.filter((l) => l.tipo === "DESPESA").length,
+                })}
               </p>
             </CardContent>
           </Card>
@@ -655,7 +585,7 @@ export default function RelatoriosPage() {
           <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-gray-900 dark:text-white text-lg">
-                Total de Receitas
+                {t("estatisticas.totalReceitas")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -663,8 +593,9 @@ export default function RelatoriosPage() {
                 {formatarMoeda(estatisticas.totalReceitas)}
               </p>
               <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">
-                {lancamentos.filter((l) => l.tipo === "RECEITA").length}{" "}
-                lançamentos
+                {t("estatisticas.lancamentosReceita", {
+                  count: lancamentos.filter((l) => l.tipo === "RECEITA").length,
+                })}
               </p>
             </CardContent>
           </Card>
@@ -672,7 +603,7 @@ export default function RelatoriosPage() {
           <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-gray-900 dark:text-white text-lg">
-                Saldo
+                {t("estatisticas.saldo")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -686,7 +617,9 @@ export default function RelatoriosPage() {
                 {formatarMoeda(estatisticas.saldo)}
               </p>
               <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">
-                {estatisticas.saldo >= 0 ? "Superávit" : "Déficit"}
+                {estatisticas.saldo >= 0
+                  ? t("estatisticas.superavit")
+                  : t("estatisticas.deficit")}
               </p>
             </CardContent>
           </Card>
@@ -700,10 +633,10 @@ export default function RelatoriosPage() {
                 <div className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/30">
                   <PieChart className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                 </div>
-                Despesas por Categoria
+                {t("secoes.despesasPorCategoria")}
               </CardTitle>
               <CardDescription className="text-gray-600 dark:text-gray-400">
-                Distribuição dos gastos por categoria
+                {t("secoes.distribuicaoGastos")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -733,7 +666,9 @@ export default function RelatoriosPage() {
                               {categoriaNome}
                             </p>
                             <p className="text-gray-500 dark:text-gray-400 text-xs">
-                              {categoriaData.quantidade} lançamentos
+                              {t("estatisticas.lancamentosCategoria", {
+                                count: categoriaData.quantidade,
+                              })}
                             </p>
                           </div>
                         </div>
@@ -755,10 +690,10 @@ export default function RelatoriosPage() {
                       <PieChart className="h-8 w-8 text-gray-400 dark:text-gray-600" />
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                      Sem dados de categorias
+                      {t("mensagens.semDadosCategorias")}
                     </h3>
                     <p className="text-gray-500 dark:text-gray-400 text-sm">
-                      Adicione despesas categorizadas para ver a distribuição
+                      {t("mensagens.adicionarDespesasCategorizadas")}
                     </p>
                   </div>
                 )}
@@ -773,10 +708,10 @@ export default function RelatoriosPage() {
                 <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/30">
                   <CreditCard className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 </div>
-                Despesas por Cartão
+                {t("secoes.despesasPorCartao")}
               </CardTitle>
               <CardDescription className="text-gray-600 dark:text-gray-400">
-                Distribuição dos gastos por cartão
+                {t("secoes.distribuicaoGastosCartao")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -804,7 +739,9 @@ export default function RelatoriosPage() {
                             {cartaoNome}
                           </p>
                           <p className="text-gray-500 dark:text-gray-400 text-xs">
-                            {cartaoData.quantidade} lançamentos
+                            {t("estatisticas.lancamentosCartao", {
+                              count: cartaoData.quantidade,
+                            })}
                           </p>
                         </div>
                       </div>
@@ -824,7 +761,7 @@ export default function RelatoriosPage() {
                   <div className="text-center py-8">
                     <CreditCard className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                     <p className="text-gray-500 dark:text-gray-400">
-                      Nenhuma despesa encontrada
+                      {t("mensagens.nenhumaDespesaEncontrada")}
                     </p>
                   </div>
                 )}
@@ -840,10 +777,12 @@ export default function RelatoriosPage() {
               <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/30">
                 <BarChart3 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
               </div>
-              Últimos Lançamentos
+              {t("secoes.ultimosLancamentos")}
             </CardTitle>
             <CardDescription className="text-gray-600 dark:text-gray-400">
-              {lancamentos.length} lançamentos encontrados
+              {t("secoes.lancamentosEncontrados", {
+                count: lancamentos.length,
+              })}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -874,7 +813,9 @@ export default function RelatoriosPage() {
                         {lancamento.descricao}
                       </p>
                       <p className="text-gray-500 dark:text-gray-400 text-sm">
-                        {new Date(lancamento.data).toLocaleDateString("pt-BR")}
+                        {new Date(lancamento.data).toLocaleDateString(
+                          i18n.language === "pt" ? "pt-BR" : "en-US"
+                        )}
                         {lancamento.cartao && ` • ${lancamento.cartao.nome}`}
                       </p>
                     </div>
@@ -897,7 +838,9 @@ export default function RelatoriosPage() {
                           : "bg-emerald-100 dark:bg-green-900/50 text-emerald-700 dark:text-green-300 border-emerald-200 dark:border-green-700"
                       }
                     >
-                      {lancamento.tipo === "DESPESA" ? "Despesa" : "Receita"}
+                      {lancamento.tipo === "DESPESA"
+                        ? t("tipos.despesa")
+                        : t("tipos.receita")}
                     </Badge>
                   </div>
                 </div>
@@ -907,7 +850,7 @@ export default function RelatoriosPage() {
                 <div className="text-center py-8">
                   <BarChart3 className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                   <p className="text-gray-500 dark:text-gray-400">
-                    Nenhum lançamento encontrado
+                    {t("mensagens.nenhumLancamentoEncontrado")}
                   </p>
                 </div>
               )}
@@ -919,7 +862,7 @@ export default function RelatoriosPage() {
                 className="w-full mt-4 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
                 onClick={() => router.push("/dashboard/lancamentos")}
               >
-                Ver todos os lançamentos
+                {t("botoes.verTodosLancamentos")}
               </Button>
             )}
           </CardContent>

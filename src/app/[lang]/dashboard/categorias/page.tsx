@@ -405,7 +405,7 @@ export default function CategoriasPage() {
   }
 
   return (
-    <div className="min-h-screen p-6 bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
