@@ -95,7 +95,8 @@
     "comprasParceladas": "Compras Parceladas",
     "comprasParceladasDescricao": "Compras divididas em parcelas",
     "compras": "Compras",
-    "comprasDescricao": "Compras à vista e receitas"
+    "comprasDescricao": "Compras à vista e receitas",
+    "pagar": "Pagar"
   },
   "resumo": {
     "totalFatura": "Total da Fatura",

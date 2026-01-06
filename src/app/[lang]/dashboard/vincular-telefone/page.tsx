@@ -90,41 +90,46 @@ export default function VincularTelefone() {
   };
 
   return (
-    <div className="min-h-screen p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen p-4 sm:p-6">
+      <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                {t("titulo")}
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                {t("subtitulo")}
-              </p>
+        <div className="flex flex-col gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                  {t("titulo")}
+                </h1>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+                  {t("subtitulo")}
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Formulário de Vinculação */}
           <div className="lg:col-span-2">
             <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
-                  <Smartphone className="h-5 w-5" />
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl text-gray-900 dark:text-white">
+                  <Smartphone className="h-4 w-4 sm:h-5 sm:w-5" />
                   {t("formulario.titulo")}
                 </CardTitle>
-                <CardDescription className="text-gray-600 dark:text-gray-400">
+                <CardDescription className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
                   {t("formulario.descricao")}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <form className="space-y-6" onSubmit={handleSubmit}>
-                  <div className="space-y-4">
+              <CardContent className="p-4 sm:p-6 pt-0">
+                <form
+                  className="space-y-4 sm:space-y-6"
+                  onSubmit={handleSubmit}
+                >
+                  <div className="space-y-2 sm:space-y-3">
                     <Label
                       htmlFor="telefone"
-                      className="text-gray-900 dark:text-white"
+                      className="text-sm sm:text-base text-gray-900 dark:text-white"
                     >
                       {t("formulario.labelTelefone")}
                     </Label>
@@ -136,16 +141,16 @@ export default function VincularTelefone() {
                       required
                       value={telefone}
                       onChange={handleTelefoneChange}
-                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-500 focus:border-blue-500 dark:focus:border-blue-500"
+                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-500 focus:border-blue-500 dark:focus:border-blue-500 w-full text-sm sm:text-base"
                     />
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                       {t("formulario.instrucaoTelefone")}
                     </p>
                   </div>
 
                   {message && (
                     <div
-                      className={`p-4 rounded-lg border ${
+                      className={`p-3 sm:p-4 rounded-lg border text-sm sm:text-base ${
                         message === "success"
                           ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700 text-green-700 dark:text-green-300"
                           : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700 text-red-700 dark:text-red-300"
@@ -154,12 +159,14 @@ export default function VincularTelefone() {
                       <div className="flex items-center gap-2">
                         {message === "success" ? (
                           <>
-                            <CheckCircle2 className="h-5 w-5" />
-                            <span>{t("mensagens.sucesso")}</span>
+                            <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                            <span className="truncate">
+                              {t("mensagens.sucesso")}
+                            </span>
                           </>
                         ) : (
                           <>
-                            <span>❌ {message}</span>
+                            <span className="truncate">❌ {message}</span>
                           </>
                         )}
                       </div>
@@ -169,15 +176,17 @@ export default function VincularTelefone() {
                   <Button
                     type="submit"
                     disabled={loading || telefone.length < 14}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white border-0"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white border-0 text-sm sm:text-base py-2.5 sm:py-3"
                   >
                     {loading ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        {t("botoes.vincularLoading")}
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span className="truncate">
+                          {t("botoes.vincularLoading")}
+                        </span>
                       </div>
                     ) : (
-                      t("botoes.vincular")
+                      <span className="truncate">{t("botoes.vincular")}</span>
                     )}
                   </Button>
                 </form>
@@ -186,54 +195,54 @@ export default function VincularTelefone() {
           </div>
 
           {/* Benefícios */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-gray-900 dark:text-white text-lg">
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="text-base sm:text-lg text-gray-900 dark:text-white">
                   {t("beneficios.titulo")}
                 </CardTitle>
-                <CardDescription className="text-gray-600 dark:text-gray-400">
+                <CardDescription className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
                   {t("beneficios.descricao")}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-50 dark:bg-gray-800/50">
-                  <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Mic className="w-4 h-4 text-white" />
+              <CardContent className="p-4 sm:p-6 pt-0 space-y-3 sm:space-y-4">
+                <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-blue-50 dark:bg-gray-800/50">
+                  <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Mic className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                   </div>
-                  <div>
-                    <p className="text-gray-900 dark:text-white text-sm font-medium">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">
                       {t("beneficios.lancamentos.titulo")}
                     </p>
-                    <p className="text-gray-600 dark:text-gray-400 text-xs">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
                       {t("beneficios.lancamentos.descricao")}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 p-3 rounded-lg bg-green-50 dark:bg-gray-800/50">
-                  <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <MessageCircle className="w-4 h-4 text-white" />
+                <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-green-50 dark:bg-gray-800/50">
+                  <div className="w-6 h-6 sm:w-8 sm:h-8 bg-green-500 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                   </div>
-                  <div>
-                    <p className="text-gray-900 dark:text-white text-sm font-medium">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">
                       {t("beneficios.whatsapp.titulo")}
                     </p>
-                    <p className="text-gray-600 dark:text-gray-400 text-xs">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
                       {t("beneficios.whatsapp.descricao")}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 p-3 rounded-lg bg-purple-50 dark:bg-gray-800/50">
-                  <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Zap className="w-4 h-4 text-white" />
+                <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-purple-50 dark:bg-gray-800/50">
+                  <div className="w-6 h-6 sm:w-8 sm:h-8 bg-purple-500 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                   </div>
-                  <div>
-                    <p className="text-gray-900 dark:text-white text-sm font-medium">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">
                       {t("beneficios.rapido.titulo")}
                     </p>
-                    <p className="text-gray-600 dark:text-gray-400 text-xs">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
                       {t("beneficios.rapido.descricao")}
                     </p>
                   </div>

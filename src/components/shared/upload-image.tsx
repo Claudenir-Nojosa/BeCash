@@ -9,12 +9,14 @@ import { Label } from "@/components/ui/label";
 import { X, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supaBaseClient";
+import { cn } from "@/lib/utils"; // Importe o utilitário cn se você tiver
 
 interface UploadImageProps {
   onImageChange: (url: string | null) => void;
   currentImage?: string | null;
   userId: string;
   metaId?: string;
+  className?: string; // Adicione esta linha
 }
 
 export function UploadImage({
@@ -22,6 +24,7 @@ export function UploadImage({
   currentImage,
   userId,
   metaId,
+  className, // Receba a prop
 }: UploadImageProps) {
   const { t } = useTranslation("upload");
   const [isUploading, setIsUploading] = useState(false);
@@ -102,9 +105,10 @@ export function UploadImage({
   };
 
   return (
-    <div className="space-y-3">
+    <div className={cn("space-y-3", className)}>
+      {" "}
+      {/* Aplique a classe aqui */}
       <Label className="text-gray-900 dark:text-white">{t("titulo")}</Label>
-
       {currentImage ? (
         <div className="relative group">
           <div className="w-full h-40 rounded-lg overflow-hidden border border-gray-300 dark:border-gray-700">

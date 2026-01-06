@@ -545,32 +545,32 @@ export default function DetalhesCartaoPage() {
   )[0];
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 bg-white dark:bg-transparent">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen p-3 sm:p-4 md:p-6 bg-white dark:bg-transparent">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
             <Button
               variant="outline"
               size="icon"
               onClick={() =>
                 router.push(getLocalizedPath("/dashboard/cartoes"))
               }
-              className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+              className="h-9 w-9 sm:h-10 sm:w-10 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white flex-shrink-0"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </Button>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
               <div
-                className="w-3 h-8 rounded"
+                className="w-2 h-6 sm:h-8 rounded flex-shrink-0"
                 style={{ backgroundColor: cartao.cor }}
               />
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white truncate">
                   {cartao.nome}
                 </h1>
                 {cartao.ehCompartilhado && cartao.user && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
                     {t("labels.compartilhadoPor", { nome: cartao.user.name })}
                   </p>
                 )}
@@ -578,7 +578,7 @@ export default function DetalhesCartaoPage() {
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto mt-3 sm:mt-0">
             <Button
               variant="outline"
               onClick={() =>
@@ -586,98 +586,98 @@ export default function DetalhesCartaoPage() {
                   getLocalizedPath(`/dashboard/cartoes/${cartaoId}/faturas`)
                 )
               }
-              className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+              className="flex-1 sm:flex-none border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white text-xs sm:text-sm"
             >
-              <Eye className="h-4 w-4 mr-2" />
-              {t("botoes.verFaturas")}
+              <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="truncate">{t("botoes.verFaturas")}</span>
             </Button>
             <Button
               variant="outline"
               onClick={() => setSheetEditarAberto(true)}
-              className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+              className="flex-1 sm:flex-none border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white text-xs sm:text-sm"
             >
-              <Edit className="h-4 w-4 mr-2" />
-              {t("botoes.editarCartao")}
+              <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="truncate">{t("botoes.editarCartao")}</span>
             </Button>
           </div>
         </div>
 
         {/* Grid de Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Card 1: Informações do Cartão */}
           <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
-                <div className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800">
-                  <CreditCard className="h-4 w-4 text-gray-700 dark:text-gray-300" />
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white text-base sm:text-lg">
+                <div className="p-1 sm:p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0">
+                  <CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-700 dark:text-gray-300" />
                 </div>
-                {t("titulos.informacoes")}
+                <span className="truncate">{t("titulos.informacoes")}</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
+            <CardContent className="space-y-3 sm:space-y-4">
+              <div className="space-y-2 sm:space-y-3">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                     {t("labels.bandeira")}
                   </p>
-                  <p className="text-gray-900 dark:text-white capitalize">
+                  <p className="text-gray-900 dark:text-white capitalize text-sm sm:text-base">
                     {cartao.bandeira.toLowerCase()}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                     {t("labels.limiteTotal")}
                   </p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-white">
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
                     {formatarMoeda(cartao.limite)}
                   </p>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                       {t("labels.fechamento")}
                     </p>
-                    <p className="text-gray-900 dark:text-white flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
+                    <p className="text-gray-900 dark:text-white flex items-center gap-1 text-sm sm:text-base">
+                      <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                       {t("labels.dia", { dia: cartao.diaFechamento })}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                       {t("labels.vencimento")}
                     </p>
-                    <p className="text-gray-900 dark:text-white flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
+                    <p className="text-gray-900 dark:text-white flex items-center gap-1 text-sm sm:text-base">
+                      <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                       {t("labels.dia", { dia: cartao.diaVencimento })}
                     </p>
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-gray-200 dark:border-gray-800">
+                <div className="pt-2 sm:pt-3 border-t border-gray-200 dark:border-gray-800">
                   <ColaboradoresSection />
                 </div>
 
                 {cartao.observacoes && (
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                       {t("labels.observacoes")}
                     </p>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                    <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
                       {cartao.observacoes}
                     </p>
                   </div>
                 )}
               </div>
 
-              <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+              <div className="pt-3 border-t border-gray-200 dark:border-gray-800">
                 <Button
-                  className="w-full bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white"
+                  className="w-full bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white text-sm sm:text-base py-2"
                   onClick={() =>
                     router.push(getLocalizedPath("/dashboard/lancamentos/"))
                   }
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  {t("botoes.novoLancamento")}
+                  <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span className="truncate">{t("botoes.novoLancamento")}</span>
                 </Button>
               </div>
             </CardContent>
@@ -685,36 +685,36 @@ export default function DetalhesCartaoPage() {
 
           {/* Card 2: Status do Limite */}
           <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
-                <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                  <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white text-base sm:text-lg">
+                <div className="p-1 sm:p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex-shrink-0">
+                  <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
                 </div>
-                {t("titulos.statusLimite")}
+                <span className="truncate">{t("titulos.statusLimite")}</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <CardContent className="space-y-3 sm:space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-1">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                     {t("labels.utilizado")}
                   </p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                     {formatarMoeda(totalFaturaAtual)}
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                     {t("labels.disponivel")}
                   </p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                     {formatarMoeda(cartao.limite - totalFaturaAtual)}
                   </p>
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
+              <div className="space-y-2 sm:space-y-3">
+                <div className="flex justify-between text-xs sm:text-sm">
                   <span className="text-gray-600 dark:text-gray-400">
                     {t("labels.utilizacaoLimite")}
                   </span>
@@ -730,9 +730,9 @@ export default function DetalhesCartaoPage() {
                     {utilizacao.toFixed(1)}%
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-3">
+                <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2 sm:h-3">
                   <div
-                    className={`h-3 rounded-full ${
+                    className={`h-2 sm:h-3 rounded-full ${
                       utilizacao >= 90
                         ? "bg-red-500"
                         : utilizacao >= 70
@@ -746,14 +746,14 @@ export default function DetalhesCartaoPage() {
 
               {utilizacao >= 70 && (
                 <div
-                  className={`flex items-center gap-2 p-3 rounded-lg ${
+                  className={`flex items-center gap-2 p-2 sm:p-3 rounded-lg ${
                     utilizacao >= 90
                       ? "bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800"
                       : "bg-amber-50 dark:bg-orange-900/50 text-amber-700 dark:text-orange-300 border border-amber-200 dark:border-orange-800"
                   }`}
                 >
-                  <AlertTriangle className="h-4 w-4" />
-                  <span className="text-sm font-medium">
+                  <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm font-medium truncate">
                     {utilizacao >= 90
                       ? t("alertas.limiteCritico")
                       : t("alertas.limiteElevado")}
@@ -763,28 +763,30 @@ export default function DetalhesCartaoPage() {
 
               {/* Fatura Atual */}
               {proximaFatura && (
-                <div className="pt-4 border-t border-gray-200 dark:border-gray-800 space-y-3">
+                <div className="pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-800 space-y-2 sm:space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-400">
+                    <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
                       {t("labels.proximaFatura")}
                     </span>
-                    <span className="text-lg font-bold text-gray-900 dark:text-white">
+                    <span className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
                       {formatarMoeda(proximaFatura.valorTotal)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-400">
+                    <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
                       {t("labels.vencimento")}
                     </span>
-                    <span className="text-gray-900 dark:text-white">
+                    <span className="text-gray-900 dark:text-white text-xs sm:text-sm">
                       {formatarData(proximaFatura.dataVencimento)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-400">
+                    <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
                       {t("labels.status")}
                     </span>
-                    <Badge className={getStatusColor(proximaFatura.status)}>
+                    <Badge
+                      className={`text-xs ${getStatusColor(proximaFatura.status)}`}
+                    >
                       {proximaFatura.status === "ABERTA"
                         ? t("status.aberta")
                         : proximaFatura.status === "FECHADA"
@@ -801,15 +803,17 @@ export default function DetalhesCartaoPage() {
 
           {/* Card 3: Ranking de Despesas por Categoria */}
           <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-gray-900 dark:text-white">
-                {t("titulos.despesasCategoria")}
+            <CardHeader className="pb-3">
+              <CardTitle className="text-gray-900 dark:text-white text-base sm:text-lg">
+                <span className="truncate">
+                  {t("titulos.despesasCategoria")}
+                </span>
               </CardTitle>
-              <CardDescription className="text-gray-600 dark:text-gray-400">
+              <CardDescription className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
                 {t("subtitulos.distribuicaoGastos")}
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 sm:space-y-4">
               {(() => {
                 // Calcular despesas por categoria
                 const despesasPorCategoria = cartao.lancamentos
@@ -846,8 +850,8 @@ export default function DetalhesCartaoPage() {
 
                 if (rankingCategorias.length === 0) {
                   return (
-                    <div className="text-center py-4">
-                      <p className="text-gray-700 dark:text-gray-400">
+                    <div className="text-center py-3 sm:py-4">
+                      <p className="text-gray-700 dark:text-gray-400 text-xs sm:text-sm">
                         {t("mensagens.nenhumaDespesa")}
                       </p>
                     </div>
@@ -855,7 +859,7 @@ export default function DetalhesCartaoPage() {
                 }
 
                 return (
-                  <div className="space-y-3">
+                  <div className="space-y-2 sm:space-y-3">
                     {rankingCategorias.map(
                       ([categoriaNome, categoriaData], index) => {
                         const porcentagem =
@@ -869,32 +873,34 @@ export default function DetalhesCartaoPage() {
                             const IconComponent =
                               require("lucide-react")[icone];
                             return (
-                              <IconComponent className="w-3 h-3 text-white" />
+                              <IconComponent className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
                             );
                           } catch {
-                            return <Tag className="w-3 h-3 text-white" />;
+                            return (
+                              <Tag className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
+                            );
                           }
                         };
 
                         return (
                           <div
                             key={categoriaNome}
-                            className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800/50 hover:bg-gray-100/80 dark:hover:bg-gray-800/70 transition-colors"
+                            className="flex justify-between items-center p-2.5 sm:p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800/50 hover:bg-gray-100/80 dark:hover:bg-gray-800/70 transition-colors"
                           >
-                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                               <div
-                                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                                className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                                 style={{ backgroundColor: categoriaData.cor }}
                               >
                                 {getIcone(categoriaData.icone)}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-gray-900 dark:text-white text-sm font-medium truncate">
+                                <p className="text-gray-900 dark:text-white text-xs sm:text-sm font-medium truncate">
                                   {categoriaNome}
                                 </p>
-                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-1">
+                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1 sm:h-1.5 mt-1">
                                   <div
-                                    className="h-1.5 rounded-full"
+                                    className="h-1 sm:h-1.5 rounded-full"
                                     style={{
                                       backgroundColor: categoriaData.cor,
                                       width: `${porcentagem}%`,
@@ -903,8 +909,8 @@ export default function DetalhesCartaoPage() {
                                 </div>
                               </div>
                             </div>
-                            <div className="text-right flex-shrink-0 ml-2">
-                              <p className="text-gray-900 dark:text-white font-medium">
+                            <div className="text-right flex-shrink-0 ml-1.5 sm:ml-2 min-w-[70px] sm:min-w-[80px]">
+                              <p className="text-gray-900 dark:text-white font-medium text-xs sm:text-sm">
                                 {formatarMoeda(categoriaData.total)}
                               </p>
                               <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -917,12 +923,12 @@ export default function DetalhesCartaoPage() {
                     )}
 
                     {/* Total geral */}
-                    <div className="pt-3 border-t border-gray-200 dark:border-gray-800">
+                    <div className="pt-2 sm:pt-3 border-t border-gray-200 dark:border-gray-800">
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600 dark:text-gray-400 text-sm">
+                        <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
                           Total:
                         </span>
-                        <span className="text-gray-900 dark:text-white font-bold">
+                        <span className="text-gray-900 dark:text-white font-bold text-sm sm:text-base">
                           {formatarMoeda(totalDespesas)}
                         </span>
                       </div>
@@ -931,15 +937,17 @@ export default function DetalhesCartaoPage() {
                 );
               })()}
 
-              <div className="pt-3 border-t border-gray-200 dark:border-gray-800">
+              <div className="pt-2 sm:pt-3 border-t border-gray-200 dark:border-gray-800">
                 <Button
                   variant="outline"
-                  className="w-full border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+                  className="w-full border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white text-xs sm:text-sm py-2"
                   onClick={() =>
-                    router.push(`/dashboard/relatorios?cartaoId=${cartaoId}`)
+                    router.push(getLocalizedPath("/dashboard/relatorios"))
                   }
                 >
-                  {t("botoes.verRelatorioCompleto")}
+                  <span className="truncate">
+                    {t("botoes.verRelatorioCompleto")}
+                  </span>
                 </Button>
               </div>
             </CardContent>
@@ -948,11 +956,11 @@ export default function DetalhesCartaoPage() {
 
         {/* Card 4: Lançamentos Recentes */}
         <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-gray-900 dark:text-white">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-gray-900 dark:text-white text-base sm:text-lg">
               {t("titulos.lancamentosRecentes")}
             </CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400">
+            <CardDescription className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
               {t("subtitulos.totalLancamentos", {
                 count: cartao.lancamentos.length,
               })}
@@ -960,104 +968,168 @@ export default function DetalhesCartaoPage() {
           </CardHeader>
           <CardContent>
             {cartao.lancamentos.length === 0 ? (
-              <div className="text-center py-8">
-                <CreditCard className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-600 dark:text-gray-400">
+              <div className="text-center py-6 sm:py-8">
+                <CreditCard className="h-8 w-8 sm:h-12 sm:w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3 sm:mb-4" />
+                <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4">
                   {t("mensagens.nenhumLancamento")}
                 </p>
                 <Button
-                  className="mt-4 bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white"
+                  className="bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white text-sm sm:text-base py-2"
                   onClick={() =>
                     router.push(
-                      `/dashboard/lancamentos/novo?cartaoId=${cartaoId}`
+                      getLocalizedPath(
+                        `/dashboard/lancamentos/novo?cartaoId=${cartaoId}`
+                      )
                     )
                   }
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  {t("botoes.adicionarPrimeiro")}
+                  <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span className="truncate">
+                    {t("botoes.adicionarPrimeiro")}
+                  </span>
                 </Button>
               </div>
             ) : (
-              <div className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-800">
-                      <TableHead className="text-gray-700 dark:text-gray-300">
-                        {t("labels.descricao")}
-                      </TableHead>
-                      <TableHead className="text-gray-700 dark:text-gray-300">
-                        {t("labels.data")}
-                      </TableHead>
-                      <TableHead className="text-gray-700 dark:text-gray-300">
-                        {t("labels.valor")}
-                      </TableHead>
-                      <TableHead className="text-gray-700 dark:text-gray-300">
-                        {t("labels.status")}
-                      </TableHead>
-                      <TableHead className="text-gray-700 dark:text-gray-300">
-                        {t("labels.fatura")}
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {lancamentosRecentes.map((lancamento) => (
-                      <TableRow
-                        key={lancamento.id}
-                        className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/50"
-                      >
-                        <TableCell className="font-medium text-gray-900 dark:text-white">
-                          {lancamento.descricao}
-                        </TableCell>
-                        <TableCell className="text-gray-600 dark:text-gray-300">
-                          {formatarData(lancamento.data)}
-                        </TableCell>
-                        <TableCell className="text-gray-900 dark:text-white">
+              <>
+                {/* Tabela para desktop */}
+                <div className="hidden sm:block border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-800">
+                        <TableHead className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
+                          {t("labels.descricao")}
+                        </TableHead>
+                        <TableHead className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
+                          {t("labels.data")}
+                        </TableHead>
+                        <TableHead className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
+                          {t("labels.valor")}
+                        </TableHead>
+                        <TableHead className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
+                          {t("labels.status")}
+                        </TableHead>
+                        <TableHead className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
+                          {t("labels.fatura")}
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {lancamentosRecentes.map((lancamento) => (
+                        <TableRow
+                          key={lancamento.id}
+                          className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/50"
+                        >
+                          <TableCell className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm">
+                            <span className="truncate block max-w-[200px]">
+                              {lancamento.descricao}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm">
+                            {formatarData(lancamento.data)}
+                          </TableCell>
+                          <TableCell className="text-gray-900 dark:text-white text-xs sm:text-sm font-medium">
+                            {formatarMoeda(lancamento.valor)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                lancamento.pago ? "default" : "secondary"
+                              }
+                              className={`text-xs ${
+                                lancamento.pago
+                                  ? "bg-emerald-100 dark:bg-green-900/50 text-emerald-700 dark:text-green-300 border-emerald-200 dark:border-green-700"
+                                  : "bg-amber-100 dark:bg-yellow-900/50 text-amber-700 dark:text-yellow-300 border-amber-200 dark:border-yellow-700"
+                              }`}
+                            >
+                              {lancamento.pago
+                                ? t("status.pago")
+                                : t("status.pendenteBadge")}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm">
+                            {lancamento.Fatura ? (
+                              <Badge
+                                className={`text-xs ${getStatusColor(lancamento.Fatura.status)}`}
+                              >
+                                {lancamento.Fatura.mesReferencia}
+                              </Badge>
+                            ) : (
+                              <span className="text-gray-500 dark:text-gray-500">
+                                -
+                              </span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Lista para mobile */}
+                <div className="sm:hidden space-y-3">
+                  {lancamentosRecentes.map((lancamento) => (
+                    <div
+                      key={lancamento.id}
+                      className="border border-gray-200 dark:border-gray-800 rounded-lg p-3 bg-gray-50/50 dark:bg-gray-800/50"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-gray-900 dark:text-white font-medium text-sm truncate mb-1">
+                            {lancamento.descricao}
+                          </p>
+                          <p className="text-gray-600 dark:text-gray-400 text-xs">
+                            {formatarData(lancamento.data)}
+                          </p>
+                        </div>
+                        <p className="text-gray-900 dark:text-white font-bold text-sm ml-2">
                           {formatarMoeda(lancamento.valor)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={lancamento.pago ? "default" : "secondary"}
-                            className={
-                              lancamento.pago
-                                ? "bg-emerald-100 dark:bg-green-900/50 text-emerald-700 dark:text-green-300 border-emerald-200 dark:border-green-700"
-                                : "bg-amber-100 dark:bg-yellow-900/50 text-amber-700 dark:text-yellow-300 border-amber-200 dark:border-yellow-700"
-                            }
-                          >
-                            {lancamento.pago
-                              ? t("status.pago")
-                              : t("status.pendenteBadge")}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-gray-600 dark:text-gray-300">
+                        </p>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <Badge
+                          variant={lancamento.pago ? "default" : "secondary"}
+                          className={`text-xs ${
+                            lancamento.pago
+                              ? "bg-emerald-100 dark:bg-green-900/50 text-emerald-700 dark:text-green-300 border-emerald-200 dark:border-green-700"
+                              : "bg-amber-100 dark:bg-yellow-900/50 text-amber-700 dark:text-yellow-300 border-amber-200 dark:border-yellow-700"
+                          }`}
+                        >
+                          {lancamento.pago
+                            ? t("status.pago")
+                            : t("status.pendenteBadge")}
+                        </Badge>
+                        <span className="text-gray-600 dark:text-gray-300 text-xs">
                           {lancamento.Fatura ? (
                             <Badge
-                              className={getStatusColor(
-                                lancamento.Fatura.status
-                              )}
+                              className={`text-xs ${getStatusColor(lancamento.Fatura.status)}`}
                             >
                               {lancamento.Fatura.mesReferencia}
                             </Badge>
                           ) : (
-                            <span className="text-gray-500 dark:text-gray-500">
-                              -
-                            </span>
+                            "-"
                           )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
             {cartao.lancamentos.length > 10 && (
               <Button
                 variant="outline"
-                className="w-full mt-4 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+                className="w-full mt-3 sm:mt-4 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white text-xs sm:text-sm py-2"
                 onClick={() =>
-                  router.push(`/dashboard/lancamentos?cartaoId=${cartaoId}`)
+                  router.push(
+                    getLocalizedPath(
+                      `/dashboard/lancamentos?cartaoId=${cartaoId}`
+                    )
+                  )
                 }
               >
-                {t("botoes.verTodosLancamentos")}
+                <span className="truncate">
+                  {t("botoes.verTodosLancamentos")}
+                </span>
               </Button>
             )}
           </CardContent>
@@ -1066,11 +1138,11 @@ export default function DetalhesCartaoPage() {
 
       <Sheet open={sheetEditarAberto} onOpenChange={setSheetEditarAberto}>
         <SheetContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white overflow-y-auto w-full sm:max-w-2xl">
-          <SheetHeader className="mb-6">
-            <SheetTitle className="text-gray-900 dark:text-white">
+          <SheetHeader className="mb-4 sm:mb-6">
+            <SheetTitle className="text-gray-900 dark:text-white text-lg sm:text-xl">
               {t("titulos.editarCartao")}
             </SheetTitle>
-            <SheetDescription className="text-gray-600 dark:text-gray-400">
+            <SheetDescription className="text-gray-600 dark:text-gray-400 text-sm">
               {t("subtitulos.atualizarInformacoes")}
             </SheetDescription>
           </SheetHeader>

@@ -82,6 +82,10 @@ export default function RelatoriosPage() {
     categoriaId: "todas",
   });
 
+  const getLocalizedPath = (path: string) => {
+    return `/${i18n.language}${path}`;
+  };
+
   useEffect(() => {
     carregarDados();
   }, []);
@@ -399,57 +403,57 @@ export default function RelatoriosPage() {
   }
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 bg-white dark:bg-transparent">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen p-3 sm:p-4 md:p-6 bg-white dark:bg-transparent">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-3">
             <Button
               variant="outline"
               size="icon"
-              onClick={() => router.push("/dashboard/cartoes")}
-              className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+              onClick={() => router.back()}
+              className="h-9 w-9 sm:h-10 sm:w-10 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white flex-shrink-0"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </Button>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white truncate">
                 {t("titulos.relatoriosFinanceiros")}
               </h1>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
                 {t("subtitulos.analiseCompleta")}
               </p>
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto mt-3 sm:mt-0">
             <Button
               variant={"outline"}
               onClick={exportarPDF}
-              className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-500"
+              className="flex-1 sm:flex-none border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-500 text-xs sm:text-sm"
             >
-              <Download className="h-4 w-4 mr-2" />
-              {t("botoes.exportarPDF")}
+              <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="truncate">{t("botoes.exportarPDF")}</span>
             </Button>
           </div>
         </div>
 
         {/* Filtros */}
         <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
-              <div className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800">
-                <Filter className="h-4 w-4 text-gray-700 dark:text-gray-300" />
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white text-base sm:text-lg">
+              <div className="p-1 sm:p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0">
+                <Filter className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-700 dark:text-gray-300" />
               </div>
-              {t("titulos.filtros")}
+              <span>{t("titulos.filtros")}</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="space-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="space-y-1.5 sm:space-y-2">
                 <Label
                   htmlFor="cartao"
-                  className="text-gray-700 dark:text-gray-300"
+                  className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                 >
                   {t("filtros.cartao")}
                 </Label>
@@ -459,21 +463,21 @@ export default function RelatoriosPage() {
                     setFiltros((prev) => ({ ...prev, cartaoId: value }))
                   }
                 >
-                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
+                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm h-9 sm:h-10">
                     <SelectValue placeholder={t("filtros.selecioneCartao")} />
                   </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm">
                     <SelectItem value="todos">
                       {t("filtros.todosCartoes")}
                     </SelectItem>
                     {cartoes.map((cartao) => (
                       <SelectItem key={cartao.id} value={cartao.id}>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
                           <div
-                            className="w-3 h-3 rounded-full"
+                            className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0"
                             style={{ backgroundColor: cartao.cor }}
                           />
-                          {cartao.nome}
+                          <span className="truncate">{cartao.nome}</span>
                         </div>
                       </SelectItem>
                     ))}
@@ -481,10 +485,10 @@ export default function RelatoriosPage() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5 sm:space-y-2">
                 <Label
                   htmlFor="periodo"
-                  className="text-gray-700 dark:text-gray-300"
+                  className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                 >
                   {t("filtros.periodo")}
                 </Label>
@@ -494,10 +498,10 @@ export default function RelatoriosPage() {
                     setFiltros((prev) => ({ ...prev, periodo: value }))
                   }
                 >
-                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
+                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm h-9 sm:h-10">
                     <SelectValue placeholder={t("filtros.selecionePeriodo")} />
                   </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm">
                     <SelectItem value="7">
                       {t("periodos.ultimos7Dias")}
                     </SelectItem>
@@ -515,10 +519,10 @@ export default function RelatoriosPage() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5 sm:space-y-2">
                 <Label
                   htmlFor="tipo"
-                  className="text-gray-700 dark:text-gray-300"
+                  className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                 >
                   {t("filtros.tipo")}
                 </Label>
@@ -528,10 +532,10 @@ export default function RelatoriosPage() {
                     setFiltros((prev) => ({ ...prev, tipo: value }))
                   }
                 >
-                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
+                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm h-9 sm:h-10">
                     <SelectValue placeholder={t("filtros.selecioneTipo")} />
                   </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm">
                     <SelectItem value="todos">{t("filtros.todos")}</SelectItem>
                     <SelectItem value="DESPESA">
                       {t("tipos.despesa")}
@@ -543,16 +547,16 @@ export default function RelatoriosPage() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5 sm:space-y-2">
                 <Label
                   htmlFor="data"
-                  className="text-gray-700 dark:text-gray-300"
+                  className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                 >
                   {t("filtros.dataCustomizada")}
                 </Label>
                 <Input
                   type="date"
-                  className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
+                  className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm h-9 sm:h-10"
                   onChange={(e) =>
                     console.log("Data customizada:", e.target.value)
                   }
@@ -563,18 +567,18 @@ export default function RelatoriosPage() {
         </Card>
 
         {/* Estatísticas Gerais */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-gray-900 dark:text-white text-lg">
+            <CardHeader className="pb-2 sm:pb-3">
+              <CardTitle className="text-gray-900 dark:text-white text-sm sm:text-base md:text-lg">
                 {t("estatisticas.totalDespesas")}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl sm:text-3xl font-bold text-red-600 dark:text-red-400">
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-red-600 dark:text-red-400">
                 {formatarMoeda(estatisticas.totalDespesas)}
               </p>
-              <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">
+              <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-1 sm:mt-2">
                 {t("estatisticas.lancamentosDespesa", {
                   count: lancamentos.filter((l) => l.tipo === "DESPESA").length,
                 })}
@@ -583,16 +587,16 @@ export default function RelatoriosPage() {
           </Card>
 
           <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-gray-900 dark:text-white text-lg">
+            <CardHeader className="pb-2 sm:pb-3">
+              <CardTitle className="text-gray-900 dark:text-white text-sm sm:text-base md:text-lg">
                 {t("estatisticas.totalReceitas")}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-green-400">
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold text-emerald-600 dark:text-green-400">
                 {formatarMoeda(estatisticas.totalReceitas)}
               </p>
-              <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">
+              <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-1 sm:mt-2">
                 {t("estatisticas.lancamentosReceita", {
                   count: lancamentos.filter((l) => l.tipo === "RECEITA").length,
                 })}
@@ -601,14 +605,14 @@ export default function RelatoriosPage() {
           </Card>
 
           <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-gray-900 dark:text-white text-lg">
+            <CardHeader className="pb-2 sm:pb-3">
+              <CardTitle className="text-gray-900 dark:text-white text-sm sm:text-base md:text-lg">
                 {t("estatisticas.saldo")}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p
-                className={`text-2xl sm:text-3xl font-bold ${
+                className={`text-xl sm:text-2xl md:text-3xl font-bold ${
                   estatisticas.saldo >= 0
                     ? "text-emerald-600 dark:text-green-400"
                     : "text-red-600 dark:text-red-400"
@@ -616,7 +620,7 @@ export default function RelatoriosPage() {
               >
                 {formatarMoeda(estatisticas.saldo)}
               </p>
-              <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">
+              <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-1 sm:mt-2">
                 {estatisticas.saldo >= 0
                   ? t("estatisticas.superavit")
                   : t("estatisticas.deficit")}
@@ -625,22 +629,24 @@ export default function RelatoriosPage() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {/* Ranking por Categoria */}
           <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
-                <div className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/30">
-                  <PieChart className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white text-base sm:text-lg">
+                <div className="p-1 sm:p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex-shrink-0">
+                  <PieChart className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-600 dark:text-purple-400" />
                 </div>
-                {t("secoes.despesasPorCategoria")}
+                <span className="truncate">
+                  {t("secoes.despesasPorCategoria")}
+                </span>
               </CardTitle>
-              <CardDescription className="text-gray-600 dark:text-gray-400">
+              <CardDescription className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
                 {t("secoes.distribuicaoGastos")}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {rankingCategorias.map(
                   ([categoriaNome, categoriaData], index) => {
                     const porcentagem =
@@ -652,17 +658,17 @@ export default function RelatoriosPage() {
                     return (
                       <div
                         key={categoriaNome}
-                        className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800/50"
+                        className="flex justify-between items-center p-2.5 sm:p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800/50"
                       >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                           <div
-                            className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0"
                             style={{ backgroundColor: categoriaData.cor }}
                           >
                             {getIcone(categoriaData.icone)}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-gray-900 dark:text-white text-sm font-medium truncate">
+                            <p className="text-gray-900 dark:text-white text-xs sm:text-sm font-medium truncate">
                               {categoriaNome}
                             </p>
                             <p className="text-gray-500 dark:text-gray-400 text-xs">
@@ -672,8 +678,8 @@ export default function RelatoriosPage() {
                             </p>
                           </div>
                         </div>
-                        <div className="text-right flex-shrink-0 ml-2">
-                          <p className="text-gray-900 dark:text-white font-medium">
+                        <div className="text-right flex-shrink-0 ml-1.5 sm:ml-2">
+                          <p className="text-gray-900 dark:text-white font-medium text-xs sm:text-sm">
                             {formatarMoeda(categoriaData.total)}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -685,14 +691,14 @@ export default function RelatoriosPage() {
                   }
                 )}
                 {rankingCategorias.length === 0 && !carregando && (
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <PieChart className="h-8 w-8 text-gray-400 dark:text-gray-600" />
+                  <div className="text-center py-6 sm:py-8">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                      <PieChart className="h-5 w-5 sm:h-8 sm:w-8 text-gray-400 dark:text-gray-600" />
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-1 sm:mb-2">
                       {t("mensagens.semDadosCategorias")}
                     </h3>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">
+                    <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm px-2">
                       {t("mensagens.adicionarDespesasCategorizadas")}
                     </p>
                   </div>
@@ -704,18 +710,20 @@ export default function RelatoriosPage() {
           {/* Ranking por Cartão */}
           <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
-                <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                  <CreditCard className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white text-base sm:text-lg">
+                <div className="p-1 sm:p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex-shrink-0">
+                  <CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
                 </div>
-                {t("secoes.despesasPorCartao")}
+                <span className="truncate">
+                  {t("secoes.despesasPorCartao")}
+                </span>
               </CardTitle>
-              <CardDescription className="text-gray-600 dark:text-gray-400">
+              <CardDescription className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
                 {t("secoes.distribuicaoGastosCartao")}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {rankingCartoes.map(([cartaoNome, cartaoData], index) => {
                   const porcentagem =
                     estatisticas.totalDespesas > 0
@@ -725,17 +733,17 @@ export default function RelatoriosPage() {
                   return (
                     <div
                       key={cartaoNome}
-                      className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800/50"
+                      className="flex justify-between items-center p-2.5 sm:p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800/50"
                     >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                         <div
-                          className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0"
                           style={{ backgroundColor: cartaoData.cor }}
                         >
-                          <CreditCard className="w-5 h-5 text-white" />
+                          <CreditCard className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-gray-900 dark:text-white text-sm font-medium truncate">
+                          <p className="text-gray-900 dark:text-white text-xs sm:text-sm font-medium truncate">
                             {cartaoNome}
                           </p>
                           <p className="text-gray-500 dark:text-gray-400 text-xs">
@@ -745,8 +753,8 @@ export default function RelatoriosPage() {
                           </p>
                         </div>
                       </div>
-                      <div className="text-right flex-shrink-0 ml-2">
-                        <p className="text-gray-900 dark:text-white font-medium">
+                      <div className="text-right flex-shrink-0 ml-1.5 sm:ml-2">
+                        <p className="text-gray-900 dark:text-white font-medium text-xs sm:text-sm">
                           {formatarMoeda(cartaoData.total)}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -758,9 +766,9 @@ export default function RelatoriosPage() {
                 })}
 
                 {rankingCartoes.length === 0 && (
-                  <div className="text-center py-8">
-                    <CreditCard className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                    <p className="text-gray-500 dark:text-gray-400">
+                  <div className="text-center py-6 sm:py-8">
+                    <CreditCard className="h-8 w-8 sm:h-12 sm:w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3 sm:mb-4" />
+                    <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
                       {t("mensagens.nenhumaDespesaEncontrada")}
                     </p>
                   </div>
@@ -773,28 +781,28 @@ export default function RelatoriosPage() {
         {/* Últimos Lançamentos */}
         <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
-              <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/30">
-                <BarChart3 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white text-base sm:text-lg">
+              <div className="p-1 sm:p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex-shrink-0">
+                <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-600 dark:text-amber-400" />
               </div>
-              {t("secoes.ultimosLancamentos")}
+              <span className="truncate">{t("secoes.ultimosLancamentos")}</span>
             </CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400">
+            <CardDescription className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
               {t("secoes.lancamentosEncontrados", {
                 count: lancamentos.length,
               })}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {lancamentos.slice(0, 10).map((lancamento) => (
                 <div
                   key={lancamento.id}
-                  className="flex justify-between items-center p-4 rounded-lg bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/70 transition-colors"
+                  className="flex justify-between items-center p-3 sm:p-4 rounded-lg bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/70 transition-colors"
                 >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                     <div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                       style={{
                         backgroundColor:
                           lancamento.categoria?.cor ||
@@ -805,14 +813,14 @@ export default function RelatoriosPage() {
                       {lancamento.categoria ? (
                         getIcone(lancamento.categoria.icone)
                       ) : (
-                        <CreditCard className="w-4 h-4 text-white" />
+                        <CreditCard className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-gray-900 dark:text-white font-medium truncate">
+                      <p className="text-gray-900 dark:text-white text-xs sm:text-sm font-medium truncate">
                         {lancamento.descricao}
                       </p>
-                      <p className="text-gray-500 dark:text-gray-400 text-sm">
+                      <p className="text-gray-500 dark:text-gray-400 text-xs">
                         {new Date(lancamento.data).toLocaleDateString(
                           i18n.language === "pt" ? "pt-BR" : "en-US"
                         )}
@@ -820,9 +828,9 @@ export default function RelatoriosPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="text-right flex-shrink-0 ml-2">
+                  <div className="text-right flex-shrink-0 ml-1.5 sm:ml-2 min-w-[100px] sm:min-w-[120px]">
                     <p
-                      className={`font-medium ${
+                      className={`font-medium text-xs sm:text-sm ${
                         lancamento.tipo === "DESPESA"
                           ? "text-red-600 dark:text-red-400"
                           : "text-emerald-600 dark:text-green-400"
@@ -832,11 +840,11 @@ export default function RelatoriosPage() {
                     </p>
                     <Badge
                       variant="outline"
-                      className={
+                      className={`mt-1 text-xs ${
                         lancamento.tipo === "DESPESA"
                           ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700"
                           : "bg-emerald-100 dark:bg-green-900/50 text-emerald-700 dark:text-green-300 border-emerald-200 dark:border-green-700"
-                      }
+                      }`}
                     >
                       {lancamento.tipo === "DESPESA"
                         ? t("tipos.despesa")
@@ -847,9 +855,9 @@ export default function RelatoriosPage() {
               ))}
 
               {lancamentos.length === 0 && (
-                <div className="text-center py-8">
-                  <BarChart3 className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                  <p className="text-gray-500 dark:text-gray-400">
+                <div className="text-center py-6 sm:py-8">
+                  <BarChart3 className="h-8 w-8 sm:h-12 sm:w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3 sm:mb-4" />
+                  <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
                     {t("mensagens.nenhumLancamentoEncontrado")}
                   </p>
                 </div>
@@ -859,8 +867,10 @@ export default function RelatoriosPage() {
             {lancamentos.length > 10 && (
               <Button
                 variant="outline"
-                className="w-full mt-4 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
-                onClick={() => router.push("/dashboard/lancamentos")}
+                className="w-full mt-3 sm:mt-4 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white text-xs sm:text-sm py-2"
+                onClick={() =>
+                  router.push(getLocalizedPath("/dashboard/lancamentos"))
+                }
               >
                 {t("botoes.verTodosLancamentos")}
               </Button>

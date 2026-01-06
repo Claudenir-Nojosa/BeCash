@@ -87,6 +87,7 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loading } from "@/components/ui/loading-barrinhas";
+import { useTranslation } from "react-i18next";
 
 interface Categoria {
   id: string;
@@ -144,6 +145,7 @@ interface Lancamento {
 }
 
 export default function LancamentosPage() {
+  const { t } = useTranslation("lancamentos");
   const [carregandoVisualizacao, setCarregandoVisualizacao] = useState<
     string | null
   >(null);
@@ -253,7 +255,7 @@ export default function LancamentosPage() {
       }
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
-      toast.error("Erro ao carregar dados");
+      toast.error(t("categorias.mensagens.erroCarregar"));
     } finally {
       setLoading(false);
     }
@@ -447,7 +449,7 @@ export default function LancamentosPage() {
       if (res.ok) {
         const lancamentoSalvo = await res.json();
         setLancamentos((prev) => [...prev, lancamentoSalvo]);
-        toast.success("Lançamento criado com sucesso!");
+        toast.success(t("categorias.mensagens.sucessoCriacao"));
         setIsSheetOpen(false);
         setFormData({
           descricao: "",
@@ -471,11 +473,11 @@ export default function LancamentosPage() {
         });
       } else {
         const errorData = await res.json();
-        toast.error(errorData.error || "Erro ao criar lançamento");
+        toast.error(errorData.error || t("categorias.mensagens.erroCriacao"));
       }
     } catch (error) {
       console.error("Erro ao criar lançamento:", error);
-      toast.error("Erro ao criar lançamento");
+      toast.error(t("categorias.mensagens.erroCriacao"));
     } finally {
       setEnviando(false);
     }
@@ -499,15 +501,15 @@ export default function LancamentosPage() {
       setDialogAberto(null);
 
       const res = await fetch(`/api/lancamentos/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Erro ao deletar lançamento");
+      if (!res.ok) throw new Error(t("categorias.mensagens.erroExclusao"));
 
-      toast.success("Lançamento deletado com sucesso!");
+      toast.success(t("categorias.mensagens.sucessoExclusao"));
     } catch (error) {
       console.error("Erro ao deletar lançamento:", error);
       if (lancamentoParaExcluir) {
         setLancamentos((prev) => [...prev, lancamentoParaExcluir]);
       }
-      toast.error("Erro ao deletar lançamento.");
+      toast.error(t("categorias.mensagens.erroExclusao"));
     } finally {
       setExcluindo(null);
     }
@@ -535,11 +537,11 @@ export default function LancamentosPage() {
       } else {
         const errorData = await response.json();
         console.error("Erro na resposta:", errorData);
-        toast.error(errorData.error || "Erro ao carregar dados do lançamento");
+        toast.error(errorData.error || t("categorias.mensagens.erroCarregar"));
       }
     } catch (error) {
       console.error("Erro ao visualizar lançamento:", error);
-      toast.error("Erro ao carregar dados do lançamento");
+      toast.error(t("categorias.mensagens.erroCarregar"));
     } finally {
       setCarregandoVisualizacao(null);
     }
@@ -668,16 +670,16 @@ export default function LancamentosPage() {
             lanc.id === lancamentoSelecionado.id ? lancamentoAtualizado : lanc
           )
         );
-        toast.success("Lançamento atualizado com sucesso!");
+        toast.success(t("categorias.mensagens.sucessoEdicao"));
         setMostrarDialogEditar(false);
         setLancamentoSelecionado(null);
       } else {
         const errorData = await res.json();
-        toast.error(errorData.error || "Erro ao atualizar lançamento");
+        toast.error(errorData.error || t("categorias.mensagens.erroEdicao"));
       }
     } catch (error) {
       console.error("Erro ao atualizar lançamento:", error);
-      toast.error("Erro ao atualizar lançamento");
+      toast.error(t("categorias.mensagens.erroEdicao"));
     } finally {
       setEditando(false);
     }
@@ -697,13 +699,13 @@ export default function LancamentosPage() {
             lanc.id === lancamentoId ? { ...lanc, pago: !atualStatus } : lanc
           )
         );
-        toast.success("Status atualizado com sucesso!");
+        toast.success(t("categorias.mensagens.sucessoStatus"));
       } else {
-        throw new Error("Erro ao atualizar status");
+        throw new Error(t("categorias.mensagens.erroEdicao"));
       }
     } catch (error) {
       console.error("Erro ao alterar status:", error);
-      toast.error("Erro ao alterar status");
+      toast.error(t("categorias.mensagens.erroEdicao"));
       carregarDados();
     }
   };
@@ -729,36 +731,38 @@ export default function LancamentosPage() {
   }
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 bg-white dark:bg-transparent">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen p-3 sm:p-4 md:p-6 bg-white dark:bg-transparent">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-              Lançamentos
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+              {t("titulo")}
             </h1>
-            <p className="text-gray-600 dark:text-gray-300 mt-1">
-              Gerencie suas receitas e despesas
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-0.5">
+              {t("subtitulo")}
             </p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
             <Button
               variant="outline"
               onClick={() => setMostrarFiltros(!mostrarFiltros)}
-              className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-600 gap-2"
+              className="flex-1 sm:flex-none border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-600 gap-1.5 sm:gap-2 text-xs sm:text-sm"
             >
-              <Filter className="w-4 h-4" />
-              Filtros
+              <Filter className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="truncate">{t("categorias.icones.filtro")}</span>
             </Button>
 
             <Button
               variant={"outline"}
               onClick={() => setIsSheetOpen(true)}
-              className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-500"
+              className="flex-1 sm:flex-none border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-500 text-xs sm:text-sm"
             >
-              <Plus className="w-4 h-4" />
-              Novo Lançamento
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="truncate">
+                {t("categorias.acoes.novoLancamento")}
+              </span>
             </Button>
           </div>
         </div>
@@ -773,30 +777,30 @@ export default function LancamentosPage() {
               className="overflow-hidden"
             >
               <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="space-y-4">
+                <CardContent className="p-3 sm:p-4 md:p-6">
+                  <div className="space-y-3 sm:space-y-4">
                     {/* Pesquisar */}
-                    <div className="space-y-2">
-                      <Label className="text-gray-700 dark:text-gray-300 text-sm">
-                        Pesquisar
+                    <div className="space-y-1.5 sm:space-y-2">
+                      <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
+                        {t("categorias.icones.busca")}
                       </Label>
                       <div className="relative">
-                        <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <Search className="absolute left-2.5 sm:left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-400" />
                         <Input
-                          placeholder="Buscar lançamentos por descrição..."
+                          placeholder={t("categorias.tabela.pesquisar")}
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          className="pl-9 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 w-full"
+                          className="pl-8 sm:pl-9 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 w-full text-sm"
                         />
                       </div>
                     </div>
 
                     {/* Demais filtros em grid abaixo */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
                       {/* Categoria */}
-                      <div className="space-y-2">
-                        <Label className="text-gray-700 dark:text-gray-300 text-sm">
-                          Categoria
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
+                          {t("categorias.filtros.categoria")}
                         </Label>
                         <Select
                           value={filtros.categoria}
@@ -804,19 +808,23 @@ export default function LancamentosPage() {
                             setFiltros({ ...filtros, categoria: value })
                           }
                         >
-                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
-                            <SelectValue placeholder="Todas" />
+                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm h-9 sm:h-10">
+                            <SelectValue
+                              placeholder={t("categorias.filtros.todos")}
+                            />
                           </SelectTrigger>
-                          <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
-                            <SelectItem value="all">Todas</SelectItem>
+                          <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm">
+                            <SelectItem value="all">
+                              {t("categorias.filtros.todos")}
+                            </SelectItem>
                             {categorias.map((cat) => (
                               <SelectItem key={cat.id} value={cat.id}>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1.5 sm:gap-2">
                                   <div
-                                    className="w-3 h-3 rounded-full"
+                                    className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0"
                                     style={{ backgroundColor: cat.cor }}
                                   />
-                                  {cat.nome}
+                                  <span className="truncate">{cat.nome}</span>
                                 </div>
                               </SelectItem>
                             ))}
@@ -825,9 +833,9 @@ export default function LancamentosPage() {
                       </div>
 
                       {/* Individual ou Compartilhado */}
-                      <div className="space-y-2">
-                        <Label className="text-gray-700 dark:text-gray-300 text-sm">
-                          Tipo
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
+                          {t("categorias.filtros.tipoLancamento")}
                         </Label>
                         <Select
                           value={filtros.tipoLancamento}
@@ -835,25 +843,29 @@ export default function LancamentosPage() {
                             setFiltros({ ...filtros, tipoLancamento: value })
                           }
                         >
-                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
-                            <SelectValue placeholder="Todos" />
+                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm h-9 sm:h-10">
+                            <SelectValue
+                              placeholder={t("categorias.filtros.todos")}
+                            />
                           </SelectTrigger>
-                          <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
-                            <SelectItem value="all">Todos</SelectItem>
+                          <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm">
+                            <SelectItem value="all">
+                              {t("categorias.filtros.todos")}
+                            </SelectItem>
                             <SelectItem value="individual">
-                              Individual
+                              {t("categorias.filtros.individual")}
                             </SelectItem>
                             <SelectItem value="compartilhado">
-                              Compartilhado
+                              {t("categorias.filtros.compartilhado")}
                             </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
 
                       {/* Receita ou Despesa */}
-                      <div className="space-y-2">
-                        <Label className="text-gray-700 dark:text-gray-300 text-sm">
-                          Receita/Despesa
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
+                          {t("categorias.filtros.tipo")}
                         </Label>
                         <Select
                           value={filtros.tipo}
@@ -861,21 +873,29 @@ export default function LancamentosPage() {
                             setFiltros({ ...filtros, tipo: value })
                           }
                         >
-                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
-                            <SelectValue placeholder="Todos" />
+                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm h-9 sm:h-10">
+                            <SelectValue
+                              placeholder={t("categorias.filtros.todos")}
+                            />
                           </SelectTrigger>
-                          <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
-                            <SelectItem value="all">Todos</SelectItem>
-                            <SelectItem value="RECEITA">Receita</SelectItem>
-                            <SelectItem value="DESPESA">Despesa</SelectItem>
+                          <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm">
+                            <SelectItem value="all">
+                              {t("categorias.filtros.todos")}
+                            </SelectItem>
+                            <SelectItem value="RECEITA">
+                              {t("categorias.filtros.receita")}
+                            </SelectItem>
+                            <SelectItem value="DESPESA">
+                              {t("categorias.filtros.despesa")}
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
 
                       {/* Status */}
-                      <div className="space-y-2">
-                        <Label className="text-gray-700 dark:text-gray-300 text-sm">
-                          Status
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
+                          {t("categorias.filtros.status")}
                         </Label>
                         <Select
                           value={filtros.status}
@@ -883,21 +903,29 @@ export default function LancamentosPage() {
                             setFiltros({ ...filtros, status: value })
                           }
                         >
-                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
-                            <SelectValue placeholder="Todos" />
+                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm h-9 sm:h-10">
+                            <SelectValue
+                              placeholder={t("categorias.filtros.todos")}
+                            />
                           </SelectTrigger>
-                          <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
-                            <SelectItem value="all">Todos</SelectItem>
-                            <SelectItem value="pago">Pago/Recebido</SelectItem>
-                            <SelectItem value="pendente">Pendente</SelectItem>
+                          <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm">
+                            <SelectItem value="all">
+                              {t("categorias.filtros.todos")}
+                            </SelectItem>
+                            <SelectItem value="pago">
+                              {t("categorias.filtros.pago")}
+                            </SelectItem>
+                            <SelectItem value="pendente">
+                              {t("categorias.filtros.pendente")}
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
 
                       {/* Método de Pagamento */}
-                      <div className="space-y-2">
-                        <Label className="text-gray-700 dark:text-gray-300 text-sm">
-                          Pagamento
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
+                          {t("categorias.filtros.metodoPagamento")}
                         </Label>
                         <Select
                           value={filtros.metodoPagamento}
@@ -905,20 +933,34 @@ export default function LancamentosPage() {
                             setFiltros({ ...filtros, metodoPagamento: value })
                           }
                         >
-                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
-                            <SelectValue placeholder="Todos" />
+                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm h-9 sm:h-10">
+                            <SelectValue
+                              placeholder={t("categorias.filtros.todos")}
+                            />
                           </SelectTrigger>
-                          <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
-                            <SelectItem value="all">Todos</SelectItem>
-                            <SelectItem value="PIX">PIX</SelectItem>
+                          <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm">
+                            <SelectItem value="all">
+                              {t("categorias.filtros.todos")}
+                            </SelectItem>
+                            <SelectItem value="PIX">
+                              {t(
+                                "categorias.formulario.opcoesMetodoPagamento.pix"
+                              )}
+                            </SelectItem>
                             <SelectItem value="CREDITO">
-                              Cartão Crédito
+                              {t(
+                                "categorias.formulario.opcoesMetodoPagamento.credito"
+                              )}
                             </SelectItem>
                             <SelectItem value="DEBITO">
-                              Cartão Débito
+                              {t(
+                                "categorias.formulario.opcoesMetodoPagamento.debito"
+                              )}
                             </SelectItem>
                             <SelectItem value="TRANSFERENCIA">
-                              Transferência
+                              {t(
+                                "categorias.formulario.opcoesMetodoPagamento.transferencia"
+                              )}
                             </SelectItem>
                           </SelectContent>
                         </Select>
@@ -932,13 +974,13 @@ export default function LancamentosPage() {
         </AnimatePresence>
 
         {/* Cards de Resumo */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {/* Seletor de Mês */}
           <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
-            <CardContent className="p-4">
-              <div className="space-y-3">
-                <Label className="text-gray-700 dark:text-gray-300 text-sm">
-                  Período
+            <CardContent className="p-3 sm:p-4">
+              <div className="space-y-2 sm:space-y-3">
+                <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
+                  {t("categorias.tabela.mesAno")}
                 </Label>
                 <div className="flex items-center space-x-2">
                   <Button
@@ -954,19 +996,15 @@ export default function LancamentosPage() {
                       setMesSelecionado(novoMes);
                       setAnoSelecionado(novoAno);
                     }}
-                    className="hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300"
+                    className="hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 h-8 w-8 p-0"
                   >
-                    <ChevronLeft className="h-4 w-4" />
+                    <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </Button>
 
                   <div className="flex-1 text-center">
-                    <p className="text-gray-900 dark:text-white font-medium text-sm sm:text-base">
-                      {new Date(anoSelecionado, mesSelecionado - 1)
-                        .toLocaleDateString("pt-BR", {
-                          month: "long",
-                          year: "numeric",
-                        })
-                        .replace(/^\w/, (c) => c.toUpperCase())}
+                    <p className="text-gray-900 dark:text-white font-medium text-xs sm:text-sm md:text-base truncate px-1">
+                      {t(`categorias.meses.${mesSelecionado}` as any)}{" "}
+                      {anoSelecionado}
                     </p>
                   </div>
 
@@ -983,9 +1021,9 @@ export default function LancamentosPage() {
                       setMesSelecionado(novoMes);
                       setAnoSelecionado(novoAno);
                     }}
-                    className="hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300"
+                    className="hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 h-8 w-8 p-0"
                   >
-                    <ChevronRight className="h-4 w-4" />
+                    <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </Button>
                 </div>
               </div>
@@ -994,22 +1032,22 @@ export default function LancamentosPage() {
 
           {/* Receita */}
           <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    Receita
+                  <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
+                    {t("categorias.estatisticas.receitas")}
                   </p>
-                  <p className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-green-400">
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-emerald-600 dark:text-green-400">
                     R$ {totalReceitas.toFixed(2)}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     Falta receber: R${" "}
                     {(totalReceitas - receitasPagas).toFixed(2)}
                   </p>
                 </div>
-                <div className="w-10 h-10 bg-emerald-100 dark:bg-green-600 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-emerald-600 dark:text-white" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-100 dark:bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-white" />
                 </div>
               </div>
             </CardContent>
@@ -1017,21 +1055,21 @@ export default function LancamentosPage() {
 
           {/* Despesa */}
           <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    Despesa
+                  <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
+                    {t("categorias.estatisticas.despesas")}
                   </p>
-                  <p className="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400">
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-red-600 dark:text-red-400">
                     R$ {totalDespesas.toFixed(2)}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     Falta pagar: R$ {(totalDespesas - despesasPagas).toFixed(2)}
                   </p>
                 </div>
-                <div className="w-10 h-10 bg-red-100 dark:bg-red-600 rounded-lg flex items-center justify-center">
-                  <TrendingDown className="w-5 h-5 text-red-600 dark:text-white" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-100 dark:bg-red-600 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                  <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 dark:text-white" />
                 </div>
               </div>
             </CardContent>
@@ -1039,25 +1077,25 @@ export default function LancamentosPage() {
 
           {/* Saldo */}
           <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    Saldo
+                  <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
+                    {t("categorias.estatisticas.saldo")}
                   </p>
                   <p
-                    className={`text-xl sm:text-2xl font-bold ${saldo >= 0 ? "text-emerald-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
+                    className={`text-lg sm:text-xl md:text-2xl font-bold ${saldo >= 0 ? "text-emerald-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
                   >
                     R$ {saldo.toFixed(2)}
                   </p>
                 </div>
                 <div
-                  className={`w-10 h-10 rounded-lg flex items-center justify-center ${saldo >= 0 ? "bg-emerald-100 dark:bg-green-600" : "bg-red-100 dark:bg-red-600"}`}
+                  className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0 ml-2 ${saldo >= 0 ? "bg-emerald-100 dark:bg-green-600" : "bg-red-100 dark:bg-red-600"}`}
                 >
                   {saldo >= 0 ? (
-                    <TrendingUp className="w-5 h-5 text-emerald-600 dark:text-white" />
+                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-white" />
                   ) : (
-                    <TrendingDown className="w-5 h-5 text-red-600 dark:text-white" />
+                    <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 dark:text-white" />
                   )}
                 </div>
               </div>
@@ -1067,163 +1105,392 @@ export default function LancamentosPage() {
 
         {/* Tabela de Lançamentos */}
         <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-gray-900 dark:text-white">
-              Lançamentos
+          <CardHeader className="pb-3">
+            <CardTitle className="text-gray-900 dark:text-white text-base sm:text-lg">
+              {t("titulo")}
             </CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400">
-              {lancamentosFiltrados.length} lançamentos encontrados
+            <CardDescription className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+              {lancamentosFiltrados.length}{" "}
+              {t("categorias.tabela.nenhumLancamento").replace("nenhum ", "")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                    <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium">
-                      Tipo
-                    </th>
-                    <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium">
-                      Categoria
-                    </th>
-                    <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium">
-                      Descrição
-                    </th>
-                    <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium">
-                      Valor
-                    </th>
-                    <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium">
-                      Status
-                    </th>
-                    <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium">
-                      Ações
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
+              {/* Tabela para desktop */}
+              <div className="hidden md:block">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                      <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium text-xs sm:text-sm">
+                        {t("categorias.tabela.tipo")}
+                      </th>
+                      <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium text-xs sm:text-sm">
+                        {t("categorias.tabela.categoria")}
+                      </th>
+                      <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium text-xs sm:text-sm">
+                        {t("categorias.tabela.descricao")}
+                      </th>
+                      <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium text-xs sm:text-sm">
+                        {t("categorias.tabela.valor")}
+                      </th>
+                      <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium text-xs sm:text-sm">
+                        {t("categorias.tabela.status")}
+                      </th>
+                      <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium text-xs sm:text-sm">
+                        {t("categorias.tabela.acoes")}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lancamentosFiltrados.map((lancamento) => {
+                      const compartilhamento =
+                        getStatusCompartilhamento(lancamento);
+
+                      return (
+                        <tr
+                          key={lancamento.id}
+                          className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors"
+                        >
+                          {/* Tipo */}
+                          <td className="py-3 px-4">
+                            <Badge
+                              variant="outline"
+                              className={`text-xs ${
+                                lancamento.tipo === "RECEITA"
+                                  ? "bg-emerald-100 dark:bg-green-900/50 text-emerald-700 dark:text-green-400 border-emerald-200 dark:border-green-700"
+                                  : "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400 border-red-200 dark:border-red-700"
+                              }`}
+                            >
+                              {lancamento.tipo === "RECEITA"
+                                ? t("categorias.filtros.receita")
+                                : t("categorias.filtros.despesa")}
+                            </Badge>
+                          </td>
+
+                          {/* Categoria */}
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                              <div
+                                className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                                style={{
+                                  backgroundColor: lancamento.categoria.cor,
+                                }}
+                              >
+                                {(() => {
+                                  try {
+                                    const IconComponent =
+                                      require("lucide-react")[
+                                        lancamento.categoria.icone || "Tag"
+                                      ];
+                                    return (
+                                      <IconComponent className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                                    );
+                                  } catch {
+                                    return (
+                                      <Tag className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                                    );
+                                  }
+                                })()}
+                              </div>
+                              <span className="text-gray-900 dark:text-white text-xs sm:text-sm truncate max-w-[100px] sm:max-w-none">
+                                {lancamento.categoria.nome}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Descrição */}
+                          <td className="py-3 px-4">
+                            <div>
+                              <p className="text-gray-900 dark:text-white font-medium text-xs sm:text-sm truncate max-w-[200px]">
+                                {lancamento.descricao}
+                              </p>
+                              <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5">
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                  {formatarDataBonita(lancamento.data)}
+                                </span>
+                                {compartilhamento && (
+                                  <div className="group relative">
+                                    <Users className="h-3 w-3 text-blue-500 dark:text-blue-400" />
+                                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 dark:bg-gray-700 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                      {t("categorias.status.compartilhado")}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          {/* Valor */}
+                          <td className="py-3 px-4">
+                            <span
+                              className={`font-semibold text-xs sm:text-sm ${
+                                lancamento.tipo === "RECEITA"
+                                  ? "text-emerald-600 dark:text-green-400"
+                                  : "text-red-600 dark:text-red-400"
+                              }`}
+                            >
+                              R$ {lancamento.valor.toFixed(2)}
+                            </span>
+                          </td>
+
+                          {/* Status */}
+                          <td className="py-3 px-4">
+                            <Button
+                              variant={lancamento.pago ? "default" : "outline"}
+                              size="sm"
+                              onClick={() =>
+                                toggleStatus(lancamento.id, lancamento.pago)
+                              }
+                              className={`text-xs ${
+                                lancamento.pago
+                                  ? "bg-emerald-600 hover:bg-emerald-700 dark:bg-green-600 dark:hover:bg-green-700"
+                                  : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                              }`}
+                            >
+                              {lancamento.pago ? (
+                                <>
+                                  <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                                  <span className="hidden sm:inline">
+                                    {lancamento.tipo === "RECEITA"
+                                      ? t("categorias.status.pago")
+                                      : t("categorias.status.pago")}
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                                  <span className="hidden sm:inline">
+                                    {lancamento.tipo === "RECEITA"
+                                      ? t("categorias.status.pendente")
+                                      : t("categorias.status.pendente")}
+                                  </span>
+                                </>
+                              )}
+                            </Button>
+                          </td>
+
+                          {/* Ações */}
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-1 sm:gap-2">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() =>
+                                        handleVisualizar(lancamento.id)
+                                      }
+                                      disabled={
+                                        carregandoVisualizacao === lancamento.id
+                                      }
+                                      className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 h-7 w-7 sm:h-8 sm:w-8"
+                                    >
+                                      {carregandoVisualizacao ===
+                                      lancamento.id ? (
+                                        <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin" />
+                                      ) : (
+                                        <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                      )}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="bg-gray-800 dark:bg-gray-700 text-white border-gray-700 dark:border-gray-600 text-xs">
+                                    <p>{t("categorias.icones.visualizar")}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleEditar(lancamento)}
+                                      className="text-gray-600 dark:text-gray-400 hover:text-amber-600 dark:hover:text-yellow-400 hover:bg-amber-50 dark:hover:bg-yellow-900/30 h-7 w-7 sm:h-8 sm:w-8"
+                                    >
+                                      <Edit3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="bg-gray-800 dark:bg-gray-700 text-white border-gray-700 dark:border-gray-600 text-xs">
+                                    <p>{t("categorias.icones.editar")}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Dialog
+                                      open={dialogAberto === lancamento.id}
+                                      onOpenChange={(open) =>
+                                        setDialogAberto(
+                                          open ? lancamento.id : null
+                                        )
+                                      }
+                                    >
+                                      <DialogTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 h-7 w-7 sm:h-8 sm:w-8"
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                        </Button>
+                                      </DialogTrigger>
+                                      <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white w-[90vw] sm:max-w-md">
+                                        <DialogHeader>
+                                          <DialogTitle className="text-gray-900 dark:text-white text-lg">
+                                            {t("categorias.acoes.excluir")}{" "}
+                                            {t("titulo").slice(0, -1)}
+                                          </DialogTitle>
+                                          <DialogDescription className="text-gray-600 dark:text-gray-400 text-sm">
+                                            {t(
+                                              "categorias.mensagens.confirmacaoExclusao"
+                                            )}
+                                          </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
+                                          <Button
+                                            variant="outline"
+                                            onClick={() =>
+                                              setDialogAberto(null)
+                                            }
+                                            className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm"
+                                          >
+                                            {t("categorias.acoes.cancelar")}
+                                          </Button>
+                                          <Button
+                                            variant="destructive"
+                                            onClick={() =>
+                                              handleDelete(lancamento.id)
+                                            }
+                                            disabled={
+                                              excluindo === lancamento.id
+                                            }
+                                            className="text-sm"
+                                          >
+                                            {excluindo === lancamento.id
+                                              ? t(
+                                                  "categorias.mensagens.carregando"
+                                                )
+                                              : t("categorias.acoes.confirmar")}
+                                          </Button>
+                                        </div>
+                                      </DialogContent>
+                                    </Dialog>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="bg-gray-800 dark:bg-gray-700 text-white border-gray-700 dark:border-gray-600 text-xs">
+                                    <p>{t("categorias.icones.excluir")}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Lista para mobile */}
+              <div className="md:hidden">
+                <div className="divide-y divide-gray-200 dark:divide-gray-700">
                   {lancamentosFiltrados.map((lancamento) => {
                     const compartilhamento =
                       getStatusCompartilhamento(lancamento);
 
                     return (
-                      <tr
+                      <div
                         key={lancamento.id}
-                        className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors"
+                        className="p-3 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors"
                       >
-                        {/* Tipo */}
-                        <td className="py-3 px-4">
-                          <Badge
-                            variant="outline"
-                            className={
-                              lancamento.tipo === "RECEITA"
-                                ? "bg-emerald-100 dark:bg-green-900/50 text-emerald-700 dark:text-green-400 border-emerald-200 dark:border-green-700"
-                                : "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400 border-red-200 dark:border-red-700"
-                            }
-                          >
-                            {lancamento.tipo === "RECEITA"
-                              ? "Receita"
-                              : "Despesa"}
-                          </Badge>
-                        </td>
-
-                        {/* Categoria */}
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="w-8 h-8 rounded-lg flex items-center justify-center"
-                              style={{
-                                backgroundColor: lancamento.categoria.cor,
-                              }}
-                            >
-                              {(() => {
-                                try {
-                                  const IconComponent =
-                                    require("lucide-react")[
-                                      lancamento.categoria.icone || "Tag"
-                                    ];
-                                  return (
-                                    <IconComponent className="w-4 h-4 text-white" />
-                                  );
-                                } catch {
-                                  return <Tag className="w-4 h-4 text-white" />;
-                                }
-                              })()}
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge
+                                variant="outline"
+                                className={`text-xs ${
+                                  lancamento.tipo === "RECEITA"
+                                    ? "bg-emerald-100 dark:bg-green-900/50 text-emerald-700 dark:text-green-400 border-emerald-200 dark:border-green-700"
+                                    : "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400 border-red-200 dark:border-red-700"
+                                }`}
+                              >
+                                {lancamento.tipo === "RECEITA"
+                                  ? t("categorias.filtros.receita")
+                                  : t("categorias.filtros.despesa")}
+                              </Badge>
+                              {compartilhamento && (
+                                <Users className="h-3 w-3 text-blue-500 dark:text-blue-400" />
+                              )}
                             </div>
-                            <span className="text-gray-900 dark:text-white">
-                              {lancamento.categoria.nome}
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* Descrição */}
-                        <td className="py-3 px-4">
-                          <div>
-                            <p className="text-gray-900 dark:text-white font-medium">
+                            <p className="text-gray-900 dark:text-white font-medium text-sm truncate">
                               {lancamento.descricao}
                             </p>
                             <div className="flex items-center gap-2 mt-1">
-                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                              <div className="flex items-center gap-1">
+                                <div
+                                  className="w-2 h-2 rounded-full"
+                                  style={{
+                                    backgroundColor: lancamento.categoria.cor,
+                                  }}
+                                />
+                                <span className="text-gray-600 dark:text-gray-400 text-xs">
+                                  {lancamento.categoria.nome}
+                                </span>
+                              </div>
+                              <span className="text-gray-400">•</span>
+                              <span className="text-gray-500 dark:text-gray-400 text-xs">
                                 {formatarDataBonita(lancamento.data)}
                               </span>
-                              {compartilhamento && (
-                                <div className="group relative">
-                                  <Users className="h-3 w-3 text-blue-500 dark:text-blue-400" />
-                                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 dark:bg-gray-700 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                                    Lançamento compartilhado
-                                  </div>
-                                </div>
-                              )}
                             </div>
                           </div>
-                        </td>
-                        {/* Valor */}
-                        <td className="py-3 px-4">
-                          <span
-                            className={`font-semibold ${
-                              lancamento.tipo === "RECEITA"
-                                ? "text-emerald-600 dark:text-green-400"
-                                : "text-red-600 dark:text-red-400"
-                            }`}
-                          >
-                            R$ {lancamento.valor.toFixed(2)}
-                          </span>
-                        </td>
-
-                        {/* Status */}
-                        <td className="py-3 px-4">
-                          <Button
-                            variant={lancamento.pago ? "default" : "outline"}
-                            size="sm"
-                            onClick={() =>
-                              toggleStatus(lancamento.id, lancamento.pago)
-                            }
-                            className={
-                              lancamento.pago
-                                ? "bg-emerald-600 hover:bg-emerald-700 dark:bg-green-600 dark:hover:bg-green-700"
-                                : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                            }
-                          >
-                            {lancamento.pago ? (
-                              <>
-                                <CheckCircle className="w-4 h-4 mr-1" />
-                                {lancamento.tipo === "RECEITA"
-                                  ? "Recebido"
-                                  : "Pago"}
-                              </>
-                            ) : (
-                              <>
-                                <Clock className="w-4 h-4 mr-1" />
-                                {lancamento.tipo === "RECEITA"
-                                  ? "A receber"
-                                  : "A pagar"}
-                              </>
-                            )}
-                          </Button>
-                        </td>
-
-                        {/* Ações */}
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
+                          <div className="text-right ml-2 min-w-[80px]">
+                            <span
+                              className={`font-semibold text-sm ${
+                                lancamento.tipo === "RECEITA"
+                                  ? "text-emerald-600 dark:text-green-400"
+                                  : "text-red-600 dark:text-red-400"
+                              }`}
+                            >
+                              R$ {lancamento.valor.toFixed(2)}
+                            </span>
+                            <div className="mt-1">
+                              <Button
+                                variant={
+                                  lancamento.pago ? "default" : "outline"
+                                }
+                                size="sm"
+                                onClick={() =>
+                                  toggleStatus(lancamento.id, lancamento.pago)
+                                }
+                                className={`text-xs h-6 px-2 ${
+                                  lancamento.pago
+                                    ? "bg-emerald-600 hover:bg-emerald-700 dark:bg-green-600 dark:hover:bg-green-700"
+                                    : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                }`}
+                              >
+                                {lancamento.pago ? (
+                                  <>
+                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                    {lancamento.tipo === "RECEITA"
+                                      ? t("categorias.status.pago")
+                                      : t("categorias.status.pago")}
+                                  </>
+                                ) : (
+                                  <>
+                                    <Clock className="w-3 h-3 mr-1" />
+                                    {lancamento.tipo === "RECEITA"
+                                      ? t("categorias.status.pendente")
+                                      : t("categorias.status.pendente")}
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                          <div className="flex gap-1">
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -1236,18 +1503,18 @@ export default function LancamentosPage() {
                                     disabled={
                                       carregandoVisualizacao === lancamento.id
                                     }
-                                    className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                                    className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 h-6 w-6"
                                   >
                                     {carregandoVisualizacao ===
                                     lancamento.id ? (
-                                      <div className="w-4 h-4 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin" />
+                                      <div className="w-3 h-3 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin" />
                                     ) : (
-                                      <Eye className="w-4 h-4" />
+                                      <Eye className="w-3 h-3" />
                                     )}
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent className="bg-gray-800 dark:bg-gray-700 text-white border-gray-700 dark:border-gray-600">
-                                  <p>Visualizar dados</p>
+                                <TooltipContent className="bg-gray-800 dark:bg-gray-700 text-white border-gray-700 dark:border-gray-600 text-xs">
+                                  <p>{t("categorias.icones.visualizar")}</p>
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
@@ -1259,205 +1526,206 @@ export default function LancamentosPage() {
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => handleEditar(lancamento)}
-                                    className="text-gray-600 dark:text-gray-400 hover:text-amber-600 dark:hover:text-yellow-400 hover:bg-amber-50 dark:hover:bg-yellow-900/30"
+                                    className="text-gray-600 dark:text-gray-400 hover:text-amber-600 dark:hover:text-yellow-400 hover:bg-amber-50 dark:hover:bg-yellow-900/30 h-6 w-6"
                                   >
-                                    <Edit3 className="w-4 h-4" />
+                                    <Edit3 className="w-3 h-3" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent className="bg-gray-800 dark:bg-gray-700 text-white border-gray-700 dark:border-gray-600">
-                                  <p>Editar</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Dialog
-                                    open={dialogAberto === lancamento.id}
-                                    onOpenChange={(open) =>
-                                      setDialogAberto(
-                                        open ? lancamento.id : null
-                                      )
-                                    }
-                                  >
-                                    <DialogTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white">
-                                      <DialogHeader>
-                                        <DialogTitle className="text-gray-900 dark:text-white">
-                                          Excluir Lançamento
-                                        </DialogTitle>
-                                        <DialogDescription className="text-gray-600 dark:text-gray-400">
-                                          Tem certeza que deseja excluir este
-                                          lançamento? Esta ação não pode ser
-                                          desfeita.
-                                        </DialogDescription>
-                                      </DialogHeader>
-                                      <div className="flex gap-3 justify-end">
-                                        <Button
-                                          variant="outline"
-                                          onClick={() => setDialogAberto(null)}
-                                          className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                        >
-                                          Cancelar
-                                        </Button>
-                                        <Button
-                                          variant="destructive"
-                                          onClick={() =>
-                                            handleDelete(lancamento.id)
-                                          }
-                                          disabled={excluindo === lancamento.id}
-                                        >
-                                          {excluindo === lancamento.id
-                                            ? "Excluindo..."
-                                            : "Confirmar"}
-                                        </Button>
-                                      </div>
-                                    </DialogContent>
-                                  </Dialog>
-                                </TooltipTrigger>
-                                <TooltipContent className="bg-gray-800 dark:bg-gray-700 text-white border-gray-700 dark:border-gray-600">
-                                  <p>Excluir</p>
+                                <TooltipContent className="bg-gray-800 dark:bg-gray-700 text-white border-gray-700 dark:border-gray-600 text-xs">
+                                  <p>{t("categorias.icones.editar")}</p>
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           </div>
-                        </td>
-                      </tr>
+
+                          <Dialog
+                            open={dialogAberto === lancamento.id}
+                            onOpenChange={(open) =>
+                              setDialogAberto(open ? lancamento.id : null)
+                            }
+                          >
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 text-xs h-6"
+                              >
+                                <Trash2 className="w-3 h-3 mr-1" />
+                                {t("categorias.icones.excluir")}
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white w-[90vw] sm:max-w-md">
+                              <DialogHeader>
+                                <DialogTitle className="text-gray-900 dark:text-white text-lg">
+                                  {t("categorias.acoes.excluir")}{" "}
+                                  {t("titulo").slice(0, -1)}
+                                </DialogTitle>
+                                <DialogDescription className="text-gray-600 dark:text-gray-400 text-sm">
+                                  {t(
+                                    "categorias.mensagens.confirmacaoExclusao"
+                                  )}
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
+                                <Button
+                                  variant="outline"
+                                  onClick={() => setDialogAberto(null)}
+                                  className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm"
+                                >
+                                  {t("categorias.acoes.cancelar")}
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  onClick={() => handleDelete(lancamento.id)}
+                                  disabled={excluindo === lancamento.id}
+                                  className="text-sm"
+                                >
+                                  {excluindo === lancamento.id
+                                    ? t("categorias.mensagens.carregando")
+                                    : t("categorias.acoes.confirmar")}
+                                </Button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                      </div>
                     );
                   })}
-                </tbody>
-              </table>
+                </div>
+              </div>
 
               {lancamentosFiltrados.length === 0 && (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  <p>Nenhum lançamento encontrado</p>
+                <div className="text-center py-6 sm:py-8 text-gray-500 dark:text-gray-400">
+                  <p className="text-sm">
+                    {t("categorias.tabela.nenhumLancamento")}
+                  </p>
                 </div>
               )}
             </div>
           </CardContent>
         </Card>
+      </div>
 
-        {/* Sheet para Novo Lançamento */}
-        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <SheetContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white sm:max-w-md">
-            <SheetHeader>
-              <SheetTitle className="text-gray-900 dark:text-white">
-                Novo Lançamento
-              </SheetTitle>
-              <SheetDescription className="text-gray-600 dark:text-gray-400">
-                Adicione uma nova receita ou despesa
-              </SheetDescription>
-            </SheetHeader>
+      {/* Sheet para Novo Lançamento */}
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <SheetContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader className="mb-4 sm:mb-6">
+            <SheetTitle className="text-gray-900 dark:text-white text-lg sm:text-xl">
+              {t("categorias.formulario.tituloNovo")}
+            </SheetTitle>
+            <SheetDescription className="text-gray-600 dark:text-gray-400 text-sm">
+              {t("subtitulo")}
+            </SheetDescription>
+          </SheetHeader>
 
-            <form
-              onSubmit={handleSubmit}
-              className="space-y-4 mt-6 max-h-[80vh] overflow-y-auto pr-2"
-            >
-              {/* Tipo e Categoria */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="tipo"
-                    className="text-gray-700 dark:text-gray-300"
-                  >
-                    Tipo *
-                  </Label>
-                  <Select
-                    value={formData.tipo}
-                    onValueChange={(value) => handleChange("tipo", value)}
-                    required
-                  >
-                    <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
-                      <SelectValue placeholder="Selecione o tipo" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                      <SelectItem value="receita">Receita</SelectItem>
-                      <SelectItem value="despesa">Despesa</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="categoria"
-                    className="text-gray-700 dark:text-gray-300"
-                  >
-                    Categoria *
-                  </Label>
-                  <Select
-                    value={formData.categoria}
-                    onValueChange={(value) => handleChange("categoria", value)}
-                    required
-                    disabled={!formData.tipo}
-                  >
-                    <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
-                      <SelectValue
-                        placeholder={
-                          !formData.tipo
-                            ? "Selecione o tipo primeiro"
-                            : "Selecione a categoria"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                      {categorias
-                        .filter(
-                          (cat) =>
-                            cat.tipo ===
-                            (formData.tipo === "receita"
-                              ? "RECEITA"
-                              : "DESPESA")
-                        )
-                        .map((cat) => (
-                          <SelectItem key={cat.id} value={cat.id}>
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: cat.cor }}
-                              />
-                              {cat.nome}
-                            </div>
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Descrição e Valor */}
-              <div className="space-y-2">
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4 mt-4 max-h-[calc(100vh-200px)] overflow-y-auto pr-1 sm:pr-2 pb-4"
+          >
+            {/* Tipo e Categoria */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1.5 sm:space-y-2">
                 <Label
-                  htmlFor="descricao"
-                  className="text-gray-700 dark:text-gray-300"
+                  htmlFor="tipo"
+                  className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                 >
-                  Descrição *
+                  {t("categorias.formulario.tipo")} *
                 </Label>
-                <Input
-                  id="descricao"
-                  value={formData.descricao}
-                  onChange={(e) => handleChange("descricao", e.target.value)}
-                  placeholder="Ex: Salário, Aluguel, Mercado..."
+                <Select
+                  value={formData.tipo}
+                  onValueChange={(value) => handleChange("tipo", value)}
                   required
-                  className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-                />
+                >
+                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
+                    <SelectValue
+                      placeholder={t("categorias.formulario.selecione")}
+                    />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
+                    <SelectItem value="receita">
+                      {t("categorias.filtros.receita")}
+                    </SelectItem>
+                    <SelectItem value="despesa">
+                      {t("categorias.filtros.despesa")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5 sm:space-y-2">
                 <Label
-                  htmlFor="valor"
-                  className="text-gray-700 dark:text-gray-300"
+                  htmlFor="categoria"
+                  className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                 >
-                  Valor *
+                  {t("categorias.formulario.categoria")} *
                 </Label>
+                <Select
+                  value={formData.categoria}
+                  onValueChange={(value) => handleChange("categoria", value)}
+                  required
+                  disabled={!formData.tipo}
+                >
+                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
+                    <SelectValue
+                      placeholder={
+                        !formData.tipo
+                          ? t("categorias.formulario.selecione")
+                          : t("categorias.formulario.selecione")
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
+                    {categorias
+                      .filter(
+                        (cat) =>
+                          cat.tipo ===
+                          (formData.tipo === "receita" ? "RECEITA" : "DESPESA")
+                      )
+                      .map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          <div className="flex items-center gap-1.5 sm:gap-2">
+                            <div
+                              className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: cat.cor }}
+                            />
+                            <span className="truncate">{cat.nome}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Descrição e Valor */}
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label
+                htmlFor="descricao"
+                className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
+              >
+                {t("categorias.formulario.descricao")} *
+              </Label>
+              <Input
+                id="descricao"
+                value={formData.descricao}
+                onChange={(e) => handleChange("descricao", e.target.value)}
+                placeholder={t("categorias.formulario.placeholderDescricao")}
+                required
+                className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-sm"
+              />
+            </div>
+
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label
+                htmlFor="valor"
+                className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
+              >
+                {t("categorias.formulario.valor")} *
+              </Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">
+                  R$
+                </span>
                 <Input
                   id="valor"
                   type="number"
@@ -1465,138 +1733,157 @@ export default function LancamentosPage() {
                   min="0"
                   value={formData.valor}
                   onChange={(e) => handleChange("valor", e.target.value)}
-                  placeholder="0,00"
+                  placeholder={t("categorias.formulario.placeholderValor")}
                   required
-                  className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+                  className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-sm pl-9"
                 />
               </div>
+            </div>
 
-              {/* Tipo de Transação e Lançamento */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="tipoTransacao"
-                    className="text-gray-700 dark:text-gray-300"
-                  >
-                    Tipo de Transação *
-                  </Label>
-                  <Select
-                    value={formData.tipoTransacao}
-                    onValueChange={(value) =>
-                      handleChange("tipoTransacao", value)
-                    }
-                    required
-                  >
-                    <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
-                      <SelectValue placeholder="Selecione o tipo" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                      <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
-                      <SelectItem value="PIX">PIX</SelectItem>
-                      <SelectItem value="CARTAO_DEBITO">
-                        Cartão Débito
-                      </SelectItem>
-                      <SelectItem value="CARTAO_CREDITO">
-                        Cartão Crédito
-                      </SelectItem>
-                      <SelectItem value="TRANSFERENCIA">
-                        Transferência
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="tipoLancamento"
-                    className="text-gray-700 dark:text-gray-300"
-                  >
-                    Tipo de Lançamento *
-                  </Label>
-                  <Select
-                    value={formData.tipoLancamento}
-                    onValueChange={(value) =>
-                      handleChange("tipoLancamento", value)
-                    }
-                    required
-                  >
-                    <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
-                      <SelectValue placeholder="Selecione o tipo" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                      <SelectItem value="individual">Individual</SelectItem>
-                      <SelectItem value="compartilhado">
-                        Compartilhado
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            {/* Tipo de Transação e Lançamento */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label
+                  htmlFor="tipoTransacao"
+                  className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
+                >
+                  {t("categorias.formulario.metodoPagamento")} *
+                </Label>
+                <Select
+                  value={formData.tipoTransacao}
+                  onValueChange={(value) =>
+                    handleChange("tipoTransacao", value)
+                  }
+                  required
+                >
+                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
+                    <SelectValue
+                      placeholder={t("categorias.formulario.selecione")}
+                    />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
+                    <SelectItem value="DINHEIRO">
+                      {t(
+                        "categorias.formulario.opcoesMetodoPagamento.dinheiro"
+                      )}
+                    </SelectItem>
+                    <SelectItem value="PIX">
+                      {t("categorias.formulario.opcoesMetodoPagamento.pix")}
+                    </SelectItem>
+                    <SelectItem value="CARTAO_DEBITO">
+                      {t("categorias.formulario.opcoesMetodoPagamento.debito")}
+                    </SelectItem>
+                    <SelectItem value="CARTAO_CREDITO">
+                      {t("categorias.formulario.opcoesMetodoPagamento.credito")}
+                    </SelectItem>
+                    <SelectItem value="TRANSFERENCIA">
+                      {t(
+                        "categorias.formulario.opcoesMetodoPagamento.transferencia"
+                      )}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              {/* Seção de Compartilhamento */}
-              {formData.tipoLancamento === "compartilhado" && (
-                <div className="space-y-4 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="usuarioAlvoId"
-                        className="text-gray-700 dark:text-gray-300"
-                      >
-                        Compartilhar com *
-                      </Label>
-                      <Select
-                        value={formData.usuarioAlvoId}
-                        onValueChange={(value) =>
-                          handleChange("usuarioAlvoId", value)
-                        }
-                        required
-                        disabled={carregandoUsuarios}
-                      >
-                        <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
-                          <SelectValue
-                            placeholder={
-                              carregandoUsuarios
-                                ? "Carregando usuários..."
-                                : "Selecione o usuário"
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                          {carregandoUsuarios ? (
-                            <SelectItem value="loading" disabled>
-                              Carregando usuários...
-                            </SelectItem>
-                          ) : usuarios && usuarios.length > 0 ? (
-                            usuarios.map((usuario) => (
-                              <SelectItem key={usuario.id} value={usuario.id}>
-                                <div className="flex items-center gap-2">
-                                  {usuario.image && (
-                                    <img
-                                      src={usuario.image}
-                                      alt={usuario.name}
-                                      className="w-4 h-4 rounded-full"
-                                    />
-                                  )}
-                                  {usuario.name}
-                                </div>
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <SelectItem value="no-users" disabled>
-                              Nenhum usuário disponível
-                            </SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </div>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label
+                  htmlFor="tipoLancamento"
+                  className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
+                >
+                  {t("categorias.formulario.tipoLancamento")} *
+                </Label>
+                <Select
+                  value={formData.tipoLancamento}
+                  onValueChange={(value) =>
+                    handleChange("tipoLancamento", value)
+                  }
+                  required
+                >
+                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
+                    <SelectValue
+                      placeholder={t("categorias.formulario.selecione")}
+                    />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
+                    <SelectItem value="individual">
+                      {t("categorias.filtros.individual")}
+                    </SelectItem>
+                    <SelectItem value="compartilhado">
+                      {t("categorias.filtros.compartilhado")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="valorCompartilhado"
-                        className="text-gray-700 dark:text-gray-300"
-                      >
-                        Valor compartilhado (R$)
-                      </Label>
+            {/* Seção de Compartilhamento */}
+            {formData.tipoLancamento === "compartilhado" && (
+              <div className="space-y-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label
+                      htmlFor="usuarioAlvoId"
+                      className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
+                    >
+                      {t("categorias.formulario.usuarioAlvo")} *
+                    </Label>
+                    <Select
+                      value={formData.usuarioAlvoId}
+                      onValueChange={(value) =>
+                        handleChange("usuarioAlvoId", value)
+                      }
+                      required
+                      disabled={carregandoUsuarios}
+                    >
+                      <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
+                        <SelectValue
+                          placeholder={
+                            carregandoUsuarios
+                              ? t("categorias.mensagens.carregando")
+                              : t("categorias.formulario.selecioneUsuario")
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
+                        {carregandoUsuarios ? (
+                          <SelectItem value="loading" disabled>
+                            {t("categorias.mensagens.carregando")}
+                          </SelectItem>
+                        ) : usuarios && usuarios.length > 0 ? (
+                          usuarios.map((usuario) => (
+                            <SelectItem key={usuario.id} value={usuario.id}>
+                              <div className="flex items-center gap-1.5 sm:gap-2">
+                                {usuario.image && (
+                                  <img
+                                    src={usuario.image}
+                                    alt={usuario.name}
+                                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full"
+                                  />
+                                )}
+                                <span className="truncate">{usuario.name}</span>
+                              </div>
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-users" disabled>
+                            {t("categorias.mensagens.semDados")}
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label
+                      htmlFor="valorCompartilhado"
+                      className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
+                    >
+                      {t("categorias.formulario.valorCompartilhado")} (R$)
+                    </Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">
+                        R$
+                      </span>
                       <Input
                         id="valorCompartilhado"
                         type="number"
@@ -1607,272 +1894,262 @@ export default function LancamentosPage() {
                         onChange={(e) =>
                           handleChange("valorCompartilhado", e.target.value)
                         }
-                        placeholder="0,00"
-                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+                        placeholder={t(
+                          "categorias.formulario.placeholderValor"
+                        )}
+                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-sm pl-9"
                       />
                     </div>
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Cartão de Crédito */}
-              {formData.tipoTransacao === "CARTAO_CREDITO" && (
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="cartaoId"
-                    className="text-gray-700 dark:text-gray-300"
-                  >
-                    Cartão *
-                  </Label>
-                  <Select
-                    value={formData.cartaoId}
-                    onValueChange={(value) => handleChange("cartaoId", value)}
-                    required
-                  >
-                    <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
-                      <SelectValue placeholder="Selecione o cartão" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                      {cartoes.map((cartao) => (
-                        <SelectItem key={cartao.id} value={cartao.id}>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: cartao.cor }}
-                            />
-                            {cartao.nome}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {/* Responsável */}
-              <div className="space-y-2">
+            {/* Cartão de Crédito */}
+            {formData.tipoTransacao === "CARTAO_CREDITO" && (
+              <div className="space-y-1.5 sm:space-y-2">
                 <Label
-                  htmlFor="responsavel"
-                  className="text-gray-700 dark:text-gray-300"
+                  htmlFor="cartaoId"
+                  className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                 >
-                  Responsável *
+                  {t("categorias.formulario.cartao")} *
                 </Label>
                 <Select
-                  value={formData.responsavel}
-                  onValueChange={(value) => handleChange("responsavel", value)}
+                  value={formData.cartaoId}
+                  onValueChange={(value) => handleChange("cartaoId", value)}
                   required
                 >
-                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
-                    <SelectValue placeholder="Selecione o responsável" />
+                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
+                    <SelectValue
+                      placeholder={t("categorias.formulario.selecioneCartao")}
+                    />
                   </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                    <SelectItem value="Claudenir">Claudenir</SelectItem>
-                    <SelectItem value="Beatriz">Beatriz</SelectItem>
-                    <SelectItem value="Compartilhado">Compartilhado</SelectItem>
+                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
+                    {cartoes.map((cartao) => (
+                      <SelectItem key={cartao.id} value={cartao.id}>
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <div
+                            className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: cartao.cor }}
+                          />
+                          <span className="truncate">{cartao.nome}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
+            )}
 
-              {/* Data */}
-              <div className="space-y-2">
-                <Label
-                  htmlFor="data"
-                  className="text-gray-700 dark:text-gray-300"
-                >
-                  Data *
-                </Label>
-                <Input
-                  type="date"
-                  value={formData.data}
-                  onChange={(e) => handleChange("data", e.target.value)}
-                  required
-                  className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+            {/* Data */}
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label
+                htmlFor="data"
+                className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
+              >
+                {t("categorias.formulario.data")} *
+              </Label>
+              <Input
+                type="date"
+                value={formData.data}
+                onChange={(e) => handleChange("data", e.target.value)}
+                required
+                className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-sm"
+              />
+            </div>
+
+            {/* Recorrência */}
+            <div className="space-y-2 sm:space-y-3 border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50/50 dark:bg-gray-800/30">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="recorrente"
+                  checked={formData.recorrente}
+                  onCheckedChange={(checked) =>
+                    handleChange("recorrente", checked === true)
+                  }
+                  className="h-4 w-4"
                 />
+                <Label
+                  htmlFor="recorrente"
+                  className="font-medium text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
+                >
+                  {t("categorias.formulario.recorrente")}
+                </Label>
               </div>
 
-              {/* Recorrência */}
-              <div className="space-y-3 border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50/50 dark:bg-gray-800/30">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="recorrente"
-                    checked={formData.recorrente}
-                    onCheckedChange={(checked) =>
-                      handleChange("recorrente", checked === true)
-                    }
-                  />
-                  <Label
-                    htmlFor="recorrente"
-                    className="font-medium text-gray-700 dark:text-gray-300"
-                  >
-                    Lançamento recorrente/parcelado
-                  </Label>
-                </div>
+              {formData.recorrente && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pl-4">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label
+                      htmlFor="tipoRecorrencia"
+                      className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
+                    >
+                      {t("categorias.formulario.tipoRecorrencia")}
+                    </Label>
+                    <Select
+                      value={formData.tipoRecorrencia}
+                      onValueChange={(value) =>
+                        handleChange("tipoRecorrencia", value)
+                      }
+                    >
+                      <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
+                        <SelectValue
+                          placeholder={t("categorias.formulario.selecione")}
+                        />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
+                        <SelectItem value="RECORRENCIA">
+                          {t(
+                            "categorias.formulario.opcoesTipoRecorrencia.recorrencia"
+                          )}
+                        </SelectItem>
+                        <SelectItem value="PARCELAMENTO">
+                          {t(
+                            "categorias.formulario.opcoesTipoRecorrencia.parcelamento"
+                          )}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                {formData.recorrente && (
-                  <div className="grid grid-cols-2 gap-4 pl-4">
-                    <div className="space-y-2">
+                  {formData.tipoRecorrencia === "RECORRENCIA" && (
+                    <div className="space-y-1.5 sm:space-y-2">
                       <Label
-                        htmlFor="tipoRecorrencia"
-                        className="text-gray-700 dark:text-gray-300"
+                        htmlFor="frequencia"
+                        className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                       >
-                        Tipo
+                        {t("categorias.formulario.frequencia")}
                       </Label>
                       <Select
-                        value={formData.tipoRecorrencia}
+                        value={formData.frequencia}
                         onValueChange={(value) =>
-                          handleChange("tipoRecorrencia", value)
+                          handleChange("frequencia", value)
                         }
                       >
-                        <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
-                          <SelectValue placeholder="Selecione o tipo" />
+                        <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
+                          <SelectValue
+                            placeholder={t("categorias.formulario.selecione")}
+                          />
                         </SelectTrigger>
-                        <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                          <SelectItem value="RECORRENCIA">
-                            Recorrência
-                          </SelectItem>
-                          <SelectItem value="PARCELAMENTO">
-                            Parcelamento
+                        <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
+                          <SelectItem value="mensal">
+                            {t("categorias.formulario.opcoesFrequencia.mensal")}
                           </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
+                  )}
 
-                    {formData.tipoRecorrencia === "RECORRENCIA" && (
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="frequencia"
-                          className="text-gray-700 dark:text-gray-300"
-                        >
-                          Frequência
-                        </Label>
-                        <Select
-                          value={formData.frequencia}
-                          onValueChange={(value) =>
-                            handleChange("frequencia", value)
-                          }
-                        >
-                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
-                            <SelectValue placeholder="Selecione a frequência" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                            <SelectItem value="mensal">Mensal</SelectItem>
-                            <SelectItem value="trimestral">
-                              Trimestral
-                            </SelectItem>
-                            <SelectItem value="anual">Anual</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
+                  {formData.tipoRecorrencia === "PARCELAMENTO" && (
+                    <div className="space-y-1.5 sm:space-y-2">
+                      <Label
+                        htmlFor="parcelas"
+                        className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
+                      >
+                        {t("categorias.formulario.parcelas")}
+                      </Label>
+                      <Input
+                        id="parcelas"
+                        type="number"
+                        min="2"
+                        max="24"
+                        value={formData.parcelas}
+                        onChange={(e) =>
+                          handleChange("parcelas", e.target.value)
+                        }
+                        placeholder="Ex: 3, 6, 12"
+                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-sm"
+                      />
+                    </div>
+                  )}
 
-                    {formData.tipoRecorrencia === "PARCELAMENTO" && (
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="parcelas"
-                          className="text-gray-700 dark:text-gray-300"
-                        >
-                          Número de Parcelas
-                        </Label>
-                        <Input
-                          id="parcelas"
-                          type="number"
-                          min="2"
-                          max="24"
-                          value={formData.parcelas}
-                          onChange={(e) =>
-                            handleChange("parcelas", e.target.value)
-                          }
-                          placeholder="Ex: 3, 6, 12"
-                          className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-                        />
-                      </div>
-                    )}
+                  {formData.tipoRecorrencia === "RECORRENCIA" && (
+                    <div className="space-y-1.5 sm:space-y-2 col-span-1 sm:col-span-2">
+                      <Label
+                        htmlFor="dataFimRecorrencia"
+                        className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
+                      >
+                        {t("categorias.formulario.dataFimRecorrencia")} *
+                      </Label>
+                      <Input
+                        id="dataFimRecorrencia"
+                        type="date"
+                        value={formData.dataFimRecorrencia}
+                        onChange={(e) =>
+                          handleChange("dataFimRecorrencia", e.target.value)
+                        }
+                        required
+                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-sm"
+                      />
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {t("categorias.detalhes.dataFimRecorrencia")}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
-                    {formData.tipoRecorrencia === "RECORRENCIA" && (
-                      <div className="space-y-2 col-span-2">
-                        <Label
-                          htmlFor="dataFimRecorrencia"
-                          className="text-gray-700 dark:text-gray-300"
-                        >
-                          Data Final da Recorrência *
-                        </Label>
-                        <Input
-                          id="dataFimRecorrencia"
-                          type="date"
-                          value={formData.dataFimRecorrencia}
-                          onChange={(e) =>
-                            handleChange("dataFimRecorrencia", e.target.value)
-                          }
-                          required
-                          className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-                        />
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Até quando este lançamento se repetirá
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Observações */}
-              <div className="space-y-2">
-                <Label
-                  htmlFor="observacoes"
-                  className="text-gray-700 dark:text-gray-300"
-                >
-                  Observações
-                </Label>
-                <Textarea
-                  id="observacoes"
-                  value={formData.observacoes}
-                  onChange={(e) => handleChange("observacoes", e.target.value)}
-                  placeholder="Observações adicionais..."
-                  rows={3}
-                  className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-                />
-              </div>
-
-              <Button
-                variant={"outline"}
-                type="submit"
-                className="w-full border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-500"
-                disabled={enviando}
+            {/* Observações */}
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label
+                htmlFor="observacoes"
+                className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
               >
-                {enviando ? "Criando..." : "Criar Lançamento"}
-              </Button>
-            </form>
-          </SheetContent>
-        </Sheet>
-      </div>
+                {t("categorias.formulario.observacoes")}
+              </Label>
+              <Textarea
+                id="observacoes"
+                value={formData.observacoes}
+                onChange={(e) => handleChange("observacoes", e.target.value)}
+                placeholder={t("categorias.formulario.placeholderObservacoes")}
+                rows={3}
+                className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-sm resize-none"
+              />
+            </div>
+
+            <Button
+              variant={"outline"}
+              type="submit"
+              className="w-full border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-500 text-sm sm:text-base py-2"
+              disabled={enviando}
+            >
+              {enviando
+                ? t("categorias.mensagens.carregando")
+                : t("categorias.acoes.salvar")}
+            </Button>
+          </form>
+        </SheetContent>
+      </Sheet>
+
       {/* Dialog para Visualizar Lançamento */}
       <Dialog
         open={mostrarDialogVisualizar}
         onOpenChange={setMostrarDialogVisualizar}
       >
-        <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white max-w-2xl">
+        <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white w-[90vw] sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-gray-900 dark:text-white">
-              Detalhes do Lançamento
+            <DialogTitle className="text-gray-900 dark:text-white text-lg">
+              {t("categorias.detalhes.titulo")}
             </DialogTitle>
           </DialogHeader>
           {lancamentoSelecionado && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <Label className="text-gray-600 dark:text-gray-400 text-sm">
-                    Descrição
+                  <Label className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                    {t("categorias.detalhes.descricao")}
                   </Label>
-                  <p className="text-gray-900 dark:text-white font-medium mt-1">
+                  <p className="text-gray-900 dark:text-white font-medium mt-1 text-sm sm:text-base">
                     {lancamentoSelecionado.descricao}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-gray-600 dark:text-gray-400 text-sm">
-                    Valor
+                  <Label className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                    {t("categorias.detalhes.valorTotal")}
                   </Label>
                   <p
-                    className={`text-lg font-bold mt-1 ${
+                    className={`font-bold mt-1 text-sm sm:text-base ${
                       lancamentoSelecionado.tipo === "RECEITA"
                         ? "text-emerald-600 dark:text-green-400"
                         : "text-red-600 dark:text-red-400"
@@ -1882,78 +2159,80 @@ export default function LancamentosPage() {
                   </p>
                 </div>
                 <div>
-                  <Label className="text-gray-600 dark:text-gray-400 text-sm">
-                    Tipo
+                  <Label className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                    {t("categorias.detalhes.tipo")}
                   </Label>
                   <div className="mt-1">
                     <Badge
                       variant="outline"
-                      className={
+                      className={`text-xs ${
                         lancamentoSelecionado.tipo === "RECEITA"
                           ? "bg-emerald-100 dark:bg-green-900/50 text-emerald-700 dark:text-green-400 border-emerald-200 dark:border-green-700"
                           : "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400 border-red-200 dark:border-red-700"
-                      }
+                      }`}
                     >
                       {lancamentoSelecionado.tipo === "RECEITA"
-                        ? "Receita"
-                        : "Despesa"}
+                        ? t("categorias.filtros.receita")
+                        : t("categorias.filtros.despesa")}
                     </Badge>
                   </div>
                 </div>
                 <div>
-                  <Label className="text-gray-600 dark:text-gray-400 text-sm">
-                    Status
+                  <Label className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                    {t("categorias.detalhes.status")}
                   </Label>
                   <p
-                    className={`mt-1 ${
+                    className={`mt-1 text-sm ${
                       lancamentoSelecionado.pago
                         ? "text-emerald-600 dark:text-green-400"
                         : "text-amber-600 dark:text-yellow-400"
                     }`}
                   >
-                    {lancamentoSelecionado.pago ? "Pago/Recebido" : "Pendente"}
+                    {lancamentoSelecionado.pago
+                      ? t("categorias.status.pago")
+                      : t("categorias.status.pendente")}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-gray-600 dark:text-gray-400 text-sm">
-                    Data
+                  <Label className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                    {t("categorias.detalhes.data")}
                   </Label>
-                  <p className="text-gray-900 dark:text-white mt-1">
+                  <p className="text-gray-900 dark:text-white mt-1 text-sm">
                     {new Date(lancamentoSelecionado.data).toLocaleDateString(
                       "pt-BR"
                     )}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-gray-600 dark:text-gray-400 text-sm">
-                    Método de Pagamento
+                  <Label className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                    {t("categorias.detalhes.metodoPagamento")}
                   </Label>
-                  <p className="text-gray-900 dark:text-white mt-1">
+                  <p className="text-gray-900 dark:text-white mt-1 text-sm">
                     {lancamentoSelecionado.metodoPagamento}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-gray-600 dark:text-gray-400 text-sm">
-                    Categoria
+                  <Label className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                    {t("categorias.detalhes.categoria")}
                   </Label>
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-1.5 sm:gap-2 mt-1">
                     <div
-                      className="w-4 h-4 rounded-full"
+                      className="w-3 h-3 sm:w-4 sm:h-4 rounded-full"
                       style={{
                         backgroundColor: lancamentoSelecionado.categoria.cor,
                       }}
                     />
-                    <p className="text-gray-900 dark:text-white">
+                    <p className="text-gray-900 dark:text-white text-sm">
                       {lancamentoSelecionado.categoria.nome}
                     </p>
                   </div>
                 </div>
                 {lancamentoSelecionado.cartao && (
                   <div>
-                    <Label className="text-gray-600 dark:text-gray-400 text-sm">
-                      Cartão
+                    <Label className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                      {t("categorias.detalhes.cartao")}
                     </Label>
-                    <p className="text-gray-900 dark:text-white mt-1">
+                    <p className="text-gray-900 dark:text-white mt-1 text-sm">
                       {lancamentoSelecionado.cartao.nome}
                     </p>
                   </div>
@@ -1962,10 +2241,10 @@ export default function LancamentosPage() {
 
               {lancamentoSelecionado.observacoes && (
                 <div>
-                  <Label className="text-gray-600 dark:text-gray-400 text-sm">
-                    Observações
+                  <Label className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                    {t("categorias.detalhes.observacoes")}
                   </Label>
-                  <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 p-3 rounded-md mt-1">
+                  <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 p-3 rounded-md mt-1 text-sm">
                     {lancamentoSelecionado.observacoes}
                   </p>
                 </div>
@@ -1973,24 +2252,24 @@ export default function LancamentosPage() {
 
               {lancamentoSelecionado.recorrente && (
                 <div className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50/50 dark:bg-gray-800/30">
-                  <Label className="text-gray-600 dark:text-gray-400 text-sm">
-                    Informações de Recorrência
+                  <Label className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                    {t("categorias.detalhes.recorrente")}
                   </Label>
-                  <div className="grid grid-cols-2 gap-4 mt-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-2">
                     <div>
-                      <p className="text-gray-600 dark:text-gray-400 text-sm">
-                        Tipo
+                      <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                        {t("categorias.detalhes.parcelamento")}
                       </p>
-                      <p className="text-gray-900 dark:text-white mt-1">
+                      <p className="text-gray-900 dark:text-white mt-1 text-sm">
                         {lancamentoSelecionado.tipoParcelamento}
                       </p>
                     </div>
                     {lancamentoSelecionado.parcelasTotal && (
                       <div>
-                        <p className="text-gray-600 dark:text-gray-400 text-sm">
-                          Parcelas
+                        <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                          {t("categorias.detalhes.parcelasTotal")}
                         </p>
-                        <p className="text-gray-900 dark:text-white mt-1">
+                        <p className="text-gray-900 dark:text-white mt-1 text-sm">
                           {lancamentoSelecionado.parcelaAtual}/
                           {lancamentoSelecionado.parcelasTotal}
                         </p>
@@ -2006,43 +2285,49 @@ export default function LancamentosPage() {
 
       {/* Dialog para Editar Lançamento */}
       <Dialog open={mostrarDialogEditar} onOpenChange={setMostrarDialogEditar}>
-        <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white w-[90vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-gray-900 dark:text-white">
-              Editar Lançamento
+            <DialogTitle className="text-gray-900 dark:text-white text-lg">
+              {t("categorias.formulario.tituloEditar")}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleAtualizar} className="space-y-4">
             {/* Tipo e Categoria */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1.5 sm:space-y-2">
                 <Label
                   htmlFor="tipo"
-                  className="text-gray-700 dark:text-gray-300"
+                  className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                 >
-                  Tipo *
+                  {t("categorias.formulario.tipo")} *
                 </Label>
                 <Select
                   value={formData.tipo}
                   onValueChange={(value) => handleChange("tipo", value)}
                   required
                 >
-                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
-                    <SelectValue placeholder="Selecione o tipo" />
+                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
+                    <SelectValue
+                      placeholder={t("categorias.formulario.selecione")}
+                    />
                   </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                    <SelectItem value="receita">Receita</SelectItem>
-                    <SelectItem value="despesa">Despesa</SelectItem>
+                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
+                    <SelectItem value="receita">
+                      {t("categorias.filtros.receita")}
+                    </SelectItem>
+                    <SelectItem value="despesa">
+                      {t("categorias.filtros.despesa")}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5 sm:space-y-2">
                 <Label
                   htmlFor="categoria"
-                  className="text-gray-700 dark:text-gray-300"
+                  className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                 >
-                  Categoria *
+                  {t("categorias.formulario.categoria")} *
                 </Label>
                 <Select
                   value={formData.categoria}
@@ -2050,16 +2335,16 @@ export default function LancamentosPage() {
                   required
                   disabled={!formData.tipo}
                 >
-                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
+                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
                     <SelectValue
                       placeholder={
                         !formData.tipo
-                          ? "Selecione o tipo primeiro"
-                          : "Selecione a categoria"
+                          ? t("categorias.formulario.selecione")
+                          : t("categorias.formulario.selecione")
                       }
                     />
                   </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
                     {categorias
                       .filter(
                         (cat) =>
@@ -2068,12 +2353,12 @@ export default function LancamentosPage() {
                       )
                       .map((cat) => (
                         <SelectItem key={cat.id} value={cat.id}>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5 sm:gap-2">
                             <div
-                              className="w-3 h-3 rounded-full"
+                              className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full"
                               style={{ backgroundColor: cat.cor }}
                             />
-                            {cat.nome}
+                            <span className="truncate">{cat.nome}</span>
                           </div>
                         </SelectItem>
                       ))}
@@ -2083,51 +2368,56 @@ export default function LancamentosPage() {
             </div>
 
             {/* Descrição e Valor */}
-            <div className="space-y-2">
+            <div className="space-y-1.5 sm:space-y-2">
               <Label
                 htmlFor="descricao"
-                className="text-gray-700 dark:text-gray-300"
+                className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
               >
-                Descrição *
+                {t("categorias.formulario.descricao")} *
               </Label>
               <Input
                 id="descricao"
                 value={formData.descricao}
                 onChange={(e) => handleChange("descricao", e.target.value)}
-                placeholder="Ex: Salário, Aluguel, Mercado..."
+                placeholder={t("categorias.formulario.placeholderDescricao")}
                 required
-                className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+                className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-sm"
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5 sm:space-y-2">
               <Label
                 htmlFor="valor"
-                className="text-gray-700 dark:text-gray-300"
+                className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
               >
-                Valor *
+                {t("categorias.formulario.valor")} *
               </Label>
-              <Input
-                id="valor"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.valor}
-                onChange={(e) => handleChange("valor", e.target.value)}
-                placeholder="0,00"
-                required
-                className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-              />
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">
+                  R$
+                </span>
+                <Input
+                  id="valor"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.valor}
+                  onChange={(e) => handleChange("valor", e.target.value)}
+                  placeholder={t("categorias.formulario.placeholderValor")}
+                  required
+                  className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-sm pl-9"
+                />
+              </div>
             </div>
 
             {/* Tipo de Transação e Lançamento */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1.5 sm:space-y-2">
                 <Label
                   htmlFor="tipoTransacao"
-                  className="text-gray-700 dark:text-gray-300"
+                  className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                 >
-                  Tipo de Transação *
+                  {t("categorias.formulario.metodoPagamento")} *
                 </Label>
                 <Select
                   value={formData.tipoTransacao}
@@ -2136,27 +2426,41 @@ export default function LancamentosPage() {
                   }
                   required
                 >
-                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
-                    <SelectValue placeholder="Selecione o tipo" />
+                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
+                    <SelectValue
+                      placeholder={t("categorias.formulario.selecione")}
+                    />
                   </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                    <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
-                    <SelectItem value="PIX">PIX</SelectItem>
-                    <SelectItem value="CARTAO_DEBITO">Cartão Débito</SelectItem>
-                    <SelectItem value="CARTAO_CREDITO">
-                      Cartão Crédito
+                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
+                    <SelectItem value="DINHEIRO">
+                      {t(
+                        "categorias.formulario.opcoesMetodoPagamento.dinheiro"
+                      )}
                     </SelectItem>
-                    <SelectItem value="TRANSFERENCIA">Transferência</SelectItem>
+                    <SelectItem value="PIX">
+                      {t("categorias.formulario.opcoesMetodoPagamento.pix")}
+                    </SelectItem>
+                    <SelectItem value="CARTAO_DEBITO">
+                      {t("categorias.formulario.opcoesMetodoPagamento.debito")}
+                    </SelectItem>
+                    <SelectItem value="CARTAO_CREDITO">
+                      {t("categorias.formulario.opcoesMetodoPagamento.credito")}
+                    </SelectItem>
+                    <SelectItem value="TRANSFERENCIA">
+                      {t(
+                        "categorias.formulario.opcoesMetodoPagamento.transferencia"
+                      )}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5 sm:space-y-2">
                 <Label
                   htmlFor="tipoLancamento"
-                  className="text-gray-700 dark:text-gray-300"
+                  className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                 >
-                  Tipo de Lançamento *
+                  {t("categorias.formulario.tipoLancamento")} *
                 </Label>
                 <Select
                   value={formData.tipoLancamento}
@@ -2165,12 +2469,18 @@ export default function LancamentosPage() {
                   }
                   required
                 >
-                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
-                    <SelectValue placeholder="Selecione o tipo" />
+                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
+                    <SelectValue
+                      placeholder={t("categorias.formulario.selecione")}
+                    />
                   </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                    <SelectItem value="individual">Individual</SelectItem>
-                    <SelectItem value="compartilhado">Compartilhado</SelectItem>
+                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
+                    <SelectItem value="individual">
+                      {t("categorias.filtros.individual")}
+                    </SelectItem>
+                    <SelectItem value="compartilhado">
+                      {t("categorias.filtros.compartilhado")}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -2179,13 +2489,13 @@ export default function LancamentosPage() {
             {/* Seção de Compartilhamento */}
             {formData.tipoLancamento === "compartilhado" && (
               <div className="space-y-4 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label
                       htmlFor="usuarioAlvoId"
-                      className="text-gray-700 dark:text-gray-300"
+                      className="text-gray-700 dark:text-gray-300 text-sm sm:text-base"
                     >
-                      Compartilhar com *
+                      {t("categorias.formulario.usuarioAlvo")} *
                     </Label>
                     <Select
                       value={formData.usuarioAlvoId}
@@ -2194,21 +2504,29 @@ export default function LancamentosPage() {
                       }
                       required
                     >
-                      <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
-                        <SelectValue placeholder="Selecione o usuário" />
+                      <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 w-full">
+                        <SelectValue
+                          placeholder={t(
+                            "categorias.formulario.selecioneUsuario"
+                          )}
+                        />
                       </SelectTrigger>
-                      <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                      <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 max-h-60">
                         {usuarios.map((usuario) => (
-                          <SelectItem key={usuario.id} value={usuario.id}>
-                            <div className="flex items-center gap-2">
+                          <SelectItem
+                            key={usuario.id}
+                            value={usuario.id}
+                            className="truncate"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
                               {usuario.image && (
                                 <img
                                   src={usuario.image}
                                   alt={usuario.name}
-                                  className="w-4 h-4 rounded-full"
+                                  className="w-4 h-4 rounded-full flex-shrink-0"
                                 />
                               )}
-                              {usuario.name}
+                              <span className="truncate">{usuario.name}</span>
                             </div>
                           </SelectItem>
                         ))}
@@ -2219,9 +2537,9 @@ export default function LancamentosPage() {
                   <div className="space-y-2">
                     <Label
                       htmlFor="valorCompartilhado"
-                      className="text-gray-700 dark:text-gray-300"
+                      className="text-gray-700 dark:text-gray-300 text-sm sm:text-base"
                     >
-                      Valor compartilhado (R$)
+                      {t("categorias.formulario.valorCompartilhado")} (R$)
                     </Label>
                     <Input
                       id="valorCompartilhado"
@@ -2233,8 +2551,8 @@ export default function LancamentosPage() {
                       onChange={(e) =>
                         handleChange("valorCompartilhado", e.target.value)
                       }
-                      placeholder="0,00"
-                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+                      placeholder={t("categorias.formulario.placeholderValor")}
+                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 w-full"
                     />
                   </div>
                 </div>
@@ -2246,27 +2564,33 @@ export default function LancamentosPage() {
               <div className="space-y-2">
                 <Label
                   htmlFor="cartaoId"
-                  className="text-gray-700 dark:text-gray-300"
+                  className="text-gray-700 dark:text-gray-300 text-sm sm:text-base"
                 >
-                  Cartão *
+                  {t("categorias.formulario.cartao")} *
                 </Label>
                 <Select
                   value={formData.cartaoId}
                   onValueChange={(value) => handleChange("cartaoId", value)}
                   required
                 >
-                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
-                    <SelectValue placeholder="Selecione o cartão" />
+                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 w-full">
+                    <SelectValue
+                      placeholder={t("categorias.formulario.selecioneCartao")}
+                    />
                   </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 max-h-60">
                     {cartoes.map((cartao) => (
-                      <SelectItem key={cartao.id} value={cartao.id}>
-                        <div className="flex items-center gap-2">
+                      <SelectItem
+                        key={cartao.id}
+                        value={cartao.id}
+                        className="truncate"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
                           <div
-                            className="w-3 h-3 rounded-full"
+                            className="w-3 h-3 rounded-full flex-shrink-0"
                             style={{ backgroundColor: cartao.cor }}
                           />
-                          {cartao.nome}
+                          <span className="truncate">{cartao.nome}</span>
                         </div>
                       </SelectItem>
                     ))}
@@ -2275,44 +2599,20 @@ export default function LancamentosPage() {
               </div>
             )}
 
-            {/* Responsável */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="responsavel"
-                className="text-gray-700 dark:text-gray-300"
-              >
-                Responsável *
-              </Label>
-              <Select
-                value={formData.responsavel}
-                onValueChange={(value) => handleChange("responsavel", value)}
-                required
-              >
-                <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
-                  <SelectValue placeholder="Selecione o responsável" />
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                  <SelectItem value="Claudenir">Claudenir</SelectItem>
-                  <SelectItem value="Beatriz">Beatriz</SelectItem>
-                  <SelectItem value="Compartilhado">Compartilhado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
             {/* Data */}
             <div className="space-y-2">
               <Label
                 htmlFor="data"
-                className="text-gray-700 dark:text-gray-300"
+                className="text-gray-700 dark:text-gray-300 text-sm sm:text-base"
               >
-                Data *
+                {t("categorias.formulario.data")} *
               </Label>
               <Input
                 type="date"
                 value={formData.data}
                 onChange={(e) => handleChange("data", e.target.value)}
                 required
-                className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+                className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 w-full"
               />
             </div>
 
@@ -2325,23 +2625,24 @@ export default function LancamentosPage() {
                   onCheckedChange={(checked) =>
                     handleChange("recorrente", checked === true)
                   }
+                  className="flex-shrink-0"
                 />
                 <Label
                   htmlFor="recorrente"
-                  className="font-medium text-gray-700 dark:text-gray-300"
+                  className="font-medium text-gray-700 dark:text-gray-300 text-sm sm:text-base"
                 >
-                  Lançamento recorrente/parcelado
+                  {t("categorias.formulario.recorrente")}
                 </Label>
               </div>
 
               {formData.recorrente && (
-                <div className="grid grid-cols-2 gap-4 pl-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-0 sm:pl-4">
                   <div className="space-y-2">
                     <Label
                       htmlFor="tipoRecorrencia"
-                      className="text-gray-700 dark:text-gray-300"
+                      className="text-gray-700 dark:text-gray-300 text-sm sm:text-base"
                     >
-                      Tipo
+                      {t("categorias.formulario.tipoRecorrencia")}
                     </Label>
                     <Select
                       value={formData.tipoRecorrencia}
@@ -2349,13 +2650,21 @@ export default function LancamentosPage() {
                         handleChange("tipoRecorrencia", value)
                       }
                     >
-                      <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
-                        <SelectValue placeholder="Selecione o tipo" />
+                      <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 w-full">
+                        <SelectValue
+                          placeholder={t("categorias.formulario.selecione")}
+                        />
                       </SelectTrigger>
                       <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                        <SelectItem value="RECORRENCIA">Recorrência</SelectItem>
+                        <SelectItem value="RECORRENCIA">
+                          {t(
+                            "categorias.formulario.opcoesTipoRecorrencia.recorrencia"
+                          )}
+                        </SelectItem>
                         <SelectItem value="PARCELAMENTO">
-                          Parcelamento
+                          {t(
+                            "categorias.formulario.opcoesTipoRecorrencia.parcelamento"
+                          )}
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -2365,9 +2674,9 @@ export default function LancamentosPage() {
                     <div className="space-y-2">
                       <Label
                         htmlFor="frequencia"
-                        className="text-gray-700 dark:text-gray-300"
+                        className="text-gray-700 dark:text-gray-300 text-sm sm:text-base"
                       >
-                        Frequência
+                        {t("categorias.formulario.frequencia")}
                       </Label>
                       <Select
                         value={formData.frequencia}
@@ -2375,13 +2684,15 @@ export default function LancamentosPage() {
                           handleChange("frequencia", value)
                         }
                       >
-                        <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
-                          <SelectValue placeholder="Selecione a frequência" />
+                        <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 w-full">
+                          <SelectValue
+                            placeholder={t("categorias.formulario.selecione")}
+                          />
                         </SelectTrigger>
                         <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                          <SelectItem value="mensal">Mensal</SelectItem>
-                          <SelectItem value="trimestral">Trimestral</SelectItem>
-                          <SelectItem value="anual">Anual</SelectItem>
+                          <SelectItem value="mensal">
+                            {t("categorias.formulario.opcoesFrequencia.mensal")}
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -2391,9 +2702,9 @@ export default function LancamentosPage() {
                     <div className="space-y-2">
                       <Label
                         htmlFor="parcelas"
-                        className="text-gray-700 dark:text-gray-300"
+                        className="text-gray-700 dark:text-gray-300 text-sm sm:text-base"
                       >
-                        Número de Parcelas
+                        {t("categorias.formulario.parcelas")}
                       </Label>
                       <Input
                         id="parcelas"
@@ -2405,18 +2716,18 @@ export default function LancamentosPage() {
                           handleChange("parcelas", e.target.value)
                         }
                         placeholder="Ex: 3, 6, 12"
-                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 w-full"
                       />
                     </div>
                   )}
 
                   {formData.tipoRecorrencia === "RECORRENCIA" && (
-                    <div className="space-y-2 col-span-2">
+                    <div className="space-y-2 col-span-1 sm:col-span-2">
                       <Label
                         htmlFor="dataFimRecorrencia"
-                        className="text-gray-700 dark:text-gray-300"
+                        className="text-gray-700 dark:text-gray-300 text-sm sm:text-base"
                       >
-                        Data Final da Recorrência *
+                        {t("categorias.formulario.dataFimRecorrencia")} *
                       </Label>
                       <Input
                         id="dataFimRecorrencia"
@@ -2426,10 +2737,10 @@ export default function LancamentosPage() {
                           handleChange("dataFimRecorrencia", e.target.value)
                         }
                         required
-                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 w-full"
                       />
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Até quando este lançamento se repetirá
+                        {t("categorias.detalhes.dataFimRecorrencia")}
                       </p>
                     </div>
                   )}
@@ -2441,35 +2752,37 @@ export default function LancamentosPage() {
             <div className="space-y-2">
               <Label
                 htmlFor="observacoes"
-                className="text-gray-700 dark:text-gray-300"
+                className="text-gray-700 dark:text-gray-300 text-sm sm:text-base"
               >
-                Observações
+                {t("categorias.formulario.observacoes")}
               </Label>
               <Textarea
                 id="observacoes"
                 value={formData.observacoes}
                 onChange={(e) => handleChange("observacoes", e.target.value)}
-                placeholder="Observações adicionais..."
+                placeholder={t("categorias.formulario.placeholderObservacoes")}
                 rows={3}
-                className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+                className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 w-full resize-y min-h-[80px]"
               />
             </div>
 
-            <div className="flex gap-3 pt-4">
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setMostrarDialogEditar(false)}
-                className="flex-1 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                className="flex-1 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 w-full sm:w-auto"
               >
-                Cancelar
+                {t("categorias.acoes.cancelar")}
               </Button>
               <Button
                 type="submit"
-                className="flex-1 bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white"
+                className="flex-1 bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white w-full sm:w-auto"
                 disabled={editando}
               >
-                {editando ? "Atualizando..." : "Atualizar Lançamento"}
+                {editando
+                  ? t("categorias.mensagens.carregando")
+                  : t("categorias.acoes.salvar")}
               </Button>
             </div>
           </form>

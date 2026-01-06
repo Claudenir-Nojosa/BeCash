@@ -455,38 +455,38 @@ export default function CartoesPage() {
   }
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 bg-white dark:bg-transparent">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen p-3 sm:p-4 md:p-6 bg-white dark:bg-transparent">
+      <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white truncate">
                 {t("titulo")}
               </h1>
-              <p className="text-gray-600 dark:text-gray-300">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 truncate">
                 {t("subtitulo")}
               </p>
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             <Sheet open={sheetAberto} onOpenChange={setSheetAberto}>
               <SheetTrigger asChild>
                 <Button
                   variant={"outline"}
-                  className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-500"
+                  className="flex-1 sm:flex-none border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-500 text-xs sm:text-sm"
                 >
-                  <Plus className="mr-2 h-4 w-4" />
-                  {t("botoes.novoCartao")}
+                  <Plus className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="truncate">{t("botoes.novoCartao")}</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white overflow-y-auto">
-                <SheetHeader className="mb-6">
-                  <SheetTitle className="text-gray-900 dark:text-white">
+              <SheetContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white overflow-y-auto w-full sm:max-w-md">
+                <SheetHeader className="mb-4 sm:mb-6">
+                  <SheetTitle className="text-gray-900 dark:text-white text-lg sm:text-xl">
                     {t("formulario.tituloNovo")}
                   </SheetTitle>
-                  <SheetDescription className="text-gray-600 dark:text-gray-400">
+                  <SheetDescription className="text-gray-600 dark:text-gray-400 text-sm">
                     {t("formulario.descricaoNovo")}
                   </SheetDescription>
                 </SheetHeader>
@@ -499,27 +499,29 @@ export default function CartoesPage() {
         {/* Grid de Cartões */}
         {cartoes.length === 0 ? (
           <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <CreditCard className="h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12 px-4">
+              <CreditCard className="h-12 w-12 sm:h-16 sm:w-16 text-gray-300 dark:text-gray-600 mb-3 sm:mb-4" />
+              <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-1 sm:mb-2 text-center">
                 {t("mensagens.nenhumCartao")}
               </h3>
-              <p className="text-gray-600 dark:text-gray-400 text-center mb-6">
+              <p className="text-gray-600 dark:text-gray-400 text-center text-xs sm:text-sm mb-4 sm:mb-6 max-w-md">
                 {t("mensagens.nenhumCartaoDescricao")}
               </p>
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button className="bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white">
-                    <Plus className="mr-2 h-4 w-4" />
-                    {t("botoes.cadastrarPrimeiro")}
+                  <Button className="bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white text-sm sm:text-base">
+                    <Plus className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span className="truncate">
+                      {t("botoes.cadastrarPrimeiro")}
+                    </span>
                   </Button>
                 </SheetTrigger>
-                <SheetContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white overflow-y-auto">
-                  <SheetHeader className="mb-6">
-                    <SheetTitle className="text-gray-900 dark:text-white">
+                <SheetContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white overflow-y-auto w-full sm:max-w-md">
+                  <SheetHeader className="mb-4 sm:mb-6">
+                    <SheetTitle className="text-gray-900 dark:text-white text-lg sm:text-xl">
                       {t("formulario.tituloNovo")}
                     </SheetTitle>
-                    <SheetDescription className="text-gray-600 dark:text-gray-400">
+                    <SheetDescription className="text-gray-600 dark:text-gray-400 text-sm">
                       {t("formulario.descricaoNovo")}
                     </SheetDescription>
                   </SheetHeader>
@@ -529,7 +531,7 @@ export default function CartoesPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {cartoes.map((cartao) => {
               const status = getStatusUtilizacao(cartao.utilizacaoLimite || 0);
 
@@ -539,17 +541,17 @@ export default function CartoesPage() {
                   className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm group hover:shadow-md transition-shadow"
                 >
                   <div
-                    className="w-full h-1 rounded-t-lg"
+                    className="w-full h-0.5 sm:h-1 rounded-t-lg"
                     style={{ backgroundColor: cartao.cor }}
                   />
-                  <CardHeader className="pb-3">
+                  <CardHeader className="pb-2 sm:pb-3">
                     <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
-                          <CreditCard className="w-5 h-5" />
-                          {cartao.nome}
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="flex items-center gap-1.5 sm:gap-2 text-gray-900 dark:text-white text-sm sm:text-base">
+                          <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                          <span className="truncate">{cartao.nome}</span>
                         </CardTitle>
-                        <CardDescription className="text-gray-600 dark:text-gray-400">
+                        <CardDescription className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm truncate">
                           {t(`bandeiras.${cartao.bandeira}`)}
                         </CardDescription>
                       </div>
@@ -567,14 +569,14 @@ export default function CartoesPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => setDropdownAberto(cartao.id)}
-                            className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
+                            className="h-7 w-7 sm:h-8 sm:w-8 p-0 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 flex-shrink-0 ml-1"
                           >
-                            <MoreVertical className="h-4 w-4" />
+                            <MoreVertical className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
                           align="end"
-                          className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white shadow-lg"
+                          className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white shadow-lg w-40 sm:w-48 text-xs sm:text-sm"
                           onInteractOutside={() => setDropdownAberto(null)}
                           onEscapeKeyDown={() => setDropdownAberto(null)}
                         >
@@ -587,10 +589,12 @@ export default function CartoesPage() {
                               );
                               setDropdownAberto(null);
                             }}
-                            className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                            className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer py-2"
                           >
-                            <Eye className="h-4 w-4" />
-                            {t("menu.verDetalhes")}
+                            <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                            <span className="truncate">
+                              {t("menu.verDetalhes")}
+                            </span>
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
@@ -601,10 +605,12 @@ export default function CartoesPage() {
                               );
                               setDropdownAberto(null);
                             }}
-                            className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                            className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer py-2"
                           >
-                            <FileText className="h-4 w-4" />
-                            {t("menu.verFaturas")}
+                            <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                            <span className="truncate">
+                              {t("menu.verFaturas")}
+                            </span>
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
@@ -615,48 +621,50 @@ export default function CartoesPage() {
                               );
                               setDropdownAberto(null);
                             }}
-                            className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                            className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer py-2"
                           >
-                            <Edit className="h-4 w-4" />
-                            {t("menu.editar")}
+                            <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                            <span className="truncate">{t("menu.editar")}</span>
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
                               setDialogExclusaoAberto(cartao.id);
                               setDropdownAberto(null);
                             }}
-                            className="flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 cursor-pointer"
+                            className="flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 cursor-pointer py-2"
                           >
-                            <Trash2 className="h-4 w-4" />
-                            {t("menu.excluir")}
+                            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                            <span className="truncate">
+                              {t("menu.excluir")}
+                            </span>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600 dark:text-gray-400">
+                  <CardContent className="space-y-3 sm:space-y-4">
+                    <div className="space-y-1.5 sm:space-y-2">
+                      <div className="flex justify-between text-xs sm:text-sm">
+                        <span className="text-gray-600 dark:text-gray-400 truncate pr-1">
                           {t("cartao.limite")}
                         </span>
-                        <span className="font-medium text-gray-900 dark:text-white">
+                        <span className="font-medium text-gray-900 dark:text-white truncate pl-1 text-right">
                           {formatarMoeda(cartao.limite)}
                         </span>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600 dark:text-gray-400">
+                      <div className="flex justify-between text-xs sm:text-sm">
+                        <span className="text-gray-600 dark:text-gray-400 truncate pr-1">
                           {t("cartao.utilizado")}
                         </span>
-                        <span className="font-medium text-gray-900 dark:text-white">
+                        <span className="font-medium text-gray-900 dark:text-white truncate pl-1 text-right">
                           {formatarMoeda(cartao.totalGasto || 0)}
                         </span>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600 dark:text-gray-400">
+                      <div className="flex justify-between text-xs sm:text-sm">
+                        <span className="text-gray-600 dark:text-gray-400 truncate pr-1">
                           {t("cartao.disponivel")}
                         </span>
-                        <span className="font-medium text-gray-900 dark:text-white">
+                        <span className="font-medium text-gray-900 dark:text-white truncate pl-1 text-right">
                           {formatarMoeda(
                             cartao.limite - (cartao.totalGasto || 0)
                           )}
@@ -664,8 +672,8 @@ export default function CartoesPage() {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
+                    <div className="space-y-1.5 sm:space-y-2">
+                      <div className="flex justify-between text-xs sm:text-sm">
                         <span className="text-gray-600 dark:text-gray-400">
                           {t("cartao.utilizacao")}
                         </span>
@@ -673,9 +681,9 @@ export default function CartoesPage() {
                           {Math.round(cartao.utilizacaoLimite || 0)}%
                         </span>
                       </div>
-                      <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2">
+                      <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-1.5 sm:h-2">
                         <div
-                          className={`h-2 rounded-full ${
+                          className={`h-1.5 sm:h-2 rounded-full ${
                             status === "critico"
                               ? "bg-red-500"
                               : status === "alerta"
@@ -689,30 +697,30 @@ export default function CartoesPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-1">
+                    <div className="flex items-center justify-between text-xs sm:text-sm">
+                      <div className="flex items-center gap-1 flex-1 min-w-0">
                         {status === "critico" ? (
-                          <AlertTriangle className="w-4 h-4 text-red-500 dark:text-red-400" />
+                          <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500 dark:text-red-400 flex-shrink-0" />
                         ) : status === "alerta" ? (
-                          <AlertTriangle className="w-4 h-4 text-amber-500 dark:text-yellow-400" />
+                          <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 dark:text-yellow-400 flex-shrink-0" />
                         ) : (
-                          <CheckCircle className="w-4 h-4 text-emerald-500 dark:text-green-400" />
+                          <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 dark:text-green-400 flex-shrink-0" />
                         )}
                         <span
-                          className={
+                          className={`truncate ${
                             status === "critico"
                               ? "text-red-600 dark:text-red-400"
                               : status === "alerta"
                                 ? "text-amber-600 dark:text-yellow-400"
                                 : "text-emerald-600 dark:text-green-400"
-                          }
+                          }`}
                         >
                           {t(`status.${status}`)}
                         </span>
                       </div>
                       <Badge
                         variant="outline"
-                        className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700"
+                        className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 text-xs whitespace-nowrap flex-shrink-0"
                       >
                         {t("cartao.lancamentos", {
                           count: cartao._count?.lancamentos || 0,
@@ -721,19 +729,19 @@ export default function CartoesPage() {
                     </div>
 
                     <div className="flex justify-between text-xs text-gray-500 dark:text-gray-500 pt-2 border-t border-gray-200 dark:border-gray-800">
-                      <span>
+                      <span className="truncate pr-1">
                         {t("cartao.fechamento", { dia: cartao.diaFechamento })}
                       </span>
-                      <span>
+                      <span className="truncate pl-1 text-right">
                         {t("cartao.vencimento", { dia: cartao.diaVencimento })}
                       </span>
                     </div>
 
-                    <div className="flex gap-2 pt-2">
+                    <div className="flex flex-col sm:flex-row gap-2 pt-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+                        className="flex-1 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white text-xs sm:text-sm py-1.5"
                         onClick={(e) => {
                           e.stopPropagation();
                           router.push(
@@ -742,12 +750,12 @@ export default function CartoesPage() {
                         }}
                       >
                         <Eye className="w-3 h-3 mr-1" />
-                        {t("botoes.detalhes")}
+                        <span className="truncate">{t("botoes.detalhes")}</span>
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+                        className="flex-1 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white text-xs sm:text-sm py-1.5"
                         onClick={(e) => {
                           e.stopPropagation();
                           router.push(
@@ -758,7 +766,7 @@ export default function CartoesPage() {
                         }}
                       >
                         <FileText className="w-3 h-3 mr-1" />
-                        {t("botoes.faturas")}
+                        <span className="truncate">{t("botoes.faturas")}</span>
                       </Button>
                     </div>
                   </CardContent>
@@ -774,20 +782,20 @@ export default function CartoesPage() {
         open={!!dialogExclusaoAberto}
         onOpenChange={() => setDialogExclusaoAberto(null)}
       >
-        <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white">
+        <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white w-[90vw] sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-gray-900 dark:text-white">
+            <DialogTitle className="text-gray-900 dark:text-white text-lg">
               {t("confirmacao.titulo")}
             </DialogTitle>
-            <DialogDescription className="text-gray-600 dark:text-gray-400">
+            <DialogDescription className="text-gray-600 dark:text-gray-400 text-sm">
               {t("confirmacao.descricao")}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex gap-3 justify-end">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
             <Button
               variant="outline"
               onClick={() => setDialogExclusaoAberto(null)}
-              className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+              className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm"
             >
               {t("botoes.cancelar")}
             </Button>
@@ -795,6 +803,7 @@ export default function CartoesPage() {
               variant="destructive"
               onClick={() => handleDeletarCartao(dialogExclusaoAberto!)}
               disabled={!!excluindo}
+              className="text-sm"
             >
               {excluindo ? t("estados.excluindo") : t("botoes.confirmar")}
             </Button>

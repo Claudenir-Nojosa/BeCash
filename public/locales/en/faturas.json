@@ -95,7 +95,8 @@
     "comprasParceladas": "Installment Purchases",
     "comprasParceladasDescricao": "Purchases divided into installments",
     "compras": "Purchases",
-    "comprasDescricao": "Cash purchases and income"
+    "comprasDescricao": "Cash purchases and income",
+    "pagar": "Pay"
   },
   "resumo": {
     "totalFatura": "Total Invoice",

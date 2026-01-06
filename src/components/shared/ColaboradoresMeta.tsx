@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,6 +53,7 @@ export function ColaboradoresMeta({
   usuarioAtualEhDono,
   onColaboradoresAtualizados,
 }: ColaboradoresMetaProps) {
+  const { t, i18n } = useTranslation("colaboradores");
   const [dialogConvidarAberto, setDialogConvidarAberto] = useState(false);
   const [emailConvidado, setEmailConvidado] = useState("");
   const [enviandoConvite, setEnviandoConvite] = useState(false);
@@ -60,13 +62,13 @@ export function ColaboradoresMeta({
     e.preventDefault();
 
     if (!emailConvidado.trim()) {
-      toast.error("Digite um email válido");
+      toast.error(t("erros.emailVazio"));
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(emailConvidado)) {
-      toast.error("Digite um email válido");
+      toast.error(t("erros.emailInvalido"));
       return;
     }
 
@@ -82,17 +84,17 @@ export function ColaboradoresMeta({
       );
 
       if (response.ok) {
-        toast.success("Convite enviado com sucesso!");
+        toast.success(t("mensagens.conviteSucesso"));
         setEmailConvidado("");
         setDialogConvidarAberto(false);
         onColaboradoresAtualizados();
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Erro ao enviar convite");
+        throw new Error(errorData.error || t("erros.enviarConvite"));
       }
     } catch (error: any) {
-      console.error("Erro ao enviar convite:", error);
-      toast.error(error.message || "Erro ao enviar convite");
+      console.error(t("erros.enviarConvite"), error);
+      toast.error(error.message || t("erros.enviarConvite"));
     } finally {
       setEnviandoConvite(false);
     }
@@ -108,15 +110,15 @@ export function ColaboradoresMeta({
       );
 
       if (response.ok) {
-        toast.success("Colaborador removido com sucesso!");
+        toast.success(t("mensagens.removerSucesso"));
         onColaboradoresAtualizados();
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Erro ao remover colaborador");
+        throw new Error(errorData.error || t("erros.removerColaborador"));
       }
     } catch (error: any) {
-      console.error("Erro ao remover colaborador:", error);
-      toast.error(error.message || "Erro ao remover colaborador");
+      console.error(t("erros.removerColaborador"), error);
+      toast.error(error.message || t("erros.removerColaborador"));
     }
   };
 
@@ -127,7 +129,9 @@ export function ColaboradoresMeta({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-400">Colaboradores</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          {t("titulo")}
+        </p>
         {usuarioAtualEhDono && (
           <Dialog
             open={dialogConvidarAberto}
@@ -137,31 +141,36 @@ export function ColaboradoresMeta({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 px-2 text-xs border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                className="h-8 px-2 text-xs border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
               >
                 <UserPlus className="h-3 w-3 mr-1" />
-                Convidar
+                {t("botoes.convidar")}
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-gray-900 border-gray-800 text-white">
+            <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white">
               <DialogHeader>
-                <DialogTitle>Convidar Colaborador</DialogTitle>
-                <DialogDescription className="text-gray-400">
-                  Envie um convite para alguém acompanhar esta meta
+                <DialogTitle className="text-gray-900 dark:text-white">
+                  {t("dialog.titulo")}
+                </DialogTitle>
+                <DialogDescription className="text-gray-600 dark:text-gray-400">
+                  {t("dialog.descricao")}
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleConvidarColaborador} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-white">
-                    Email do Colaborador
+                  <Label
+                    htmlFor="email"
+                    className="text-gray-900 dark:text-white"
+                  >
+                    {t("dialog.labelEmail")}
                   </Label>
                   <Input
                     id="email"
                     type="email"
                     value={emailConvidado}
                     onChange={(e) => setEmailConvidado(e.target.value)}
-                    placeholder="colaborador@email.com"
-                    className="bg-gray-800 border-gray-700 text-white"
+                    placeholder={t("dialog.placeholderEmail")}
+                    className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
                     required
                   />
                 </div>
@@ -170,16 +179,18 @@ export function ColaboradoresMeta({
                     type="button"
                     variant="outline"
                     onClick={() => setDialogConvidarAberto(false)}
-                    className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                    className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
                   >
-                    Cancelar
+                    {t("botoes.cancelar")}
                   </Button>
                   <Button
                     type="submit"
                     disabled={enviandoConvite}
-                    className="bg-white text-gray-900 hover:bg-gray-100"
+                    className="bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
                   >
-                    {enviandoConvite ? "Enviando..." : "Enviar Convite"}
+                    {enviandoConvite
+                      ? t("estados.enviando")
+                      : t("botoes.enviarConvite")}
                   </Button>
                 </div>
               </form>
@@ -194,7 +205,7 @@ export function ColaboradoresMeta({
         {colaboradores.map((colaborador) => (
           <div
             key={colaborador.id}
-            className="flex items-center justify-between p-2 rounded-lg bg-gray-800/30 hover:bg-gray-800/50 transition-colors"
+            className="flex items-center justify-between p-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800/30 dark:hover:bg-gray-800/50 transition-colors"
           >
             <div className="flex items-center gap-3">
               <Avatar className="h-8 w-8">
@@ -208,17 +219,19 @@ export function ColaboradoresMeta({
                 </AvatarFallback>
               </Avatar>
               <div>
-                <p className="text-sm font-medium text-white">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
                   {colaborador.user.name}
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-600 dark:text-gray-400">
                   {colaborador.user.email}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Badge className="bg-green-900/50 text-green-300 border-green-700">
-                {colaborador.permissao === "LEITURA" ? "Leitura" : "Escrita"}
+              <Badge className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700">
+                {colaborador.permissao === "LEITURA"
+                  ? t("permissoes.leitura")
+                  : t("permissoes.escrita")}
               </Badge>
               {usuarioAtualEhDono && (
                 <TooltipProvider>
@@ -230,13 +243,13 @@ export function ColaboradoresMeta({
                         onClick={() =>
                           handleRemoverColaborador(colaborador.user.id)
                         }
-                        className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-900/50"
+                        className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/50"
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent className="bg-gray-800 text-white border-gray-700">
-                      <p>Remover colaborador</p>
+                    <TooltipContent className="bg-gray-900 dark:bg-gray-800 text-white dark:text-white border-gray-700">
+                      <p>{t("tooltips.removerColaborador")}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -250,7 +263,7 @@ export function ColaboradoresMeta({
           convites.map((convite) => (
             <div
               key={convite.id}
-              className="flex items-center justify-between p-2 rounded-lg bg-yellow-900/20 border border-yellow-800/50"
+              className="flex items-center justify-between p-2 rounded-lg bg-yellow-50 border border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800/50"
             >
               <div className="flex items-center gap-3">
                 <Avatar className="h-8 w-8">
@@ -259,27 +272,28 @@ export function ColaboradoresMeta({
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="text-sm font-medium text-yellow-300">
+                  <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
                     {convite.emailConvidado}
                   </p>
-                  <p className="text-xs text-yellow-400">
-                    Convite pendente - Expira {formatarData(convite.expiraEm)}
+                  <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                    {t("convites.pendente")} - {t("convites.expiraEm")}{" "}
+                    {formatarData(convite.expiraEm)}
                   </p>
                 </div>
               </div>
-              <Badge className="bg-yellow-900/50 text-yellow-300 border-yellow-700">
-                Pendente
+              <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/50 dark:text-yellow-300 dark:border-yellow-700">
+                {t("convites.status.pendente")}
               </Badge>
             </div>
           ))}
 
         {colaboradores.length === 0 &&
           (!usuarioAtualEhDono || convites.length === 0) && (
-            <div className="text-center py-4 text-gray-500">
+            <div className="text-center py-4 text-gray-500 dark:text-gray-400">
               <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">Nenhum colaborador</p>
+              <p className="text-sm">{t("mensagens.nenhumColaborador")}</p>
               {usuarioAtualEhDono && (
-                <p className="text-xs">Convide alguém para colaborar</p>
+                <p className="text-xs">{t("mensagens.convideParaColaborar")}</p>
               )}
             </div>
           )}

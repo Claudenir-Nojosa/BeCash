@@ -852,7 +852,7 @@ export default function MetasPage() {
                         <span>{formatarData(meta.dataAlvo)}</span>
                       </div>
                       <span>
-                        {t("diasRestantes", { count: diasRestantes })}
+                        {t("mensagens.diasRestantes", { count: diasRestantes })}
                       </span>
                     </div>
 
