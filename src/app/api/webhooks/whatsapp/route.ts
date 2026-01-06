@@ -759,7 +759,7 @@ async function gerarMensagemConfirmacao(
     const valorUsuario = valorTotal / 2;
 
     mensagem += `*🤝 Sua parte:* ${valorUsuario.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
-    mensagem += `*👤 Parte do ${dados.nomeUsuarioCompartilhado}:* ${valorCompartilhado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+    mensagem += `*👤 Parte ${dados.nomeUsuarioCompartilhado}:* ${valorCompartilhado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
   }
 
   if (dados.ehParcelado && dados.parcelas) {

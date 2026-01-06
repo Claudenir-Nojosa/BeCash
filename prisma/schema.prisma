@@ -66,8 +66,21 @@ model User {
   obrigacaos Obrigacao[]
 
   controleHoras ControleHoras[]
-}
 
+  configuracoesUsuarios ConfiguracoesUsuario[]
+}
+model ConfiguracoesUsuario {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Configurações de idioma e preferências
+  idioma          String   @default("pt-BR") // "pt-BR", "en-US", etc.
+  genero          String?  // "ele", "ela", "elu", "outro"
+  pronome         String?  // Ex: "ele/dele", "ela/dela", "elu/delu"
+  
+  @@map("configuracoes_usuario")
+}
 model Account {
   id                String  @id @default(cuid())
   userId            String
