@@ -293,6 +293,10 @@ export default function FaturasPage() {
   const Icone = status.icone;
   const pendente = faturaAtual.valorTotal - faturaAtual.valorPago;
 
+  const getLocalizedPath = (path: string) => {
+    return `/${i18n.language}${path}`;
+  };
+
   return (
     <div className="min-h-screen p-3 sm:p-4 md:p-6">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -302,7 +306,9 @@ export default function FaturasPage() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => router.push(`/dashboard/cartoes/${cartaoId}`)}
+              onClick={() =>
+                router.push(getLocalizedPath(`/dashboard/cartoes/${cartaoId}`))
+              }
               className="h-9 w-9 sm:h-10 sm:w-10 rounded-full border-gray-300 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800 transition-all hover:scale-101 flex-shrink-0"
             >
               <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />

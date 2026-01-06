@@ -69,7 +69,9 @@
     "verDetalhes": "View Details",
     "verFaturas": "View Invoices",
     "editar": "Edit",
-    "excluir": "Delete"
+    "excluir": "Delete",
+    "editarCartao": "Edit Card",
+    "editarCartaoDescricao": "Update your card information"
   },
   "confirmacao": {
     "titulo": "Delete Card",

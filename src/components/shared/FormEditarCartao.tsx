@@ -1,7 +1,8 @@
-// Crie um novo componente FormEditarCartao.tsx
+// FormEditarCartao.tsx
 "use client";
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,25 +29,6 @@ interface Cartao {
   observacoes?: string;
 }
 
-const BANDEIRAS = [
-  { value: "VISA", label: "Visa" },
-  { value: "MASTERCARD", label: "Mastercard" },
-  { value: "ELO", label: "Elo" },
-  { value: "AMERICAN_EXPRESS", label: "American Express" },
-  { value: "HIPERCARD", label: "Hipercard" },
-  { value: "OUTROS", label: "Outros" },
-];
-
-const CORES = [
-  { value: "#3B82F6", label: "Azul" },
-  { value: "#EF4444", label: "Vermelho" },
-  { value: "#10B981", label: "Verde" },
-  { value: "#F59E0B", label: "Amarelo" },
-  { value: "#8B5CF6", label: "Roxo" },
-  { value: "#EC4899", label: "Rosa" },
-  { value: "#6B7280", label: "Cinza" },
-];
-
 interface FormEditarCartaoProps {
   cartao: Cartao;
   onSalvo: () => void;
@@ -58,6 +40,7 @@ export function FormEditarCartao({
   onSalvo,
   onCancelar,
 }: FormEditarCartaoProps) {
+  const { t } = useTranslation("editCartoes");
   const [salvando, setSalvando] = useState(false);
   const [formData, setFormData] = useState({
     nome: cartao.nome,
@@ -68,7 +51,32 @@ export function FormEditarCartao({
     cor: cartao.cor,
     observacoes: cartao.observacoes || "",
   });
+  const BANDEIRAS = [
+    { value: "VISA", label: t("bandeiras.visa") },
+    { value: "MASTERCARD", label: t("bandeiras.mastercard") },
+    { value: "AMERICAN_EXPRESS", label: t("bandeiras.americanExpress") },
+    { value: "DISCOVER", label: t("bandeiras.discover") },
+    { value: "UNIONPAY", label: t("bandeiras.unionpay") },
+    { value: "JCB", label: t("bandeiras.jcb") },
+    { value: "DINERS", label: t("bandeiras.diners") },
+    { value: "ELO", label: t("bandeiras.elo") },
+    { value: "HIPERCARD", label: t("bandeiras.hipercard") },
+    { value: "OUTROS", label: t("bandeiras.outros") },
+  ];
 
+  const CORES = [
+    { value: "#3B82F6", label: t("cores.azul") },
+    { value: "#EF4444", label: t("cores.vermelho") },
+    { value: "#10B981", label: t("cores.verde") },
+    { value: "#F59E0B", label: t("cores.amarelo") },
+    { value: "#8B5CF6", label: t("cores.roxo") },
+    { value: "#EC4899", label: t("cores.rosa") },
+    { value: "#06B6D4", label: t("cores.ciano") },
+    { value: "#F97316", label: t("cores.laranja") },
+    { value: "#84CC16", label: t("cores.lima") },
+    { value: "#6B7280", label: t("cores.cinza") },
+  ];
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSalvando(true);
@@ -87,13 +95,13 @@ export function FormEditarCartao({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Erro ao atualizar cartão");
+        throw new Error(errorData.error || t("erros.atualizarCartao"));
       }
 
-      toast.success("Cartão atualizado com sucesso!");
+      toast.success(t("mensagens.atualizadoSucesso"));
       onSalvo();
     } catch (error: any) {
-      toast.error(error.message || "Erro ao atualizar cartão");
+      toast.error(error.message || t("erros.atualizarCartao"));
       console.error(error);
     } finally {
       setSalvando(false);
@@ -105,40 +113,44 @@ export function FormEditarCartao({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
       {/* Informações Básicas */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium text-white">Informações Básicas</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-3 sm:space-y-4">
+        <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white">
+          {t("formulario.informacoesBasicas")}
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div className="space-y-2">
-            <Label htmlFor="nome" className="text-white">
-              Nome do Cartão *
+            <Label htmlFor="nome" className="text-gray-900 dark:text-white text-sm sm:text-base">
+              {t("formulario.nomeCartao")} *
             </Label>
             <Input
               id="nome"
               value={formData.nome}
               onChange={(e) => handleChange("nome", e.target.value)}
-              placeholder="Ex: Nubank, Itaú Platinum..."
-              className="bg-gray-800 border-gray-700 text-white"
+              placeholder={t("formulario.placeholderNome")}
+              className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm sm:text-base w-full"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="bandeira" className="text-white">
-              Bandeira *
+            <Label htmlFor="bandeira" className="text-gray-900 dark:text-white text-sm sm:text-base">
+              {t("formulario.bandeira")} *
             </Label>
             <Select
               value={formData.bandeira}
               onValueChange={(value) => handleChange("bandeira", value)}
               required
             >
-              <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                <SelectValue placeholder="Selecione a bandeira" />
+              <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm sm:text-base w-full">
+                <SelectValue
+                  placeholder={t("formulario.placeholderBandeira")}
+                />
               </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700 text-white">
+              <SelectContent className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white max-h-60">
                 {BANDEIRAS.map((bandeira) => (
-                  <SelectItem key={bandeira.value} value={bandeira.value}>
+                  <SelectItem key={bandeira.value} value={bandeira.value} className="text-sm">
                     {bandeira.label}
                   </SelectItem>
                 ))}
@@ -148,8 +160,8 @@ export function FormEditarCartao({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="limite" className="text-white">
-            Limite do Cartão *
+          <Label htmlFor="limite" className="text-gray-900 dark:text-white text-sm sm:text-base">
+            {t("formulario.limiteCartao")} *
           </Label>
           <Input
             id="limite"
@@ -159,19 +171,24 @@ export function FormEditarCartao({
             value={formData.limite}
             onChange={(e) => handleChange("limite", e.target.value)}
             placeholder="0,00"
-            className="bg-gray-800 border-gray-700 text-white"
+            className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm sm:text-base w-full"
             required
           />
         </div>
       </div>
 
       {/* Datas do Cartão */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium text-white">Datas do Cartão</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-3 sm:space-y-4">
+        <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white">
+          {t("formulario.datasCartao")}
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div className="space-y-2">
-            <Label htmlFor="diaFechamento" className="text-white">
-              Dia de Fechamento *
+            <Label
+              htmlFor="diaFechamento"
+              className="text-gray-900 dark:text-white text-sm sm:text-base"
+            >
+              {t("formulario.diaFechamento")} *
             </Label>
             <Input
               id="diaFechamento"
@@ -181,15 +198,20 @@ export function FormEditarCartao({
               value={formData.diaFechamento}
               onChange={(e) => handleChange("diaFechamento", e.target.value)}
               placeholder="1-31"
-              className="bg-gray-800 border-gray-700 text-white"
+              className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm sm:text-base w-full"
               required
             />
-            <p className="text-xs text-gray-400">Dia que a fatura fecha</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400">
+              {t("formulario.dicaFechamento")}
+            </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="diaVencimento" className="text-white">
-              Dia de Vencimento *
+            <Label
+              htmlFor="diaVencimento"
+              className="text-gray-900 dark:text-white text-sm sm:text-base"
+            >
+              {t("formulario.diaVencimento")} *
             </Label>
             <Input
               id="diaVencimento"
@@ -199,38 +221,42 @@ export function FormEditarCartao({
               value={formData.diaVencimento}
               onChange={(e) => handleChange("diaVencimento", e.target.value)}
               placeholder="1-31"
-              className="bg-gray-800 border-gray-700 text-white"
+              className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm sm:text-base w-full"
               required
             />
-            <p className="text-xs text-gray-400">Dia que a fatura vence</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400">
+              {t("formulario.dicaVencimento")}
+            </p>
           </div>
         </div>
       </div>
 
       {/* Personalização */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium text-white">Personalização</h3>
+      <div className="space-y-3 sm:space-y-4">
+        <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white">
+          {t("formulario.personalizacao")}
+        </h3>
 
         <div className="space-y-2">
-          <Label htmlFor="cor" className="text-white">
-            Cor de Identificação
+          <Label htmlFor="cor" className="text-gray-900 dark:text-white text-sm sm:text-base">
+            {t("formulario.corIdentificacao")}
           </Label>
           <Select
             value={formData.cor}
             onValueChange={(value) => handleChange("cor", value)}
           >
-            <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-              <SelectValue placeholder="Selecione uma cor" />
+            <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm sm:text-base w-full">
+              <SelectValue placeholder={t("formulario.placeholderCor")} />
             </SelectTrigger>
-            <SelectContent className="bg-gray-800 border-gray-700 text-white">
+            <SelectContent className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white max-h-60">
               {CORES.map((cor) => (
-                <SelectItem key={cor.value} value={cor.value}>
+                <SelectItem key={cor.value} value={cor.value} className="text-sm">
                   <div className="flex items-center gap-2">
                     <div
-                      className="w-4 h-4 rounded-full border border-gray-600"
+                      className="w-4 h-4 rounded-full border border-gray-300 dark:border-gray-600 flex-shrink-0"
                       style={{ backgroundColor: cor.value }}
                     />
-                    {cor.label}
+                    <span className="truncate">{cor.label}</span>
                   </div>
                 </SelectItem>
               ))}
@@ -239,38 +265,43 @@ export function FormEditarCartao({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="observacoes" className="text-white">
-            Observações
+          <Label
+            htmlFor="observacoes"
+            className="text-gray-900 dark:text-white text-sm sm:text-base"
+          >
+            {t("formulario.observacoes")}
           </Label>
           <Textarea
             id="observacoes"
             value={formData.observacoes}
             onChange={(e) => handleChange("observacoes", e.target.value)}
-            placeholder="Observações sobre o cartão..."
+            placeholder={t("formulario.placeholderObservacoes")}
             rows={3}
-            className="bg-gray-800 border-gray-700 text-white"
+            className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm sm:text-base w-full min-h-[80px] resize-y"
           />
         </div>
       </div>
 
       {/* Botões */}
-      <div className="flex gap-3 pt-6 border-t border-gray-800">
+      <div className="flex flex-col sm:flex-row gap-3 pt-4 sm:pt-6 border-t border-gray-300 dark:border-gray-800">
         <Button
           type="button"
           variant="outline"
           onClick={onCancelar}
-          className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+          className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white text-sm sm:text-base w-full sm:w-auto"
         >
-          <X className="h-4 w-4 mr-2" />
-          Cancelar
+          <X className="h-4 w-4 mr-2 flex-shrink-0" />
+          <span className="truncate">{t("botoes.cancelar")}</span>
         </Button>
         <Button
           type="submit"
           disabled={salvando}
-          className="flex-1 bg-white text-gray-900 hover:bg-gray-100"
+          className="flex-1 bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 text-sm sm:text-base w-full sm:w-auto"
         >
-          <Save className="h-4 w-4 mr-2" />
-          {salvando ? "Salvando..." : "Salvar Alterações"}
+          <Save className="h-4 w-4 mr-2 flex-shrink-0" />
+          <span className="truncate">
+            {salvando ? t("estados.salvando") : t("botoes.salvarAlteracoes")}
+          </span>
         </Button>
       </div>
     </form>

@@ -58,29 +58,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loading } from "@/components/ui/loading-barrinhas";
+import { FormEditarCartao } from "@/components/shared/FormEditarCartao";
+import { Cartao } from "../../../../../types/types";
 
-interface Cartao {
-  faturaAtual: any;
-  id: string;
-  nome: string;
-  bandeira: string;
-  limite: number;
-  diaFechamento: number;
-  diaVencimento: number;
-  cor: string;
-  observacoes?: string;
-  lancamentos: Array<{
-    id: string;
-    valor: number;
-    descricao: string;
-    data: string;
-  }>;
-  _count?: {
-    lancamentos: number;
-  };
-  totalGasto?: number;
-  utilizacaoLimite?: number;
-}
+
 
 export default function CartoesPage() {
   const router = useRouter();
@@ -92,8 +73,12 @@ export default function CartoesPage() {
     string | null
   >(null);
   const [sheetAberto, setSheetAberto] = useState(false);
+  const [sheetEditarAberto, setSheetEditarAberto] = useState<string | null>(
+    null
+  );
   const [enviando, setEnviando] = useState(false);
   const [dropdownAberto, setDropdownAberto] = useState<string | null>(null);
+  const [cartaoParaEditar, setCartaoParaEditar] = useState<Cartao | null>(null);
 
   const [formData, setFormData] = useState({
     nome: "",
@@ -254,6 +239,23 @@ export default function CartoesPage() {
     } finally {
       setEnviando(false);
     }
+  };
+
+  const handleAbrirEditar = (cartao: Cartao) => {
+    setCartaoParaEditar(cartao);
+    setSheetEditarAberto(cartao.id);
+    setDropdownAberto(null);
+  };
+
+  const handleFecharEditar = () => {
+    setSheetEditarAberto(null);
+    setCartaoParaEditar(null);
+  };
+
+  const handleCartaoEditado = () => {
+    toast.success(t("mensagens.editadoSucesso"));
+    handleFecharEditar();
+    carregarCartoes();
   };
 
   const handleChange = (field: string, value: string) => {
@@ -613,14 +615,7 @@ export default function CartoesPage() {
                             </span>
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => {
-                              router.push(
-                                getLocalizedPath(
-                                  `/dashboard/cartoes/${cartao.id}/editar`
-                                )
-                              );
-                              setDropdownAberto(null);
-                            }}
+                            onClick={() => handleAbrirEditar(cartao)}
                             className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer py-2"
                           >
                             <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -810,6 +805,27 @@ export default function CartoesPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Sheet de Edição */}
+      <Sheet open={!!sheetEditarAberto} onOpenChange={handleFecharEditar}>
+        <SheetContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white overflow-y-auto w-full sm:max-w-2xl">
+          <SheetHeader className="mb-6">
+            <SheetTitle className="text-gray-900 dark:text-white text-xl">
+              {t("menu.editarCartao")}
+            </SheetTitle>
+            <SheetDescription className="text-gray-600 dark:text-gray-400">
+              {t("menu.editarCartaoDescricao")}
+            </SheetDescription>
+          </SheetHeader>
+          {cartaoParaEditar && (
+            <FormEditarCartao
+              cartao={cartaoParaEditar}
+              onSalvo={handleCartaoEditado}
+              onCancelar={handleFecharEditar}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

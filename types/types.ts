@@ -44,3 +44,26 @@ export interface EmpresaComObrigacao extends Empresa {
   empresaObrigacaoAcessoria: EmpresaObrigacaoAcessoria;
 }
 
+export interface Cartao {
+  id: string;
+  nome: string;
+  bandeira: string;
+  limite: number;
+  diaFechamento: number;
+  diaVencimento: number;
+  cor: string;
+  observacoes?: string;
+  ativo: boolean;
+  faturaAtual?: any;
+  lancamentos?: Array<{
+    id: string;
+    valor: number;
+    descricao: string;
+    data: string;
+  }>;
+  _count?: {
+    lancamentos: number;
+  };
+  totalGasto?: number;
+  utilizacaoLimite?: number;
+}

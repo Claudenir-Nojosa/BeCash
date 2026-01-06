@@ -69,7 +69,9 @@
     "verDetalhes": "Ver Detalhes",
     "verFaturas": "Ver Faturas",
     "editar": "Editar",
-    "excluir": "Excluir"
+    "excluir": "Excluir",
+    "editarCartao": "Editar Cartão",
+    "editarCartaoDescricao": "Atualize as informações do seu cartão"
   },
   "confirmacao": {
     "titulo": "Excluir Cartão",
