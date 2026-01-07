@@ -851,178 +851,407 @@ async function gerarMensagemConfirmacao(
     );
   }
 
-  const valorFormatado = parseFloat(dados.valor).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
+  // 🔥 CORRIGIR FORMATAÇÃO DO VALOR
+  const valorNumero = parseFloat(dados.valor);
+  const valorFormatado = formatarValorComMoeda(valorNumero, idioma);
 
-  const dataFormatada = dataLancamento.toLocaleDateString("pt-BR");
+  const dataFormatada = dataLancamento.toLocaleDateString(
+    idioma === "en-US" ? "en-US" : "pt-BR"
+  );
 
-  // 🔥 SE FOR SUCESSO (após criação), usar template diferente
+  // 🔥 SE FOR SUCESSO (após criação)
   if (resultadoCriacao) {
-    let templatePT = `✅ *LANÇAMENTO REGISTRADO*\n`;
-    templatePT += `━━━━━━━━━━━━━━\n\n`;
+    if (idioma === "en-US") {
+      let templateEN = `✅ *TRANSACTION REGISTERED*\n`;
+      templateEN += `━━━━━━━━━━━━━━\n\n`;
 
-    templatePT += `📝 *Descrição:* ${descricaoLimpa}\n`;
-    templatePT += `💰 *Valor total:* ${valorFormatado}\n`;
-    templatePT += `🏷️ *Categoria:* ${categoriaEscolhida.nome}\n`;
+      templateEN += `📝 *Description:* ${descricaoLimpa}\n`;
+      templateEN += `💰 *Total amount:* ${valorFormatado}\n`; // 🔥 USD aqui
+      templateEN += `🏷️ *Category:* ${categoriaEscolhida.nome}\n`;
 
-    // Compartilhamento
-    if (
-      resultadoCriacao?.usuarioAlvo &&
-      resultadoCriacao.valorCompartilhado > 0
-    ) {
-      const valorUsuario = resultadoCriacao.valorUsuarioCriador.toLocaleString(
-        "pt-BR",
-        {
-          style: "currency",
-          currency: "BRL",
-        }
+      // Compartilhamento em USD
+      if (
+        resultadoCriacao?.usuarioAlvo &&
+        resultadoCriacao.valorCompartilhado > 0
+      ) {
+        const valorUsuario = formatarValorComMoeda(
+          resultadoCriacao.valorUsuarioCriador,
+          idioma
+        );
+
+        const valorCompartilhado = formatarValorComMoeda(
+          resultadoCriacao.valorCompartilhado,
+          idioma
+        );
+
+        templateEN += `\n👥 *SHARED EXPENSE*\n`;
+        templateEN += `   • Your part: ${valorUsuario}\n`;
+        templateEN += `   • ${resultadoCriacao.usuarioAlvo.name}: ${valorCompartilhado}\n`;
+      }
+
+      // Parcelamento em USD
+      if (resultadoCriacao?.ehParcelado && resultadoCriacao.parcelasTotal) {
+        templateEN += `\n💳 *INSTALLMENTS*\n`;
+        templateEN += `   • ${resultadoCriacao.parcelasTotal}x of ${formatarValorComMoeda(
+          resultadoCriacao.valorParcela,
+          idioma
+        )}\n`;
+      }
+
+      if (cartaoEncontrado) {
+        templateEN += `\n💳 *Card:* ${cartaoEncontrado.nome}\n`;
+      }
+
+      templateEN += `\n📅 *Date:* ${dataFormatada}\n`;
+      templateEN += `\n━━━━━━━━━━━━━━\n`;
+      templateEN += `✨ *Thank you for using BeCash!*\n`;
+
+      return templateEN;
+    } else {
+      // PORTUGUÊS (versão original)
+      let templatePT = `✅ *LANÇAMENTO REGISTRADO*\n`;
+      templatePT += `━━━━━━━━━━━━━━\n\n`;
+
+      templatePT += `📝 *Descrição:* ${descricaoLimpa}\n`;
+      templatePT += `💰 *Valor total:* ${valorFormatado}\n`; // 🔥 BRL aqui
+      templatePT += `🏷️ *Categoria:* ${categoriaEscolhida.nome}\n`;
+
+      // Compartilhamento em BRL
+      if (
+        resultadoCriacao?.usuarioAlvo &&
+        resultadoCriacao.valorCompartilhado > 0
+      ) {
+        const valorUsuario =
+          resultadoCriacao.valorUsuarioCriador.toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          });
+
+        const valorCompartilhado =
+          resultadoCriacao.valorCompartilhado.toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          });
+
+        templatePT += `\n👥 *COMPARTILHAMENTO*\n`;
+        templatePT += `   • Sua parte: ${valorUsuario}\n`;
+        templatePT += `   • ${resultadoCriacao.usuarioAlvo.name}: ${valorCompartilhado}\n`;
+      }
+
+      // Parcelamento em BRL
+      if (resultadoCriacao?.ehParcelado && resultadoCriacao.parcelasTotal) {
+        templatePT += `\n💳 *PARCELAMENTO*\n`;
+        templatePT += `   • ${resultadoCriacao.parcelasTotal}x de ${resultadoCriacao.valorParcela.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+      }
+
+      if (cartaoEncontrado) {
+        templatePT += `\n💳 *Cartão:* ${cartaoEncontrado.nome}\n`;
+      }
+
+      templatePT += `\n📅 *Data:* ${dataFormatada}\n`;
+      templatePT += `\n━━━━━━━━━━━━━━\n`;
+      templatePT += `✨ *Obrigado por usar o BeCash!*\n`;
+
+      return templatePT;
+    }
+  }
+
+  // 🔥 SE FOR CONFIRMAÇÃO (antes de criar)
+  if (idioma === "en-US") {
+    let templateEN = `*📋 TRANSACTION CONFIRMATION*\n`;
+    templateEN += `━━━━━━━━━━━━━━\n\n`;
+
+    templateEN += `*📝 Description:* ${descricaoLimpa}\n`;
+    templateEN += `*💰 Amount:* ${valorFormatado}\n`; // 🔥 USD aqui
+    templateEN += `*🏷️ Category:* ${categoriaEscolhida.nome}\n`;
+    templateEN += `*📅 Date:* ${dataFormatada}\n`;
+
+    // Tipo
+    templateEN += `*📊 Type:* ${dados.tipo === "DESPESA" ? "Expense" : "Income"}\n`;
+
+    // Método de pagamento em inglês
+    const metodoPagamentoText = traduzirMetodoPagamento(
+      dados.metodoPagamento,
+      idioma
+    );
+    const emojiMetodo = metodoPagamentoText.split(" ")[0];
+
+    templateEN += `*${emojiMetodo} Method:* ${metodoPagamentoText.replace(/💳|📱|💵|🔄/g, "").trim()}\n`;
+
+    // Informações do cartão em USD
+    if (cartaoEncontrado) {
+      templateEN += `*🔸 Card:* ${cartaoEncontrado.nome}\n`;
+
+      if (cartaoEncontrado.limiteDisponivel !== undefined) {
+        const limiteDisponivel = formatarValorComMoeda(
+          cartaoEncontrado.limiteDisponivel,
+          idioma
+        );
+        const utilizacaoPercentual = cartaoEncontrado.utilizacaoLimite || 0;
+
+        templateEN += `*📊 Available limit:* ${limiteDisponivel}\n`;
+        templateEN += `*📈 Utilization:* ${utilizacaoPercentual.toFixed(1)}%\n`;
+      } else if (
+        cartaoEncontrado.limite &&
+        cartaoEncontrado.totalGasto !== undefined
+      ) {
+        const limiteDisponivel =
+          cartaoEncontrado.limite - cartaoEncontrado.totalGasto;
+        const limiteDisponivelFormatado = formatarValorComMoeda(
+          limiteDisponivel,
+          idioma
+        );
+        const utilizacaoPercentual =
+          cartaoEncontrado.limite > 0
+            ? (cartaoEncontrado.totalGasto / cartaoEncontrado.limite) * 100
+            : 0;
+
+        templateEN += `*📊 Available limit:* ${limiteDisponivelFormatado}\n`;
+        templateEN += `*📈 Utilization:* ${utilizacaoPercentual.toFixed(1)}%\n`;
+      }
+    }
+
+    // Limite da categoria em USD
+    if (userId) {
+      const hoje = new Date();
+      const mesReferencia = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
+      const limiteCategoria = await buscarLimiteCategoria(
+        categoriaEscolhida.id,
+        userId,
+        mesReferencia
       );
 
-      const valorCompartilhado =
-        resultadoCriacao.valorCompartilhado.toLocaleString("pt-BR", {
-          style: "currency",
-          currency: "BRL",
-        });
+      if (limiteCategoria) {
+        const gastoAtual = limiteCategoria.gastoAtual || 0;
+        const novoGasto = gastoAtual + parseFloat(dados.valor);
+        const limite = limiteCategoria.limiteMensal;
+        const percentualAtual = (gastoAtual / limite) * 100;
+        const percentualNovo = (novoGasto / limite) * 100;
 
-      templatePT += `\n👥 *COMPARTILHAMENTO*\n`;
-      templatePT += `   • Sua parte: ${valorUsuario}\n`;
-      templatePT += `   • ${resultadoCriacao.usuarioAlvo.name}: ${valorCompartilhado}\n`;
+        const gastoAtualFormatado = formatarValorComMoeda(gastoAtual, idioma);
+        const novoGastoFormatado = formatarValorComMoeda(novoGasto, idioma);
+        const limiteFormatado = formatarValorComMoeda(limite, idioma);
+
+        templateEN += `*📊 CATEGORY LIMIT:*\n`;
+        templateEN += `   • Before: ${gastoAtualFormatado} / ${limiteFormatado} (${percentualAtual.toFixed(1)}%)\n`;
+        templateEN += `   • After: ${novoGastoFormatado} / ${limiteFormatado} (${percentualNovo.toFixed(1)}%)\n`;
+
+        if (novoGasto > limite) {
+          templateEN += `   ⚠️ *WARNING: Limit exceeded!*\n`;
+        }
+      }
+    }
+
+    // Compartilhamento em USD
+    if (dados.ehCompartilhado && dados.nomeUsuarioCompartilhado) {
+      const valorTotal = parseFloat(dados.valor);
+      const valorCompartilhado = valorTotal / 2;
+      const valorUsuario = valorTotal / 2;
+
+      const valorUsuarioFormatado = formatarValorComMoeda(valorUsuario, idioma);
+      const valorCompartilhadoFormatado = formatarValorComMoeda(
+        valorCompartilhado,
+        idioma
+      );
+
+      templateEN += `*👥 Shared with:* ${dados.nomeUsuarioCompartilhado}\n`;
+      templateEN += `*🤝 Your part:* ${valorUsuarioFormatado}\n`;
+      templateEN += `*👤 ${dados.nomeUsuarioCompartilhado}'s part:* ${valorCompartilhadoFormatado}\n`;
+    }
+
+    // Parcelamento em USD
+    if (dados.ehParcelado && dados.parcelas) {
+      const valorParcela = parseFloat(dados.valor) / dados.parcelas;
+      const valorParcelaFormatado = formatarValorComMoeda(valorParcela, idioma);
+      templateEN += `*🔢 Installments:* ${dados.parcelas}x of ${valorParcelaFormatado}\n`;
+    }
+
+    templateEN += `\n━━━━━━━━━━━━━━\n\n`;
+    templateEN += `*Please confirm:*\n\n`;
+    templateEN += `✅ *YES* - To confirm this transaction\n`;
+    templateEN += `❌ *NO* - To cancel\n\n`;
+    templateEN += `_⏰ This confirmation expires in 5 minutes_`;
+
+    return templateEN;
+  } else {
+    // PORTUGUÊS (versão original)
+    let templatePT = `*📋 CONFIRMAÇÃO DE LANÇAMENTO*\n`;
+    templatePT += `━━━━━━━━━━━━━━\n\n`;
+
+    templatePT += `*📝 Descrição:* ${descricaoLimpa}\n`;
+    templatePT += `*💰 Valor:* ${valorFormatado}\n`;
+    templatePT += `*🏷️ Categoria:* ${categoriaEscolhida.nome}\n`;
+    templatePT += `*📅 Data:* ${dataFormatada}\n`;
+
+    // Tipo
+    templatePT += `*📊 Tipo:* ${dados.tipo === "DESPESA" ? "Despesa" : "Receita"}\n`;
+
+    // Método de pagamento
+    const metodoPagamentoText =
+      {
+        CREDITO: "💳 Cartão de Crédito",
+        DEBITO: "💳 Cartão de Débito",
+        PIX: "📱 PIX",
+        DINHEIRO: "💵 Dinheiro",
+        TRANSFERENCIA: "🔄 Transferência",
+      }[dados.metodoPagamento] || "💳 " + dados.metodoPagamento;
+
+    templatePT += `*${metodoPagamentoText.split(" ")[0]} Método:* ${metodoPagamentoText.replace(/💳|📱|💵|🔄/g, "").trim()}\n`;
+
+    // Informações do cartão
+    if (cartaoEncontrado) {
+      templatePT += `*🔸 Cartão:* ${cartaoEncontrado.nome}\n`;
+
+      if (cartaoEncontrado.limiteDisponivel !== undefined) {
+        const limiteDisponivel = cartaoEncontrado.limiteDisponivel;
+        const utilizacaoPercentual = cartaoEncontrado.utilizacaoLimite || 0;
+
+        templatePT += `*📊 Limite disponível:* ${limiteDisponivel.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+        templatePT += `*📈 Utilização:* ${utilizacaoPercentual.toFixed(1)}%\n`;
+      } else if (
+        cartaoEncontrado.limite &&
+        cartaoEncontrado.totalGasto !== undefined
+      ) {
+        const limiteDisponivel =
+          cartaoEncontrado.limite - cartaoEncontrado.totalGasto;
+        const utilizacaoPercentual =
+          cartaoEncontrado.limite > 0
+            ? (cartaoEncontrado.totalGasto / cartaoEncontrado.limite) * 100
+            : 0;
+
+        templatePT += `*📊 Limite disponível:* ${limiteDisponivel.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+        templatePT += `*📈 Utilização:* ${utilizacaoPercentual.toFixed(1)}%\n`;
+      }
+    }
+
+    // Limite da categoria
+    if (userId) {
+      const hoje = new Date();
+      const mesReferencia = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
+      const limiteCategoria = await buscarLimiteCategoria(
+        categoriaEscolhida.id,
+        userId,
+        mesReferencia
+      );
+
+      if (limiteCategoria) {
+        const gastoAtual = limiteCategoria.gastoAtual || 0;
+        const novoGasto = gastoAtual + parseFloat(dados.valor);
+        const limite = limiteCategoria.limiteMensal;
+        const percentualAtual = (gastoAtual / limite) * 100;
+        const percentualNovo = (novoGasto / limite) * 100;
+
+        templatePT += `*📊 LIMITE DA CATEGORIA:*\n`;
+        templatePT += `   • Antes: ${gastoAtual.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} / ${limite.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} (${percentualAtual.toFixed(1)}%)\n`;
+        templatePT += `   • Depois: ${novoGasto.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} / ${limite.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} (${percentualNovo.toFixed(1)}%)\n`;
+
+        if (novoGasto > limite) {
+          templatePT += `   ⚠️ *ATENÇÃO: Limite ultrapassado!*\n`;
+        }
+      }
+    }
+
+    // Compartilhamento
+    if (dados.ehCompartilhado && dados.nomeUsuarioCompartilhado) {
+      const valorTotal = parseFloat(dados.valor);
+      const valorCompartilhado = valorTotal / 2;
+      const valorUsuario = valorTotal / 2;
+
+      templatePT += `*👥 Compartilhado com:* ${dados.nomeUsuarioCompartilhado}\n`;
+      templatePT += `*🤝 Sua parte:* ${valorUsuario.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+      templatePT += `*👤 Parte ${dados.nomeUsuarioCompartilhado}:* ${valorCompartilhado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
     }
 
     // Parcelamento
-    if (resultadoCriacao?.ehParcelado && resultadoCriacao.parcelasTotal) {
-      templatePT += `\n💳 *PARCELAMENTO*\n`;
-      templatePT += `   • ${resultadoCriacao.parcelasTotal}x de ${resultadoCriacao.valorParcela.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+    if (dados.ehParcelado && dados.parcelas) {
+      const valorParcela = parseFloat(dados.valor) / dados.parcelas;
+      templatePT += `*🔢 Parcelamento:* ${dados.parcelas}x de ${valorParcela.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
     }
 
-    if (cartaoEncontrado) {
-      templatePT += `\n💳 *Cartão:* ${cartaoEncontrado.nome}\n`;
-    }
+    templatePT += `\n━━━━━━━━━━━━━━\n\n`;
+    templatePT += `*Por favor, confirme:*\n\n`;
+    templatePT += `✅ *SIM* - Para confirmar este lançamento\n`;
+    templatePT += `❌ *NÃO* - Para cancelar\n\n`;
+    templatePT += `_⏰ Esta confirmação expira em 5 minutos_`;
 
-    templatePT += `\n📅 *Data:* ${dataFormatada}\n`;
-    templatePT += `\n━━━━━━━━━━━━━━\n`;
-    templatePT += `✨ *Obrigado por usar o BeCash!*\n`;
-
-    return idioma !== "pt-BR"
-      ? await gerarMensagemComIA(templatePT, {}, idioma)
-      : templatePT;
+    return templatePT;
   }
-
-  // 🔥 SE FOR CONFIRMAÇÃO (antes de criar) - TEMPLATE COMPLETO
-  let templatePT = `*📋 CONFIRMAÇÃO DE LANÇAMENTO*\n`;
-  templatePT += `━━━━━━━━━━━━━━\n\n`;
-
-  templatePT += `*📝 Descrição:* ${descricaoLimpa}\n`;
-  templatePT += `*💰 Valor:* ${valorFormatado}\n`;
-  templatePT += `*🏷️ Categoria:* ${categoriaEscolhida.nome}\n`;
-  templatePT += `*📅 Data:* ${dataFormatada}\n`;
-
-  // 🆕 ADICIONAR TIPO
-  templatePT += `*📊 Tipo:* ${dados.tipo === "DESPESA" ? "Despesa" : "Receita"}\n`;
-
-  // 🆕 ADICIONAR MÉTODO DE PAGAMENTO
-  const metodoPagamentoText =
-    {
-      CREDITO: "💳 Cartão de Crédito",
-      DEBITO: "💳 Cartão de Débito",
-      PIX: "📱 PIX",
-      DINHEIRO: "💵 Dinheiro",
-      TRANSFERENCIA: "🔄 Transferência",
-    }[dados.metodoPagamento] || "💳 " + dados.metodoPagamento;
-
-  templatePT += `*${metodoPagamentoText.split(" ")[0]} Método:* ${metodoPagamentoText.replace(/💳|📱|💵|🔄/g, "").trim()}\n`;
-
-  // 🆕 INFORMAÇÕES DO CARTÃO (se houver)
-  if (cartaoEncontrado) {
-    templatePT += `*🔸 Cartão:* ${cartaoEncontrado.nome}\n`;
-
-    // Calcular limite disponível e utilização
-    if (cartaoEncontrado.limiteDisponivel !== undefined) {
-      const limiteDisponivel = cartaoEncontrado.limiteDisponivel;
-      const utilizacaoPercentual = cartaoEncontrado.utilizacaoLimite || 0;
-
-      templatePT += `*📊 Limite disponível:* ${limiteDisponivel.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
-      templatePT += `*📈 Utilização:* ${utilizacaoPercentual.toFixed(1)}%\n`;
-    } else if (
-      cartaoEncontrado.limite &&
-      cartaoEncontrado.totalGasto !== undefined
-    ) {
-      const limiteDisponivel =
-        cartaoEncontrado.limite - cartaoEncontrado.totalGasto;
-      const utilizacaoPercentual =
-        cartaoEncontrado.limite > 0
-          ? (cartaoEncontrado.totalGasto / cartaoEncontrado.limite) * 100
-          : 0;
-
-      templatePT += `*📊 Limite disponível:* ${limiteDisponivel.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
-      templatePT += `*📈 Utilização:* ${utilizacaoPercentual.toFixed(1)}%\n`;
-    }
-  }
-
-  // 🆕 LIMITE DA CATEGORIA (buscar só na confirmação)
-  if (userId) {
-    const hoje = new Date();
-    const mesReferencia = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
-    const limiteCategoria = await buscarLimiteCategoria(
-      categoriaEscolhida.id,
-      userId,
-      mesReferencia
-    );
-
-    if (limiteCategoria) {
-      const gastoAtual = limiteCategoria.gastoAtual || 0;
-      const novoGasto = gastoAtual + parseFloat(dados.valor);
-      const limite = limiteCategoria.limiteMensal;
-      const percentualAtual = (gastoAtual / limite) * 100;
-      const percentualNovo = (novoGasto / limite) * 100;
-
-      templatePT += `*📊 LIMITE DA CATEGORIA:*\n`;
-      templatePT += `   • Antes: ${gastoAtual.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} / ${limite.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} (${percentualAtual.toFixed(1)}%)\n`;
-      templatePT += `   • Depois: ${novoGasto.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} / ${limite.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} (${percentualNovo.toFixed(1)}%)\n`;
-
-      if (novoGasto > limite) {
-        templatePT += `   ⚠️ *ATENÇÃO: Limite ultrapassado!*\n`;
-      }
-    }
-  }
-
-  // 🆕 COMPARTILHAMENTO (se houver)
-  if (dados.ehCompartilhado && dados.nomeUsuarioCompartilhado) {
-    const valorTotal = parseFloat(dados.valor);
-    const valorCompartilhado = valorTotal / 2;
-    const valorUsuario = valorTotal / 2;
-
-    templatePT += `*👥 Compartilhado com:* ${dados.nomeUsuarioCompartilhado}\n`;
-    templatePT += `*🤝 Sua parte:* ${valorUsuario.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
-    templatePT += `*👤 Parte ${dados.nomeUsuarioCompartilhado}:* ${valorCompartilhado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
-  }
-
-  // 🆕 PARCELAMENTO (se houver)
-  if (dados.ehParcelado && dados.parcelas) {
-    const valorParcela = parseFloat(dados.valor) / dados.parcelas;
-    templatePT += `*🔢 Parcelamento:* ${dados.parcelas}x de ${valorParcela.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
-  }
-
-  templatePT += `\n━━━━━━━━━━━━━━\n\n`;
-  templatePT += `*Por favor, confirme:*\n\n`;
-  templatePT += `✅ *SIM* - Para confirmar este lançamento\n`;
-  templatePT += `❌ *NÃO* - Para cancelar\n\n`;
-  templatePT += `_⏰ Esta confirmação expira em 5 minutos_`;
-
-  return idioma !== "pt-BR"
-    ? await gerarMensagemComIA(templatePT, {}, idioma)
-    : templatePT;
 }
 
 // 🔥 FUNÇÃO PARA MENSAGEM DE CANCELAMENTO - VERSÃO MELHORADA
-async function gerarMensagemCancelamento(): Promise<string> {
-  return `❌ Lançamento Cancelado
+async function gerarMensagemCancelamento(
+  idioma: string = "pt-BR"
+): Promise<string> {
+  if (idioma === "en-US") {
+    return `❌ Transaction Canceled
+
+The transaction was canceled and not registered in your statement.
+
+💡 Send a new message to create another transaction.`;
+  } else {
+    return `❌ Lançamento Cancelado
 
 A transação foi cancelada e não foi registrada em seu extrato.
 
 💡 Envie uma nova mensagem para criar outro lançamento.`;
+  }
+}
+
+function formatarValorComMoeda(
+  valor: number,
+  idioma: string = "pt-BR"
+): string {
+  if (idioma === "en-US") {
+    // Converter de reais para dólares (taxa fictícia de 5.0 para exemplo)
+    const taxaConversao = 5.0;
+    const valorEmDolar = valor / taxaConversao;
+
+    return valorEmDolar.toLocaleString("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  } else {
+    return valor.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+  }
+}
+
+// 🔥 FUNÇÃO AUXILIAR: Traduzir método de pagamento
+function traduzirMetodoPagamento(metodo: string, idioma: string): string {
+  const mapaPt = {
+    CREDITO: "💳 Cartão de Crédito",
+    DEBITO: "💳 Cartão de Débito",
+    PIX: "📱 PIX",
+    DINHEIRO: "💵 Dinheiro",
+    TRANSFERENCIA: "🔄 Transferência",
+  };
+
+  const mapaEn = {
+    CREDITO: "💳 Credit Card",
+    DEBITO: "💳 Debit Card",
+    PIX: "📱 PIX",
+    DINHEIRO: "💵 Cash",
+    TRANSFERENCIA: "🔄 Transfer",
+  };
+
+  if (idioma === "en-US") {
+    return (mapaEn as any)[metodo] || `💳 ${metodo}`;
+  } else {
+    return (mapaPt as any)[metodo] || `💳 ${metodo}`;
+  }
+}
+
+// 🔥 FUNÇÃO AUXILIAR: Traduzir tipo de lançamento
+function traduzirTipoLancamento(tipo: string, idioma: string): string {
+  if (idioma === "en-US") {
+    return tipo === "DESPESA" ? "Expense" : "Income";
+  } else {
+    return tipo === "DESPESA" ? "Despesa" : "Receita";
+  }
 }
 
 function detectarCompartilhamento(mensagem: string): {
