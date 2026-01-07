@@ -119,7 +119,7 @@ async function getUserByPhone(userPhone: string) {
 
       // 🔥 OBTER IDIOMA DAS CONFIGURAÇÕES
       const idiomaPreferido =
-        usuario.configuracoesUsuarios?.[0]?.idioma || "pt-BR";
+        usuario.configuracoesUsuarios?.[0]?.idioma;
       console.log(`🌐 Idioma preferido do usuário: ${idiomaPreferido}`);
 
       return {
@@ -262,7 +262,7 @@ async function processarConfirmacao(
     return { status: "user_not_found" };
   }
 
-  const idiomaPreferido = session.idiomaPreferido || "pt-BR";
+  const idiomaPreferido = session.idiomaPreferido;
 
   // Remover do cache de pendentes
   global.pendingLancamentos?.delete(userPhone);
@@ -462,8 +462,6 @@ async function processarAudioWhatsApp(audioMessage: any, userPhone: string) {
       return { status: "user_not_found" };
     }
 
-    const idiomaPreferido = session.idiomaPreferido || "pt-BR";
-
     // Transcrever o áudio
     const audioId = audioMessage.audio?.id;
     if (!audioId) {
@@ -486,7 +484,7 @@ async function processarAudioWhatsApp(audioMessage: any, userPhone: string) {
 
     // 🔥 USAR IDIOMA PREFERIDO PARA MENSAGEM DE ERRO
     const session = await getUserByPhone(userPhone);
-    const idiomaPreferido = session?.idiomaPreferido || "pt-BR";
+    const idiomaPreferido = session?.idiomaPreferido;
 
     let mensagemErro = "";
     if (idiomaPreferido === "en-US") {
@@ -643,12 +641,12 @@ async function processarMensagemTexto(message: any) {
   }
 
   const userId = session.user.id;
-  const idiomaPreferido = session.idiomaPreferido || "pt-BR";
+  const idiomaPreferido = session.idiomaPreferido;
   console.log(`🌐 IDIOMA PREFERIDO DO USUÁRIO: ${idiomaPreferido}`);
 
   // 🔥 DETECTAR COMANDO COM IA (usando idioma preferido como fallback)
   const comandoIA = await detectarComandoComIA(userMessage);
-  const idioma = comandoIA.idioma || idiomaPreferido;
+  const idioma = idiomaPreferido;
 
   console.log(
     `🤖 Comando detectado pela IA: ${comandoIA.tipo} (idioma detectado: ${comandoIA.idioma}, usando: ${idioma})`
