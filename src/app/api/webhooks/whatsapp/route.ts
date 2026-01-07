@@ -59,94 +59,79 @@ async function getCategoriasUsuario(userId: string) {
   }
 }
 
-// 🔥 FUNÇÃO CORRIGIDA: Buscar usuário com tratamento específico para DDI/DDD
 async function getUserByPhone(userPhone: string) {
   try {
     console.log(`🔍 Buscando usuário para telefone: ${userPhone}`);
 
-    // Normalizar o telefone (remover tudo que não é número)
     const telefoneNormalizado = userPhone.replace(/\D/g, "");
-
     console.log(`🔧 Telefone normalizado: ${telefoneNormalizado}`);
 
-    // 🔥 LÓGICA ESPECÍFICA PARA FORMATOS BRASILEIROS
     let telefoneBusca = telefoneNormalizado;
 
-    // Se o telefone começa com 55 (DDI Brasil) e tem 13 dígitos
     if (
       telefoneNormalizado.startsWith("55") &&
       telefoneNormalizado.length === 13
     ) {
-      // Remover DDI (55) e manter o resto: 558589310653 → 8589310653
       telefoneBusca = telefoneNormalizado.substring(2);
       console.log(
         `🇧🇷 Removido DDI 55: ${telefoneNormalizado} → ${telefoneBusca}`
       );
-    }
-    // Se o telefone tem 12 dígitos (DDI + DDD sem o 9)
-    else if (
+    } else if (
       telefoneNormalizado.startsWith("55") &&
       telefoneNormalizado.length === 12
     ) {
-      // Formato: 558598931065 → 8598931065 (precisa adicionar o 9)
-      const ddd = telefoneNormalizado.substring(2, 4); // 85
-      const resto = telefoneNormalizado.substring(4); // 89310653
-      telefoneBusca = ddd + "9" + resto; // 85989310653
+      const ddd = telefoneNormalizado.substring(2, 4);
+      const resto = telefoneNormalizado.substring(4);
+      telefoneBusca = ddd + "9" + resto;
       console.log(`🇧🇷 Adicionado 9: ${telefoneNormalizado} → ${telefoneBusca}`);
-    }
-    // Se o telefone tem 11 dígitos e começa com 85 (sem DDI)
-    else if (
+    } else if (
       telefoneNormalizado.startsWith("85") &&
       telefoneNormalizado.length === 11
     ) {
-      // Já está no formato correto: 85989310653
       telefoneBusca = telefoneNormalizado;
     }
 
     console.log(`🎯 Telefone para busca: ${telefoneBusca}`);
 
-    // Gerar variações para busca
     const variacoesTelefone = [
-      telefoneBusca, // 85989310653 (formato correto)
-      `+55${telefoneBusca}`, // +5585989310653
-      `55${telefoneBusca}`, // 5585989310653
-      telefoneBusca.replace(/^55/, ""), // Remove DDI se houver
-      telefoneBusca.substring(2), // Remove DDD (85) - 989310653
-    ].filter(
-      (tel, index, self) => tel && self.indexOf(tel) === index // Remover duplicatas e vazios
-    );
+      telefoneBusca,
+      `+55${telefoneBusca}`,
+      `55${telefoneBusca}`,
+      telefoneBusca.replace(/^55/, ""),
+      telefoneBusca.substring(2),
+    ].filter((tel, index, self) => tel && self.indexOf(tel) === index);
 
     console.log(`🎯 Variações a buscar:`, variacoesTelefone);
 
-    // Buscar usuário por qualquer uma das variações
+    // 🔥 BUSCAR USUÁRIO COM SUAS CONFIGURAÇÕES
     const usuario = await db.user.findFirst({
       where: {
         OR: variacoesTelefone.map((telefone) => ({ telefone })),
+      },
+      include: {
+        configuracoesUsuarios: true, // 🔥 AGORA INCLUI CONFIGURAÇÕES
       },
     });
 
     if (usuario) {
       console.log(`✅ Usuário encontrado: ${usuario.name} (${usuario.id})`);
       console.log(`📞 Telefone no banco: ${usuario.telefone}`);
-      return { user: { id: usuario.id, name: usuario.name } };
-    }
 
-    // 🔥 DEBUG: Para troubleshooting detalhado
-    console.log("🐛 DEBUG - Buscando correspondências exatas...");
+      // 🔥 OBTER IDIOMA DAS CONFIGURAÇÕES
+      const idiomaPreferido =
+        usuario.configuracoesUsuarios?.[0]?.idioma || "pt-BR";
+      console.log(`🌐 Idioma preferido do usuário: ${idiomaPreferido}`);
 
-    // Buscar exatamente o telefone que está no banco
-    const usuarioExato = await db.user.findFirst({
-      where: { telefone: "85989310653" },
-    });
-
-    if (usuarioExato) {
-      console.log(
-        `🎯 Usuário com telefone exato '85989310653': ${usuarioExato.name}`
-      );
+      return {
+        user: {
+          id: usuario.id,
+          name: usuario.name,
+        },
+        idiomaPreferido: idiomaPreferido, // 🔥 RETORNAR IDIOMA
+      };
     }
 
     console.log(`❌ Nenhum usuário encontrado para: ${userPhone}`);
-    console.log(`🔍 Buscamos por: ${telefoneBusca} e variações`);
     return null;
   } catch (error) {
     console.error("❌ Erro ao buscar usuário:", error);
@@ -258,101 +243,6 @@ async function transcreverAudioWhatsApp(audioId: string): Promise<string> {
     throw error;
   }
 }
-// 🆕 FUNÇÃO ESPECÍFICA PARA MENSAGEM DE SUCESSO APÓS CRIAÇÃO
-async function gerarMensagemSucesso(
-  dados: DadosLancamento,
-  descricaoLimpa: string,
-  categoriaEscolhida: any,
-  cartaoEncontrado: any,
-  resultadoCriacao: any,
-  idioma: string = "pt-BR"
-): Promise<string> {
-  const valorTotal = parseFloat(dados.valor);
-  const valorFormatado = valorTotal.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-
-  let templatePT = `✅ *LANÇAMENTO REGISTRADO*\n`;
-  templatePT += `━━━━━━━━━━━━━━\n\n`;
-
-  templatePT += `📝 *Descrição:* ${descricaoLimpa}\n`;
-  templatePT += `💰 *Valor total:* ${valorFormatado}\n`;
-  templatePT += `🏷️ *Categoria:* ${categoriaEscolhida.nome}\n`;
-
-  // Se for compartilhado
-  if (
-    resultadoCriacao?.usuarioAlvo &&
-    resultadoCriacao.valorCompartilhado > 0
-  ) {
-    const valorUsuario = resultadoCriacao.valorUsuarioCriador.toLocaleString(
-      "pt-BR",
-      {
-        style: "currency",
-        currency: "BRL",
-      }
-    );
-
-    const valorCompartilhado =
-      resultadoCriacao.valorCompartilhado.toLocaleString("pt-BR", {
-        style: "currency",
-        currency: "BRL",
-      });
-
-    templatePT += `\n👥 *COMPARTILHAMENTO*\n`;
-    templatePT += `   • Sua parte: ${valorUsuario}\n`;
-    templatePT += `   • ${resultadoCriacao.usuarioAlvo.name}: ${valorCompartilhado}\n`;
-  }
-
-  // Se for parcelado
-  if (resultadoCriacao?.ehParcelado && resultadoCriacao.parcelasTotal) {
-    templatePT += `\n💳 *PARCELAMENTO*\n`;
-    templatePT += `   • ${resultadoCriacao.parcelasTotal}x de ${resultadoCriacao.valorParcela.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
-  }
-
-  if (cartaoEncontrado) {
-    templatePT += `\n💳 *Cartão:* ${cartaoEncontrado.nome}\n`;
-
-    if (cartaoEncontrado.limite && cartaoEncontrado.totalGasto !== undefined) {
-      const limiteDisponivel =
-        cartaoEncontrado.limite - cartaoEncontrado.totalGasto;
-      const utilizacaoPercentual = (
-        (cartaoEncontrado.totalGasto / cartaoEncontrado.limite) *
-        100
-      ).toFixed(1);
-
-      templatePT += `   • Limite disponível: ${limiteDisponivel.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
-      templatePT += `   • Utilização: ${utilizacaoPercentual}%\n`;
-    }
-  }
-
-  templatePT += `\n📅 *Data:* ${new Date().toLocaleDateString("pt-BR", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  })}\n`;
-
-  templatePT += `\n━━━━━━━━━━━━━━\n`;
-  templatePT += `✨ *Obrigado por usar o BeCash!*\n`;
-
-  // Traduzir se necessário
-  if (idioma !== "pt-BR") {
-    return await gerarMensagemComIA(
-      templatePT,
-      {
-        descricao: descricaoLimpa,
-        categoria: categoriaEscolhida.nome,
-        valor: valorFormatado,
-        compartilhamento: resultadoCriacao?.usuarioAlvo,
-        parcelamento: resultadoCriacao?.ehParcelado,
-      },
-      idioma
-    );
-  }
-
-  return templatePT;
-}
 
 // 🔥 FUNÇÃO PARA PROCESSAR CONFIRMAÇÃO - MOVER PARA FORA
 async function processarConfirmacao(
@@ -361,35 +251,53 @@ async function processarConfirmacao(
   userPhone: string
 ) {
   console.log(`🎯 PROCESSANDO CONFIRMAÇÃO: ${resposta} para ${userPhone}`);
-  console.log(`💾 Dados do lançamento pendente:`, {
-    descricao: pendingLancamento.descricaoLimpa,
-    cartao: pendingLancamento.cartaoEncontrado?.nome,
-    mensagemOriginal: pendingLancamento.mensagemOriginal,
-  });
 
-  // 🔥 VERIFICAR SE USUÁRIO AINDA EXISTE (SEGURANÇA)
+  // 🔥 BUSCAR USUÁRIO COM CONFIGURAÇÕES
   const session = await getUserByPhone(userPhone);
   if (!session) {
-    await sendWhatsAppMessage(
-      userPhone,
-      "❌ Sua conta não foi encontrada. O lançamento foi cancelado."
-    );
+    const mensagemErro =
+      "❌ Your account was not found. The transaction has been canceled.";
+    await sendWhatsAppMessage(userPhone, mensagemErro);
     global.pendingLancamentos?.delete(userPhone);
     return { status: "user_not_found" };
   }
+
+  const idiomaPreferido = session.idiomaPreferido || "pt-BR";
 
   // Remover do cache de pendentes
   global.pendingLancamentos?.delete(userPhone);
   console.log(`🗑️ Removido lançamento pendente para: ${userPhone}`);
 
-  if (resposta === "não" || resposta === "nao") {
+  const respostaLower = resposta.toLowerCase().trim();
+
+  if (
+    respostaLower === "não" ||
+    respostaLower === "nao" ||
+    respostaLower === "n" ||
+    respostaLower === "cancelar" ||
+    respostaLower === "no" ||
+    respostaLower === "❌" ||
+    respostaLower === "nope" ||
+    respostaLower === "cancel"
+  ) {
     console.log(`❌ Usuário cancelou o lançamento`);
-    const mensagemCancelamento = await gerarMensagemCancelamento();
+    const mensagemCancelamento =
+      await gerarMensagemCancelamento(idiomaPreferido);
     await sendWhatsAppMessage(userPhone, mensagemCancelamento);
     return { status: "cancelled" };
   }
 
-  if (resposta === "sim") {
+  if (
+    respostaLower === "sim" ||
+    respostaLower === "s" ||
+    respostaLower === "confirmar" ||
+    respostaLower === "ok" ||
+    respostaLower === "yes" ||
+    respostaLower === "✅" ||
+    respostaLower === "y" ||
+    respostaLower === "confirm" ||
+    respostaLower === "yeah"
+  ) {
     console.log(`✅ Usuário confirmou - criando lançamento...`);
     try {
       // Criar o lançamento no banco de dados
@@ -402,13 +310,14 @@ async function processarConfirmacao(
         pendingLancamento.cartaoEncontrado
       );
 
-      // Gerar mensagem de confirmação final
+      // Gerar mensagem de confirmação final com idioma preferido
       const mensagemFinal = await gerarMensagemConfirmacao(
         pendingLancamento.dados,
         pendingLancamento.descricaoLimpa,
         pendingLancamento.categoriaEscolhida,
         pendingLancamento.cartaoEncontrado,
-        resultadoCriacao
+        resultadoCriacao,
+        idiomaPreferido // 🔥 USA IDIOMA PREFERIDO
       );
 
       await sendWhatsAppMessage(userPhone, mensagemFinal);
@@ -417,16 +326,41 @@ async function processarConfirmacao(
       return { status: "confirmed" };
     } catch (error: any) {
       console.error("❌ Erro ao criar lançamento:", error);
-      await sendWhatsAppMessage(
-        userPhone,
-        `❌ Erro ao criar lançamento: ${error.message}\n\nTente novamente.`
-      );
+
+      let mensagemErro = "";
+      if (idiomaPreferido === "en-US") {
+        mensagemErro = `❌ Error creating transaction: ${error.message}\n\nTry again.`;
+      } else {
+        mensagemErro = `❌ Erro ao criar lançamento: ${error.message}\n\nTente novamente.`;
+      }
+
+      await sendWhatsAppMessage(userPhone, mensagemErro);
       return { status: "creation_error" };
     }
   }
 
   console.log(`⚠️ Resposta inválida na confirmação: ${resposta}`);
-  return { status: "invalid_confirmation" };
+
+  // Resposta não reconhecida com idioma preferido
+  let mensagemInvalida = "";
+  if (idiomaPreferido === "en-US") {
+    mensagemInvalida =
+      `❌ I didn't understand your response: "${resposta}"\n\n` +
+      `Reply with:\n` +
+      `✅ *YES* - To confirm the transaction\n` +
+      `❌ *NO* - To cancel\n\n` +
+      `Or send a new message to create another transaction.`;
+  } else {
+    mensagemInvalida =
+      `❌ Não entendi sua resposta: "${resposta}"\n\n` +
+      `Responda com:\n` +
+      `✅ *SIM* - Para confirmar o lançamento\n` +
+      `❌ *NÃO* - Para cancelar\n\n` +
+      `Ou envie uma nova mensagem para criar outro lançamento.`;
+  }
+
+  await sendWhatsAppMessage(userPhone, mensagemInvalida);
+  return { status: "invalid_confirmation_response" };
 }
 
 // 🔥 FUNÇÃO AUXILIAR: Processar mensagem de áudio
@@ -434,16 +368,26 @@ async function processarAudioWhatsApp(audioMessage: any, userPhone: string) {
   try {
     console.log(`🎙️ Processando mensagem de áudio de: ${userPhone}`);
 
-    // 🔥 PRIMEIRO VERIFICAR SE USUÁRIO EXISTE
+    // 🔥 BUSCAR USUÁRIO COM CONFIGURAÇÕES
     const session = await getUserByPhone(userPhone);
     if (!session) {
-      await sendWhatsAppMessage(
-        userPhone,
-        "❌ Seu número não está vinculado a nenhuma conta.\n\n" +
-          "💡 Acesse o app BeCash e vincule seu WhatsApp em Configurações."
-      );
+      let mensagemErro = "";
+      // Tentar detectar idioma da mensagem
+      const idiomaDetectado = detectarIdioma(audioMessage.text?.body || "");
+      if (idiomaDetectado === "en-US") {
+        mensagemErro =
+          "❌ Your number is not linked to any account.\n\n" +
+          "💡 Access the BeCash app and link your WhatsApp in Settings.";
+      } else {
+        mensagemErro =
+          "❌ Seu número não está vinculado a nenhuma conta.\n\n" +
+          "💡 Acesse o app BeCash e vincule seu WhatsApp em Configurações.";
+      }
+      await sendWhatsAppMessage(userPhone, mensagemErro);
       return { status: "user_not_found" };
     }
+
+    const idiomaPreferido = session.idiomaPreferido || "pt-BR";
 
     // Transcrever o áudio
     const audioId = audioMessage.audio?.id;
@@ -455,7 +399,7 @@ async function processarAudioWhatsApp(audioMessage: any, userPhone: string) {
 
     console.log(`📝 Áudio transcrito: "${textoTranscrito}"`);
 
-    // Agora processar o texto transcrito como uma mensagem normal
+    // Processar o texto transcrito
     return await processarMensagemTexto({
       type: "text",
       text: { body: textoTranscrito },
@@ -465,12 +409,18 @@ async function processarAudioWhatsApp(audioMessage: any, userPhone: string) {
   } catch (error: any) {
     console.error("❌ Erro ao processar áudio:", error);
 
-    // Enviar mensagem de erro
-    await sendWhatsAppMessage(
-      userPhone,
-      `❌ Não consegui entender o áudio. Erro: ${error.message}\n\n💡 Tente enviar em texto ou falar mais claramente.`
-    );
+    // 🔥 USAR IDIOMA PREFERIDO PARA MENSAGEM DE ERRO
+    const session = await getUserByPhone(userPhone);
+    const idiomaPreferido = session?.idiomaPreferido || "pt-BR";
 
+    let mensagemErro = "";
+    if (idiomaPreferido === "en-US") {
+      mensagemErro = `❌ I couldn't understand the audio. Error: ${error.message}\n\n💡 Try sending a text message or speak more clearly.`;
+    } else {
+      mensagemErro = `❌ Não consegui entender o áudio. Erro: ${error.message}\n\n💡 Tente enviar em texto ou falar mais claramente.`;
+    }
+
+    await sendWhatsAppMessage(userPhone, mensagemErro);
     throw error;
   }
 }
@@ -528,6 +478,42 @@ async function enviarMensagemAjuda(
   userPhone: string,
   idioma: string = "pt-BR"
 ) {
+  // Se for inglês, mostrar ajuda em inglês
+  if (idioma === "en-US") {
+    const templateEN = `*🤖 HELP - BeCash WhatsApp*
+━━━━━━━━━━━━━━
+
+*📝 HOW TO CREATE TRANSACTIONS:*
+
+*Simple examples:*
+- "I spent 50 on lunch"
+- "I received 1000 salary"
+- "I paid 200 at the pharmacy"
+
+*With payment method:*
+- "I spent 80 on Uber with PIX"
+- "I bought 150 at the supermarket on credit"
+- "I paid 45 in cash"
+
+*Installments:*
+- "I bought 600 in 3 installments"
+- "I spent 1200 in 6x on credit"
+
+*Shared:*
+- "I spent 100 on dinner shared with Mary"
+
+*📋 AVAILABLE COMMANDS:*
+- "Which categories do I have?"
+- "Help"
+
+━━━━━━━━━━━━━━
+💡 Questions? Type "help"`;
+
+    await sendWhatsAppMessage(userPhone, templateEN);
+    return;
+  }
+
+  // Português (padrão)
   const templatePT = `*🤖 AJUDA - BeCash WhatsApp*
 ━━━━━━━━━━━━━━
 
@@ -557,16 +543,11 @@ async function enviarMensagemAjuda(
 ━━━━━━━━━━━━━━
 💡 Dúvidas? Digite "ajuda"`;
 
-  const mensagem =
-    idioma === "pt-BR"
-      ? templatePT
-      : await gerarMensagemComIA(templatePT, {}, idioma);
-
-  await sendWhatsAppMessage(userPhone, mensagem);
+  await sendWhatsAppMessage(userPhone, templatePT);
 }
 
 // 🔥 FUNÇÃO PRINCIPAL MODIFICADA COM CONFIRMAÇÃO
-// 🔥 FUNÇÃO PRINCIPAL MODIFICADA COM CONFIRMAÇÃO
+
 async function processarMensagemTexto(message: any) {
   const userMessage = message.text?.body;
   const userPhone = message.from;
@@ -576,35 +557,37 @@ async function processarMensagemTexto(message: any) {
   console.log("💬 Texto:", userMessage);
   console.log("🆔 Message ID:", messageId);
 
-  // 🔥 DETECTAR COMANDO COM IA (PRIMEIRO)
-  const comandoIA = await detectarComandoComIA(userMessage);
-  const idioma = comandoIA.idioma || detectarIdioma(userMessage);
-  if (comandoIA.tipo && comandoIA.tipo !== "NENHUM") {
-    console.log(
-      `🤖 Comando detectado pela IA: ${comandoIA.tipo} (idioma: ${comandoIA.idioma})`
+  // 🔥 PRIMEIRO: Buscar usuário com suas configurações
+  const session = await getUserByPhone(userPhone);
+  if (!session) {
+    await sendWhatsAppMessage(
+      userPhone,
+      "❌ Seu número não está vinculado a nenhuma conta.\n\n💡 Acesse o app BeCash e vincule seu WhatsApp em Configurações."
     );
+    return { status: "user_not_found" };
+  }
 
-    const session = await getUserByPhone(userPhone);
-    if (!session) {
-      const template =
-        "❌ Seu número não está vinculado a nenhuma conta.\n\n💡 Acesse o app BeCash e vincule seu WhatsApp em Configurações.";
-      const mensagem = await gerarMensagemComIA(
-        template,
-        {},
-        comandoIA.idioma || "pt-BR"
-      );
-      await sendWhatsAppMessage(userPhone, mensagem);
-      return { status: "user_not_found" };
-    }
+  const userId = session.user.id;
+  const idiomaPreferido = session.idiomaPreferido || "pt-BR";
+  console.log(`🌐 IDIOMA PREFERIDO DO USUÁRIO: ${idiomaPreferido}`);
 
+  // 🔥 DETECTAR COMANDO COM IA (usando idioma preferido como fallback)
+  const comandoIA = await detectarComandoComIA(userMessage);
+  const idioma = comandoIA.idioma || idiomaPreferido;
+
+  console.log(
+    `🤖 Comando detectado pela IA: ${comandoIA.tipo} (idioma detectado: ${comandoIA.idioma}, usando: ${idioma})`
+  );
+
+  if (comandoIA.tipo && comandoIA.tipo !== "NENHUM") {
     // Processar comando detectado
     if (comandoIA.tipo === "LISTAR_CATEGORIAS") {
-      await processarComandoCategorias(userPhone, session.user.id, idioma);
+      await processarComandoCategorias(userPhone, userId, idioma);
       return { status: "command_processed" };
     }
 
     if (comandoIA.tipo === "AJUDA") {
-      await enviarMensagemAjuda(userPhone, comandoIA.idioma || "pt-BR");
+      await enviarMensagemAjuda(userPhone, idioma);
       return { status: "command_processed" };
     }
   }
@@ -651,24 +634,47 @@ async function processarMensagemTexto(message: any) {
       console.log(`⏰ Lançamento expirado`);
       global.pendingLancamentos.delete(telefoneBusca);
 
-      await sendWhatsAppMessage(
-        userPhone,
-        "❌ A confirmação expirou (5 minutos).\n\n💡 Envie novamente o lançamento."
-      );
+      let mensagemExpirado = "";
+      if (idiomaPreferido === "en-US") {
+        mensagemExpirado =
+          "❌ Confirmation expired (5 minutes).\n\n💡 Send the transaction again.";
+      } else {
+        mensagemExpirado =
+          "❌ A confirmação expirou (5 minutos).\n\n💡 Envie novamente o lançamento.";
+      }
+
+      await sendWhatsAppMessage(userPhone, mensagemExpirado);
       return { status: "expired" };
     }
 
     const resposta = userMessage.toLowerCase().trim();
 
-    // Verificar confirmação
-    if (
-      resposta === "sim" ||
-      resposta === "s" ||
-      resposta === "confirmar" ||
-      resposta === "ok" ||
-      resposta === "yes" ||
-      resposta === "✅"
-    ) {
+    // Verificar confirmação com suporte a inglês
+    const confirmacoesIngles = [
+      "sim",
+      "s",
+      "confirmar",
+      "ok",
+      "yes",
+      "✅",
+      "y",
+      "confirm",
+      "yeah",
+      "yep",
+    ];
+    const cancelamentosIngles = [
+      "não",
+      "nao",
+      "n",
+      "cancelar",
+      "no",
+      "❌",
+      "nope",
+      "cancel",
+      "stop",
+    ];
+
+    if (confirmacoesIngles.includes(resposta)) {
       console.log(`✅ USUÁRIO CONFIRMOU`);
       return await processarConfirmacao(
         "sim",
@@ -677,14 +683,7 @@ async function processarMensagemTexto(message: any) {
       );
     }
 
-    if (
-      resposta === "não" ||
-      resposta === "nao" ||
-      resposta === "n" ||
-      resposta === "cancelar" ||
-      resposta === "no" ||
-      resposta === "❌"
-    ) {
+    if (cancelamentosIngles.includes(resposta)) {
       console.log(`❌ USUÁRIO CANCELOU`);
       return await processarConfirmacao(
         "não",
@@ -693,42 +692,38 @@ async function processarMensagemTexto(message: any) {
       );
     }
 
-    // Resposta não reconhecida
-    await sendWhatsAppMessage(
-      userPhone,
-      `❌ Não entendi sua resposta: "${userMessage}"\n\n` +
+    // Resposta não reconhecida com idioma preferido
+    let mensagemInvalida = "";
+    if (idiomaPreferido === "en-US") {
+      mensagemInvalida =
+        `❌ I didn't understand your response: "${userMessage}"\n\n` +
+        `Reply with:\n` +
+        `✅ *YES* - To confirm the transaction\n` +
+        `❌ *NO* - To cancel\n\n` +
+        `Or send a new message to create another transaction.`;
+    } else {
+      mensagemInvalida =
+        `❌ Não entendi sua resposta: "${userMessage}"\n\n` +
         `Responda com:\n` +
         `✅ *SIM* - Para confirmar o lançamento\n` +
         `❌ *NÃO* - Para cancelar\n\n` +
-        `Ou envie uma nova mensagem para criar outro lançamento.`
-    );
+        `Ou envie uma nova mensagem para criar outro lançamento.`;
+    }
 
+    await sendWhatsAppMessage(userPhone, mensagemInvalida);
     return { status: "invalid_confirmation_response" };
   }
 
   // 🔥 PROCESSAR NOVO LANÇAMENTO
   if (userMessage && userPhone) {
-    const session = await getUserByPhone(userPhone);
-    if (!session) {
-      await sendWhatsAppMessage(
-        userPhone,
-        "❌ Seu número não está vinculado a nenhuma conta.\n\n" +
-          "💡 Acesse o app BeCash e vincule seu WhatsApp em Configurações."
-      );
-      return { status: "user_not_found" };
-    }
-
-    const userId = session.user.id;
-
     // Extrair dados
     const dadosExtracao = extrairDadosLancamento(userMessage);
     console.log("📊 Dados extraídos:", dadosExtracao);
 
     if (!dadosExtracao.sucesso) {
-      const idioma = detectarIdioma(userMessage);
+      // 🔥 USAR IDIOMA PREFERIDO PARA MENSAGEM DE ERRO
       let erroMsg = "";
-
-      if (idioma === "en-US") {
+      if (idiomaPreferido === "en-US") {
         erroMsg = `❌ ${dadosExtracao.erro}\n\n💡 Example: "I spent 50 on lunch"`;
       } else {
         erroMsg = `❌ ${dadosExtracao.erro}\n\n💡 Exemplo: "Gastei 50 no almoço"`;
@@ -743,10 +738,16 @@ async function processarMensagemTexto(message: any) {
     console.log("🏷️ Categorias do usuário:", categoriasUsuario);
 
     if (categoriasUsuario.length === 0) {
-      await sendWhatsAppMessage(
-        userPhone,
-        "❌ Nenhuma categoria encontrada. Crie categorias primeiro no app."
-      );
+      // 🔥 USAR IDIOMA PREFERIDO
+      let mensagemErro = "";
+      if (idiomaPreferido === "en-US") {
+        mensagemErro =
+          "❌ No categories found. Create categories first in the app.";
+      } else {
+        mensagemErro =
+          "❌ Nenhuma categoria encontrada. Crie categorias primeiro no app.";
+      }
+      await sendWhatsAppMessage(userPhone, mensagemErro);
       return { status: "no_categories" };
     }
 
@@ -757,16 +758,21 @@ async function processarMensagemTexto(message: any) {
     );
 
     if (!categoriaEscolhida) {
-      await sendWhatsAppMessage(
-        userPhone,
-        `❌ Nenhuma categoria do tipo ${dadosExtracao.dados.tipo} encontrada.`
-      );
+      // 🔥 USAR IDIOMA PREFERIDO
+      let mensagemErro = "";
+      if (idiomaPreferido === "en-US") {
+        mensagemErro = `❌ No ${dadosExtracao.dados.tipo === "DESPESA" ? "expense" : "income"} category found.`;
+      } else {
+        mensagemErro = `❌ Nenhuma categoria do tipo ${dadosExtracao.dados.tipo} encontrada.`;
+      }
+      await sendWhatsAppMessage(userPhone, mensagemErro);
       return { status: "no_matching_category" };
     }
 
-    // Limpar descrição
+    // Limpar descrição com o idioma preferido
     const descricaoLimpa = await limparDescricaoComClaude(
-      dadosExtracao.dados.descricao
+      dadosExtracao.dados.descricao,
+      idiomaPreferido
     );
 
     // Identificar cartão
@@ -775,17 +781,17 @@ async function processarMensagemTexto(message: any) {
       cartaoEncontrado = await identificarCartao(userMessage, userId);
     }
 
-    // 🔥 GERAR MENSAGEM DE CONFIRMAÇÃO (COM userId)
+    // 🔥 GERAR MENSAGEM DE CONFIRMAÇÃO COM IDIOMA PREFERIDO
     const mensagemConfirmacao = await gerarMensagemConfirmacao(
       dadosExtracao.dados,
       descricaoLimpa,
       categoriaEscolhida,
       cartaoEncontrado,
-      userId, // 🔥 CORRIGIDO: Passar userId
-      "pt-BR" // Idioma padrão
+      userId, // userId para confirmação
+      idiomaPreferido // 🔥 AGORA USA O IDIOMA PREFERIDO
     );
 
-    // Salvar no cache
+    // Salvar no cache com o idioma
     const lancamentoTemporario: LancamentoTemporario = {
       dados: dadosExtracao.dados,
       categoriaEscolhida,
@@ -866,7 +872,7 @@ async function gerarMensagemConfirmacao(
       templateEN += `━━━━━━━━━━━━━━\n\n`;
 
       templateEN += `📝 *Description:* ${descricaoLimpa}\n`;
-      templateEN += `💰 *Total amount:* ${valorFormatado}\n`; // 🔥 USD aqui
+      templateEN += `💰 *Total amount:* ${valorFormatado}\n`;
       templateEN += `🏷️ *Category:* ${categoriaEscolhida.nome}\n`;
 
       // Compartilhamento em USD
@@ -913,7 +919,7 @@ async function gerarMensagemConfirmacao(
       templatePT += `━━━━━━━━━━━━━━\n\n`;
 
       templatePT += `📝 *Descrição:* ${descricaoLimpa}\n`;
-      templatePT += `💰 *Valor total:* ${valorFormatado}\n`; // 🔥 BRL aqui
+      templatePT += `💰 *Valor total:* ${valorFormatado}\n`;
       templatePT += `🏷️ *Categoria:* ${categoriaEscolhida.nome}\n`;
 
       // Compartilhamento em BRL
@@ -962,7 +968,7 @@ async function gerarMensagemConfirmacao(
     templateEN += `━━━━━━━━━━━━━━\n\n`;
 
     templateEN += `*📝 Description:* ${descricaoLimpa}\n`;
-    templateEN += `*💰 Amount:* ${valorFormatado}\n`; // 🔥 USD aqui
+    templateEN += `*💰 Amount:* ${valorFormatado}\n`;
     templateEN += `*🏷️ Category:* ${categoriaEscolhida.nome}\n`;
     templateEN += `*📅 Date:* ${dataFormatada}\n`;
 
@@ -1242,15 +1248,6 @@ function traduzirMetodoPagamento(metodo: string, idioma: string): string {
     return (mapaEn as any)[metodo] || `💳 ${metodo}`;
   } else {
     return (mapaPt as any)[metodo] || `💳 ${metodo}`;
-  }
-}
-
-// 🔥 FUNÇÃO AUXILIAR: Traduzir tipo de lançamento
-function traduzirTipoLancamento(tipo: string, idioma: string): string {
-  if (idioma === "en-US") {
-    return tipo === "DESPESA" ? "Expense" : "Income";
-  } else {
-    return tipo === "DESPESA" ? "Despesa" : "Receita";
   }
 }
 
