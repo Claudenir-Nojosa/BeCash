@@ -1298,8 +1298,13 @@ async function detectarComandoComIA(
   mensagem: string
 ): Promise<{ tipo: string | null; idioma?: string }> {
   if (!process.env.ANTHROPIC_API_KEY) {
-    // Fallback para português se não tiver API key
-    return detectarComando(mensagem);
+    // Fallback manual com detecção de idioma
+    const idioma = detectarIdioma(mensagem);
+    const comandoManual = detectarComando(mensagem);
+    return {
+      tipo: comandoManual.tipo,
+      idioma,
+    };
   }
 
   const prompt = `Analise esta mensagem e identifique se é um comando específico do sistema financeiro BeCash.
@@ -1315,9 +1320,20 @@ COMANDOS SUPORTADOS:
 
 INSTRUÇÕES:
 - Identifique a INTENÇÃO do usuário, independente do idioma
-- Exemplos de LISTAR_CATEGORIAS: "quais categorias tenho?", "which categories do I have?", "cuáles categorías tengo?", "mes catégories", "show categories", etc.
-- Se for um lançamento financeiro (gastei X, recebi Y), retorne NENHUM
-- Detecte também o idioma da mensagem
+- Detecte também o idioma da mensagem (pt-BR, en-US, es-ES, etc)
+- Se for um lançamento financeiro, retorne NENHUM
+- IMPORTANTE: Se a mensagem contém valores monetários e descrições de compras, é um lançamento (NENHUM)
+
+EXEMPLOS DE LANÇAMENTOS (deve retornar NENHUM):
+- "I spent 20 reais on ice cream"
+- "Gastei 50 no almoço"
+- "I received 1000 salary"
+- "Recebi 1000 salário"
+
+EXEMPLOS DE COMANDOS (não deve retornar NENHUM):
+- "Which categories do I have?" → LISTAR_CATEGORIAS
+- "Help" → AJUDA
+- "Show my balance" → VER_SALDO
 
 RESPONDA APENAS NO FORMATO JSON:
 {
@@ -1361,7 +1377,10 @@ RESPONDA APENAS NO FORMATO JSON:
       comandoDetectado.confianca < 0.7 ||
       comandoDetectado.tipo === "NENHUM"
     ) {
-      return { tipo: null };
+      return {
+        tipo: null,
+        idioma: comandoDetectado.idioma || detectarIdioma(mensagem),
+      };
     }
 
     return {
@@ -1371,7 +1390,12 @@ RESPONDA APENAS NO FORMATO JSON:
   } catch (error) {
     console.error("Erro ao detectar comando com IA:", error);
     // Fallback para detecção manual
-    return detectarComando(mensagem);
+    const idioma = detectarIdioma(mensagem);
+    const comandoManual = detectarComando(mensagem);
+    return {
+      tipo: comandoManual.tipo,
+      idioma,
+    };
   }
 }
 async function gerarMensagemComIA(
@@ -1491,14 +1515,42 @@ async function processarComandoCategorias(
 
 // 🔥 FUNÇÃO MELHORADA: Limpar descrição com Claude
 async function limparDescricaoComClaude(
-  descricaoOriginal: string
+  descricaoOriginal: string,
+  idioma: string = "pt-BR"
 ): Promise<string> {
   if (!process.env.ANTHROPIC_API_KEY) {
-    // Fallback simples se não tiver API key
     return descricaoOriginal.trim();
   }
 
-  const prompt = `Analise esta descrição de transação financeira e extraia APENAS o nome do estabelecimento, produto ou serviço:
+  let prompt = "";
+
+  if (idioma === "en-US") {
+    prompt = `Analyze this financial transaction description and extract ONLY the name of the establishment, product or service:
+
+ORIGINAL DESCRIPTION: "${descricaoOriginal}"
+
+STRICT RULES:
+1. Extract ONLY the name of establishment/product/service
+2. COMPLETELY REMOVE:
+   - Payment methods (card, credit, debit, cash, nubank, etc.)
+   - Monetary values
+   - Dates
+   - Verbs like "spent", "paid", "received", "bought"
+   - Words like "reais", "real", "R$", "dollars", "$"
+3. KEEP ONLY 1-2 words that identify WHAT was bought/WHERE it was spent
+4. BE CONCISE: maximum 2 words
+5. DO NOT INCLUDE payment information, banks or cards
+
+EXAMPLES:
+- "uber credit card nubank" → "Uber"
+- "supermarket paid 50 reais" → "Supermarket" 
+- "lunch at restaurant card" → "Lunch"
+- "bought nike shoes installments" → "Nike Shoes"
+- "pharmacy drugstore" → "Pharmacy"
+
+CLEANED DESCRIPTION:`;
+  } else {
+    prompt = `Analise esta descrição de transação financeira e extraia APENAS o nome do estabelecimento, produto ou serviço:
 
 DESCRIÇÃO ORIGINAL: "${descricaoOriginal}"
 
@@ -1522,6 +1574,7 @@ EXEMPLOS:
 - "farmacia drogaria pix" → "Farmácia"
 
 DESCRIÇÃO LIMPA:`;
+  }
 
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -2141,13 +2194,151 @@ async function identificarCartao(texto: string, userId: string) {
 
   return null;
 }
+function detectarIdioma(mensagem: string): string {
+  const texto = mensagem.toLowerCase();
 
-// ATUALIZE a função extrairDadosLancamento com padrões mais precisos:
+  // Palavras-chave em inglês
+  const palavrasIngles = [
+    "i",
+    "spent",
+    "paid",
+    "received",
+    "earned",
+    "bought",
+    "purchased",
+    "on",
+    "for",
+    "at",
+    "using",
+    "with",
+    "my",
+    "card",
+    "credit",
+    "debit",
+    "cash",
+    "money",
+    "dollars",
+    "usd",
+  ];
+
+  // Palavras-chave em português
+  const palavrasPortugues = [
+    "eu",
+    "gastei",
+    "paguei",
+    "recebi",
+    "ganhei",
+    "comprei",
+    "com",
+    "em",
+    "no",
+    "na",
+    "do",
+    "da",
+    "meu",
+    "minha",
+    "cartão",
+    "crédito",
+    "débito",
+    "pix",
+    "dinheiro",
+    "reais",
+  ];
+
+  let contadorIngles = 0;
+  let contadorPortugues = 0;
+
+  palavrasIngles.forEach((palavra) => {
+    if (texto.includes(palavra)) contadorIngles++;
+  });
+
+  palavrasPortugues.forEach((palavra) => {
+    if (texto.includes(palavra)) contadorPortugues++;
+  });
+
+  if (contadorIngles > contadorPortugues) {
+    return "en-US";
+  } else {
+    return "pt-BR";
+  }
+}
+
+function extrairMetodoPagamentoInternacional(
+  texto: string,
+  ehParcelado: boolean = false,
+  idioma: string = "pt-BR"
+): string {
+  const textoLower = texto.toLowerCase();
+
+  console.log(
+    `🔍🔍🔍 ANALISANDO MÉTODO PAGAMENTO (${idioma}): "${textoLower}"`
+  );
+  console.log(`🔍 É PARCELADO?: ${ehParcelado}`);
+
+  // 🔥 REGRA 1: Se for parcelado, SEMPRE é crédito
+  if (ehParcelado) {
+    console.log(`✅ PARCELAMENTO DETECTADO - FORÇANDO CRÉDITO`);
+    return "CREDITO";
+  }
+
+  // 🔥 DETECÇÃO EM INGLÊS
+  if (idioma === "en-US") {
+    if (textoLower.includes("credit card") || textoLower.includes("credit")) {
+      console.log(`✅ ENGLISH: Credit card detected`);
+      return "CREDITO";
+    }
+    if (textoLower.includes("debit card") || textoLower.includes("debit")) {
+      console.log(`✅ ENGLISH: Debit card detected`);
+      return "DEBITO";
+    }
+    if (textoLower.includes("cash")) {
+      return "DINHEIRO";
+    }
+    if (textoLower.includes("transfer")) {
+      return "TRANSFERENCIA";
+    }
+    // Se mencionar "nubank" ou similar, assumir crédito
+    if (textoLower.includes("nubank")) {
+      return "CREDITO";
+    }
+  } else {
+    // 🔥 DETECÇÃO EM PORTUGUÊS (existente)
+    if (textoLower.includes("crédito") || textoLower.includes("credito")) {
+      console.log(`✅ PORTUGUESE: Crédito detectado`);
+      return "CREDITO";
+    }
+    if (textoLower.includes("débito") || textoLower.includes("debito")) {
+      console.log(`✅ PORTUGUESE: Débito detectado`);
+      return "DEBITO";
+    }
+    if (textoLower.includes("pix")) {
+      return "PIX";
+    }
+    if (
+      textoLower.includes("transferência") ||
+      textoLower.includes("transferencia")
+    ) {
+      return "TRANSFERENCIA";
+    }
+    if (textoLower.includes("dinheiro") || textoLower.includes("efetivo")) {
+      return "DINHEIRO";
+    }
+  }
+
+  // 🔥 REGRA DEFAULT
+  console.log(
+    `🔍 NENHUM MÉTODO ESPECÍFICO DETECTADO - USANDO PIX COMO FALLBACK`
+  );
+  return "PIX";
+}
+
 function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
   const texto = mensagem.toLowerCase().trim();
+  const idioma = detectarIdioma(mensagem); // Nova função
 
   console.log(`🔍🔍🔍 DEBUG COMPLETO INICIADO 🔍🔍🔍`);
   console.log(`📨 Mensagem original: "${mensagem}"`);
+  console.log(`🌐 Idioma detectado: ${idioma}`);
   console.log(`🔧 Mensagem lower: "${texto}"`);
 
   // Detecções
@@ -2156,34 +2347,35 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
 
   console.log(`🎯 Detecções:`, { compartilhamento, parcelamento });
 
-  // 🔥🔥🔥 PADRÕES MAIS PRECISOS - CORRIGIDOS
-  const padroesTeste = [
-    // 🔥 PADRÃO 1: "gastei X reais com [DESCRIÇÃO]" (MAIS ESPECÍFICO)
+  // 🔥 PADRÕES EM INGLÊS E PORTUGUÊS
+  const padroesIngles = [
+    // 🔥 PADRÕES INGLÊS
+    /(?:i\s+)?(spent|paid|received|earned|bought|purchased)\s+([\d.,]+)\s+(?:reais|real|r\$|usd|\$)\s+(?:on|for|at)\s+(?:the\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+card|\s+using|\s+with|\s+at\s+|$)/i,
+    /(?:i\s+)?(spent|paid|received|earned)\s+([\d.,]+)\s+on\s+(?:the\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+card|\s+using|\s+with|\s+$)/i,
+    /(?:i\s+)?(spent|paid|received|earned)\s+([\d.,]+)\s+at\s+(?:the\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+card|\s+using|\s+with|\s+$)/i,
+    /(?:i\s+)?(spent|paid|received|earned)\s+([\d.,]+)\s+for\s+(?:the\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+card|\s+using|\s+with|\s+$)/i,
+    /(?:i\s+)?(bought|purchased)\s+([\d.,]+)\s+(?:of\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+card|\s+using|\s+with|\s+$)/i,
+  ];
+
+  const padroesPortugues = [
+    // 🔥 PADRÕES PORTUGUÊS (seus padrões existentes)
     /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+reais\s+com\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
-
-    // 🔥 PADRÃO 2: "gastei X reais em [DESCRIÇÃO]"
     /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+reais\s+em\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
-
-    // 🔥 PADRÃO 3: "gastei X reais no [DESCRIÇÃO]"
     /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+reais\s+no\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
-
-    // 🔥 PADRÃO 4: "gastei X reais na [DESCRIÇÃO]"
-    /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+reais\s+na\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
-
-    // 🔥 PADRÃO 5: Com R$
     /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+r\$\s*([\d.,]+)\s+com\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
-
-    // 🔥 PADRÃO 6: Formato simples "gastei X em [DESCRIÇÃO]"
-    /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+em\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
-
-    // 🔥 PADRÃO 7: Fallback genérico
     /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+com\s+(.+)/i,
   ];
+
+  // 🔥 ESCOLHER OS PADRÕES CORRETOS BASEADO NO IDIOMA
+  const padroesParaTestar =
+    idioma === "en-US"
+      ? [...padroesIngles, ...padroesPortugues]
+      : [...padroesPortugues, ...padroesIngles];
 
   let melhorMatch = null;
   let melhorPadrao = "";
 
-  for (const padrao of padroesTeste) {
+  for (const padrao of padroesParaTestar) {
     const match = texto.match(padrao);
     console.log(`🔍 Testando padrão ${padrao}:`, match);
     if (match && (!melhorMatch || match[0].length > melhorMatch[0].length)) {
@@ -2204,47 +2396,33 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
 
     console.log(`📝 Dados brutos extraídos:`, { acao, valor, descricao });
 
-    // Se a descrição estiver vazia, tentar fallback
-    if (!descricao || descricao.length < 2) {
-      // Tentar extrair do contexto geral
-      const fallbackMatch = texto.match(
-        /(?:com|em|no|na)\s+([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|$)/i
-      );
-      if (fallbackMatch && fallbackMatch[1]) {
-        descricao = fallbackMatch[1].trim();
-        console.log(`🔄 Usando fallback para descrição: "${descricao}"`);
-      }
+    // 🔥 DETECTAR TIPO BASEADO NO IDIOMA
+    let tipo;
+    if (idioma === "en-US") {
+      tipo =
+        acao.includes("received") || acao.includes("earned")
+          ? "RECEITA"
+          : "DESPESA";
+    } else {
+      tipo =
+        acao.includes("recebi") || acao.includes("ganhei")
+          ? "RECEITA"
+          : "DESPESA";
     }
 
-    // 🔥🔥🔥 CORREÇÃO: Detectar método de pagamento
-    const metodoPagamentoCorrigido = extrairMetodoPagamento(
+    // 🔥 DETECTAR MÉTODO DE PAGAMENTO EM INGLÊS
+    const metodoPagamentoCorrigido = extrairMetodoPagamentoInternacional(
       mensagem,
-      parcelamento.ehParcelado
+      parcelamento.ehParcelado,
+      idioma
     );
-
-    let tipo =
-      acao.includes("recebi") || acao.includes("ganhei")
-        ? "RECEITA"
-        : "DESPESA";
-
-    if (compartilhamento.tipoCompartilhamento) {
-      tipo = compartilhamento.tipoCompartilhamento;
-    }
-
-    console.log(`📝 Dados processados:`, {
-      acao,
-      valor,
-      descricao,
-      metodoPagamento: metodoPagamentoCorrigido,
-      tipo,
-    });
 
     return {
       sucesso: true,
       dados: {
         tipo,
         valor: valor.replace(",", "."),
-        descricao: descricao, // 🔥 Vamos limpar depois
+        descricao: descricao,
         metodoPagamento: metodoPagamentoCorrigido,
         data: "hoje",
         ehCompartilhado: compartilhamento.ehCompartilhado,
@@ -2256,10 +2434,20 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
     };
   }
 
+  // 🔥 MENSAGEM DE ERRO MULTI-IDIOMA
+  let erroMsg = "";
+  if (idioma === "en-US") {
+    erroMsg =
+      "I didn't understand the format. Use: 'I spent 50 on lunch' or 'I received 1000 salary' or 'R$ 20 at the supermarket'";
+  } else {
+    erroMsg =
+      "Não entendi o formato. Use: 'Gastei 50 no almoço' ou 'Recebi 1000 salário' ou 'R$ 20 no mercado'";
+  }
+
   console.log(`❌ Nenhum padrão funcionou`);
   return {
     sucesso: false,
-    erro: "Não entendi o formato. Use: 'Gastei 50 no almoço' ou 'Recebi 1000 salário' ou 'R$ 20 no mercado'",
+    erro: erroMsg,
   };
 }
 
