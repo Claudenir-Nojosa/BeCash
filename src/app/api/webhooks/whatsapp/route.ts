@@ -258,6 +258,176 @@ async function transcreverAudioWhatsApp(audioId: string): Promise<string> {
     throw error;
   }
 }
+// 🆕 FUNÇÃO ESPECÍFICA PARA MENSAGEM DE SUCESSO APÓS CRIAÇÃO
+async function gerarMensagemSucesso(
+  dados: DadosLancamento,
+  descricaoLimpa: string,
+  categoriaEscolhida: any,
+  cartaoEncontrado: any,
+  resultadoCriacao: any,
+  idioma: string = "pt-BR"
+): Promise<string> {
+  const valorTotal = parseFloat(dados.valor);
+  const valorFormatado = valorTotal.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+
+  let templatePT = `✅ *LANÇAMENTO REGISTRADO*\n`;
+  templatePT += `━━━━━━━━━━━━━━\n\n`;
+
+  templatePT += `📝 *Descrição:* ${descricaoLimpa}\n`;
+  templatePT += `💰 *Valor total:* ${valorFormatado}\n`;
+  templatePT += `🏷️ *Categoria:* ${categoriaEscolhida.nome}\n`;
+
+  // Se for compartilhado
+  if (
+    resultadoCriacao?.usuarioAlvo &&
+    resultadoCriacao.valorCompartilhado > 0
+  ) {
+    const valorUsuario = resultadoCriacao.valorUsuarioCriador.toLocaleString(
+      "pt-BR",
+      {
+        style: "currency",
+        currency: "BRL",
+      }
+    );
+
+    const valorCompartilhado =
+      resultadoCriacao.valorCompartilhado.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      });
+
+    templatePT += `\n👥 *COMPARTILHAMENTO*\n`;
+    templatePT += `   • Sua parte: ${valorUsuario}\n`;
+    templatePT += `   • ${resultadoCriacao.usuarioAlvo.name}: ${valorCompartilhado}\n`;
+  }
+
+  // Se for parcelado
+  if (resultadoCriacao?.ehParcelado && resultadoCriacao.parcelasTotal) {
+    templatePT += `\n💳 *PARCELAMENTO*\n`;
+    templatePT += `   • ${resultadoCriacao.parcelasTotal}x de ${resultadoCriacao.valorParcela.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+  }
+
+  if (cartaoEncontrado) {
+    templatePT += `\n💳 *Cartão:* ${cartaoEncontrado.nome}\n`;
+
+    if (cartaoEncontrado.limite && cartaoEncontrado.totalGasto !== undefined) {
+      const limiteDisponivel =
+        cartaoEncontrado.limite - cartaoEncontrado.totalGasto;
+      const utilizacaoPercentual = (
+        (cartaoEncontrado.totalGasto / cartaoEncontrado.limite) *
+        100
+      ).toFixed(1);
+
+      templatePT += `   • Limite disponível: ${limiteDisponivel.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+      templatePT += `   • Utilização: ${utilizacaoPercentual}%\n`;
+    }
+  }
+
+  templatePT += `\n📅 *Data:* ${new Date().toLocaleDateString("pt-BR", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  })}\n`;
+
+  templatePT += `\n━━━━━━━━━━━━━━\n`;
+  templatePT += `✨ *Obrigado por usar o BeCash!*\n`;
+
+  // Traduzir se necessário
+  if (idioma !== "pt-BR") {
+    return await gerarMensagemComIA(
+      templatePT,
+      {
+        descricao: descricaoLimpa,
+        categoria: categoriaEscolhida.nome,
+        valor: valorFormatado,
+        compartilhamento: resultadoCriacao?.usuarioAlvo,
+        parcelamento: resultadoCriacao?.ehParcelado,
+      },
+      idioma
+    );
+  }
+
+  return templatePT;
+}
+
+// 🔥 FUNÇÃO PARA PROCESSAR CONFIRMAÇÃO - MOVER PARA FORA
+async function processarConfirmacao(
+  resposta: string,
+  pendingLancamento: LancamentoTemporario,
+  userPhone: string
+) {
+  console.log(`🎯 PROCESSANDO CONFIRMAÇÃO: ${resposta} para ${userPhone}`);
+  console.log(`💾 Dados do lançamento pendente:`, {
+    descricao: pendingLancamento.descricaoLimpa,
+    cartao: pendingLancamento.cartaoEncontrado?.nome,
+    mensagemOriginal: pendingLancamento.mensagemOriginal,
+  });
+
+  // 🔥 VERIFICAR SE USUÁRIO AINDA EXISTE (SEGURANÇA)
+  const session = await getUserByPhone(userPhone);
+  if (!session) {
+    await sendWhatsAppMessage(
+      userPhone,
+      "❌ Sua conta não foi encontrada. O lançamento foi cancelado."
+    );
+    global.pendingLancamentos?.delete(userPhone);
+    return { status: "user_not_found" };
+  }
+
+  // Remover do cache de pendentes
+  global.pendingLancamentos?.delete(userPhone);
+  console.log(`🗑️ Removido lançamento pendente para: ${userPhone}`);
+
+  if (resposta === "não" || resposta === "nao") {
+    console.log(`❌ Usuário cancelou o lançamento`);
+    const mensagemCancelamento = await gerarMensagemCancelamento();
+    await sendWhatsAppMessage(userPhone, mensagemCancelamento);
+    return { status: "cancelled" };
+  }
+
+  if (resposta === "sim") {
+    console.log(`✅ Usuário confirmou - criando lançamento...`);
+    try {
+      // Criar o lançamento no banco de dados
+      const resultadoCriacao = await createLancamento(
+        pendingLancamento.userId,
+        pendingLancamento.dados,
+        pendingLancamento.categoriaEscolhida,
+        pendingLancamento.mensagemOriginal,
+        pendingLancamento.descricaoLimpa,
+        pendingLancamento.cartaoEncontrado
+      );
+
+      // Gerar mensagem de confirmação final
+      const mensagemFinal = await gerarMensagemConfirmacao(
+        pendingLancamento.dados,
+        pendingLancamento.descricaoLimpa,
+        pendingLancamento.categoriaEscolhida,
+        pendingLancamento.cartaoEncontrado,
+        resultadoCriacao
+      );
+
+      await sendWhatsAppMessage(userPhone, mensagemFinal);
+      console.log("✅ Lançamento confirmado e criado no banco de dados");
+
+      return { status: "confirmed" };
+    } catch (error: any) {
+      console.error("❌ Erro ao criar lançamento:", error);
+      await sendWhatsAppMessage(
+        userPhone,
+        `❌ Erro ao criar lançamento: ${error.message}\n\nTente novamente.`
+      );
+      return { status: "creation_error" };
+    }
+  }
+
+  console.log(`⚠️ Resposta inválida na confirmação: ${resposta}`);
+  return { status: "invalid_confirmation" };
+}
 
 // 🔥 FUNÇÃO AUXILIAR: Processar mensagem de áudio
 async function processarAudioWhatsApp(audioMessage: any, userPhone: string) {
@@ -305,6 +475,97 @@ async function processarAudioWhatsApp(audioMessage: any, userPhone: string) {
   }
 }
 
+// 🆕 ADICIONAR ESTAS FUNÇÕES AUXILIARES NO INÍCIO DO ARQUIVO
+
+async function buscarLimiteCategoria(
+  categoriaId: string,
+  userId: string,
+  mesReferencia: string
+) {
+  try {
+    const limite = await db.limiteCategoria.findUnique({
+      where: {
+        categoriaId_mesReferencia_userId: {
+          categoriaId,
+          mesReferencia,
+          userId,
+        },
+      },
+      include: {
+        categoria: true,
+      },
+    });
+
+    return limite;
+  } catch (error) {
+    console.error("Erro ao buscar limite da categoria:", error);
+    return null;
+  }
+}
+
+// Fallback manual caso a IA não funcione
+function detectarComando(mensagem: string): { tipo: string | null } {
+  const textoLower = mensagem.toLowerCase().trim();
+
+  const comandosCategorias = [
+    "quais categorias",
+    "categorias disponíveis",
+    "minhas categorias",
+    "listar categorias",
+    "ver categorias",
+    "mostrar categorias",
+    "categorias cadastradas",
+  ];
+
+  if (comandosCategorias.some((cmd) => textoLower.includes(cmd))) {
+    return { tipo: "LISTAR_CATEGORIAS" };
+  }
+
+  return { tipo: null };
+}
+
+async function enviarMensagemAjuda(
+  userPhone: string,
+  idioma: string = "pt-BR"
+) {
+  const templatePT = `*🤖 AJUDA - BeCash WhatsApp*
+━━━━━━━━━━━━━━
+
+*📝 COMO CRIAR LANÇAMENTOS:*
+
+*Exemplos simples:*
+- "Gastei 50 no almoço"
+- "Recebi 1000 salário"
+- "Paguei 200 na farmácia"
+
+*Com método de pagamento:*
+- "Gastei 80 no Uber com PIX"
+- "Comprei 150 no mercado no crédito"
+- "Paguei 45 em dinheiro"
+
+*Parcelado:*
+- "Comprei 600 parcelado em 3 vezes"
+- "Gastei 1200 em 6x no crédito"
+
+*Compartilhado:*
+- "Gastei 100 no jantar compartilhada com Maria"
+
+*📋 COMANDOS DISPONÍVEIS:*
+- "Quais categorias tenho?"
+- "Ajuda"
+
+━━━━━━━━━━━━━━
+💡 Dúvidas? Digite "ajuda"`;
+
+  const mensagem =
+    idioma === "pt-BR"
+      ? templatePT
+      : await gerarMensagemComIA(templatePT, {}, idioma);
+
+  await sendWhatsAppMessage(userPhone, mensagem);
+}
+
+// 🔥 FUNÇÃO PRINCIPAL MODIFICADA COM CONFIRMAÇÃO
 // 🔥 FUNÇÃO PRINCIPAL MODIFICADA COM CONFIRMAÇÃO
 async function processarMensagemTexto(message: any) {
   const userMessage = message.text?.body;
@@ -315,7 +576,44 @@ async function processarMensagemTexto(message: any) {
   console.log("💬 Texto:", userMessage);
   console.log("🆔 Message ID:", messageId);
 
-  // 🔥 CORREÇÃO 1: INICIALIZAR CACHE SE NÃO EXISTIR (VERIFICAÇÃO MAIS ROBUSTA)
+  // 🔥 DETECTAR COMANDO COM IA (PRIMEIRO)
+  const comandoIA = await detectarComandoComIA(userMessage);
+
+  if (comandoIA.tipo && comandoIA.tipo !== "NENHUM") {
+    console.log(
+      `🤖 Comando detectado pela IA: ${comandoIA.tipo} (idioma: ${comandoIA.idioma})`
+    );
+
+    const session = await getUserByPhone(userPhone);
+    if (!session) {
+      const template =
+        "❌ Seu número não está vinculado a nenhuma conta.\n\n💡 Acesse o app BeCash e vincule seu WhatsApp em Configurações.";
+      const mensagem = await gerarMensagemComIA(
+        template,
+        {},
+        comandoIA.idioma || "pt-BR"
+      );
+      await sendWhatsAppMessage(userPhone, mensagem);
+      return { status: "user_not_found" };
+    }
+
+    // Processar comando detectado
+    if (comandoIA.tipo === "LISTAR_CATEGORIAS") {
+      await processarComandoCategorias(
+        userPhone,
+        session.user.id,
+        comandoIA.idioma || "pt-BR"
+      );
+      return { status: "command_processed" };
+    }
+
+    if (comandoIA.tipo === "AJUDA") {
+      await enviarMensagemAjuda(userPhone, comandoIA.idioma || "pt-BR");
+      return { status: "command_processed" };
+    }
+  }
+
+  // 🔥 INICIALIZAR CACHE
   if (!global.pendingLancamentos) {
     console.log("🔄 Criando novo cache de pendingLancamentos");
     global.pendingLancamentos = new Map();
@@ -325,11 +623,10 @@ async function processarMensagemTexto(message: any) {
     );
   }
 
-  // 🔥 NORMALIZAR TELEFONE PARA BUSCA NO CACHE (MANTENDO O CÓDIGO ATUAL)
+  // 🔥 NORMALIZAR TELEFONE
   const telefoneNormalizado = userPhone.replace(/\D/g, "");
   let telefoneBusca = telefoneNormalizado;
 
-  // Aplicar mesma lógica de normalização do getUserByPhone
   if (
     telefoneNormalizado.startsWith("55") &&
     telefoneNormalizado.length === 13
@@ -345,43 +642,17 @@ async function processarMensagemTexto(message: any) {
   }
 
   console.log(`🔍 Verificando lançamentos pendentes...`);
-  console.log(`📞 Telefone original: ${userPhone}`);
-  console.log(`🔧 Telefone normalizado: ${telefoneBusca}`);
+  console.log(`📞 Telefone normalizado: ${telefoneBusca}`);
 
-  // 🔥 DEBUG DETALHADO DO CACHE
-  console.log(`📊 Cache atual (tamanho: ${global.pendingLancamentos.size}):`);
-  if (global.pendingLancamentos.size > 0) {
-    global.pendingLancamentos.forEach((value, key) => {
-      console.log(
-        `   📍 Key: ${key}, Descrição: ${value.descricaoLimpa}, Timestamp: ${value.timestamp}`
-      );
-    });
-  } else {
-    console.log(`   📍 Cache vazio`);
-  }
-
-  // 🔥 CORREÇÃO 2: BUSCAR NO CACHE COM DEBUG
-  console.log(
-    `🎯 Procurando lançamento pendente para chave: "${telefoneBusca}"`
-  );
+  // 🔥 BUSCAR NO CACHE
   const pendingLancamento = global.pendingLancamentos?.get(telefoneBusca);
 
   if (pendingLancamento) {
-    console.log(
-      `✅✅✅ LANÇAMENTO PENDENTE ENCONTRADO para chave: "${telefoneBusca}"`
-    );
-    console.log(`📝 Dados do lançamento:`, {
-      descricao: pendingLancamento.descricaoLimpa,
-      valor: pendingLancamento.dados.valor,
-      categoria: pendingLancamento.categoriaEscolhida.nome,
-      timestamp: new Date(pendingLancamento.timestamp).toISOString(),
-      idade: Date.now() - pendingLancamento.timestamp,
-    });
-    console.log(`💬 Resposta do usuário: "${userMessage}"`);
+    console.log(`✅ LANÇAMENTO PENDENTE ENCONTRADO`);
 
-    // Verificar se expirou (5 minutos = 300000 ms)
+    // Verificar expiração
     if (Date.now() - pendingLancamento.timestamp > 5 * 60 * 1000) {
-      console.log(`⏰ Lançamento expirado - removendo do cache`);
+      console.log(`⏰ Lançamento expirado`);
       global.pendingLancamentos.delete(telefoneBusca);
 
       await sendWhatsAppMessage(
@@ -393,7 +664,7 @@ async function processarMensagemTexto(message: any) {
 
     const resposta = userMessage.toLowerCase().trim();
 
-    // 🔥 VERIFICAÇÃO MAIS FLEXÍVEL DAS RESPOSTAS
+    // Verificar confirmação
     if (
       resposta === "sim" ||
       resposta === "s" ||
@@ -402,7 +673,7 @@ async function processarMensagemTexto(message: any) {
       resposta === "yes" ||
       resposta === "✅"
     ) {
-      console.log(`✅✅✅ USUÁRIO CONFIRMOU - Processando confirmação...`);
+      console.log(`✅ USUÁRIO CONFIRMOU`);
       return await processarConfirmacao(
         "sim",
         pendingLancamento,
@@ -418,7 +689,7 @@ async function processarMensagemTexto(message: any) {
       resposta === "no" ||
       resposta === "❌"
     ) {
-      console.log(`❌❌❌ USUÁRIO CANCELOU - Processando cancelamento...`);
+      console.log(`❌ USUÁRIO CANCELOU`);
       return await processarConfirmacao(
         "não",
         pendingLancamento,
@@ -426,11 +697,7 @@ async function processarMensagemTexto(message: any) {
       );
     }
 
-    // 🔥 SE NÃO FOR UMA RESPOSTA DE CONFIRMAÇÃO VÁLIDA, AVISA O USUÁRIO
-    console.log(
-      `⚠️ Resposta não reconhecida como confirmação: "${userMessage}"`
-    );
-
+    // Resposta não reconhecida
     await sendWhatsAppMessage(
       userPhone,
       `❌ Não entendi sua resposta: "${userMessage}"\n\n` +
@@ -441,19 +708,10 @@ async function processarMensagemTexto(message: any) {
     );
 
     return { status: "invalid_confirmation_response" };
-  } else {
-    console.log(
-      `❌❌❌ NENHUM LANÇAMENTO PENDENTE encontrado para chave: "${telefoneBusca}"`
-    );
-    console.log(
-      `🔍 Chaves no cache:`,
-      Array.from(global.pendingLancamentos?.keys() || [])
-    );
   }
 
-  // 🔥 SE NÃO FOR CONFIRMAÇÃO, PROCESSAR COMO NOVO LANÇAMENTO
+  // 🔥 PROCESSAR NOVO LANÇAMENTO
   if (userMessage && userPhone) {
-    // 1. 🔥 BUSCAR USUÁRIO PELO TELEFONE ESPECÍFICO
     const session = await getUserByPhone(userPhone);
     if (!session) {
       await sendWhatsAppMessage(
@@ -466,7 +724,7 @@ async function processarMensagemTexto(message: any) {
 
     const userId = session.user.id;
 
-    // 2. Extrair dados do lançamento
+    // Extrair dados
     const dadosExtracao = extrairDadosLancamento(userMessage);
     console.log("📊 Dados extraídos:", dadosExtracao);
 
@@ -478,65 +736,54 @@ async function processarMensagemTexto(message: any) {
       return { status: "extraction_failed" };
     }
 
-    // 3. Buscar categorias do usuário e escolher a melhor
-    let categoriaEscolhida = null;
-    let categoriasUsuario: any[] = [];
+    // Buscar categorias
+    const categoriasUsuario = await getCategoriasUsuario(userId);
+    console.log("🏷️ Categorias do usuário:", categoriasUsuario);
 
-    try {
-      categoriasUsuario = await getCategoriasUsuario(userId);
-      console.log("🏷️ Categorias do usuário:", categoriasUsuario);
-
-      if (categoriasUsuario.length === 0) {
-        await sendWhatsAppMessage(
-          userPhone,
-          "❌ Nenhuma categoria encontrada. Crie categorias primeiro no app."
-        );
-        return { status: "no_categories" };
-      }
-
-      categoriaEscolhida = await escolherMelhorCategoria(
-        dadosExtracao.dados.descricao,
-        categoriasUsuario,
-        dadosExtracao.dados.tipo
-      );
-
-      console.log("🎯 Categoria escolhida:", categoriaEscolhida?.nome);
-
-      if (!categoriaEscolhida) {
-        await sendWhatsAppMessage(
-          userPhone,
-          `❌ Nenhuma categoria do tipo ${dadosExtracao.dados.tipo} encontrada.`
-        );
-        return { status: "no_matching_category" };
-      }
-    } catch (error: any) {
+    if (categoriasUsuario.length === 0) {
       await sendWhatsAppMessage(
         userPhone,
-        `❌ Erro ao processar categorias: ${error.message}`
+        "❌ Nenhuma categoria encontrada. Crie categorias primeiro no app."
       );
-      return { status: "category_error" };
+      return { status: "no_categories" };
     }
 
-    // 4. Limpar descrição com Claude
+    const categoriaEscolhida = await escolherMelhorCategoria(
+      dadosExtracao.dados.descricao,
+      categoriasUsuario,
+      dadosExtracao.dados.tipo
+    );
+
+    if (!categoriaEscolhida) {
+      await sendWhatsAppMessage(
+        userPhone,
+        `❌ Nenhuma categoria do tipo ${dadosExtracao.dados.tipo} encontrada.`
+      );
+      return { status: "no_matching_category" };
+    }
+
+    // Limpar descrição
     const descricaoLimpa = await limparDescricaoComClaude(
       dadosExtracao.dados.descricao
     );
 
-    // 5. Identificar cartão se for crédito
+    // Identificar cartão
     let cartaoEncontrado = null;
     if (dadosExtracao.dados.metodoPagamento === "CREDITO") {
       cartaoEncontrado = await identificarCartao(userMessage, userId);
     }
 
-    // 6. Preparar mensagem de confirmação
+    // 🔥 GERAR MENSAGEM DE CONFIRMAÇÃO (COM userId)
     const mensagemConfirmacao = await gerarMensagemConfirmacao(
       dadosExtracao.dados,
       descricaoLimpa,
       categoriaEscolhida,
-      cartaoEncontrado
+      cartaoEncontrado,
+      userId, // 🔥 CORRIGIDO: Passar userId
+      "pt-BR" // Idioma padrão
     );
 
-    // 7. Salvar dados temporariamente e pedir confirmação
+    // Salvar no cache
     const lancamentoTemporario: LancamentoTemporario = {
       dados: dadosExtracao.dados,
       categoriaEscolhida,
@@ -549,43 +796,18 @@ async function processarMensagemTexto(message: any) {
       descricaoOriginal: dadosExtracao.dados.descricao,
     };
 
-    console.log(
-      `💾 SALVANDO LANÇAMENTO PENDENTE para: ${telefoneBusca} (normalizado)`
-    );
-    console.log(`📦 Dados salvos:`, {
-      descricao: descricaoLimpa,
-      valor: dadosExtracao.dados.valor,
-      categoria: categoriaEscolhida.nome,
-      compartilhado: dadosExtracao.dados.ehCompartilhado,
-      usuarioCompartilhado: dadosExtracao.dados.nomeUsuarioCompartilhado,
-    });
-
-    // 🔥 SALVAR COM TELEFONE NORMALIZADO
     global.pendingLancamentos.set(telefoneBusca, lancamentoTemporario);
-
-    // 🔥 DEBUG: Verificar se foi salvo corretamente
-    console.log(
-      `✅ Lançamento salvo no cache. Total pendentes: ${global.pendingLancamentos.size}`
-    );
-    console.log(
-      `📋 Cache atual:`,
-      Array.from(global.pendingLancamentos.entries())
-    );
 
     // Limpar após 5 minutos
     setTimeout(
       () => {
         if (global.pendingLancamentos?.has(telefoneBusca)) {
-          console.log(
-            `🧹 LIMPANDO lançamento pendente expirado para: ${telefoneBusca}`
-          );
           global.pendingLancamentos.delete(telefoneBusca);
         }
       },
       5 * 60 * 1000
     );
 
-    // 8. Enviar mensagem de confirmação
     await sendWhatsAppMessage(userPhone, mensagemConfirmacao);
 
     return { status: "waiting_confirmation" };
@@ -594,92 +816,20 @@ async function processarMensagemTexto(message: any) {
   return { status: "processed" };
 }
 
-// 🔥 FUNÇÃO PARA PROCESSAR CONFIRMAÇÃO - CORRIGIDA
-async function processarConfirmacao(
-  resposta: string,
-  pendingLancamento: LancamentoTemporario,
-  userPhone: string
-) {
-  console.log(`🎯 PROCESSANDO CONFIRMAÇÃO: ${resposta} para ${userPhone}`);
-  console.log(`💾 Dados do lançamento pendente:`, {
-    descricao: pendingLancamento.descricaoLimpa,
-    cartao: pendingLancamento.cartaoEncontrado?.nome,
-    mensagemOriginal: pendingLancamento.mensagemOriginal, // ← Adicione este campo no tipo!
-  });
-  // 🔥 VERIFICAR SE USUÁRIO AINDA EXISTE (SEGURANÇA)
-  const session = await getUserByPhone(userPhone);
-  if (!session) {
-    await sendWhatsAppMessage(
-      userPhone,
-      "❌ Sua conta não foi encontrada. O lançamento foi cancelado."
-    );
-    global.pendingLancamentos?.delete(userPhone);
-    return { status: "user_not_found" };
-  }
-  // Remover do cache de pendentes
-  global.pendingLancamentos?.delete(userPhone);
-  console.log(`🗑️ Removido lançamento pendente para: ${userPhone}`);
-
-  if (resposta === "não" || resposta === "nao") {
-    console.log(`❌ Usuário cancelou o lançamento`);
-    const mensagemCancelamento = await gerarMensagemCancelamento();
-    await sendWhatsAppMessage(userPhone, mensagemCancelamento);
-    return { status: "cancelled" };
-  }
-
-  if (resposta === "sim") {
-    console.log(`✅ Usuário confirmou - criando lançamento...`);
-    try {
-      // Criar o lançamento no banco de dados
-      const resultadoCriacao = await createLancamento(
-        pendingLancamento.userId,
-        pendingLancamento.dados,
-        pendingLancamento.categoriaEscolhida,
-        pendingLancamento.mensagemOriginal, // userMessage
-        pendingLancamento.descricaoLimpa,
-        pendingLancamento.cartaoEncontrado
-      );
-
-      // Gerar mensagem de confirmação final
-      const mensagemFinal = await gerarMensagemConfirmacaoFinal(
-        pendingLancamento.dados,
-        pendingLancamento.descricaoLimpa,
-        pendingLancamento.categoriaEscolhida,
-        pendingLancamento.cartaoEncontrado,
-        resultadoCriacao
-      );
-
-      await sendWhatsAppMessage(userPhone, mensagemFinal);
-      console.log("✅ Lançamento confirmado e criado no banco de dados");
-
-      return { status: "confirmed" };
-    } catch (error: any) {
-      console.error("❌ Erro ao criar lançamento:", error);
-      await sendWhatsAppMessage(
-        userPhone,
-        `❌ Erro ao criar lançamento: ${error.message}\n\nTente novamente.`
-      );
-      return { status: "creation_error" };
-    }
-  }
-
-  console.log(`⚠️ Resposta inválida na confirmação: ${resposta}`);
-  return { status: "invalid_confirmation" };
-}
-
-// 🔥 FUNÇÃO PARA GERAR MENSAGEM DE CONFIRMAÇÃO - VERSÃO PROFISSIONAL
 async function gerarMensagemConfirmacao(
   dados: DadosLancamento,
   descricaoLimpa: string,
   categoriaEscolhida: any,
-  cartaoEncontrado: any
+  cartaoEncontrado: any,
+  userIdOuResultado: string | any, // 🔥 ACEITA string (userId) OU objeto (resultadoCriacao)
+  idioma: string = "pt-BR"
 ): Promise<string> {
-  const valorFormatado = parseFloat(dados.valor).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
+  // Verificar se é userId (confirmação) ou resultadoCriacao (sucesso)
+  const isConfirmacao = typeof userIdOuResultado === "string";
+  const userId = isConfirmacao ? userIdOuResultado : null;
+  const resultadoCriacao = !isConfirmacao ? userIdOuResultado : null;
 
-  // 🔥 ADICIONAR DATA DO LANÇAMENTO
+  // 🔥 CALCULAR DATA
   let dataLancamento = new Date();
   const offsetBrasilia = -3 * 60;
   dataLancamento.setMinutes(
@@ -699,157 +849,127 @@ async function gerarMensagemConfirmacao(
     );
   }
 
-  const dataFormatada = dataLancamento.toLocaleDateString("pt-BR");
-
-  // 🔥 FORMATAR MÉTODO DE PAGAMENTO
-  const metodoPagamentoText =
-    {
-      CREDITO: "💳 Cartão de Crédito",
-      DEBITO: "💳 Cartão de Débito",
-      PIX: "📱 PIX",
-      DINHEIRO: "💵 Dinheiro",
-      TRANSFERENCIA: "🔄 Transferência",
-    }[dados.metodoPagamento] || "💳 " + dados.metodoPagamento;
-
-  // 🔥 CONSTRUIR MENSAGEM PROFISSIONAL
-  let mensagem = `*📋 CONFIRMAÇÃO DE LANÇAMENTO*\n`;
-  mensagem += `━━━━━━━━━━━━━━\n\n`;
-
-  mensagem += `*📝 Descrição:* ${descricaoLimpa}\n`;
-  mensagem += `*💰 Valor:* ${valorFormatado}\n`;
-  mensagem += `*🏷️ Categoria:* ${categoriaEscolhida.nome}\n`;
-  mensagem += `*📅 Data:* ${dataFormatada}\n`;
-  mensagem += `*📊 Tipo:* ${dados.tipo === "DESPESA" ? "Despesa" : "Receita"}\n`;
-  mensagem += `*${metodoPagamentoText.includes("💳") ? "💳" : "📱"} Método:* ${metodoPagamentoText.replace("💳 ", "").replace("📱 ", "").replace("💵 ", "").replace("🔄 ", "")}\n`;
-
-  if (cartaoEncontrado) {
-    mensagem += `*🔸 Cartão:* ${cartaoEncontrado.nome}\n`;
-
-    // 🔥 VERIFICAR SE TEM OS DADOS CORRETOS
-    if (cartaoEncontrado.limiteDisponivel !== undefined) {
-      // Se já tem limiteDisponivel calculado
-      const limiteDisponivel = cartaoEncontrado.limiteDisponivel;
-      const utilizacaoPercentual = cartaoEncontrado.utilizacaoLimite || 0;
-
-      mensagem += `*📊 Limite disponível:* ${limiteDisponivel.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
-      mensagem += `*📈 Utilização:* ${utilizacaoPercentual.toFixed(1)}%\n`;
-    } else if (
-      cartaoEncontrado.limite &&
-      cartaoEncontrado.totalGasto !== undefined
-    ) {
-      // Se tem os dados brutos, calcular
-      const limiteDisponivel =
-        cartaoEncontrado.limite - cartaoEncontrado.totalGasto;
-      const utilizacaoPercentual =
-        cartaoEncontrado.limite > 0
-          ? (cartaoEncontrado.totalGasto / cartaoEncontrado.limite) * 100
-          : 0;
-
-      mensagem += `*📊 Limite disponível:* ${limiteDisponivel.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
-      mensagem += `*📈 Utilização:* ${utilizacaoPercentual.toFixed(1)}%\n`;
-    }
-  }
-
-  if (dados.ehCompartilhado && dados.nomeUsuarioCompartilhado) {
-    mensagem += `*👥 Compartilhado com:* ${dados.nomeUsuarioCompartilhado}\n`;
-
-    // Mostrar valores divididos se for compartilhado
-    const valorTotal = parseFloat(dados.valor);
-    const valorCompartilhado = valorTotal / 2;
-    const valorUsuario = valorTotal / 2;
-
-    mensagem += `*🤝 Sua parte:* ${valorUsuario.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
-    mensagem += `*👤 Parte ${dados.nomeUsuarioCompartilhado}:* ${valorCompartilhado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
-  }
-
-  if (dados.ehParcelado && dados.parcelas) {
-    const valorParcela = parseFloat(dados.valor) / dados.parcelas;
-    mensagem += `*🔢 Parcelamento:* ${dados.parcelas}x de ${valorParcela.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
-  }
-
-  mensagem += `\n━━━━━━━━━━━━━━\n\n`;
-  mensagem += `*Por favor, confirme:*\n\n`;
-  mensagem += `✅ *SIM* - Para confirmar este lançamento\n`;
-  mensagem += `❌ *NÃO* - Para cancelar\n\n`;
-  mensagem += `_⏰ Esta confirmação expira em 5 minutos_`;
-
-  return mensagem;
-}
-
-// 🔥 FUNÇÃO PARA GERAR MENSAGEM FINAL - VERSÃO PROFISSIONAL ATUALIZADA
-async function gerarMensagemConfirmacaoFinal(
-  dados: DadosLancamento,
-  descricaoLimpa: string,
-  categoriaEscolhida: any,
-  cartaoEncontrado: any,
-  resultadoCriacao: any
-): Promise<string> {
-  const valorTotal = parseFloat(dados.valor);
-  const valorFormatado = valorTotal.toLocaleString("pt-BR", {
+  const valorFormatado = parseFloat(dados.valor).toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
   });
 
-  // 🔥 VERSÃO PROFISSIONAL COM DESTAQUES
-  let mensagem = `✅ *LANÇAMENTO REGISTRADO*\n`;
-  mensagem += `━━━━━━━━━━━━━━\n\n`;
+  const dataFormatada = dataLancamento.toLocaleDateString("pt-BR");
 
-  mensagem += `📝 *Descrição:* ${descricaoLimpa}\n`;
-  mensagem += `💰 *Valor total:* ${valorFormatado}\n`;
-  mensagem += `🏷️ *Categoria:* ${categoriaEscolhida.nome}\n`;
+  // 🔥 SE FOR SUCESSO (após criação), usar template diferente
+  if (resultadoCriacao) {
+    let templatePT = `✅ *LANÇAMENTO REGISTRADO*\n`;
+    templatePT += `━━━━━━━━━━━━━━\n\n`;
 
-  // Se for compartilhado
-  if (
-    resultadoCriacao?.usuarioAlvo &&
-    resultadoCriacao.valorCompartilhado > 0
-  ) {
-    const valorUsuario = resultadoCriacao.valorUsuarioCriador.toLocaleString(
-      "pt-BR",
-      {
-        style: "currency",
-        currency: "BRL",
-      }
-    );
+    templatePT += `📝 *Descrição:* ${descricaoLimpa}\n`;
+    templatePT += `💰 *Valor total:* ${valorFormatado}\n`;
+    templatePT += `🏷️ *Categoria:* ${categoriaEscolhida.nome}\n`;
 
-    const valorCompartilhado =
-      resultadoCriacao.valorCompartilhado.toLocaleString("pt-BR", {
-        style: "currency",
-        currency: "BRL",
-      });
+    // Compartilhamento
+    if (
+      resultadoCriacao?.usuarioAlvo &&
+      resultadoCriacao.valorCompartilhado > 0
+    ) {
+      const valorUsuario = resultadoCriacao.valorUsuarioCriador.toLocaleString(
+        "pt-BR",
+        {
+          style: "currency",
+          currency: "BRL",
+        }
+      );
 
-    mensagem += `\n👥 *COMPARTILHAMENTO*\n`;
-    mensagem += `   • Sua parte: ${valorUsuario}\n`;
-    mensagem += `   • ${resultadoCriacao.usuarioAlvo.name}: ${valorCompartilhado}\n`;
+      const valorCompartilhado =
+        resultadoCriacao.valorCompartilhado.toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        });
+
+      templatePT += `\n👥 *COMPARTILHAMENTO*\n`;
+      templatePT += `   • Sua parte: ${valorUsuario}\n`;
+      templatePT += `   • ${resultadoCriacao.usuarioAlvo.name}: ${valorCompartilhado}\n`;
+    }
+
+    // Parcelamento
+    if (resultadoCriacao?.ehParcelado && resultadoCriacao.parcelasTotal) {
+      templatePT += `\n💳 *PARCELAMENTO*\n`;
+      templatePT += `   • ${resultadoCriacao.parcelasTotal}x de ${resultadoCriacao.valorParcela.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+    }
+
+    if (cartaoEncontrado) {
+      templatePT += `\n💳 *Cartão:* ${cartaoEncontrado.nome}\n`;
+    }
+
+    templatePT += `\n📅 *Data:* ${dataFormatada}\n`;
+    templatePT += `\n━━━━━━━━━━━━━━\n`;
+    templatePT += `✨ *Obrigado por usar o BeCash!*\n`;
+
+    return idioma !== "pt-BR"
+      ? await gerarMensagemComIA(templatePT, {}, idioma)
+      : templatePT;
   }
 
-  if (cartaoEncontrado) {
-    mensagem += `\n💳 *Cartão:* ${cartaoEncontrado.nome}\n`;
+  // 🔥 SE FOR CONFIRMAÇÃO (antes de criar), usar template com limite
+  let templatePT = `*📋 CONFIRMAÇÃO DE LANÇAMENTO*\n`;
+  templatePT += `━━━━━━━━━━━━━━\n\n`;
+  templatePT += `*📝 Descrição:* ${descricaoLimpa}\n`;
+  templatePT += `*💰 Valor:* ${valorFormatado}\n`;
+  templatePT += `*🏷️ Categoria:* ${categoriaEscolhida.nome}\n`;
+  templatePT += `*📅 Data:* ${dataFormatada}\n`;
 
-    // 🔥 ADICIONAR INFORMAÇÃO ÚTIL SOBRE O CARTÃO
-    if (cartaoEncontrado.limite && cartaoEncontrado.totalGasto) {
-      const limiteDisponivel =
-        cartaoEncontrado.limite - cartaoEncontrado.totalGasto;
-      const utilizacaoPercentual = (
-        (cartaoEncontrado.totalGasto / cartaoEncontrado.limite) *
-        100
-      ).toFixed(1);
+  // Buscar limite da categoria (só na confirmação)
+  if (userId) {
+    const hoje = new Date();
+    const mesReferencia = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
+    const limiteCategoria = await buscarLimiteCategoria(
+      categoriaEscolhida.id,
+      userId,
+      mesReferencia
+    );
 
-      mensagem += `   • Limite disponível: ${limiteDisponivel.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
-      mensagem += `   • Utilização: ${utilizacaoPercentual}%\n`;
+    if (limiteCategoria) {
+      const gastoAtual = limiteCategoria.gastoAtual || 0;
+      const novoGasto = gastoAtual + parseFloat(dados.valor);
+      const limite = limiteCategoria.limiteMensal;
+      const percentualAtual = (gastoAtual / limite) * 100;
+      const percentualNovo = (novoGasto / limite) * 100;
+
+      templatePT += `\n*📊 LIMITE DA CATEGORIA:*\n`;
+      templatePT += `   • Antes: ${gastoAtual.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} / ${limite.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} (${percentualAtual.toFixed(1)}%)\n`;
+      templatePT += `   • Depois: ${novoGasto.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} / ${limite.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} (${percentualNovo.toFixed(1)}%)\n`;
+
+      if (novoGasto > limite) {
+        templatePT += `   ⚠️ *ATENÇÃO: Limite ultrapassado!*\n`;
+      }
     }
   }
 
-  mensagem += `\n📅 *Data:* ${new Date().toLocaleDateString("pt-BR", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  })}\n`;
+  if (cartaoEncontrado) {
+    templatePT += `*🔸 Cartão:* ${cartaoEncontrado.nome}\n`;
+  }
 
-  mensagem += `\n━━━━━━━━━━━━━━\n`;
-  mensagem += `✨ *Obrigado por usar o BeCash!*\n`;
+  if (dados.ehCompartilhado && dados.nomeUsuarioCompartilhado) {
+    const valorTotal = parseFloat(dados.valor);
+    const valorCompartilhado = valorTotal / 2;
+    const valorUsuario = valorTotal / 2;
 
-  return mensagem;
+    templatePT += `*👥 Compartilhado com:* ${dados.nomeUsuarioCompartilhado}\n`;
+    templatePT += `*🤝 Sua parte:* ${valorUsuario.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+  }
+
+  if (dados.ehParcelado && dados.parcelas) {
+    const valorParcela = parseFloat(dados.valor) / dados.parcelas;
+    templatePT += `*🔢 Parcelamento:* ${dados.parcelas}x de ${valorParcela.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+  }
+
+  templatePT += `\n━━━━━━━━━━━━━━\n\n`;
+  templatePT += `*Por favor, confirme:*\n\n`;
+  templatePT += `✅ *SIM* - Para confirmar este lançamento\n`;
+  templatePT += `❌ *NÃO* - Para cancelar\n\n`;
+  templatePT += `_⏰ Esta confirmação expira em 5 minutos_`;
+
+  return idioma !== "pt-BR"
+    ? await gerarMensagemComIA(templatePT, {}, idioma)
+    : templatePT;
 }
 
 // 🔥 FUNÇÃO PARA MENSAGEM DE CANCELAMENTO - VERSÃO MELHORADA
@@ -1129,6 +1249,201 @@ async function encontrarUsuarioPorNome(nome: string, userIdAtual: string) {
   } catch (error) {
     console.error("❌ Erro ao buscar usuário:", error);
     return null;
+  }
+}
+
+async function detectarComandoComIA(
+  mensagem: string
+): Promise<{ tipo: string | null; idioma?: string }> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    // Fallback para português se não tiver API key
+    return detectarComando(mensagem);
+  }
+
+  const prompt = `Analise esta mensagem e identifique se é um comando específico do sistema financeiro BeCash.
+
+MENSAGEM: "${mensagem}"
+
+COMANDOS SUPORTADOS:
+1. LISTAR_CATEGORIAS - Quando o usuário quer ver suas categorias cadastradas
+2. VER_SALDO - Quando quer ver seu saldo atual
+3. EXTRATO - Quando quer ver extrato/histórico de lançamentos
+4. AJUDA - Quando pede ajuda ou não sabe usar
+5. NENHUM - Quando não é nenhum comando, mas sim um lançamento financeiro normal
+
+INSTRUÇÕES:
+- Identifique a INTENÇÃO do usuário, independente do idioma
+- Exemplos de LISTAR_CATEGORIAS: "quais categorias tenho?", "which categories do I have?", "cuáles categorías tengo?", "mes catégories", "show categories", etc.
+- Se for um lançamento financeiro (gastei X, recebi Y), retorne NENHUM
+- Detecte também o idioma da mensagem
+
+RESPONDA APENAS NO FORMATO JSON:
+{
+  "tipo": "LISTAR_CATEGORIAS" | "VER_SALDO" | "EXTRATO" | "AJUDA" | "NENHUM",
+  "idioma": "pt-BR" | "en-US" | "es-ES" | "fr-FR" | "de-DE" | etc,
+  "confianca": 0.0 a 1.0
+}`;
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-3-haiku-20240307",
+        max_tokens: 150,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Claude API: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const resultado = data.content[0].text.trim();
+
+    console.log(`🤖 Resposta da IA para comando:`, resultado);
+
+    // Extrair JSON (remover markdown se houver)
+    const jsonLimpo = resultado.replace(/```json|```/g, "").trim();
+    const comandoDetectado = JSON.parse(jsonLimpo);
+
+    console.log(`🎯 Comando detectado:`, comandoDetectado);
+
+    // Se confiança baixa, tratar como lançamento normal
+    if (
+      comandoDetectado.confianca < 0.7 ||
+      comandoDetectado.tipo === "NENHUM"
+    ) {
+      return { tipo: null };
+    }
+
+    return {
+      tipo: comandoDetectado.tipo,
+      idioma: comandoDetectado.idioma,
+    };
+  } catch (error) {
+    console.error("Erro ao detectar comando com IA:", error);
+    // Fallback para detecção manual
+    return detectarComando(mensagem);
+  }
+}
+async function gerarMensagemComIA(
+  template: string,
+  dados: any,
+  idioma: string
+): Promise<string> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    // Fallback para português
+    return template;
+  }
+
+  const prompt = `Você é o assistente financeiro BeCash. Gere uma mensagem profissional no idioma ${idioma}.
+
+TEMPLATE BASE (em português):
+${template}
+
+DADOS PARA PREENCHER:
+${JSON.stringify(dados, null, 2)}
+
+INSTRUÇÕES:
+1. Traduza TODA a mensagem para ${idioma}
+2. Mantenha a estrutura e formatação (emojis, negrito, separadores)
+3. Adapte culturalmente (formato de moeda, datas)
+4. Seja profissional e conciso
+5. Use formato WhatsApp (markdown simples)
+
+RESPONDA APENAS COM A MENSAGEM TRADUZIDA:`;
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-3-haiku-20240307",
+        max_tokens: 500,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Claude API: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.content[0].text.trim();
+  } catch (error) {
+    console.error("Erro ao gerar mensagem com IA:", error);
+    return template; // Fallback
+  }
+}
+async function processarComandoCategorias(
+  userPhone: string,
+  userId: string,
+  idioma: string = "pt-BR"
+) {
+  try {
+    const categorias = await getCategoriasUsuario(userId);
+
+    if (categorias.length === 0) {
+      const template =
+        "❌ Você ainda não tem categorias cadastradas.\n\n💡 Acesse o app BeCash para criar suas categorias.";
+      const mensagem = await gerarMensagemComIA(template, {}, idioma);
+      await sendWhatsAppMessage(userPhone, mensagem);
+      return;
+    }
+
+    const categoriasPorTipo = {
+      RECEITA: categorias.filter((c) => c.tipo === "RECEITA"),
+      DESPESA: categorias.filter((c) => c.tipo === "DESPESA"),
+    };
+
+    // Template em português - será traduzido pela IA
+    let templatePT = "*📋 SUAS CATEGORIAS*\n";
+    templatePT += "━━━━━━━━━━━━━━\n\n";
+
+    if (categoriasPorTipo.DESPESA.length > 0) {
+      templatePT += "*💸 DESPESAS:*\n";
+      categoriasPorTipo.DESPESA.forEach((cat, i) => {
+        templatePT += `${i + 1}. ${cat.icone || "📌"} ${cat.nome}\n`;
+      });
+      templatePT += "\n";
+    }
+
+    if (categoriasPorTipo.RECEITA.length > 0) {
+      templatePT += "*💰 RECEITAS:*\n";
+      categoriasPorTipo.RECEITA.forEach((cat, i) => {
+        templatePT += `${i + 1}. ${cat.icone || "📌"} ${cat.nome}\n`;
+      });
+    }
+
+    templatePT += "\n━━━━━━━━━━━━━━\n";
+    templatePT += `✨ Total: ${categorias.length} categoria(s)`;
+
+    // 🔥 Traduzir com IA se não for português
+    const mensagemFinal =
+      idioma === "pt-BR"
+        ? templatePT
+        : await gerarMensagemComIA(
+            templatePT,
+            { categorias: categoriasPorTipo },
+            idioma
+          );
+
+    await sendWhatsAppMessage(userPhone, mensagemFinal);
+  } catch (error) {
+    console.error("Erro ao listar categorias:", error);
+    const template = "❌ Erro ao buscar suas categorias. Tente novamente.";
+    const mensagem = await gerarMensagemComIA(template, {}, idioma);
+    await sendWhatsAppMessage(userPhone, mensagem);
   }
 }
 
