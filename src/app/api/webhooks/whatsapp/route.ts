@@ -821,7 +821,7 @@ async function gerarMensagemConfirmacao(
   descricaoLimpa: string,
   categoriaEscolhida: any,
   cartaoEncontrado: any,
-  userIdOuResultado: string | any, // 🔥 ACEITA string (userId) OU objeto (resultadoCriacao)
+  userIdOuResultado: string | any,
   idioma: string = "pt-BR"
 ): Promise<string> {
   // Verificar se é userId (confirmação) ou resultadoCriacao (sucesso)
@@ -908,15 +908,58 @@ async function gerarMensagemConfirmacao(
       : templatePT;
   }
 
-  // 🔥 SE FOR CONFIRMAÇÃO (antes de criar), usar template com limite
+  // 🔥 SE FOR CONFIRMAÇÃO (antes de criar) - TEMPLATE COMPLETO
   let templatePT = `*📋 CONFIRMAÇÃO DE LANÇAMENTO*\n`;
   templatePT += `━━━━━━━━━━━━━━\n\n`;
+
   templatePT += `*📝 Descrição:* ${descricaoLimpa}\n`;
   templatePT += `*💰 Valor:* ${valorFormatado}\n`;
   templatePT += `*🏷️ Categoria:* ${categoriaEscolhida.nome}\n`;
   templatePT += `*📅 Data:* ${dataFormatada}\n`;
 
-  // Buscar limite da categoria (só na confirmação)
+  // 🆕 ADICIONAR TIPO
+  templatePT += `*📊 Tipo:* ${dados.tipo === "DESPESA" ? "Despesa" : "Receita"}\n`;
+
+  // 🆕 ADICIONAR MÉTODO DE PAGAMENTO
+  const metodoPagamentoText =
+    {
+      CREDITO: "💳 Cartão de Crédito",
+      DEBITO: "💳 Cartão de Débito",
+      PIX: "📱 PIX",
+      DINHEIRO: "💵 Dinheiro",
+      TRANSFERENCIA: "🔄 Transferência",
+    }[dados.metodoPagamento] || "💳 " + dados.metodoPagamento;
+
+  templatePT += `*${metodoPagamentoText.split(" ")[0]} Método:* ${metodoPagamentoText.replace(/💳|📱|💵|🔄/g, "").trim()}\n`;
+
+  // 🆕 INFORMAÇÕES DO CARTÃO (se houver)
+  if (cartaoEncontrado) {
+    templatePT += `*🔸 Cartão:* ${cartaoEncontrado.nome}\n`;
+
+    // Calcular limite disponível e utilização
+    if (cartaoEncontrado.limiteDisponivel !== undefined) {
+      const limiteDisponivel = cartaoEncontrado.limiteDisponivel;
+      const utilizacaoPercentual = cartaoEncontrado.utilizacaoLimite || 0;
+
+      templatePT += `*📊 Limite disponível:* ${limiteDisponivel.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+      templatePT += `*📈 Utilização:* ${utilizacaoPercentual.toFixed(1)}%\n`;
+    } else if (
+      cartaoEncontrado.limite &&
+      cartaoEncontrado.totalGasto !== undefined
+    ) {
+      const limiteDisponivel =
+        cartaoEncontrado.limite - cartaoEncontrado.totalGasto;
+      const utilizacaoPercentual =
+        cartaoEncontrado.limite > 0
+          ? (cartaoEncontrado.totalGasto / cartaoEncontrado.limite) * 100
+          : 0;
+
+      templatePT += `*📊 Limite disponível:* ${limiteDisponivel.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+      templatePT += `*📈 Utilização:* ${utilizacaoPercentual.toFixed(1)}%\n`;
+    }
+  }
+
+  // 🆕 LIMITE DA CATEGORIA (buscar só na confirmação)
   if (userId) {
     const hoje = new Date();
     const mesReferencia = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
@@ -933,7 +976,7 @@ async function gerarMensagemConfirmacao(
       const percentualAtual = (gastoAtual / limite) * 100;
       const percentualNovo = (novoGasto / limite) * 100;
 
-      templatePT += `\n*📊 LIMITE DA CATEGORIA:*\n`;
+      templatePT += `*📊 LIMITE DA CATEGORIA:*\n`;
       templatePT += `   • Antes: ${gastoAtual.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} / ${limite.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} (${percentualAtual.toFixed(1)}%)\n`;
       templatePT += `   • Depois: ${novoGasto.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} / ${limite.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} (${percentualNovo.toFixed(1)}%)\n`;
 
@@ -943,10 +986,7 @@ async function gerarMensagemConfirmacao(
     }
   }
 
-  if (cartaoEncontrado) {
-    templatePT += `*🔸 Cartão:* ${cartaoEncontrado.nome}\n`;
-  }
-
+  // 🆕 COMPARTILHAMENTO (se houver)
   if (dados.ehCompartilhado && dados.nomeUsuarioCompartilhado) {
     const valorTotal = parseFloat(dados.valor);
     const valorCompartilhado = valorTotal / 2;
@@ -954,8 +994,10 @@ async function gerarMensagemConfirmacao(
 
     templatePT += `*👥 Compartilhado com:* ${dados.nomeUsuarioCompartilhado}\n`;
     templatePT += `*🤝 Sua parte:* ${valorUsuario.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+    templatePT += `*👤 Parte ${dados.nomeUsuarioCompartilhado}:* ${valorCompartilhado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
   }
 
+  // 🆕 PARCELAMENTO (se houver)
   if (dados.ehParcelado && dados.parcelas) {
     const valorParcela = parseFloat(dados.valor) / dados.parcelas;
     templatePT += `*🔢 Parcelamento:* ${dados.parcelas}x de ${valorParcela.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
@@ -1413,7 +1455,7 @@ async function processarComandoCategorias(
     if (categoriasPorTipo.DESPESA.length > 0) {
       templatePT += "*💸 DESPESAS:*\n";
       categoriasPorTipo.DESPESA.forEach((cat, i) => {
-        templatePT += `${i + 1}. ${cat.icone || "📌"} ${cat.nome}\n`;
+        templatePT += `${i + 1}. ${cat.nome}\n`;
       });
       templatePT += "\n";
     }
@@ -1421,7 +1463,7 @@ async function processarComandoCategorias(
     if (categoriasPorTipo.RECEITA.length > 0) {
       templatePT += "*💰 RECEITAS:*\n";
       categoriasPorTipo.RECEITA.forEach((cat, i) => {
-        templatePT += `${i + 1}. ${cat.icone || "📌"} ${cat.nome}\n`;
+        templatePT += `${i + 1}. ${cat.nome}\n`;
       });
     }
 
