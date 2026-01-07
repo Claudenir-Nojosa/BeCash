@@ -578,7 +578,7 @@ async function processarMensagemTexto(message: any) {
 
   // 🔥 DETECTAR COMANDO COM IA (PRIMEIRO)
   const comandoIA = await detectarComandoComIA(userMessage);
-
+  const idioma = comandoIA.idioma || detectarIdioma(userMessage);
   if (comandoIA.tipo && comandoIA.tipo !== "NENHUM") {
     console.log(
       `🤖 Comando detectado pela IA: ${comandoIA.tipo} (idioma: ${comandoIA.idioma})`
@@ -599,11 +599,7 @@ async function processarMensagemTexto(message: any) {
 
     // Processar comando detectado
     if (comandoIA.tipo === "LISTAR_CATEGORIAS") {
-      await processarComandoCategorias(
-        userPhone,
-        session.user.id,
-        comandoIA.idioma || "pt-BR"
-      );
+      await processarComandoCategorias(userPhone, session.user.id, idioma);
       return { status: "command_processed" };
     }
 
@@ -729,10 +725,16 @@ async function processarMensagemTexto(message: any) {
     console.log("📊 Dados extraídos:", dadosExtracao);
 
     if (!dadosExtracao.sucesso) {
-      await sendWhatsAppMessage(
-        userPhone,
-        `❌ ${dadosExtracao.erro}\n\n💡 Exemplo: "Gastei 50 no almoço"`
-      );
+      const idioma = detectarIdioma(userMessage);
+      let erroMsg = "";
+
+      if (idioma === "en-US") {
+        erroMsg = `❌ ${dadosExtracao.erro}\n\n💡 Example: "I spent 50 on lunch"`;
+      } else {
+        erroMsg = `❌ ${dadosExtracao.erro}\n\n💡 Exemplo: "Gastei 50 no almoço"`;
+      }
+
+      await sendWhatsAppMessage(userPhone, erroMsg);
       return { status: "extraction_failed" };
     }
 
