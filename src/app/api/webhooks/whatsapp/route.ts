@@ -362,7 +362,82 @@ async function processarConfirmacao(
   await sendWhatsAppMessage(userPhone, mensagemInvalida);
   return { status: "invalid_confirmation_response" };
 }
+function tentarFallbackExtracao(mensagem: string, idioma: string): ResultadoExtracao | null {
+  const texto = mensagem.toLowerCase();
+  
+  // Tentar encontrar qualquer número na mensagem
+  const numeros = texto.match(/\d+[\.,]?\d*/g);
+  if (!numeros || numeros.length === 0) {
+    console.log(`🔍 Fallback: Nenhum número encontrado`);
+    return null;
+  }
 
+  // Pegar o primeiro número (provavelmente o valor)
+  const valor = numeros[0].replace(",", ".");
+  console.log(`🔍 Fallback: Valor encontrado: ${valor}`);
+
+  // Tentar extrair descrição
+  let descricao = "";
+  const palavras = mensagem.split(/\s+/);
+  
+  // Procurar palavras após o número
+  const indexValor = palavras.findIndex(palavra => 
+    palavra.includes(valor.replace(".", ""))
+  );
+  
+  if (indexValor !== -1 && indexValor < palavras.length - 1) {
+    // Pegar as próximas 2-3 palavras após o número
+    descricao = palavras.slice(indexValor + 1, indexValor + 4).join(" ");
+    
+    // Remover palavras comuns
+    const palavrasComuns = ["on", "for", "at", "with", "using", "via", "my", "the", "reais", "real", "r$", "$"];
+    descricao = descricao.split(/\s+/)
+      .filter(palavra => !palavrasComuns.includes(palavra.toLowerCase()))
+      .join(" ");
+  }
+
+  if (!descricao || descricao.trim() === "") {
+    descricao = "Transação";
+  }
+
+  // Detectar tipo pelo contexto
+  let tipo = "DESPESA";
+  if (texto.includes("received") || texto.includes("earned") || 
+      texto.includes("recebi") || texto.includes("ganhei") ||
+      texto.includes("salary") || texto.includes("salário")) {
+    tipo = "RECEITA";
+  }
+
+  // Detectar método de pagamento
+  const metodoPagamento = extrairMetodoPagamentoInternacional(
+    mensagem,
+    false,
+    idioma
+  );
+
+  console.log(`🔍 Fallback resultado:`, {
+    tipo,
+    valor,
+    descricao,
+    metodoPagamento
+  });
+
+  return {
+    sucesso: true,
+    dados: {
+      tipo,
+      valor,
+      descricao: descricao.trim(),
+      metodoPagamento,
+      data: "hoje",
+      ehCompartilhado: false,
+      nomeUsuarioCompartilhado: undefined,
+      ehParcelado: false,
+      parcelas: undefined,
+      tipoParcelamento: undefined,
+    },
+  };
+}
 // 🔥 FUNÇÃO AUXILIAR: Processar mensagem de áudio
 async function processarAudioWhatsApp(audioMessage: any, userPhone: string) {
   try {
@@ -2424,66 +2499,46 @@ async function identificarCartao(texto: string, userId: string) {
 }
 function detectarIdioma(mensagem: string): string {
   const texto = mensagem.toLowerCase();
-
+  
   // Palavras-chave em inglês
   const palavrasIngles = [
-    "i",
-    "spent",
-    "paid",
-    "received",
-    "earned",
-    "bought",
-    "purchased",
-    "on",
-    "for",
-    "at",
-    "using",
-    "with",
-    "my",
-    "card",
-    "credit",
-    "debit",
-    "cash",
-    "money",
-    "dollars",
-    "usd",
+    "i", "spent", "paid", "received", "earned", "bought", "purchased",
+    "on", "for", "at", "using", "with", "my", "card", "credit",
+    "debit", "cash", "money", "dollars", "usd", "answer", "english"
   ];
-
+  
   // Palavras-chave em português
   const palavrasPortugues = [
-    "eu",
-    "gastei",
-    "paguei",
-    "recebi",
-    "ganhei",
-    "comprei",
-    "com",
-    "em",
-    "no",
-    "na",
-    "do",
-    "da",
-    "meu",
-    "minha",
-    "cartão",
-    "crédito",
-    "débito",
-    "pix",
-    "dinheiro",
-    "reais",
+    "eu", "gastei", "paguei", "recebi", "ganhei", "comprei",
+    "com", "em", "no", "na", "do", "da", "meu", "minha",
+    "cartão", "crédito", "débito", "pix", "dinheiro", "reais"
   ];
-
+  
   let contadorIngles = 0;
   let contadorPortugues = 0;
-
-  palavrasIngles.forEach((palavra) => {
-    if (texto.includes(palavra)) contadorIngles++;
+  
+  // Verificar palavras-chave (peso maior para verbos)
+  const verbosIngles = ["spent", "paid", "received", "earned", "bought"];
+  const verbosPortugues = ["gastei", "paguei", "recebi", "ganhei", "comprei"];
+  
+  verbosIngles.forEach(verbo => {
+    if (texto.includes(verbo)) contadorIngles += 3; // Peso maior
   });
-
-  palavrasPortugues.forEach((palavra) => {
-    if (texto.includes(palavra)) contadorPortugues++;
+  
+  verbosPortugues.forEach(verbo => {
+    if (texto.includes(verbo)) contadorPortugues += 3; // Peso maior
   });
-
+  
+  palavrasIngles.forEach(palavra => {
+    if (texto.includes(palavra)) contadorIngles += 1;
+  });
+  
+  palavrasPortugues.forEach(palavra => {
+    if (texto.includes(palavra)) contadorPortugues += 1;
+  });
+  
+  console.log(`🌐 Contagem idioma: Inglês=${contadorIngles}, Português=${contadorPortugues}`);
+  
   if (contadorIngles > contadorPortugues) {
     return "en-US";
   } else {
@@ -2562,7 +2617,7 @@ function extrairMetodoPagamentoInternacional(
 
 function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
   const texto = mensagem.toLowerCase().trim();
-  const idioma = detectarIdioma(mensagem); // Nova função
+  const idioma = detectarIdioma(mensagem);
 
   console.log(`🔍🔍🔍 DEBUG COMPLETO INICIADO 🔍🔍🔍`);
   console.log(`📨 Mensagem original: "${mensagem}"`);
@@ -2575,23 +2630,39 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
 
   console.log(`🎯 Detecções:`, { compartilhamento, parcelamento });
 
-  // 🔥 PADRÕES EM INGLÊS E PORTUGUÊS
+  // 🔥 PADRÕES EM INGLÊS MELHORADOS
   const padroesIngles = [
-    // 🔥 PADRÕES INGLÊS
-    /(?:i\s+)?(spent|paid|received|earned|bought|purchased)\s+([\d.,]+)\s+(?:reais|real|r\$|usd|\$)\s+(?:on|for|at)\s+(?:the\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+card|\s+using|\s+with|\s+at\s+|$)/i,
-    /(?:i\s+)?(spent|paid|received|earned)\s+([\d.,]+)\s+on\s+(?:the\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+card|\s+using|\s+with|\s+$)/i,
-    /(?:i\s+)?(spent|paid|received|earned)\s+([\d.,]+)\s+at\s+(?:the\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+card|\s+using|\s+with|\s+$)/i,
-    /(?:i\s+)?(spent|paid|received|earned)\s+([\d.,]+)\s+for\s+(?:the\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+card|\s+using|\s+with|\s+$)/i,
-    /(?:i\s+)?(bought|purchased)\s+([\d.,]+)\s+(?:of\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+card|\s+using|\s+with|\s+$)/i,
+    // 🔥 PADRÃO 1: "I spent 20 on ice cream"
+    /(?:i\s+)?(spent|paid|received|earned|bought|purchased)\s+([\d.,]+)\s+(?:reais?|r\$)?\s*(?:on|for|at|with)\s+(?:the\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+card|\s+using|\s+with|\s+via|\s+$)/i,
+    
+    // 🔥 PADRÃO 2: "I spent 20 on ice cream using my credit card"
+    /(?:i\s+)?(spent|paid|received|earned)\s+([\d.,]+)\s+(?:reais?|r\$)?\s*on\s+(?:the\s+)?([^,.\d]+)/i,
+    
+    // 🔥 PADRÃO 3: "I spent 20 at supermarket"
+    /(?:i\s+)?(spent|paid|received|earned)\s+([\d.,]+)\s+(?:reais?|r\$)?\s*at\s+(?:the\s+)?([^,.\d]+)/i,
+    
+    // 🔥 PADRÃO 4: "I spent 20 for lunch"
+    /(?:i\s+)?(spent|paid|received|earned)\s+([\d.,]+)\s+(?:reais?|r\$)?\s*for\s+(?:the\s+)?([^,.\d]+)/i,
+    
+    // 🔥 PADRÃO 5: "I bought 20 of ice cream"
+    /(?:i\s+)?(bought|purchased)\s+([\d.,]+)\s+(?:reais?|r\$)?\s*(?:of|of\s+the)?\s*([^,.\d]+)/i,
+    
+    // 🔥 PADRÃO 6: "Spent 20 on ice cream" (sem "I")
+    /(spent|paid|received|earned|bought|purchased)\s+([\d.,]+)\s+(?:reais?|r\$)?\s*(?:on|for|at)\s+(?:the\s+)?([^,.\d]+)/i,
+    
+    // 🔥 PADRÃO 7: Formato simples "20 on ice cream"
+    /([\d.,]+)\s+(?:reais?|r\$)?\s*(?:on|for|at)\s+(?:the\s+)?([^,.\d]+)/i,
   ];
 
   const padroesPortugues = [
     // 🔥 PADRÕES PORTUGUÊS (seus padrões existentes)
-    /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+reais\s+com\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
-    /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+reais\s+em\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
-    /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+reais\s+no\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
+    /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+reais?\s+com\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
+    /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+reais?\s+em\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
+    /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+reais?\s+no\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
     /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+r\$\s*([\d.,]+)\s+com\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
     /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+com\s+(.+)/i,
+    /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+no\s+(.+)/i,
+    /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+em\s+(.+)/i,
   ];
 
   // 🔥 ESCOLHER OS PADRÕES CORRETOS BASEADO NO IDIOMA
@@ -2605,7 +2676,7 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
 
   for (const padrao of padroesParaTestar) {
     const match = texto.match(padrao);
-    console.log(`🔍 Testando padrão ${padrao}:`, match);
+    console.log(`🔍 Testando padrão ${padrao}:`, match ? "MATCH!" : "null");
     if (match && (!melhorMatch || match[0].length > melhorMatch[0].length)) {
       melhorMatch = match;
       melhorPadrao = padrao.toString();
@@ -2618,32 +2689,94 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
   if (melhorMatch) {
     let acao, valor, descricao;
 
-    acao = melhorMatch[1];
-    valor = melhorMatch[2];
-    descricao = melhorMatch[3] ? melhorMatch[3].trim() : "";
+    // 🔥 AJUSTE PARA DIFERENTES FORMATOS DE MATCH
+    if (melhorMatch.length >= 4) {
+      // Formato padrão: acao, valor, descricao
+      acao = melhorMatch[1];
+      valor = melhorMatch[2];
+      descricao = melhorMatch[3] ? melhorMatch[3].trim() : "";
+    } else if (melhorMatch.length === 3) {
+      // Formato simples: valor, descricao
+      acao = "spent"; // Default
+      valor = melhorMatch[1];
+      descricao = melhorMatch[2] ? melhorMatch[2].trim() : "";
+    } else {
+      console.log(`❌ Formato de match inesperado:`, melhorMatch);
+      acao = "spent";
+      valor = "";
+      descricao = "";
+    }
 
     console.log(`📝 Dados brutos extraídos:`, { acao, valor, descricao });
 
-    // 🔥 DETECTAR TIPO BASEADO NO IDIOMA
+    // 🔥 LIMPEZA DA DESCRIÇÃO
+    if (descricao) {
+      // Remover "using my" ou "with my" no final
+      descricao = descricao.replace(/\s+(?:using|with)\s+my\s+.*$/i, "");
+      // Remover "via" no final
+      descricao = descricao.replace(/\s+via\s+.*$/i, "");
+      // Remover vírgulas extras
+      descricao = descricao.replace(/\s*,\s*$/, "");
+      descricao = descricao.trim();
+    }
+
+    // 🔥 DETECTAR TIPO BASEADO NO IDIOMA E AÇÃO
     let tipo;
     if (idioma === "en-US") {
       tipo =
-        acao.includes("received") || acao.includes("earned")
+        (acao && (acao.includes("received") || acao.includes("earned")))
           ? "RECEITA"
           : "DESPESA";
     } else {
       tipo =
-        acao.includes("recebi") || acao.includes("ganhei")
+        (acao && (acao.includes("recebi") || acao.includes("ganhei")))
           ? "RECEITA"
           : "DESPESA";
     }
 
-    // 🔥 DETECTAR MÉTODO DE PAGAMENTO EM INGLÊS
+    // Se não conseguiu detectar ação, assumir despesa
+    if (!acao || acao === "") {
+      tipo = "DESPESA";
+    }
+
+    // 🔥 DETECTAR MÉTODO DE PAGAMENTO
     const metodoPagamentoCorrigido = extrairMetodoPagamentoInternacional(
       mensagem,
       parcelamento.ehParcelado,
       idioma
     );
+
+    // 🔥 VALIDAÇÃO FINAL DOS DADOS
+    if (!valor || valor === "") {
+      console.log(`❌ Valor não extraído`);
+      return gerarErroIdioma(idioma, "Não foi possível extrair o valor da mensagem.");
+    }
+
+    if (!descricao || descricao === "") {
+      console.log(`❌ Descrição não extraída`);
+      // Tentar extrair descrição da mensagem original
+      const palavras = mensagem.split(/\s+/);
+      const possiveisDescricoes = palavras.filter(
+        (palavra, index) => 
+          index > 1 && // Ignorar "I spent" ou similar
+          !/\d+/.test(palavra) && // Não números
+          !["on", "for", "at", "with", "using", "via", "my", "the"].includes(palavra.toLowerCase())
+      );
+      
+      if (possiveisDescricoes.length > 0) {
+        descricao = possiveisDescricoes.join(" ").trim();
+        console.log(`🔄 Descrição extraída do contexto: "${descricao}"`);
+      } else {
+        descricao = "Transação";
+      }
+    }
+
+    console.log(`✅ Dados processados:`, {
+      tipo,
+      valor,
+      descricao,
+      metodoPagamento: metodoPagamentoCorrigido,
+    });
 
     return {
       sucesso: true,
@@ -2662,21 +2795,17 @@ function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
     };
   }
 
-  // 🔥 MENSAGEM DE ERRO MULTI-IDIOMA
-  let erroMsg = "";
-  if (idioma === "en-US") {
-    erroMsg =
-      "I didn't understand the format. Use: 'I spent 50 on lunch' or 'I received 1000 salary' or 'R$ 20 at the supermarket'";
-  } else {
-    erroMsg =
-      "Não entendi o formato. Use: 'Gastei 50 no almoço' ou 'Recebi 1000 salário' ou 'R$ 20 no mercado'";
+  // 🔥 SE NENHUM PADRÃO FUNCIONOU, TENTAR FALLBACK INTELIGENTE
+  console.log(`❌ Nenhum padrão funcionou, tentando fallback...`);
+  
+  const resultadoFallback = tentarFallbackExtracao(mensagem, idioma);
+  if (resultadoFallback) {
+    console.log(`✅ Fallback bem-sucedido!`);
+    return resultadoFallback;
   }
 
-  console.log(`❌ Nenhum padrão funcionou`);
-  return {
-    sucesso: false,
-    erro: erroMsg,
-  };
+  // 🔥 MENSAGEM DE ERRO MULTI-IDIOMA
+  return gerarErroIdioma(idioma);
 }
 
 // Função para criar um lançamento via WhatsApp
@@ -3267,6 +3396,30 @@ export async function POST(request: NextRequest) {
     console.error("💥 Erro geral no webhook:", error);
     return NextResponse.json({ status: "received" });
   }
+}
+// 🔥 FUNÇÃO AUXILIAR: Gerar erro no idioma correto
+function gerarErroIdioma(idioma: string, mensagemPersonalizada?: string): ResultadoExtracao {
+  let erroMsg = "";
+  
+  if (idioma === "en-US") {
+    if (mensagemPersonalizada) {
+      erroMsg = `I didn't understand: "${mensagemPersonalizada}"`;
+    } else {
+      erroMsg = "I didn't understand the format. Use: 'I spent 50 on lunch' or 'I received 1000 salary' or 'R$ 20 at the supermarket'";
+    }
+  } else {
+    if (mensagemPersonalizada) {
+      erroMsg = `Não entendi: "${mensagemPersonalizada}"`;
+    } else {
+      erroMsg = "Não entendi o formato. Use: 'Gastei 50 no almoço' ou 'Recebi 1000 salário' ou 'R$ 20 no mercado'";
+    }
+  }
+
+  console.log(`❌ ${erroMsg}`);
+  return {
+    sucesso: false,
+    erro: erroMsg,
+  };
 }
 
 export async function GET(request: NextRequest) {
