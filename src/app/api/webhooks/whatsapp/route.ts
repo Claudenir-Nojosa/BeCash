@@ -651,7 +651,7 @@ async function extrairDadosComIA(
     return extrairDadosLancamento(mensagem);
   }
 
-const promptPT = `Você é um assistente financeiro. Extraia os dados desta mensagem financeira:
+  const promptPT = `Você é um assistente financeiro. Extraia os dados desta mensagem financeira:
 
 MENSAGEM: "${mensagem}"
 
@@ -1455,13 +1455,10 @@ function formatarValorComMoeda(
   idioma: string = "pt-BR"
 ): string {
   if (idioma === "en-US") {
-    // Converter de reais para dólares (taxa fictícia de 5.0 para exemplo)
-    const taxaConversao = 5.0;
-    const valorEmDolar = valor / taxaConversao;
-
-    return valorEmDolar.toLocaleString("en-US", {
+    // ✅ CORREÇÃO: Mantém o valor e só muda a formatação para USD
+    return valor.toLocaleString("en-US", {
       style: "currency",
-      currency: "USD",
+      currency: "USD", // Mostra como dólar, mas não converte o valor
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
@@ -3115,7 +3112,6 @@ async function createLancamento(
     console.log(
       `📅 Data do lançamento (Brasília): ${dataLancamento.toLocaleDateString("pt-BR")}`
     );
-
 
     let cartaoId = null;
     let usuarioAlvo = null;
