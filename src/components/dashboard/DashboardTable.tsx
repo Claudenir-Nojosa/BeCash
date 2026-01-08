@@ -95,13 +95,14 @@ export default function DashboardTable({
     }
   };
 
-  const formatarMoeda = (valor: number) => {
-    const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
-    return new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency: "BRL",
-    }).format(valor);
-  };
+const formatarMoeda = (valor: number) => {
+  const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
+  const currency = i18n.language === "pt" ? "BRL" : "USD"; // ✅ Dinâmico
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: currency,
+  }).format(valor);
+};
 
   const formatarData = (data: Date) => {
     const locale = i18n.language === "pt" ? "pt-BR" : "en-US";

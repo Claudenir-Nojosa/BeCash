@@ -352,13 +352,14 @@ export default function DashboardPage() {
   }
 
   // ✅ Função para formatar moeda baseada no idioma
-  const formatarMoeda = (valor: number) => {
-    const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
-    return new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency: "BRL",
-    }).format(valor);
-  };
+const formatarMoeda = (valor: number) => {
+  const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
+  const currency = i18n.language === "pt" ? "BRL" : "USD"; // ✅ Dinâmico
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: currency,
+  }).format(valor);
+};
 
   const obterStatusLimites = () => {
     const limitesEstourados = limites.filter(

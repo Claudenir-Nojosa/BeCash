@@ -262,13 +262,14 @@ export default function LimitesPage() {
     }
   };
 
-  const formatarMoeda = (valor: number) => {
-    const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
-    return new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency: "BRL",
-    }).format(valor);
-  };
+ const formatarMoeda = (valor: number) => {
+  const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
+  const currency = i18n.language === "pt" ? "BRL" : "USD"; // ✅ Dinâmico
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: currency,
+  }).format(valor);
+};
 
   const obterStatusLimite = (limite: LimiteCategoria) => {
     const percentual = (limite.gastoAtual / limite.limiteMensal) * 100;

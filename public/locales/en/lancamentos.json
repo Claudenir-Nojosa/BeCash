@@ -23,7 +23,9 @@
       "despesas": "Expenses",
       "saldo": "Balance",
       "receitasPagas": "Paid income",
-      "despesasPagas": "Paid expenses"
+      "despesasPagas": "Paid expenses",
+      "faltaReceber": "Income to receive",
+      "faltaPagar": "Expenses to pay"
     },
     "acoes": {
       "novoLancamento": "New Transaction",

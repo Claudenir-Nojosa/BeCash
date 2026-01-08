@@ -10,12 +10,6 @@ import {
   Clock,
   TrendingUp,
   TrendingDown,
-  CreditCard,
-  Wallet,
-  Repeat,
-  Calendar,
-  X,
-  Sparkles,
   Search,
   MoreHorizontal,
   Share2,
@@ -145,7 +139,8 @@ interface Lancamento {
 }
 
 export default function LancamentosPage() {
-  const { t } = useTranslation("lancamentos");
+  const { t, i18n } = useTranslation("lancamentos");
+  const currencySymbol = i18n.language === "en" ? "$" : "R$";
   const [carregandoVisualizacao, setCarregandoVisualizacao] = useState<
     string | null
   >(null);
@@ -278,6 +273,7 @@ export default function LancamentosPage() {
   const calcularMesReferenciaLancamento = (
     lancamento: Lancamento
   ): { ano: number; mes: number } => {
+    // Para lançamentos que não são de cartão de crédito, usa a data do lançamento
     if (lancamento.metodoPagamento !== "CREDITO" || !lancamento.cartao) {
       const data = new Date(lancamento.data);
       return {
@@ -286,6 +282,7 @@ export default function LancamentosPage() {
       };
     }
 
+    // Para cartão de crédito, calcula o mês de PAGAMENTO da fatura
     const dataLancamento = new Date(lancamento.data);
     const diaLancamento = dataLancamento.getDate();
     const diaFechamento = lancamento.cartao.diaFechamento || 1;
@@ -293,12 +290,20 @@ export default function LancamentosPage() {
     let ano = dataLancamento.getFullYear();
     let mes = dataLancamento.getMonth() + 1;
 
+    // Se a compra foi depois do fechamento, vai para a próxima fatura
     if (diaLancamento > diaFechamento) {
       mes += 1;
       if (mes > 12) {
         mes = 1;
         ano += 1;
       }
+    }
+
+    // Adiciona +1 mês porque o pagamento é no mês seguinte ao fechamento
+    mes += 1;
+    if (mes > 12) {
+      mes = 1;
+      ano += 1;
     }
 
     return { ano, mes };
@@ -1039,10 +1044,10 @@ export default function LancamentosPage() {
                     {t("categorias.estatisticas.receitas")}
                   </p>
                   <p className="text-lg sm:text-xl md:text-2xl font-bold text-emerald-600 dark:text-green-400">
-                    R$ {totalReceitas.toFixed(2)}
+                    {currencySymbol} {totalReceitas.toFixed(2)}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    Falta receber: R${" "}
+                    {t("categorias.estatisticas.faltaReceber")} {currencySymbol}{" "}
                     {(totalReceitas - receitasPagas).toFixed(2)}
                   </p>
                 </div>
@@ -1062,10 +1067,11 @@ export default function LancamentosPage() {
                     {t("categorias.estatisticas.despesas")}
                   </p>
                   <p className="text-lg sm:text-xl md:text-2xl font-bold text-red-600 dark:text-red-400">
-                    R$ {totalDespesas.toFixed(2)}
+                    {currencySymbol} {totalDespesas.toFixed(2)}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    Falta pagar: R$ {(totalDespesas - despesasPagas).toFixed(2)}
+                    {t("categorias.estatisticas.faltaPagar")} {currencySymbol}{" "}
+                    {(totalDespesas - despesasPagas).toFixed(2)}
                   </p>
                 </div>
                 <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-100 dark:bg-red-600 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
@@ -1086,7 +1092,7 @@ export default function LancamentosPage() {
                   <p
                     className={`text-lg sm:text-xl md:text-2xl font-bold ${saldo >= 0 ? "text-emerald-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
                   >
-                    R$ {saldo.toFixed(2)}
+                    {currencySymbol} {saldo.toFixed(2)}
                   </p>
                 </div>
                 <div
@@ -1228,7 +1234,7 @@ export default function LancamentosPage() {
                                   : "text-red-600 dark:text-red-400"
                               }`}
                             >
-                              R$ {lancamento.valor.toFixed(2)}
+                              {currencySymbol} {lancamento.valor.toFixed(2)}
                             </span>
                           </td>
 
@@ -1724,7 +1730,7 @@ export default function LancamentosPage() {
               </Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">
-                  R$
+                  {currencySymbol}
                 </span>
                 <Input
                   id="valor"
@@ -1878,7 +1884,8 @@ export default function LancamentosPage() {
                       htmlFor="valorCompartilhado"
                       className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                     >
-                      {t("categorias.formulario.valorCompartilhado")} (R$)
+                      {t("categorias.formulario.valorCompartilhado")} (
+                      {currencySymbol})
                     </Label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">

@@ -285,13 +285,14 @@ export default function DetalhesCartaoPage() {
     return lancamentosAtivos.reduce((sum, l) => sum + l.valor, 0);
   };
 
-  const formatarMoeda = (valor: number) => {
-    const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
-    return new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency: "BRL",
-    }).format(valor);
-  };
+const formatarMoeda = (valor: number) => {
+  const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
+  const currency = i18n.language === "pt" ? "BRL" : "USD"; // ✅ Dinâmico
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: currency,
+  }).format(valor);
+};
 
   const formatarData = (dataString: string) => {
     if (!dataString || dataString === "Invalid Date") return "Data inválida";

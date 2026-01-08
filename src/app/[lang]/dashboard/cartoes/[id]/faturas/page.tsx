@@ -152,9 +152,10 @@ export default function FaturasPage() {
 
   const formatarMoeda = (v: number) => {
     const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
+     const currency = i18n.language === "pt" ? "BRL" : "USD"; 
     return new Intl.NumberFormat(locale, {
       style: "currency",
-      currency: "BRL",
+       currency: currency,
     }).format(v);
   };
 

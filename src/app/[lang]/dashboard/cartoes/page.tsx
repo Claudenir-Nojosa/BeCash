@@ -61,7 +61,190 @@ import { Loading } from "@/components/ui/loading-barrinhas";
 import { FormEditarCartao } from "@/components/shared/FormEditarCartao";
 import { Cartao } from "../../../../../types/types";
 
+// Mova o componente FormularioCartao para fora do componente principal
+const FormularioCartao = ({
+  formData,
+  handleChange,
+  handleCriarCartao,
+  setSheetAberto,
+  enviando,
+  BANDEIRAS,
+  CORES,
+  t,
+}: {
+  formData: any;
+  handleChange: (field: string, value: string) => void;
+  handleCriarCartao: (e: React.FormEvent) => Promise<void>;
+  setSheetAberto: (open: boolean) => void;
+  enviando: boolean;
+  BANDEIRAS: Array<{ value: string; label: string }>;
+  CORES: Array<{ value: string; label: string }>;
+  t: (key: string) => string;
+}) => (
+  <form onSubmit={handleCriarCartao} className="space-y-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="space-y-2">
+        <Label htmlFor="nome" className="text-gray-700 dark:text-gray-300">
+          {t("formulario.nomeLabel")}
+        </Label>
+        <Input
+          id="nome"
+          value={formData.nome}
+          onChange={(e) => handleChange("nome", e.target.value)}
+          placeholder={t("formulario.nomePlaceholder")}
+          className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
+          required
+        />
+      </div>
 
+      <div className="space-y-2">
+        <Label htmlFor="bandeira" className="text-gray-700 dark:text-gray-300">
+          {t("formulario.bandeiraLabel")}
+        </Label>
+        <Select
+          value={formData.bandeira}
+          onValueChange={(value) => handleChange("bandeira", value)}
+          required
+        >
+          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
+            <SelectValue placeholder={t("formulario.bandeiraPlaceholder")} />
+          </SelectTrigger>
+          <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+            {BANDEIRAS.map((bandeira) => (
+              <SelectItem key={bandeira.value} value={bandeira.value}>
+                {bandeira.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+
+    <div className="space-y-2">
+      <Label htmlFor="limite" className="text-gray-700 dark:text-gray-300">
+        {t("formulario.limiteLabel")}
+      </Label>
+      <Input
+        id="limite"
+        type="number"
+        step="0.01"
+        min="0"
+        value={formData.limite}
+        onChange={(e) => handleChange("limite", e.target.value)}
+        placeholder={t("formulario.limitePlaceholder")}
+        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
+        required
+      />
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="space-y-2">
+        <Label
+          htmlFor="diaFechamento"
+          className="text-gray-700 dark:text-gray-300"
+        >
+          {t("formulario.diaFechamentoLabel")}
+        </Label>
+        <Input
+          id="diaFechamento"
+          type="number"
+          min="1"
+          max="31"
+          value={formData.diaFechamento}
+          onChange={(e) => handleChange("diaFechamento", e.target.value)}
+          placeholder={t("formulario.diaFechamentoPlaceholder")}
+          className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
+          required
+        />
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          {t("formulario.diaFechamentoHelper")}
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <Label
+          htmlFor="diaVencimento"
+          className="text-gray-700 dark:text-gray-300"
+        >
+          {t("formulario.diaVencimentoLabel")}
+        </Label>
+        <Input
+          id="diaVencimento"
+          type="number"
+          min="1"
+          max="31"
+          value={formData.diaVencimento}
+          onChange={(e) => handleChange("diaVencimento", e.target.value)}
+          placeholder={t("formulario.diaVencimentoPlaceholder")}
+          className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
+          required
+        />
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          {t("formulario.diaVencimentoHelper")}
+        </p>
+      </div>
+    </div>
+
+    <div className="space-y-2">
+      <Label htmlFor="cor" className="text-gray-700 dark:text-gray-300">
+        {t("formulario.corLabel")}
+      </Label>
+      <Select
+        value={formData.cor}
+        onValueChange={(value) => handleChange("cor", value)}
+      >
+        <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
+          <SelectValue placeholder={t("formulario.corPlaceholder")} />
+        </SelectTrigger>
+        <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+          {CORES.map((cor) => (
+            <SelectItem key={cor.value} value={cor.value}>
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-4 h-4 rounded-full border border-gray-300 dark:border-gray-600"
+                  style={{ backgroundColor: cor.value }}
+                />
+                {cor.label}
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+
+    <div className="space-y-2">
+      <Label htmlFor="observacoes" className="text-gray-700 dark:text-gray-300">
+        {t("formulario.observacoesLabel")}
+      </Label>
+      <Textarea
+        id="observacoes"
+        value={formData.observacoes}
+        onChange={(e) => handleChange("observacoes", e.target.value)}
+        placeholder={t("formulario.observacoesPlaceholder")}
+        rows={3}
+        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
+      />
+    </div>
+
+    <div className="flex gap-4 pt-4">
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => setSheetAberto(false)}
+        className="flex-1 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+      >
+        {t("botoes.cancelar")}
+      </Button>
+      <Button
+        type="submit"
+        disabled={enviando}
+        className="flex-1 bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white"
+      >
+        {enviando ? t("estados.criando") : t("botoes.criar")}
+      </Button>
+    </div>
+  </form>
+);
 
 export default function CartoesPage() {
   const router = useRouter();
@@ -270,183 +453,12 @@ export default function CartoesPage() {
 
   const formatarMoeda = (valor: number) => {
     const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
+    const currency = i18n.language === "pt" ? "BRL" : "USD"; // ✅ Dinâmico
     return new Intl.NumberFormat(locale, {
       style: "currency",
-      currency: "BRL",
+      currency: currency,
     }).format(valor);
   };
-
-  const FormularioCartao = () => (
-    <form onSubmit={handleCriarCartao} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <Label htmlFor="nome" className="text-gray-700 dark:text-gray-300">
-            {t("formulario.nomeLabel")}
-          </Label>
-          <Input
-            id="nome"
-            value={formData.nome}
-            onChange={(e) => handleChange("nome", e.target.value)}
-            placeholder={t("formulario.nomePlaceholder")}
-            className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label
-            htmlFor="bandeira"
-            className="text-gray-700 dark:text-gray-300"
-          >
-            {t("formulario.bandeiraLabel")}
-          </Label>
-          <Select
-            value={formData.bandeira}
-            onValueChange={(value) => handleChange("bandeira", value)}
-            required
-          >
-            <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
-              <SelectValue placeholder={t("formulario.bandeiraPlaceholder")} />
-            </SelectTrigger>
-            <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
-              {BANDEIRAS.map((bandeira) => (
-                <SelectItem key={bandeira.value} value={bandeira.value}>
-                  {bandeira.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="limite" className="text-gray-700 dark:text-gray-300">
-          {t("formulario.limiteLabel")}
-        </Label>
-        <Input
-          id="limite"
-          type="number"
-          step="0.01"
-          min="0"
-          value={formData.limite}
-          onChange={(e) => handleChange("limite", e.target.value)}
-          placeholder={t("formulario.limitePlaceholder")}
-          className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
-          required
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <Label
-            htmlFor="diaFechamento"
-            className="text-gray-700 dark:text-gray-300"
-          >
-            {t("formulario.diaFechamentoLabel")}
-          </Label>
-          <Input
-            id="diaFechamento"
-            type="number"
-            min="1"
-            max="31"
-            value={formData.diaFechamento}
-            onChange={(e) => handleChange("diaFechamento", e.target.value)}
-            placeholder={t("formulario.diaFechamentoPlaceholder")}
-            className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
-            required
-          />
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {t("formulario.diaFechamentoHelper")}
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <Label
-            htmlFor="diaVencimento"
-            className="text-gray-700 dark:text-gray-300"
-          >
-            {t("formulario.diaVencimentoLabel")}
-          </Label>
-          <Input
-            id="diaVencimento"
-            type="number"
-            min="1"
-            max="31"
-            value={formData.diaVencimento}
-            onChange={(e) => handleChange("diaVencimento", e.target.value)}
-            placeholder={t("formulario.diaVencimentoPlaceholder")}
-            className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
-            required
-          />
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {t("formulario.diaVencimentoHelper")}
-          </p>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="cor" className="text-gray-700 dark:text-gray-300">
-          {t("formulario.corLabel")}
-        </Label>
-        <Select
-          value={formData.cor}
-          onValueChange={(value) => handleChange("cor", value)}
-        >
-          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
-            <SelectValue placeholder={t("formulario.corPlaceholder")} />
-          </SelectTrigger>
-          <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
-            {CORES.map((cor) => (
-              <SelectItem key={cor.value} value={cor.value}>
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-4 h-4 rounded-full border border-gray-300 dark:border-gray-600"
-                    style={{ backgroundColor: cor.value }}
-                  />
-                  {cor.label}
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label
-          htmlFor="observacoes"
-          className="text-gray-700 dark:text-gray-300"
-        >
-          {t("formulario.observacoesLabel")}
-        </Label>
-        <Textarea
-          id="observacoes"
-          value={formData.observacoes}
-          onChange={(e) => handleChange("observacoes", e.target.value)}
-          placeholder={t("formulario.observacoesPlaceholder")}
-          rows={3}
-          className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
-        />
-      </div>
-
-      <div className="flex gap-4 pt-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => setSheetAberto(false)}
-          className="flex-1 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-        >
-          {t("botoes.cancelar")}
-        </Button>
-        <Button
-          type="submit"
-          disabled={enviando}
-          className="flex-1 bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white"
-        >
-          {enviando ? t("estados.criando") : t("botoes.criar")}
-        </Button>
-      </div>
-    </form>
-  );
 
   if (carregando) {
     return (
@@ -492,7 +504,16 @@ export default function CartoesPage() {
                     {t("formulario.descricaoNovo")}
                   </SheetDescription>
                 </SheetHeader>
-                <FormularioCartao />
+                <FormularioCartao
+                  formData={formData}
+                  handleChange={handleChange}
+                  handleCriarCartao={handleCriarCartao}
+                  setSheetAberto={setSheetAberto}
+                  enviando={enviando}
+                  BANDEIRAS={BANDEIRAS}
+                  CORES={CORES}
+                  t={t}
+                />
               </SheetContent>
             </Sheet>
           </div>
@@ -527,7 +548,16 @@ export default function CartoesPage() {
                       {t("formulario.descricaoNovo")}
                     </SheetDescription>
                   </SheetHeader>
-                  <FormularioCartao />
+                  <FormularioCartao
+                    formData={formData}
+                    handleChange={handleChange}
+                    handleCriarCartao={handleCriarCartao}
+                    setSheetAberto={setSheetAberto}
+                    enviando={enviando}
+                    BANDEIRAS={BANDEIRAS}
+                    CORES={CORES}
+                    t={t}
+                  />
                 </SheetContent>
               </Sheet>
             </CardContent>

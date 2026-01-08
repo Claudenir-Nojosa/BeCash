@@ -65,7 +65,7 @@ import { Loading } from "@/components/ui/loading-barrinhas";
 export default function MetasPage() {
   const router = useRouter();
   const { data: session } = useSession();
-  const { t } = useTranslation("metas");
+  const { t, i18n } = useTranslation("metas");
   const [colaboradoresCarregando, setColaboradoresCarregando] = useState<
     Set<string>
   >(new Set());
@@ -331,13 +331,15 @@ export default function MetasPage() {
       toast.error(t("erros.adicionarValor"));
     }
   };
-
-  const formatarMoeda = (valor: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(valor);
-  };
+  const currencySymbol = i18n.language === "en" ? "$" : "R$";
+ const formatarMoeda = (valor: number) => {
+  const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
+  const currency = i18n.language === "pt" ? "BRL" : "USD"; // ✅ Dinâmico
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: currency,
+  }).format(valor);
+};
 
   const formatarData = (data: Date) => {
     return new Date(data).toLocaleDateString("pt-BR");
@@ -871,7 +873,7 @@ export default function MetasPage() {
                           <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-700 p-1">
                             <div className="relative">
                               <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 text-xs">
-                                R$
+                                {currencySymbol}
                               </span>
                               <Input
                                 type="number"

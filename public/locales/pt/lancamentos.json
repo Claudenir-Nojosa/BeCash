@@ -23,7 +23,9 @@
       "despesas": "Despesas",
       "saldo": "Saldo",
       "receitasPagas": "Receitas pagas",
-      "despesasPagas": "Despesas pagas"
+      "despesasPagas": "Despesas pagas",
+      "faltaReceber": "Falta receber",
+      "faltaPagar": "Falta pagar"
     },
     "acoes": {
       "novoLancamento": "Novo Lançamento",
