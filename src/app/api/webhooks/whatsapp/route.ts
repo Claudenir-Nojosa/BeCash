@@ -641,6 +641,157 @@ async function enviarMensagemAjuda(
   await sendWhatsAppMessage(userPhone, templatePT);
 }
 
+// 🔥 NOVA FUNÇÃO: Extrair dados com IA (mais preciso e flexível)
+async function extrairDadosComIA(
+  mensagem: string,
+  idioma: string
+): Promise<ResultadoExtracao> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.log("⚠️ Sem API key, usando fallback regex");
+    return extrairDadosLancamento(mensagem);
+  }
+
+const promptPT = `Você é um assistente financeiro. Extraia os dados desta mensagem financeira:
+
+MENSAGEM: "${mensagem}"
+
+REGRAS DE EXTRAÇÃO:
+1. TIPO: Identifique se é DESPESA ou RECEITA
+   - Despesas: gastei, paguei, comprei, conta, fatura, etc
+   - Receitas: recebi, ganhei, salário, etc
+
+2. VALOR: Extraia o valor monetário (apenas números)
+   - Exemplos: "99,90" → "99.90", "104,20" → "104.20", "1 real" → "1"
+
+3. DESCRIÇÃO: Extraia O QUE foi pago/recebido (máximo 3-4 palavras)
+   - "internet" → "Internet"
+   - "conta da luz" → "Conta de luz"
+   - "papagaia" ou "pet" → "Pet"
+   - "almoço" → "Almoço"
+   - SE o usuário mencionar explicitamente uma categoria, USE como descrição
+   - NUNCA use "Transação" como descrição - sempre extraia o que foi comprado
+
+4. CATEGORIA_SUGERIDA: Se o usuário mencionar uma categoria explicitamente
+   - "use a categoria pet" → "pet"
+   - "categoria é casa" → "casa"
+   - "categoria alimentação" → "alimentação"
+   - Se não mencionar, deixe null
+
+5. MÉTODO DE PAGAMENTO: Identifique como foi pago
+   - PIX, CREDITO, DEBITO, DINHEIRO, TRANSFERENCIA
+   - Default: PIX
+
+IMPORTANTE:
+- Seja inteligente: "papagaia" é um pet, "internet" é conta de casa, "luz" é conta de casa
+- A descrição deve ser curta e clara
+- NUNCA retorne "Transação" como descrição - isso é muito genérico
+- Use o contexto para entender: "minha papagaia, que é minha pet" → descrição: "Pet"
+
+RESPONDA APENAS JSON (sem markdown):
+{
+  "tipo": "DESPESA" | "RECEITA",
+  "valor": "número",
+  "descricao": "texto curto",
+  "categoriaSugerida": "nome da categoria" | null,
+  "metodoPagamento": "PIX" | "CREDITO" | "DEBITO" | "DINHEIRO" | "TRANSFERENCIA"
+}`;
+
+  const promptEN = `You are a financial assistant. Extract data from this financial message:
+
+MESSAGE: "${mensagem}"
+
+EXTRACTION RULES:
+1. TYPE: Identify if it's EXPENSE (DESPESA) or INCOME (RECEITA)
+   - Expenses: spent, paid, bought, bill, etc
+   - Income: received, earned, salary, etc
+
+2. AMOUNT: Extract monetary value (numbers only)
+   - Examples: "20 reais" → "20", "50.50" → "50.50"
+
+3. DESCRIPTION: Extract WHAT was paid/received (max 3-4 words)
+   - "ice cream" → "Ice cream"
+   - "lunch" → "Lunch"
+   - IF user explicitly mentions a category, USE it as description
+
+4. SUGGESTED_CATEGORY: If user explicitly mentions a category
+   - "use pet category" → "pet"
+   - "category is food" → "food"
+   - If not mentioned, leave null
+
+5. PAYMENT METHOD: Identify how it was paid
+   - PIX, CREDITO, DEBITO, DINHEIRO, TRANSFERENCIA
+   - Default: PIX
+
+IMPORTANT:
+- Be smart: understand context
+- Description should be short and clear
+
+RESPOND ONLY JSON (no markdown):
+{
+  "tipo": "DESPESA" | "RECEITA",
+  "valor": "number",
+  "descricao": "short text",
+  "categoriaSugerida": "category name" | null,
+  "metodoPagamento": "PIX" | "CREDITO" | "DEBITO" | "DINHEIRO" | "TRANSFERENCIA"
+}`;
+
+  const prompt = idioma === "en-US" ? promptEN : promptPT;
+
+  try {
+    console.log(`🤖 Extraindo dados com IA (${idioma})...`);
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-3-haiku-20240307",
+        max_tokens: 300,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Claude API: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const resultado = data.content[0].text.trim();
+    const jsonLimpo = resultado.replace(/```json|```/g, "").trim();
+    const dadosExtraidos = JSON.parse(jsonLimpo);
+
+    console.log(`✅ Dados extraídos pela IA:`, dadosExtraidos);
+
+    // Detecções adicionais
+    const compartilhamento = detectarCompartilhamento(mensagem);
+    const parcelamento = detectarParcelamento(mensagem);
+
+    return {
+      sucesso: true,
+      dados: {
+        tipo: dadosExtraidos.tipo,
+        valor: dadosExtraidos.valor.toString().replace(",", "."),
+        descricao: dadosExtraidos.descricao,
+        metodoPagamento: dadosExtraidos.metodoPagamento,
+        data: "hoje",
+        ehCompartilhado: compartilhamento.ehCompartilhado,
+        nomeUsuarioCompartilhado: compartilhamento.nomeUsuario,
+        ehParcelado: parcelamento.ehParcelado,
+        parcelas: parcelamento.parcelas,
+        tipoParcelamento: parcelamento.tipoParcelamento,
+        categoriaSugerida: dadosExtraidos.categoriaSugerida, // 🔥 NOVO CAMPO
+      },
+    };
+  } catch (error) {
+    console.error("❌ Erro na extração com IA:", error);
+    console.log("⚠️ Fallback para extração regex");
+    return extrairDadosLancamento(mensagem);
+  }
+}
+
 // 🔥 FUNÇÃO PRINCIPAL MODIFICADA COM CONFIRMAÇÃO
 
 async function processarMensagemTexto(message: any) {
@@ -812,7 +963,7 @@ async function processarMensagemTexto(message: any) {
   // 🔥 PROCESSAR NOVO LANÇAMENTO
   if (userMessage && userPhone) {
     // Extrair dados
-    const dadosExtracao = extrairDadosLancamento(userMessage);
+    const dadosExtracao = await extrairDadosComIA(userMessage, idiomaPreferido);
     console.log("📊 Dados extraídos:", dadosExtracao);
 
     if (!dadosExtracao.sucesso) {
@@ -2965,8 +3116,6 @@ async function createLancamento(
       `📅 Data do lançamento (Brasília): ${dataLancamento.toLocaleDateString("pt-BR")}`
     );
 
-    // Limpar descrição
-    const descricaoLimpa = await limparDescricaoComClaude(dados.descricao);
 
     let cartaoId = null;
     let usuarioAlvo = null;
