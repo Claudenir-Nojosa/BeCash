@@ -31,7 +31,7 @@ type DadosLancamento = {
   ehParcelado?: boolean;
   parcelas?: number;
   tipoParcelamento?: string;
-  categoriaSugerida?: string; // 🔥 ADICIONE ESTA LINHA
+  categoriaSugerida?: string;
 };
 
 type ExtracaoSucesso = {
@@ -119,8 +119,7 @@ async function getUserByPhone(userPhone: string) {
       console.log(`📞 Telefone no banco: ${usuario.telefone}`);
 
       // 🔥 OBTER IDIOMA DAS CONFIGURAÇÕES
-      const idiomaPreferido =
-        usuario.configuracoesUsuarios?.[0]?.idioma;
+      const idiomaPreferido = usuario.configuracoesUsuarios?.[0]?.idioma;
       console.log(`🌐 Idioma preferido do usuário: ${idiomaPreferido}`);
 
       return {
@@ -244,151 +243,6 @@ async function transcreverAudioWhatsApp(audioId: string): Promise<string> {
     throw error;
   }
 }
-// 🔥 NOVA FUNÇÃO: Extrair dados com IA (mais preciso e flexível)
-async function extrairDadosComIA(mensagem: string, idioma: string): Promise<ResultadoExtracao> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.log("⚠️ Sem API key, usando fallback regex");
-    return extrairDadosLancamentoLegacy(mensagem);
-  }
-
-  const promptPT = `Você é um assistente financeiro. Extraia os dados desta mensagem financeira:
-
-MENSAGEM: "${mensagem}"
-
-REGRAS DE EXTRAÇÃO:
-1. TIPO: Identifique se é DESPESA ou RECEITA
-   - Despesas: gastei, paguei, comprei, conta, fatura, etc
-   - Receitas: recebi, ganhei, salário, etc
-
-2. VALOR: Extraia o valor monetário (apenas números)
-   - Exemplos: "99,90" → "99.90", "104,20" → "104.20", "1 real" → "1"
-
-3. DESCRIÇÃO: Extraia O QUE foi pago/recebido (máximo 3-4 palavras)
-   - "internet" → "Internet"
-   - "conta da luz" → "Conta de luz"
-   - "papagaia" ou "pet" → "Pet"
-   - "almoço" → "Almoço"
-   - SE o usuário mencionar explicitamente uma categoria, USE como descrição
-
-4. CATEGORIA_SUGERIDA: Se o usuário mencionar uma categoria explicitamente
-   - "use a categoria pet" → "pet"
-   - "categoria é casa" → "casa"
-   - "categoria alimentação" → "alimentação"
-   - Se não mencionar, deixe null
-
-5. MÉTODO DE PAGAMENTO: Identifique como foi pago
-   - PIX, CREDITO, DEBITO, DINHEIRO, TRANSFERENCIA
-   - Default: PIX
-
-IMPORTANTE:
-- Seja inteligente: "papagaia" é um pet, "internet" é conta de casa, "luz" é conta de casa
-- A descrição deve ser curta e clara
-- Use o contexto para entender: "minha papagaia, que é minha pet" → descrição: "Pet"
-
-RESPONDA APENAS JSON (sem markdown):
-{
-  "tipo": "DESPESA" | "RECEITA",
-  "valor": "número",
-  "descricao": "texto curto",
-  "categoriaSugerida": "nome da categoria" | null,
-  "metodoPagamento": "PIX" | "CREDITO" | "DEBITO" | "DINHEIRO" | "TRANSFERENCIA"
-}`;
-
-  const promptEN = `You are a financial assistant. Extract data from this financial message:
-
-MESSAGE: "${mensagem}"
-
-EXTRACTION RULES:
-1. TYPE: Identify if it's EXPENSE (DESPESA) or INCOME (RECEITA)
-   - Expenses: spent, paid, bought, bill, etc
-   - Income: received, earned, salary, etc
-
-2. AMOUNT: Extract monetary value (numbers only)
-   - Examples: "20 reais" → "20", "50.50" → "50.50"
-
-3. DESCRIPTION: Extract WHAT was paid/received (max 3-4 words)
-   - "ice cream" → "Ice cream"
-   - "lunch" → "Lunch"
-   - IF user explicitly mentions a category, USE it as description
-
-4. SUGGESTED_CATEGORY: If user explicitly mentions a category
-   - "use pet category" → "pet"
-   - "category is food" → "food"
-   - If not mentioned, leave null
-
-5. PAYMENT METHOD: Identify how it was paid
-   - PIX, CREDITO, DEBITO, DINHEIRO, TRANSFERENCIA
-   - Default: PIX
-
-IMPORTANT:
-- Be smart: understand context
-- Description should be short and clear
-
-RESPOND ONLY JSON (no markdown):
-{
-  "tipo": "DESPESA" | "RECEITA",
-  "valor": "number",
-  "descricao": "short text",
-  "categoriaSugerida": "category name" | null,
-  "metodoPagamento": "PIX" | "CREDITO" | "DEBITO" | "DINHEIRO" | "TRANSFERENCIA"
-}`;
-
-  const prompt = idioma === "en-US" ? promptEN : promptPT;
-
-  try {
-    console.log(`🤖 Extraindo dados com IA (${idioma})...`);
-    
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-3-haiku-20240307",
-        max_tokens: 300,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Claude API: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const resultado = data.content[0].text.trim();
-    const jsonLimpo = resultado.replace(/```json|```/g, "").trim();
-    const dadosExtraidos = JSON.parse(jsonLimpo);
-
-    console.log(`✅ Dados extraídos pela IA:`, dadosExtraidos);
-
-    // Detecções adicionais
-    const compartilhamento = detectarCompartilhamento(mensagem);
-    const parcelamento = detectarParcelamento(mensagem);
-
-    return {
-      sucesso: true,
-      dados: {
-        tipo: dadosExtraidos.tipo,
-        valor: dadosExtraidos.valor.toString().replace(",", "."),
-        descricao: dadosExtraidos.descricao,
-        metodoPagamento: dadosExtraidos.metodoPagamento,
-        data: "hoje",
-        ehCompartilhado: compartilhamento.ehCompartilhado,
-        nomeUsuarioCompartilhado: compartilhamento.nomeUsuario,
-        ehParcelado: parcelamento.ehParcelado,
-        parcelas: parcelamento.parcelas,
-        tipoParcelamento: parcelamento.tipoParcelamento,
-        categoriaSugerida: dadosExtraidos.categoriaSugerida, // 🔥 NOVO CAMPO
-      },
-    };
-  } catch (error) {
-    console.error("❌ Erro na extração com IA:", error);
-    console.log("⚠️ Fallback para extração regex");
-    return extrairDadosLancamentoLegacy(mensagem);
-  }
-}
 
 // 🔥 FUNÇÃO PARA PROCESSAR CONFIRMAÇÃO - MOVER PARA FORA
 async function processarConfirmacao(
@@ -508,9 +362,12 @@ async function processarConfirmacao(
   await sendWhatsAppMessage(userPhone, mensagemInvalida);
   return { status: "invalid_confirmation_response" };
 }
-function tentarFallbackExtracao(mensagem: string, idioma: string): ResultadoExtracao | null {
+function tentarFallbackExtracao(
+  mensagem: string,
+  idioma: string
+): ResultadoExtracao | null {
   const texto = mensagem.toLowerCase();
-  
+
   // Tentar encontrar qualquer número na mensagem
   const numeros = texto.match(/\d+[\.,]?\d*/g);
   if (!numeros || numeros.length === 0) {
@@ -525,20 +382,34 @@ function tentarFallbackExtracao(mensagem: string, idioma: string): ResultadoExtr
   // Tentar extrair descrição
   let descricao = "";
   const palavras = mensagem.split(/\s+/);
-  
+
   // Procurar palavras após o número
-  const indexValor = palavras.findIndex(palavra => 
+  const indexValor = palavras.findIndex((palavra) =>
     palavra.includes(valor.replace(".", ""))
   );
-  
+
   if (indexValor !== -1 && indexValor < palavras.length - 1) {
     // Pegar as próximas 2-3 palavras após o número
     descricao = palavras.slice(indexValor + 1, indexValor + 4).join(" ");
-    
+
     // Remover palavras comuns
-    const palavrasComuns = ["on", "for", "at", "with", "using", "via", "my", "the", "reais", "real", "r$", "$"];
-    descricao = descricao.split(/\s+/)
-      .filter(palavra => !palavrasComuns.includes(palavra.toLowerCase()))
+    const palavrasComuns = [
+      "on",
+      "for",
+      "at",
+      "with",
+      "using",
+      "via",
+      "my",
+      "the",
+      "reais",
+      "real",
+      "r$",
+      "$",
+    ];
+    descricao = descricao
+      .split(/\s+/)
+      .filter((palavra) => !palavrasComuns.includes(palavra.toLowerCase()))
       .join(" ");
   }
 
@@ -548,9 +419,14 @@ function tentarFallbackExtracao(mensagem: string, idioma: string): ResultadoExtr
 
   // Detectar tipo pelo contexto
   let tipo = "DESPESA";
-  if (texto.includes("received") || texto.includes("earned") || 
-      texto.includes("recebi") || texto.includes("ganhei") ||
-      texto.includes("salary") || texto.includes("salário")) {
+  if (
+    texto.includes("received") ||
+    texto.includes("earned") ||
+    texto.includes("recebi") ||
+    texto.includes("ganhei") ||
+    texto.includes("salary") ||
+    texto.includes("salário")
+  ) {
     tipo = "RECEITA";
   }
 
@@ -565,7 +441,7 @@ function tentarFallbackExtracao(mensagem: string, idioma: string): ResultadoExtr
     tipo,
     valor,
     descricao,
-    metodoPagamento
+    metodoPagamento,
   });
 
   return {
@@ -936,7 +812,7 @@ async function processarMensagemTexto(message: any) {
   // 🔥 PROCESSAR NOVO LANÇAMENTO
   if (userMessage && userPhone) {
     // Extrair dados
-    const dadosExtracao = extrairDadosLancamentoLegacy(userMessage);
+    const dadosExtracao = extrairDadosLancamento(userMessage);
     console.log("📊 Dados extraídos:", dadosExtracao);
 
     if (!dadosExtracao.sucesso) {
@@ -973,7 +849,8 @@ async function processarMensagemTexto(message: any) {
     const categoriaEscolhida = await escolherMelhorCategoria(
       dadosExtracao.dados.descricao,
       categoriasUsuario,
-      dadosExtracao.dados.tipo
+      dadosExtracao.dados.tipo,
+      dadosExtracao.dados.categoriaSugerida
     );
 
     if (!categoriaEscolhida) {
@@ -2265,9 +2142,43 @@ function limparDescricao(descricao: string): string {
 async function escolherMelhorCategoria(
   descricao: string,
   categorias: any[],
-  tipo: string
+  tipo: string,
+  categoriaSugerida?: string // 🔥 NOVO PARÂMETRO
 ) {
   if (!process.env.ANTHROPIC_API_KEY) {
+    // 🔥 PRIMEIRO: Verificar se o usuário sugeriu uma categoria
+    if (categoriaSugerida) {
+      console.log(`🎯 Usuário sugeriu categoria: "${categoriaSugerida}"`);
+
+      // Procurar exatamente a categoria sugerida
+      const categoriaExata = categorias.find(
+        (c) =>
+          c.tipo === tipo &&
+          c.nome.toLowerCase() === categoriaSugerida.toLowerCase()
+      );
+
+      if (categoriaExata) {
+        console.log(
+          `✅ Usando categoria sugerida pelo usuário: ${categoriaExata.nome}`
+        );
+        return categoriaExata;
+      }
+
+      // Tentar encontrar similar
+      const categoriaSimilar = categorias.find(
+        (c) =>
+          c.tipo === tipo &&
+          c.nome.toLowerCase().includes(categoriaSugerida.toLowerCase())
+      );
+
+      if (categoriaSimilar) {
+        console.log(
+          `✅ Usando categoria similar à sugerida: ${categoriaSimilar.nome}`
+        );
+        return categoriaSimilar;
+      }
+    }
+
     // Fallback simples se não tiver API key
     const categoriasFiltradas = categorias.filter((c) => c.tipo === tipo);
     return categoriasFiltradas.length > 0 ? categoriasFiltradas[0] : null;
@@ -2279,18 +2190,19 @@ async function escolherMelhorCategoria(
     return null;
   }
 
-  const prompt = `Analise a descrição "${descricao}" e escolha a categoria mais adequada entre estas opções:
+  // 🔥 ADICIONE ISSO NO PROMPT DA IA:
+  let prompt = `Analise a descrição "${descricao}" e escolha a categoria mais adequada entre estas opções:`;
 
-CATEGORIAS DISPONÍVEIS:
-${categoriasFiltradas.map((c, i) => `${i + 1}. ${c.nome}`).join("\n")}
+  // 🔥 SE O USUÁRIO SUGERIU UMA CATEGORIA, PRIORIZE!
+  if (categoriaSugerida) {
+    prompt += `\n\nIMPORTANTE: O usuário sugeriu a categoria "${categoriaSugerida}". PRIORIZE esta categoria se estiver disponível.`;
+  }
 
-INSTRUÇÕES:
-- Escolha APENAS o nome da categoria mais adequada
-- Não explique, não dê justificativas
-- Retorne apenas o nome exato da categoria escolhida
-- Se não houver uma boa correspondência, escolha a primeira categoria
+  prompt += `\n\nCATEGORIAS DISPONÍVEIS:\n${categoriasFiltradas.map((c, i) => `${i + 1}. ${c.nome}`).join("\n")}`;
 
-RESPOSTA (apenas o nome da categoria):`;
+  prompt += `\n\nINSTRUÇÕES:\n- Escolha APENAS o nome da categoria mais adequada\n- Não explique, não dê justificativas\n- Retorne apenas o nome exato da categoria escolhida\n- Se o usuário sugeriu uma categoria e ela estiver disponível, USE-A`;
+
+  prompt += `\n\nRESPOSTA (apenas o nome da categoria):`;
 
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -2322,6 +2234,20 @@ RESPOSTA (apenas o nome da categoria):`;
     );
   } catch (error) {
     console.error("Erro ao escolher categoria com IA:", error);
+
+    // 🔥 FALLBACK: Se o usuário sugeriu, tentar encontrar
+    if (categoriaSugerida) {
+      const categoriaFallback = categoriasFiltradas.find((c) =>
+        c.nome.toLowerCase().includes(categoriaSugerida.toLowerCase())
+      );
+      if (categoriaFallback) {
+        console.log(
+          `🔄 Fallback para categoria sugerida: ${categoriaFallback.nome}`
+        );
+        return categoriaFallback;
+      }
+    }
+
     return categoriasFiltradas[0];
   }
 }
@@ -2643,46 +2569,84 @@ async function identificarCartao(texto: string, userId: string) {
 }
 function detectarIdioma(mensagem: string): string {
   const texto = mensagem.toLowerCase();
-  
+
   // Palavras-chave em inglês
   const palavrasIngles = [
-    "i", "spent", "paid", "received", "earned", "bought", "purchased",
-    "on", "for", "at", "using", "with", "my", "card", "credit",
-    "debit", "cash", "money", "dollars", "usd", "answer", "english"
+    "i",
+    "spent",
+    "paid",
+    "received",
+    "earned",
+    "bought",
+    "purchased",
+    "on",
+    "for",
+    "at",
+    "using",
+    "with",
+    "my",
+    "card",
+    "credit",
+    "debit",
+    "cash",
+    "money",
+    "dollars",
+    "usd",
+    "answer",
+    "english",
   ];
-  
+
   // Palavras-chave em português
   const palavrasPortugues = [
-    "eu", "gastei", "paguei", "recebi", "ganhei", "comprei",
-    "com", "em", "no", "na", "do", "da", "meu", "minha",
-    "cartão", "crédito", "débito", "pix", "dinheiro", "reais"
+    "eu",
+    "gastei",
+    "paguei",
+    "recebi",
+    "ganhei",
+    "comprei",
+    "com",
+    "em",
+    "no",
+    "na",
+    "do",
+    "da",
+    "meu",
+    "minha",
+    "cartão",
+    "crédito",
+    "débito",
+    "pix",
+    "dinheiro",
+    "reais",
   ];
-  
+
   let contadorIngles = 0;
   let contadorPortugues = 0;
-  
+
   // Verificar palavras-chave (peso maior para verbos)
   const verbosIngles = ["spent", "paid", "received", "earned", "bought"];
   const verbosPortugues = ["gastei", "paguei", "recebi", "ganhei", "comprei"];
-  
-  verbosIngles.forEach(verbo => {
+
+  verbosIngles.forEach((verbo) => {
     if (texto.includes(verbo)) contadorIngles += 3; // Peso maior
   });
-  
-  verbosPortugues.forEach(verbo => {
+
+  verbosPortugues.forEach((verbo) => {
     if (texto.includes(verbo)) contadorPortugues += 3; // Peso maior
   });
-  
-  palavrasIngles.forEach(palavra => {
+
+  palavrasIngles.forEach((palavra) => {
     if (texto.includes(palavra)) contadorIngles += 1;
   });
-  
-  palavrasPortugues.forEach(palavra => {
+
+  palavrasPortugues.forEach((palavra) => {
     if (texto.includes(palavra)) contadorPortugues += 1;
   });
-  
-  console.log(`🌐 Contagem idioma: Inglês=${contadorIngles}, Português=${contadorPortugues}`);
-  
+
+  console.log(
+    `🌐 Contagem idioma: Inglês=${contadorIngles}, Português=${contadorPortugues}`
+  );
+
   if (contadorIngles > contadorPortugues) {
     return "en-US";
   } else {
@@ -2759,21 +2723,201 @@ function extrairMetodoPagamentoInternacional(
   return "PIX";
 }
 
-function extrairDadosLancamentoLegacy(mensagem: string): ResultadoExtracao {
+function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
   const texto = mensagem.toLowerCase().trim();
   const idioma = detectarIdioma(mensagem);
 
-  console.log(`🔍 Extração legacy (regex)`);
+  console.log(`🔍🔍🔍 DEBUG COMPLETO INICIADO 🔍🔍🔍`);
+  console.log(`📨 Mensagem original: "${mensagem}"`);
+  console.log(`🌐 Idioma detectado: ${idioma}`);
+  console.log(`🔧 Mensagem lower: "${texto}"`);
 
+  // Detecções
   const compartilhamento = detectarCompartilhamento(mensagem);
   const parcelamento = detectarParcelamento(mensagem);
 
+  console.log(`🎯 Detecções:`, { compartilhamento, parcelamento });
+
+  // 🔥 PADRÕES EM INGLÊS MELHORADOS
+  const padroesIngles = [
+    // 🔥 PADRÃO 1: "I spent 20 on ice cream"
+    /(?:i\s+)?(spent|paid|received|earned|bought|purchased)\s+([\d.,]+)\s+(?:reais?|r\$)?\s*(?:on|for|at|with)\s+(?:the\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+card|\s+using|\s+with|\s+via|\s+$)/i,
+
+    // 🔥 PADRÃO 2: "I spent 20 on ice cream using my credit card"
+    /(?:i\s+)?(spent|paid|received|earned)\s+([\d.,]+)\s+(?:reais?|r\$)?\s*on\s+(?:the\s+)?([^,.\d]+)/i,
+
+    // 🔥 PADRÃO 3: "I spent 20 at supermarket"
+    /(?:i\s+)?(spent|paid|received|earned)\s+([\d.,]+)\s+(?:reais?|r\$)?\s*at\s+(?:the\s+)?([^,.\d]+)/i,
+
+    // 🔥 PADRÃO 4: "I spent 20 for lunch"
+    /(?:i\s+)?(spent|paid|received|earned)\s+([\d.,]+)\s+(?:reais?|r\$)?\s*for\s+(?:the\s+)?([^,.\d]+)/i,
+
+    // 🔥 PADRÃO 5: "I bought 20 of ice cream"
+    /(?:i\s+)?(bought|purchased)\s+([\d.,]+)\s+(?:reais?|r\$)?\s*(?:of|of\s+the)?\s*([^,.\d]+)/i,
+
+    // 🔥 PADRÃO 6: "Spent 20 on ice cream" (sem "I")
+    /(spent|paid|received|earned|bought|purchased)\s+([\d.,]+)\s+(?:reais?|r\$)?\s*(?:on|for|at)\s+(?:the\s+)?([^,.\d]+)/i,
+
+    // 🔥 PADRÃO 7: Formato simples "20 on ice cream"
+    /([\d.,]+)\s+(?:reais?|r\$)?\s*(?:on|for|at)\s+(?:the\s+)?([^,.\d]+)/i,
+  ];
+
+  const padroesPortugues = [
+    // 🔥 PADRÕES PORTUGUÊS (seus padrões existentes)
+    /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+reais?\s+com\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
+    /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+reais?\s+em\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
+    /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+reais?\s+no\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
+    /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+r\$\s*([\d.,]+)\s+com\s+(?:o\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+cartão|\s+no\s+|\s+do\s+|$)/i,
+    /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+com\s+(.+)/i,
+    /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+no\s+(.+)/i,
+    /(?:eu\s+)?(gastei|paguei|recebi|ganhei)\s+([\d.,]+)\s+em\s+(.+)/i,
+  ];
+
+  // 🔥 ESCOLHER OS PADRÕES CORRETOS BASEADO NO IDIOMA
+  const padroesParaTestar =
+    idioma === "en-US"
+      ? [...padroesIngles, ...padroesPortugues]
+      : [...padroesPortugues, ...padroesIngles];
+
+  let melhorMatch = null;
+  let melhorPadrao = "";
+
+  for (const padrao of padroesParaTestar) {
+    const match = texto.match(padrao);
+    console.log(`🔍 Testando padrão ${padrao}:`, match ? "MATCH!" : "null");
+    if (match && (!melhorMatch || match[0].length > melhorMatch[0].length)) {
+      melhorMatch = match;
+      melhorPadrao = padrao.toString();
+    }
+  }
+
+  console.log(`🏆 Melhor match encontrado:`, melhorMatch);
+  console.log(`🎯 Melhor padrão: ${melhorPadrao}`);
+
+  if (melhorMatch) {
+    let acao, valor, descricao;
+
+    // 🔥 AJUSTE PARA DIFERENTES FORMATOS DE MATCH
+    if (melhorMatch.length >= 4) {
+      // Formato padrão: acao, valor, descricao
+      acao = melhorMatch[1];
+      valor = melhorMatch[2];
+      descricao = melhorMatch[3] ? melhorMatch[3].trim() : "";
+    } else if (melhorMatch.length === 3) {
+      // Formato simples: valor, descricao
+      acao = "spent"; // Default
+      valor = melhorMatch[1];
+      descricao = melhorMatch[2] ? melhorMatch[2].trim() : "";
+    } else {
+      console.log(`❌ Formato de match inesperado:`, melhorMatch);
+      acao = "spent";
+      valor = "";
+      descricao = "";
+    }
+
+    console.log(`📝 Dados brutos extraídos:`, { acao, valor, descricao });
+
+    // 🔥 LIMPEZA DA DESCRIÇÃO
+    if (descricao) {
+      // Remover "using my" ou "with my" no final
+      descricao = descricao.replace(/\s+(?:using|with)\s+my\s+.*$/i, "");
+      // Remover "via" no final
+      descricao = descricao.replace(/\s+via\s+.*$/i, "");
+      // Remover vírgulas extras
+      descricao = descricao.replace(/\s*,\s*$/, "");
+      descricao = descricao.trim();
+    }
+
+    // 🔥 DETECTAR TIPO BASEADO NO IDIOMA E AÇÃO
+    let tipo;
+    if (idioma === "en-US") {
+      tipo =
+        acao && (acao.includes("received") || acao.includes("earned"))
+          ? "RECEITA"
+          : "DESPESA";
+    } else {
+      tipo =
+        acao && (acao.includes("recebi") || acao.includes("ganhei"))
+          ? "RECEITA"
+          : "DESPESA";
+    }
+
+    // Se não conseguiu detectar ação, assumir despesa
+    if (!acao || acao === "") {
+      tipo = "DESPESA";
+    }
+
+    // 🔥 DETECTAR MÉTODO DE PAGAMENTO
+    const metodoPagamentoCorrigido = extrairMetodoPagamentoInternacional(
+      mensagem,
+      parcelamento.ehParcelado,
+      idioma
+    );
+
+    // 🔥 VALIDAÇÃO FINAL DOS DADOS
+    if (!valor || valor === "") {
+      console.log(`❌ Valor não extraído`);
+      return gerarErroIdioma(
+        idioma,
+        "Não foi possível extrair o valor da mensagem."
+      );
+    }
+
+    if (!descricao || descricao === "") {
+      console.log(`❌ Descrição não extraída`);
+      // Tentar extrair descrição da mensagem original
+      const palavras = mensagem.split(/\s+/);
+      const possiveisDescricoes = palavras.filter(
+        (palavra, index) =>
+          index > 1 && // Ignorar "I spent" ou similar
+          !/\d+/.test(palavra) && // Não números
+          !["on", "for", "at", "with", "using", "via", "my", "the"].includes(
+            palavra.toLowerCase()
+          )
+      );
+
+      if (possiveisDescricoes.length > 0) {
+        descricao = possiveisDescricoes.join(" ").trim();
+        console.log(`🔄 Descrição extraída do contexto: "${descricao}"`);
+      } else {
+        descricao = "Transação";
+      }
+    }
+
+    console.log(`✅ Dados processados:`, {
+      tipo,
+      valor,
+      descricao,
+      metodoPagamento: metodoPagamentoCorrigido,
+    });
+
+    return {
+      sucesso: true,
+      dados: {
+        tipo,
+        valor: valor.replace(",", "."),
+        descricao: descricao,
+        metodoPagamento: metodoPagamentoCorrigido,
+        data: "hoje",
+        ehCompartilhado: compartilhamento.ehCompartilhado,
+        nomeUsuarioCompartilhado: compartilhamento.nomeUsuario,
+        ehParcelado: parcelamento.ehParcelado,
+        parcelas: parcelamento.parcelas,
+        tipoParcelamento: parcelamento.tipoParcelamento,
+      },
+    };
+  }
+
+  // 🔥 SE NENHUM PADRÃO FUNCIONOU, TENTAR FALLBACK INTELIGENTE
+  console.log(`❌ Nenhum padrão funcionou, tentando fallback...`);
+
   const resultadoFallback = tentarFallbackExtracao(mensagem, idioma);
   if (resultadoFallback) {
-    console.log(`✅ Fallback regex bem-sucedido`);
+    console.log(`✅ Fallback bem-sucedido!`);
     return resultadoFallback;
   }
 
+  // 🔥 MENSAGEM DE ERRO MULTI-IDIOMA
   return gerarErroIdioma(idioma);
 }
 
@@ -3367,20 +3511,25 @@ export async function POST(request: NextRequest) {
   }
 }
 // 🔥 FUNÇÃO AUXILIAR: Gerar erro no idioma correto
-function gerarErroIdioma(idioma: string, mensagemPersonalizada?: string): ResultadoExtracao {
+function gerarErroIdioma(
+  idioma: string,
+  mensagemPersonalizada?: string
+): ResultadoExtracao {
   let erroMsg = "";
-  
+
   if (idioma === "en-US") {
     if (mensagemPersonalizada) {
       erroMsg = `I didn't understand: "${mensagemPersonalizada}"`;
     } else {
-      erroMsg = "I didn't understand the format. Use: 'I spent 50 on lunch' or 'I received 1000 salary' or 'R$ 20 at the supermarket'";
+      erroMsg =
+        "I didn't understand the format. Use: 'I spent 50 on lunch' or 'I received 1000 salary' or 'R$ 20 at the supermarket'";
     }
   } else {
     if (mensagemPersonalizada) {
       erroMsg = `Não entendi: "${mensagemPersonalizada}"`;
     } else {
-      erroMsg = "Não entendi o formato. Use: 'Gastei 50 no almoço' ou 'Recebi 1000 salário' ou 'R$ 20 no mercado'";
+      erroMsg =
+        "Não entendi o formato. Use: 'Gastei 50 no almoço' ou 'Recebi 1000 salário' ou 'R$ 20 no mercado'";
     }
   }
 
