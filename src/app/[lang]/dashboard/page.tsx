@@ -56,29 +56,15 @@ const MESES = [
 ];
 
 // Função para obter saudação baseada na hora - se quiser manter dinâmico
-const obterSaudacaoDinamica = (t: any) => {
-  const hora = new Date().getHours();
-
-  if (hora < 12) {
-    return t("saudacoes.bomDia");
-  } else if (hora < 18) {
-    return t("saudacoes.boaTarde");
-  } else {
-    return t("saudacoes.boaNoite");
-  }
-};
-
-// Função CORRIGIDA que armazena frase por dia e por idioma
-const obterFraseDiariaPorIdioma = (userName: string, t: any, i18n: any) => {
+const obterSaudacaoAtual = (userName: string, t: any, i18n: any) => {
   if (typeof window === "undefined") {
     return `${t("saudacoes.bomDia")}, ${userName || "..."}!`;
   }
 
-  const hoje = new Date().toDateString();
   const hora = new Date().getHours();
   const idiomaAtual = i18n.language;
 
-  // ✅ Obter saudação baseada na hora
+  // ✅ SEMPRE obter saudação baseada na hora atual
   let saudacao = t("saudacoes.bomDia");
   if (hora < 12) {
     saudacao = t("saudacoes.bomDia");
@@ -90,33 +76,15 @@ const obterFraseDiariaPorIdioma = (userName: string, t: any, i18n: any) => {
 
   // ✅ Pegar frases motivacionais
   const frases = t("frasesMotivacionais", { returnObjects: true });
-
-  // ✅ Chave única por dia + idioma
-  const chaveFrase = `frase_motivacional_${hoje}_${idiomaAtual}`;
-  const chaveSaudacao = `frase_saudacao_${hoje}_${idiomaAtual}`;
-
-  // Verificar se já temos uma frase para hoje neste idioma
-  const fraseArmazenada = localStorage.getItem(chaveFrase);
-  const saudacaoArmazenada = localStorage.getItem(chaveSaudacao);
-
-  if (fraseArmazenada && saudacaoArmazenada) {
-    return fraseArmazenada;
-  }
-
-  // ✅ Escolher uma nova frase para hoje
   const frasesArray = Array.isArray(frases) ? frases : [];
+
+  // ✅ Escolher uma frase motivacional aleatória
   const fraseEscolhida =
     frasesArray.length > 0
       ? frasesArray[Math.floor(Math.random() * frasesArray.length)]
       : "";
 
-  const fraseCompleta = `${saudacao}, ${userName || "..."}! ${fraseEscolhida}`;
-
-  // ✅ Armazenar para usar durante o dia neste idioma
-  localStorage.setItem(chaveFrase, fraseCompleta);
-  localStorage.setItem(chaveSaudacao, saudacao);
-
-  return fraseCompleta;
+  return `${saudacao}, ${userName || "..."}! ${fraseEscolhida}`;
 };
 
 // Função para limpar frases antigas
@@ -199,10 +167,11 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (userName && typeof window !== "undefined") {
-      const frase = obterFraseDiariaPorIdioma(userName, t, i18n);
+      // Use a nova função que SEMPRE verifica o horário atual
+      const frase = obterSaudacaoAtual(userName, t, i18n);
       setFraseMotivacional(frase);
     }
-  }, [userName, i18n.language]);
+  }, [userName, i18n.language, t]);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -352,14 +321,14 @@ export default function DashboardPage() {
   }
 
   // ✅ Função para formatar moeda baseada no idioma
-const formatarMoeda = (valor: number) => {
-  const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
-  const currency = i18n.language === "pt" ? "BRL" : "USD"; // ✅ Dinâmico
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: currency,
-  }).format(valor);
-};
+  const formatarMoeda = (valor: number) => {
+    const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
+    const currency = i18n.language === "pt" ? "BRL" : "USD"; // ✅ Dinâmico
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: currency,
+    }).format(valor);
+  };
 
   const obterStatusLimites = () => {
     const limitesEstourados = limites.filter(

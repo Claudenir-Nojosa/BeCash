@@ -72,7 +72,7 @@ export default function DashboardTable({
 
       const params = new URLSearchParams();
       params.append("limit", LIMITE_LANCAMENTOS.toString());
-      params.append("sort", "data_desc");
+      params.append("sort", "createdAt_desc"); // ✅ Mudança aqui: ordenar por criação
       if (mes) params.append("mes", mes);
       if (ano) params.append("ano", ano);
 
@@ -81,9 +81,10 @@ export default function DashboardTable({
 
       const data = await response.json();
 
+      // Já vem ordenado pela API, mas garantimos a ordenação localmente também
       const ordenado = data.sort(
-        (a: Lancamento, b: Lancamento) =>
-          new Date(b.data).getTime() - new Date(a.data).getTime()
+        (a: any, b: any) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
 
       const lancamentosLimitados = ordenado.slice(0, LIMITE_LANCAMENTOS);
@@ -95,14 +96,14 @@ export default function DashboardTable({
     }
   };
 
-const formatarMoeda = (valor: number) => {
-  const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
-  const currency = i18n.language === "pt" ? "BRL" : "USD"; // ✅ Dinâmico
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: currency,
-  }).format(valor);
-};
+  const formatarMoeda = (valor: number) => {
+    const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
+    const currency = i18n.language === "pt" ? "BRL" : "USD";
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: currency,
+    }).format(valor);
+  };
 
   const formatarData = (data: Date) => {
     const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
@@ -179,7 +180,7 @@ const formatarMoeda = (valor: number) => {
           </div>
         ) : (
           <div className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-x-auto">
-           <div className="md:min-w-[700px]">
+            <div className="md:min-w-[700px]">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50 dark:bg-gray-800">
@@ -271,7 +272,7 @@ const formatarMoeda = (valor: number) => {
                     </TableRow>
                   ))}
                 </TableBody>
-              </Table>{" "}
+              </Table>
             </div>
           </div>
         )}

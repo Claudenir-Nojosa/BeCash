@@ -12,9 +12,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    // Obter parâmetro de competência da query string
+    // Obter parâmetros da query string
     const { searchParams } = new URL(request.url);
     const competencia = searchParams.get("competencia");
+    const mes = searchParams.get("mes");
+    const ano = searchParams.get("ano");
+    const sort = searchParams.get("sort") || "createdAt_desc"; // ✅ Novo parâmetro
+    const limit = parseInt(searchParams.get("limit") || "100"); // ✅ Novo parâmetro
 
     let whereClause: any = {
       userId: session.user.id,
@@ -22,18 +26,54 @@ export async function GET(request: NextRequest) {
 
     // Se houver competência, filtrar por mês/ano
     if (competencia) {
-      const [ano, mes] = competencia.split("-").map(Number);
+      const [anoComp, mesComp] = competencia.split("-").map(Number);
 
       // Data inicial: primeiro dia do mês
-      const dataInicio = new Date(ano, mes - 1, 1);
+      const dataInicio = new Date(anoComp, mesComp - 1, 1);
 
       // Data final: último dia do mês
-      const dataFim = new Date(ano, mes, 0, 23, 59, 59, 999);
+      const dataFim = new Date(anoComp, mesComp, 0, 23, 59, 59, 999);
 
       whereClause.data = {
         gte: dataInicio,
         lte: dataFim,
       };
+    }
+
+    // Filtro por mês/ano separado (para compatibilidade)
+    if (mes && ano) {
+      const mesNum = parseInt(mes);
+      const anoNum = parseInt(ano);
+
+      // Data inicial: primeiro dia do mês
+      const dataInicio = new Date(anoNum, mesNum - 1, 1);
+
+      // Data final: último dia do mês
+      const dataFim = new Date(anoNum, mesNum, 0, 23, 59, 59, 999);
+
+      whereClause.data = {
+        gte: dataInicio,
+        lte: dataFim,
+      };
+    }
+
+    // ✅ Determinar a ordenação baseada no parâmetro sort
+    let orderBy: any = {};
+    if (sort === "data_desc") {
+      orderBy = { data: "desc" };
+    } else if (sort === "data_asc") {
+      orderBy = { data: "asc" };
+    } else if (sort === "createdAt_desc") {
+      orderBy = { createdAt: "desc" }; // ✅ Ordenar por criação (mais recente primeiro)
+    } else if (sort === "createdAt_asc") {
+      orderBy = { createdAt: "asc" };
+    } else if (sort === "valor_desc") {
+      orderBy = { valor: "desc" };
+    } else if (sort === "valor_asc") {
+      orderBy = { valor: "asc" };
+    } else {
+      // Default: ordenar por criação (mais recente primeiro)
+      orderBy = { createdAt: "desc" };
     }
 
     const lancamentos = await db.lancamento.findMany({
@@ -50,12 +90,12 @@ export async function GET(request: NextRequest) {
             cor: true,
           },
         },
-        Fatura: true, // ✅ INCLUIR A FATURA
+        Fatura: true,
         lancamentosFilhos: {
           include: {
             categoria: true,
             cartao: true,
-            Fatura: true, // ✅ INCLUIR FATURA NAS PARCELAS TAMBÉM
+            Fatura: true,
           },
           orderBy: { parcelaAtual: "asc" },
         },
@@ -88,7 +128,8 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: { data: "desc" },
+      orderBy: orderBy, // ✅ Usar a ordenação dinâmica
+      take: limit, // ✅ Limitar a quantidade de resultados
     });
 
     return NextResponse.json(lancamentos);
@@ -100,6 +141,7 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
 
 // O resto do código POST permanece exatamente igual...
 export async function POST(request: NextRequest) {
