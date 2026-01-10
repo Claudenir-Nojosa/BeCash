@@ -1,3 +1,5 @@
+"use client";
+
 import { motion } from "framer-motion";
 import { 
   Brain, 
@@ -7,39 +9,7 @@ import {
   Lock, 
   Zap 
 } from "lucide-react";
-
-const features = [
-  {
-    icon: Brain,
-    title: "IA Financeira",
-    description: "Análises inteligentes que aprendem com seus hábitos e oferecem insights personalizados.",
-  },
-  {
-    icon: Target,
-    title: "Metas Personalizadas",
-    description: "Defina objetivos financeiros e acompanhe seu progresso em tempo real.",
-  },
-  {
-    icon: Bell,
-    title: "Alertas Inteligentes",
-    description: "Receba notificações sobre gastos, limites e oportunidades de economia.",
-  },
-  {
-    icon: PieChart,
-    title: "Relatórios Visuais",
-    description: "Visualize suas finanças com gráficos interativos e dashboards intuitivos.",
-  },
-  {
-    icon: Lock,
-    title: "Segurança Total",
-    description: "Criptografia de ponta e autenticação avançada protegem seus dados.",
-  },
-  {
-    icon: Zap,
-    title: "Automação",
-    description: "Automatize transferências, pagamentos e investimentos recorrentes.",
-  },
-];
+import { useTranslation } from "react-i18next";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -63,8 +33,43 @@ const itemVariants = {
 };
 
 export const Features = () => {
+  const { t } = useTranslation("features");
+
+  const features = [
+    {
+      icon: Brain,
+      title: t("features.financialAI.title"),
+      description: t("features.financialAI.description"),
+    },
+    {
+      icon: Target,
+      title: t("features.personalGoals.title"),
+      description: t("features.personalGoals.description"),
+    },
+    {
+      icon: Bell,
+      title: t("features.smartAlerts.title"),
+      description: t("features.smartAlerts.description"),
+    },
+    {
+      icon: PieChart,
+      title: t("features.visualReports.title"),
+      description: t("features.visualReports.description"),
+    },
+    {
+      icon: Lock,
+      title: t("features.totalSecurity.title"),
+      description: t("features.totalSecurity.description"),
+    },
+    {
+      icon: Zap,
+      title: t("features.automation.title"),
+      description: t("features.automation.description"),
+    },
+  ];
+
   return (
-    <section id="features" className="py-24 relative overflow-hidden bg-background">
+    <section id="features" className="py-20 md:py-24 relative overflow-hidden bg-background">
       <div className="container mx-auto px-4 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 15 }}
@@ -80,19 +85,18 @@ export const Features = () => {
             viewport={{ once: true }}
             transition={{ delay: 0.1, duration: 0.3 }}
           >
-            Recursos
+            {t("badge")}
           </motion.span>
 
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3 tracking-tight">
-            Tudo que você precisa para{" "}
+            {t("title.part1")}{" "}
             <span className="bg-gradient-to-r from-[#00cfec] to-[#007cca] bg-clip-text text-transparent">
-              dominar suas finanças
+              {t("title.part2")}
             </span>
           </h2>
 
           <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-sm md:text-base leading-relaxed">
-            Ferramentas poderosas e intuitivas que transformam a maneira como você
-            gerencia seu dinheiro.
+            {t("subtitle")}
           </p>
         </motion.div>
 
@@ -105,13 +109,13 @@ export const Features = () => {
         >
           {features.map((feature, index) => (
             <motion.div
-              key={feature.title}
+              key={`${feature.title}-${index}`}
               variants={itemVariants}
               whileHover={{ y: -5, scale: 1.02 }}
               className="group relative"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-[#00cfec]/80 to-[#007cca]/80 rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
-              <div className="relative p-8 rounded-2xl glass border border-transparent group-hover:border-[#00cfec]/20 transition-all duration-300">
+              <div className="relative p-8 rounded-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border border-gray-200/60 dark:border-gray-800/60 group-hover:border-[#00cfec]/20 transition-all duration-300">
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-r from-[#00cfec] to-[#007cca] flex items-center justify-center mb-6 shadow-lg shadow-[#00cfec]/20 group-hover:shadow-[#00cfec]/40 transition-all">
                   <feature.icon className="w-7 h-7 text-white" />
                 </div>

@@ -7,8 +7,7 @@ import { Footer } from "./Footer";
 import { Hero } from "./Hero";
 import { HowItWorks } from "./HowItWorks";
 import { Navbar } from "./NavBar";
-import { Stats } from "./Stats";
-import { Suspense } from "react";
+import { Suspense, useMemo } from "react";
 import Testimonials from "./Testimonials";
 import { TechCarousel } from "./TechCarousel";
 import { LaunchMethods } from "./LaunchMethods";
@@ -16,75 +15,10 @@ import { SharedExpenses } from "./SharedExpenses";
 import { MetaVerified } from "./MetaVerified";
 import { ProductivityGains } from "./ProductivityGains";
 import { Pricing } from "./Pricing";
-import FAQ from "./FAQ";
 import CTA2 from "./CTA2";
 import Security from "./Security";
-
-// Defina seus planos de preços
-const pricingPlans = [
-  {
-    name: "STARTER",
-    price: "50",
-    yearlyPrice: "40",
-    priceReal: "250",
-    yearlyPriceReal: "200",
-    period: "per month",
-    features: [
-      "Up to 10 projects",
-      "Basic analytics",
-      "48-hour support response time",
-      "Limited API access",
-      "Community support",
-    ],
-    description: "Perfect for individuals and small projects",
-    buttonText: "Start Free Trial",
-    href: "/sign-up",
-    isPopular: false,
-  },
-  {
-    name: "PROFESSIONAL",
-    price: "99",
-    yearlyPrice: "79",
-    priceReal: "495",
-    yearlyPriceReal: "395",
-    period: "per month",
-    features: [
-      "Unlimited projects",
-      "Advanced analytics",
-      "24-hour support response time",
-      "Full API access",
-      "Priority support",
-      "Team collaboration",
-      "Custom integrations",
-    ],
-    description: "Ideal for growing teams and businesses",
-    buttonText: "Get Started",
-    href: "/sign-up",
-    isPopular: true,
-  },
-  {
-    name: "ENTERPRISE",
-    price: "299",
-    yearlyPrice: "239",
-    priceReal: "1495",
-    yearlyPriceReal: "1195",
-    period: "per month",
-    features: [
-      "Everything in Professional",
-      "Custom solutions",
-      "Dedicated account manager",
-      "1-hour support response time",
-      "SSO Authentication",
-      "Advanced security",
-      "Custom contracts",
-      "SLA agreement",
-    ],
-    description: "For large organizations with specific needs",
-    buttonText: "Contact Sales",
-    href: "/contact",
-    isPopular: false,
-  },
-];
+import { FAQ } from "./FAQ";
+import { useTranslation } from "react-i18next";
 
 // Componente de loading para sections
 const SectionSkeleton = () => (
@@ -98,6 +32,98 @@ const SectionSkeleton = () => (
 );
 
 const Index = () => {
+  const { t } = useTranslation(["pricing", "pricingPlans"]);
+
+  // Função para garantir que features seja sempre um array de strings
+  const getFeaturesArray = (features: any): string[] => {
+    if (Array.isArray(features)) {
+      return features;
+    }
+    // Se for um objeto, converte para array
+    if (typeof features === 'object' && features !== null) {
+      return Object.values(features) as string[];
+    }
+    // Se for string, converte para array
+    if (typeof features === 'string') {
+      return [features];
+    }
+    return [];
+  };
+
+  // Defina seus planos de preços usando useMemo para performance
+  const plans = useMemo(() => [
+    {
+      name: t("pricingPlans:plans.basic.name", "Básico"),
+      price: "0",
+      yearlyPrice: "0",
+      priceReal: "0",
+      yearlyPriceReal: "0",
+      period: t("pricingPlans:plans.basic.period", "mês"),
+      features: getFeaturesArray(t("pricingPlans:plans.basic.features", { 
+        returnObjects: true, 
+        defaultValue: [
+          "Até 50 lançamentos por mês",
+          "Análise básica de gastos",
+          "Suporte por email",
+          "Acesso ao WhatsApp AI",
+          "Relatórios mensais simples"
+        ]
+      })),
+      description: t("pricingPlans:plans.basic.description", "Perfeito para começar a controlar suas finanças"),
+      buttonText: t("pricingPlans:plans.basic.buttonText", "Começar Grátis"),
+      href: "/signup",
+      isPopular: false
+    },
+    {
+      name: t("pricingPlans:plans.pro.name", "Pro"),
+      price: "12",
+      yearlyPrice: "9",
+      priceReal: "59",
+      yearlyPriceReal: "47",
+      period: t("pricingPlans:plans.pro.period", "mês"),
+      features: getFeaturesArray(t("pricingPlans:plans.pro.features", { 
+        returnObjects: true,
+        defaultValue: [
+          "Lançamentos ilimitados",
+          "Análise avançada de IA",
+          "Metas personalizadas",
+          "Despesas compartilhadas",
+          "Alertas inteligentes",
+          "Exportação de dados",
+          "Suporte prioritário"
+        ]
+      })),
+      description: t("pricingPlans:plans.pro.description", "Para quem leva finanças a sério"),
+      buttonText: t("pricingPlans:plans.pro.buttonText", "Experimentar Gratuitamente"),
+      href: "/signup?plan=pro",
+      isPopular: true
+    },
+    {
+      name: t("pricingPlans:plans.family.name", "Família"),
+      price: "25",
+      yearlyPrice: "20",
+      priceReal: "129",
+      yearlyPriceReal: "103",
+      period: t("pricingPlans:plans.family.period", "mês"),
+      features: getFeaturesArray(t("pricingPlans:plans.family.features", { 
+        returnObjects: true,
+        defaultValue: [
+          "Tudo do plano Pro",
+          "Até 5 membros da família",
+          "Controle parental",
+          "Orçamento familiar",
+          "Metas compartilhadas",
+          "Suporte 24/7",
+          "Consultoria financeira"
+        ]
+      })),
+      description: t("pricingPlans:plans.family.description", "Ideal para famílias que querem controlar tudo junto"),
+      buttonText: t("pricingPlans:plans.family.buttonText", "Começar Teste Grátis"),
+      href: "/signup?plan=family",
+      isPopular: false
+    }
+  ], [t]); // Recalcula quando a tradução muda
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 overflow-x-hidden">
       <Navbar />
@@ -147,7 +173,7 @@ const Index = () => {
       </Suspense>
 
       <Suspense fallback={<SectionSkeleton />}>
-        <Pricing plans={pricingPlans} />
+        <Pricing plans={plans} />
       </Suspense>
 
       <Suspense fallback={<SectionSkeleton />}>

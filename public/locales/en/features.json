@@ -1,0 +1,34 @@
+{
+  "badge": "Features",
+  "title": {
+    "part1": "Everything you need to",
+    "part2": "master your finances"
+  },
+  "subtitle": "Powerful and intuitive tools that transform the way you manage your money",
+  "features": {
+    "financialAI": {
+      "title": "Financial AI",
+      "description": "Intelligent analyses that learn from your habits and offer personalized insights"
+    },
+    "personalGoals": {
+      "title": "Personal Goals",
+      "description": "Set financial objectives and track your progress in real time"
+    },
+    "smartAlerts": {
+      "title": "Smart Alerts",
+      "description": "Receive notifications about spending, limits, and savings opportunities"
+    },
+    "visualReports": {
+      "title": "Visual Reports",
+      "description": "Visualize your finances with interactive charts and intuitive dashboards"
+    },
+    "totalSecurity": {
+      "title": "Total Security",
+      "description": "Cutting-edge encryption and advanced authentication protect your data"
+    },
+    "automation": {
+      "title": "Automation",
+      "description": "Automate transfers, payments, and recurring investments"
+    }
+  }
+}

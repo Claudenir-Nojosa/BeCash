@@ -1,0 +1,28 @@
+{
+  "badge": "Perguntas Frequentes",
+  "title": {
+    "part1": "Dúvidas?",
+    "part2": "Nós temos as respostas"
+  },
+  "subtitle": "Confira as perguntas mais comuns sobre o BeCash. Não encontrou o que procura? Entre em contato conosco!",
+  "stillHaveQuestions": "Ainda tem dúvidas?",
+  "contactSupport": "Fale com nosso suporte",
+  "items": {
+    "q1": "Como funciona o BeCash?",
+    "a1": "O BeCash é um assistente financeiro inteligente que analisa seus gastos, identifica padrões e oferece recomendações personalizadas. Conecte suas contas bancárias de forma segura e deixe nossa IA fazer o trabalho pesado de organizar e otimizar suas finanças.",
+    "q2": "Meus dados financeiros estão seguros?",
+    "a2": "Sim! Utilizamos criptografia de nível bancário (256-bit SSL) e nunca armazenamos suas credenciais de acesso. Somos certificados pela PCI DSS e seguimos rigorosamente a LGPD. Seus dados são exclusivamente seus e jamais são compartilhados com terceiros.",
+    "q3": "Quais bancos são compatíveis?",
+    "a3": "Trabalhamos com mais de 300 instituições financeiras brasileiras, incluindo Nubank, Itaú, Bradesco, Santander, Banco do Brasil, Caixa, Inter, C6 Bank e muitos outros. A integração é feita via Open Banking, garantindo segurança máxima.",
+    "q4": "Posso cancelar minha assinatura a qualquer momento?",
+    "a4": "Sim, sem burocracia! Você pode cancelar sua assinatura a qualquer momento direto no aplicativo. Não há taxas de cancelamento e você continuará com acesso aos recursos até o final do período pago.",
+    "q5": "Como funciona o período de teste gratuito?",
+    "a5": "Oferecemos 14 dias de teste gratuito com acesso completo a todos os recursos premium. Não é necessário cartão de crédito para começar. Após o período de teste, você escolhe se deseja continuar com um dos nossos planos.",
+    "q6": "O BeCash funciona em dispositivos móveis?",
+    "a6": "Sim! Temos aplicativos nativos para iOS e Android, além da versão web. Seus dados são sincronizados em tempo real entre todos os dispositivos, permitindo que você gerencie suas finanças de qualquer lugar.",
+    "q7": "Como funciona a análise de IA?",
+    "a7": "Nossa inteligência artificial analisa seus padrões de gastos, compara com benchmarks do mercado e identifica oportunidades de economia. Ela aprende com seu comportamento e oferece insights cada vez mais personalizados ao longo do tempo.",
+    "q8": "Preciso de conhecimento financeiro para usar?",
+    "a8": "Não! O BeCash foi desenvolvido para ser intuitivo e acessível para todos. Nossa interface é simples e explicamos cada métrica de forma clara. Oferecemos também tutoriais e dicas educativas para quem deseja aprender mais sobre finanças pessoais."
+  }
+}

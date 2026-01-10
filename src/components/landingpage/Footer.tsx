@@ -1,73 +1,79 @@
+"use client";
+
 import { motion } from "framer-motion";
-import { Wallet, Github, Twitter, Linkedin, Instagram } from "lucide-react";
+import { Github, Twitter, Linkedin, Instagram } from "lucide-react";
 import Image from "next/image";
-
-const footerLinks = {
-  produto: [
-    { label: "Recursos", href: "#features" },
-    { label: "Preços", href: "#pricing" },
-    { label: "Segurança", href: "#" },
-    { label: "Integrações", href: "#" },
-  ],
-  empresa: [
-    { label: "Sobre Nós", href: "#" },
-    { label: "Blog", href: "#" },
-    { label: "Carreiras", href: "#" },
-    { label: "Contato", href: "#" },
-  ],
-  legal: [
-    { label: "Privacidade", href: "#" },
-    { label: "Termos", href: "#" },
-    { label: "Cookies", href: "#" },
-  ],
-};
-
-const socialLinks = [
-  { Icon: Twitter, href: "#" },
-  { Icon: Instagram, href: "#" },
-  { Icon: Linkedin, href: "#" },
-  { Icon: Github, href: "#" },
-];
+import { useTranslation } from "react-i18next";
 
 export const Footer = () => {
+  const { t } = useTranslation("footer");
+
+  const footerLinks = {
+    product: [
+      { label: t("links.product.features", "Recursos"), href: "#features" },
+      { label: t("links.product.pricing", "Preços"), href: "#pricing" },
+      { label: t("links.product.security", "Segurança"), href: "#" },
+      { label: t("links.product.integrations", "Integrações"), href: "#" },
+    ],
+    company: [
+      { label: t("links.company.about", "Sobre Nós"), href: "#" },
+      { label: t("links.company.blog", "Blog"), href: "#" },
+      { label: t("links.company.careers", "Carreiras"), href: "#" },
+      { label: t("links.company.contact", "Contato"), href: "#" },
+    ],
+    legal: [
+      { label: t("links.legal.privacy", "Privacidade"), href: "#" },
+      { label: t("links.legal.terms", "Termos"), href: "#" },
+      { label: t("links.legal.cookies", "Cookies"), href: "#" },
+    ],
+  };
+
+  const socialLinks = [
+    { Icon: Twitter, href: "#", label: "Twitter" },
+    { Icon: Instagram, href: "#", label: "Instagram" },
+    { Icon: Linkedin, href: "#", label: "LinkedIn" },
+    { Icon: Github, href: "#", label: "GitHub" },
+  ];
+
+  const currentYear = new Date().getFullYear();
+
   return (
-    <footer className="py-16 relative overflow-hidden bg-background">
-
-
+    <footer className="py-12 md:py-16 relative overflow-hidden bg-background">
       <div className="container mx-auto px-4 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 md:gap-12 mb-8 md:mb-12">
           <div className="lg:col-span-2">
             <motion.a
               href="#"
-              className="flex items-center gap-2 mb-4"
+              className="flex items-center gap-2 mb-4 group"
               whileHover={{ scale: 1.02 }}
             >
               <div className="w-10 h-10 rounded-xl flex items-center justify-center">
                 <Image
                   src="https://github.com/Claudenir-Nojosa/servidor_estaticos/blob/main/BeCash-Logo.png?raw=true"
-                  alt="BeCash Logo"
+                  alt={t("brandAlt", "BeCash Logo")}
                   width={40}
                   height={40}
                   className="w-10 h-10"
+                  loading="lazy"
                 />
               </div>
               <span className="text-lg font-bold bg-gradient-to-r from-[#00cfec] to-[#007cca] bg-clip-text text-transparent">
-                becash
+                {t("brand", "BeCash")}
               </span>
             </motion.a>
             <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-sm text-sm md:text-base leading-relaxed">
-              Seu assistente financeiro inteligente. Economize mais, invista
-              melhor e alcance seus objetivos.
+              {t("description", "Seu assistente financeiro inteligente. Economize mais, invista melhor e alcance seus objetivos.")}
             </p>
-            <div className="flex gap-4">
-              {socialLinks.map(({ Icon, href }, index) => (
+            <div className="flex gap-3 md:gap-4">
+              {socialLinks.map(({ Icon, href, label }, index) => (
                 <motion.a
                   key={index}
                   href={href}
+                  aria-label={label}
                   whileHover={{ scale: 1.1, y: -2 }}
-                  className="w-10 h-10 rounded-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border border-gray-200/60 dark:border-gray-800/60 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-[#007cca] dark:hover:text-[#00cfec] transition-colors"
+                  className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border border-gray-200/60 dark:border-gray-800/60 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-[#007cca] dark:hover:text-[#00cfec] transition-colors group"
                 >
-                  <Icon className="w-5 h-5" />
+                  <Icon className="w-4 h-4 md:w-5 md:h-5 group-hover:scale-110 transition-transform" />
                 </motion.a>
               ))}
             </div>
@@ -75,14 +81,14 @@ export const Footer = () => {
 
           <div>
             <h4 className="font-semibold mb-4 text-gray-900 dark:text-white text-sm">
-              Produto
+              {t("sections.product", "Produto")}
             </h4>
             <ul className="space-y-3">
-              {footerLinks.produto.map((link) => (
+              {footerLinks.product.map((link) => (
                 <li key={link.label}>
                   <a
                     href={link.href}
-                    className="text-gray-600 dark:text-gray-400 hover:text-[#007cca] dark:hover:text-[#00cfec] transition-colors text-sm"
+                    className="text-gray-600 dark:text-gray-400 hover:text-[#007cca] dark:hover:text-[#00cfec] transition-colors text-sm hover:pl-1 transition-all duration-200"
                   >
                     {link.label}
                   </a>
@@ -93,14 +99,14 @@ export const Footer = () => {
 
           <div>
             <h4 className="font-semibold mb-4 text-gray-900 dark:text-white text-sm">
-              Empresa
+              {t("sections.company", "Empresa")}
             </h4>
             <ul className="space-y-3">
-              {footerLinks.empresa.map((link) => (
+              {footerLinks.company.map((link) => (
                 <li key={link.label}>
                   <a
                     href={link.href}
-                    className="text-gray-600 dark:text-gray-400 hover:text-[#007cca] dark:hover:text-[#00cfec] transition-colors text-sm"
+                    className="text-gray-600 dark:text-gray-400 hover:text-[#007cca] dark:hover:text-[#00cfec] transition-colors text-sm hover:pl-1 transition-all duration-200"
                   >
                     {link.label}
                   </a>
@@ -111,14 +117,14 @@ export const Footer = () => {
 
           <div>
             <h4 className="font-semibold mb-4 text-gray-900 dark:text-white text-sm">
-              Legal
+              {t("sections.legal", "Legal")}
             </h4>
             <ul className="space-y-3">
               {footerLinks.legal.map((link) => (
                 <li key={link.label}>
                   <a
                     href={link.href}
-                    className="text-gray-600 dark:text-gray-400 hover:text-[#007cca] dark:hover:text-[#00cfec] transition-colors text-sm"
+                    className="text-gray-600 dark:text-gray-400 hover:text-[#007cca] dark:hover:text-[#00cfec] transition-colors text-sm hover:pl-1 transition-all duration-200"
                   >
                     {link.label}
                   </a>
@@ -128,9 +134,9 @@ export const Footer = () => {
           </div>
         </div>
 
-        <div className="pt-8 border-t border-gray-200/60 dark:border-gray-800/60 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
-            © 2026 becash. Todos os direitos reservados.
+        <div className="pt-6 md:pt-8 border-t border-gray-200/60 dark:border-gray-800/60 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 text-center md:text-left">
+            {t("copyright", "© {{year}} BeCash. Todos os direitos reservados.", { year: currentYear })}
           </p>
         </div>
       </div>

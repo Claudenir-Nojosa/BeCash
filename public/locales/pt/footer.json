@@ -1,0 +1,30 @@
+{
+  "brand": "BeCash",
+  "brandAlt": "BeCash Logo",
+  "description": "Seu assistente financeiro inteligente. Economize mais, invista melhor e alcance seus objetivos.",
+  "sections": {
+    "product": "Produto",
+    "company": "Empresa",
+    "legal": "Legal"
+  },
+  "links": {
+    "product": {
+      "features": "Recursos",
+      "pricing": "Preços",
+      "security": "Segurança",
+      "integrations": "Integrações"
+    },
+    "company": {
+      "about": "Sobre Nós",
+      "blog": "Blog",
+      "careers": "Carreiras",
+      "contact": "Contato"
+    },
+    "legal": {
+      "privacy": "Privacidade",
+      "terms": "Termos",
+      "cookies": "Cookies"
+    }
+  },
+  "copyright": "© {{year}} BeCash. Todos os direitos reservados."
+}

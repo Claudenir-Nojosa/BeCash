@@ -1,0 +1,47 @@
+{
+  "plans": {
+    "basic": {
+      "name": "Basic",
+      "description": "Perfect for starting to control your finances",
+      "buttonText": "Start Free",
+      "features": [
+        "Up to 50 entries per month",
+        "Basic spending analysis",
+        "Email support",
+        "WhatsApp AI access",
+        "Simple monthly reports"
+      ],
+      "period": "month"
+    },
+    "pro": {
+      "name": "Pro",
+      "description": "For those who take finances seriously",
+      "buttonText": "Try for Free",
+      "features": [
+        "Unlimited entries",
+        "Advanced AI analysis",
+        "Personalized goals",
+        "Shared expenses",
+        "Smart alerts",
+        "Data export",
+        "Priority support"
+      ],
+      "period": "month"
+    },
+    "family": {
+      "name": "Family",
+      "description": "Ideal for families who want to control everything together",
+      "buttonText": "Start Free Trial",
+      "features": [
+        "Everything from Pro plan",
+        "Up to 5 family members",
+        "Parental control",
+        "Family budget",
+        "Shared goals",
+        "24/7 support",
+        "Financial consultation"
+      ],
+      "period": "month"
+    }
+  }
+}

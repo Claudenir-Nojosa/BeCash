@@ -1,75 +1,65 @@
+"use client";
+
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, MessageSquare, Edit3, ChevronDown } from "lucide-react";
-
-const launchMethods = [
-  {
-    id: "audio",
-    title: "Lançamento via Áudio",
-    icon: Mic,
-    description:
-      "Basta gravar um áudio descrevendo sua despesa ou receita. Nossa IA transcreve e categoriza automaticamente, tornando o registro tão natural quanto conversar.",
-    features: [
-      "Transcrição automática",
-      "Categorização inteligente",
-      "Hands-free",
-    ],
-    image:
-      "https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=800&auto=format&fit=crop&q=80",
-    gradient: "from-blue-600 to-cyan-700",
-  },
-  {
-    id: "message",
-    title: "Lançamento via Mensagem",
-    icon: MessageSquare,
-    description:
-      "Envie uma mensagem pelo WhatsApp com sua transação. Nossa integração com a Meta API processa e lança automaticamente no seu controle financeiro.",
-    features: [
-      "WhatsApp integrado",
-      "Resposta instantânea",
-      "Confirmação automática",
-    ],
-    image:
-      "https://images.unsplash.com/photo-1611746872915-64382b5c76da?w=800&auto=format&fit=crop&q=80",
-    gradient: "from-blue-500 to-cyan-600",
-  },
-  {
-    id: "normal",
-    title: "Lançamento Normal",
-    icon: Edit3,
-    description:
-      "Para quem prefere o controle total, nossa interface intuitiva permite lançamentos manuais rápidos com categorização, tags e anexos.",
-    features: [
-      "Interface intuitiva",
-      "Campos personalizáveis",
-      "Anexo de comprovantes",
-    ],
-    image:
-      "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&auto=format&fit=crop&q=80",
-    gradient: "from-blue-400 to-cyan-500",
-  },
-];
+import { useTranslation } from "react-i18next";
 
 export const LaunchMethods = () => {
+  const { t } = useTranslation("launchMethods");
   const [activeMethod, setActiveMethod] = useState<string | null>(null);
 
+  const launchMethods = [
+    {
+      id: "audio",
+      title: t("methods.audio.title"),
+      icon: Mic,
+      description: t("methods.audio.description"),
+      features: t("methods.audio.features", { returnObjects: true }),
+      image:
+        "https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=800&auto=format&fit=crop&q=80",
+      gradient: "from-blue-600 to-cyan-700",
+    },
+    {
+      id: "message",
+      title: t("methods.message.title"),
+      icon: MessageSquare,
+      description: t("methods.message.description"),
+      features: t("methods.message.features", { returnObjects: true }),
+      image:
+        "https://images.unsplash.com/photo-1611746872915-64382b5c76da?w=800&auto=format&fit=crop&q=80",
+      gradient: "from-blue-500 to-cyan-600",
+    },
+    {
+      id: "normal",
+      title: t("methods.normal.title"),
+      icon: Edit3,
+      description: t("methods.normal.description"),
+      features: t("methods.normal.features", { returnObjects: true }),
+      image:
+        "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&auto=format&fit=crop&q=80",
+      gradient: "from-blue-400 to-cyan-500",
+    },
+  ];
+
   return (
-    <section className="py-24 bg-background relative overflow-hidden">
-<div className="absolute inset-0 overflow-hidden">
-  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background" />
-  
-  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-96">
-    <div className="absolute top-0 left-0 w-96 h-96 bg-[#00cfec]/10 rounded-full blur-3xl" />
-    <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#007cca]/10 rounded-full blur-3xl" />
-  </div>
-</div>
+    <section className="py-20 md:py-24 bg-background relative overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background" />
+
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-96">
+          <div className="absolute top-0 left-0 w-96 h-96 bg-[#00cfec]/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#007cca]/10 rounded-full blur-3xl" />
+        </div>
+      </div>
+
       <div className="container mx-auto px-4 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-50px" }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-16"
+          className="text-center mb-12 md:mb-16"
         >
           <motion.span
             className="inline-block px-3 py-1.5 rounded-full bg-gradient-to-r from-[#00cfec]/10 to-[#007cca]/10 text-[#007cca] dark:text-[#00cfec] text-xs font-medium mb-3 border border-[#00cfec]/20"
@@ -78,19 +68,18 @@ export const LaunchMethods = () => {
             viewport={{ once: true }}
             transition={{ delay: 0.1, duration: 0.3 }}
           >
-            Múltiplas Formas de Lançar
+            {t("badge")}
           </motion.span>
 
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3 tracking-tight">
-            Lance suas transações{" "}
+            {t("title.part1")}{" "}
             <span className="bg-gradient-to-r from-[#00cfec] to-[#007cca] bg-clip-text text-transparent">
-              do seu jeito
+              {t("title.part2")}
             </span>
           </h2>
 
           <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-sm md:text-base leading-relaxed">
-            Escolha o método que melhor se adapta ao seu momento. Flexibilidade
-            é a nossa prioridade.
+            {t("subtitle")}
           </p>
         </motion.div>
 
@@ -117,7 +106,7 @@ export const LaunchMethods = () => {
                 layout
               >
                 <div
-                  className={`relative p-8 bg-gradient-to-br ${method.gradient} text-white`}
+                  className={`relative p-6 md:p-8 bg-gradient-to-br ${method.gradient} text-white`}
                 >
                   <motion.div
                     className="absolute inset-0 opacity-20"
@@ -125,7 +114,7 @@ export const LaunchMethods = () => {
                       backgroundPosition: ["0% 0%", "100% 100%"],
                     }}
                     transition={{
-                      duration: 10,
+                      duration: 12,
                       repeat: Infinity,
                       repeatType: "reverse",
                     }}
@@ -137,28 +126,33 @@ export const LaunchMethods = () => {
 
                   <div className="relative z-10">
                     <motion.div
-                      className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-6"
-                      whileHover={{ rotate: [0, -10, 10, 0] }}
+                      className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-4 md:mb-6"
+                      whileHover={{ rotate: [0, -8, 8, 0] }}
                       transition={{ duration: 0.5 }}
                     >
-                      <method.icon className="w-8 h-8" />
+                      <method.icon className="w-7 h-7 md:w-8 md:h-8" />
                     </motion.div>
 
-                    <h3 className="text-xl font-bold mb-2">{method.title}</h3>
+                    <h3 className="text-lg md:text-xl font-bold mb-2">
+                      {method.title}
+                    </h3>
 
                     <motion.div
                       className="flex items-center gap-2 text-white/80"
                       animate={{
-                        y: activeMethod === method.id ? 0 : [0, 3, 0],
+                        y: activeMethod === method.id ? 0 : [0, 2, 0],
                       }}
                       transition={{
-                        duration: 2,
+                        duration: 3,
                         repeat: activeMethod === method.id ? 0 : Infinity,
+                        ease: "easeInOut",
                       }}
                     >
-                      <span className="text-sm">Clique para ver mais</span>
+                      <span className="text-xs md:text-sm">
+                        {t("clickToSeeMore")}
+                      </span>
                       <ChevronDown
-                        className={`w-4 h-4 transition-transform duration-300 ${
+                        className={`w-3 h-3 md:w-4 md:h-4 transition-transform duration-300 ${
                           activeMethod === method.id ? "rotate-180" : ""
                         }`}
                       />
@@ -175,9 +169,9 @@ export const LaunchMethods = () => {
                       transition={{ duration: 0.4, ease: "easeInOut" }}
                       className="overflow-hidden bg-white dark:bg-gray-900"
                     >
-                      <div className="p-6">
+                      <div className="p-5 md:p-6">
                         <motion.p
-                          className="text-gray-600 dark:text-gray-400 mb-6 text-sm md:text-base"
+                          className="text-gray-600 dark:text-gray-400 mb-5 md:mb-6 text-sm md:text-base leading-relaxed"
                           initial={{ y: 20, opacity: 0 }}
                           animate={{ y: 0, opacity: 1 }}
                           transition={{ delay: 0.1 }}
@@ -186,22 +180,23 @@ export const LaunchMethods = () => {
                         </motion.p>
 
                         <motion.div
-                          className="flex flex-wrap gap-2 mb-6"
+                          className="flex flex-wrap gap-2 mb-5 md:mb-6"
                           initial={{ y: 20, opacity: 0 }}
                           animate={{ y: 0, opacity: 1 }}
                           transition={{ delay: 0.2 }}
                         >
-                          {method.features.map((feature, i) => (
-                            <motion.span
-                              key={feature}
-                              className="px-3 py-1 rounded-full bg-gradient-to-r from-[#00cfec]/10 to-[#007cca]/10 text-[#007cca] dark:text-[#00cfec] text-xs font-medium border border-[#00cfec]/20"
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              transition={{ delay: 0.3 + i * 0.1 }}
-                            >
-                              {feature}
-                            </motion.span>
-                          ))}
+                          {Array.isArray(method.features) &&
+                            method.features.map((feature, i) => (
+                              <motion.span
+                                key={`${method.id}-feature-${i}`}
+                                className="px-2 py-1 md:px-3 md:py-1 rounded-full bg-gradient-to-r from-[#00cfec]/10 to-[#007cca]/10 text-[#007cca] dark:text-[#00cfec] text-xs font-medium border border-[#00cfec]/20"
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ delay: 0.3 + i * 0.1 }}
+                              >
+                                {feature}
+                              </motion.span>
+                            ))}
                         </motion.div>
 
                         <motion.div
@@ -213,7 +208,8 @@ export const LaunchMethods = () => {
                           <img
                             src={method.image}
                             alt={method.title}
-                            className="w-full h-48 object-cover"
+                            className="w-full h-40 md:h-48 object-cover"
+                            loading="lazy"
                           />
                         </motion.div>
                       </div>

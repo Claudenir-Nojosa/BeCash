@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useState, useRef } from "react";
 import confetti from "canvas-confetti";
 import NumberFlow from "@number-flow/react";
+import { useTranslation } from "react-i18next";
 
 interface PricingPlan {
   name: string;
@@ -19,7 +20,7 @@ interface PricingPlan {
   priceReal: string;
   yearlyPriceReal: string;
   period: string;
-  features: string[];
+  features: string[] | any; // Permite tanto array quanto objeto especial do i18next
   description: string;
   buttonText: string;
   href: string;
@@ -32,15 +33,21 @@ interface PricingProps {
   description?: string;
 }
 
-export function Pricing({
-  plans,
-  title = "Simple, Transparent Pricing",
-  description = "Choose the plan that works for you\nAll plans include access to our platform, lead generation tools, and dedicated support.",
-}: PricingProps) {
+export function Pricing({ plans, title, description }: PricingProps) {
+  const { t } = useTranslation("pricing");
   const [isMonthly, setIsMonthly] = useState(true);
   const [currency, setCurrency] = useState<"USD" | "BRL">("USD");
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const switchRef = useRef<HTMLButtonElement>(null);
+
+  // Use translations or fallback to props
+  const titleText = title || t("title", "Simple, Transparent Pricing");
+  const descriptionText =
+    description ||
+    t(
+      "description",
+      "Choose the plan that works for you\nAll plans include access to our platform, lead generation tools, and dedicated support."
+    );
 
   const handleToggle = (checked: boolean) => {
     setIsMonthly(!checked);
@@ -74,6 +81,14 @@ export function Pricing({
     }
   };
 
+  const formatCurrency = (value: number) => {
+    if (currency === "USD") {
+      return `$${value}`;
+    } else {
+      return `R$ ${value}`;
+    }
+  };
+
   return (
     <div className="w-full flex justify-center relative overflow-hidden bg-background">
       <div className="absolute inset-0 overflow-hidden">
@@ -100,14 +115,14 @@ export function Pricing({
             viewport={{ once: true }}
             transition={{ delay: 0.1, duration: 0.3 }}
           >
-            Preços
+            {t("badge", "Preços")}
           </motion.span>
 
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
-            {title}
+            {titleText}
           </h2>
           <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base leading-relaxed whitespace-pre-line max-w-2xl mx-auto">
-            {description}
+            {descriptionText}
           </p>
         </motion.div>
 
@@ -145,7 +160,7 @@ export function Pricing({
                 !isMonthly && "text-gray-600 dark:text-gray-400"
               )}
             >
-              Mensal
+              {t("monthly", "Mensal")}
             </span>
             <Label>
               <Switch
@@ -162,10 +177,10 @@ export function Pricing({
                 isMonthly && "text-gray-600 dark:text-gray-400"
               )}
             >
-              Anual
+              {t("yearly", "Anual")}
             </span>
             <span className="text-[#007cca] dark:text-[#00cfec] font-semibold text-sm">
-              (Economize 20%)
+              ({t("savePercentage", "Economize 20%")})
             </span>
           </div>
         </div>
@@ -212,7 +227,7 @@ export function Pricing({
                 <div className="absolute top-0 right-0 bg-gradient-to-r from-[#00cfec] to-[#007cca] py-0.5 px-2 rounded-bl-xl rounded-tr-xl flex items-center">
                   <Star className="text-white h-4 w-4 fill-current" />
                   <span className="text-white ml-1 font-sans font-semibold text-xs">
-                    Popular
+                    {t("popularBadge", "Popular")}
                   </span>
                 </div>
               )}
@@ -230,9 +245,7 @@ export function Pricing({
                         minimumFractionDigits: 0,
                         maximumFractionDigits: 0,
                       }}
-                      formatter={(value: any) =>
-                        currency === "USD" ? `$${value}` : `R$ ${value}`
-                      }
+                      formatter={(value: any) => formatCurrency(value)}
                       transformTiming={{
                         duration: 500,
                         easing: "ease-out",
@@ -249,11 +262,13 @@ export function Pricing({
                 </div>
 
                 <p className="text-xs leading-5 text-gray-600 dark:text-gray-400">
-                  {isMonthly ? "cobrado mensalmente" : "cobrado anualmente"}
+                  {isMonthly
+                    ? t("chargedMonthly", "cobrado mensalmente")
+                    : t("chargedYearly", "cobrado anualmente")}
                 </p>
 
                 <ul className="mt-5 gap-2 flex flex-col">
-                  {plan.features.map((feature, idx) => (
+                  {plan.features.map((feature: any, idx: any) => (
                     <li key={idx} className="flex items-start gap-2">
                       <Check className="h-4 w-4 text-[#007cca] dark:text-[#00cfec] mt-1 flex-shrink-0" />
                       <span className="text-left text-sm text-gray-900 dark:text-white">

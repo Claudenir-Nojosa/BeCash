@@ -1,0 +1,47 @@
+{
+  "plans": {
+    "basic": {
+      "name": "Básico",
+      "description": "Perfeito para começar a controlar suas finanças",
+      "buttonText": "Começar Grátis",
+      "features": [
+        "Até 50 lançamentos por mês",
+        "Análise básica de gastos",
+        "Suporte por email",
+        "Acesso ao WhatsApp AI",
+        "Relatórios mensais simples"
+      ],
+      "period": "mês"
+    },
+    "pro": {
+      "name": "Pro",
+      "description": "Para quem leva finanças a sério",
+      "buttonText": "Experimentar Gratuitamente",
+      "features": [
+        "Lançamentos ilimitados",
+        "Análise avançada de IA",
+        "Metas personalizadas",
+        "Despesas compartilhadas",
+        "Alertas inteligentes",
+        "Exportação de dados",
+        "Suporte prioritário"
+      ],
+      "period": "mês"
+    },
+    "family": {
+      "name": "Família",
+      "description": "Ideal para famílias que querem controlar tudo junto",
+      "buttonText": "Começar Teste Grátis",
+      "features": [
+        "Tudo do plano Pro",
+        "Até 5 membros da família",
+        "Controle parental",
+        "Orçamento familiar",
+        "Metas compartilhadas",
+        "Suporte 24/7",
+        "Consultoria financeira"
+      ],
+      "period": "mês"
+    }
+  }
+}

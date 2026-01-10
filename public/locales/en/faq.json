@@ -1,0 +1,28 @@
+{
+  "badge": "Frequently Asked Questions",
+  "title": {
+    "part1": "Questions? We have the",
+    "part2": "answers"
+  },
+  "subtitle": "Check out the most common questions about BeCash. Didn't find what you're looking for? Contact us!",
+  "stillHaveQuestions": "Still have questions?",
+  "contactSupport": "Contact our support",
+  "items": {
+    "q1": "How does BeCash work?",
+    "a1": "BeCash is an intelligent financial assistant that analyzes your spending, identifies patterns, and offers personalized recommendations. Securely connect your bank accounts and let our AI do the heavy lifting of organizing and optimizing your finances.",
+    "q2": "Are my financial data secure?",
+    "a2": "Yes! We use bank-level encryption (256-bit SSL) and never store your access credentials. We are PCI DSS certified and strictly follow GDPR. Your data is exclusively yours and is never shared with third parties.",
+    "q3": "Which banks are compatible?",
+    "a3": "We work with over 300 Brazilian financial institutions, including Nubank, Itaú, Bradesco, Santander, Banco do Brasil, Caixa, Inter, C6 Bank, and many others. Integration is done via Open Banking, ensuring maximum security.",
+    "q4": "Can I cancel my subscription at any time?",
+    "a4": "Yes, without bureaucracy! You can cancel your subscription at any time directly in the app. There are no cancellation fees and you'll continue to have access to features until the end of the paid period.",
+    "q5": "How does the free trial period work?",
+    "a5": "We offer a 14-day free trial with full access to all premium features. No credit card is required to start. After the trial period, you choose whether to continue with one of our plans.",
+    "q6": "Does BeCash work on mobile devices?",
+    "a6": "Yes! We have native apps for iOS and Android, plus the web version. Your data is synchronized in real time across all devices, allowing you to manage your finances from anywhere.",
+    "q7": "How does the AI analysis work?",
+    "a7": "Our artificial intelligence analyzes your spending patterns, compares them with market benchmarks, and identifies savings opportunities. It learns from your behavior and offers increasingly personalized insights over time.",
+    "q8": "Do I need financial knowledge to use it?",
+    "a8": "No! BeCash was designed to be intuitive and accessible to everyone. Our interface is simple and we explain each metric clearly. We also offer tutorials and educational tips for those who want to learn more about personal finance."
+  }
+}
