@@ -16,6 +16,9 @@ import { SharedExpenses } from "./SharedExpenses";
 import { MetaVerified } from "./MetaVerified";
 import { ProductivityGains } from "./ProductivityGains";
 import { Pricing } from "./Pricing";
+import FAQ from "./FAQ";
+import CTA2 from "./CTA2";
+import Security from "./Security";
 
 // Defina seus planos de preços
 const pricingPlans = [
@@ -23,6 +26,8 @@ const pricingPlans = [
     name: "STARTER",
     price: "50",
     yearlyPrice: "40",
+    priceReal: "250",
+    yearlyPriceReal: "200",
     period: "per month",
     features: [
       "Up to 10 projects",
@@ -40,6 +45,8 @@ const pricingPlans = [
     name: "PROFESSIONAL",
     price: "99",
     yearlyPrice: "79",
+    priceReal: "495",
+    yearlyPriceReal: "395",
     period: "per month",
     features: [
       "Unlimited projects",
@@ -59,6 +66,8 @@ const pricingPlans = [
     name: "ENTERPRISE",
     price: "299",
     yearlyPrice: "239",
+    priceReal: "1495",
+    yearlyPriceReal: "1195",
     period: "per month",
     features: [
       "Everything in Professional",
@@ -114,6 +123,10 @@ const Index = () => {
       </Suspense>
 
       <Suspense fallback={<SectionSkeleton />}>
+        <CTA />
+      </Suspense>
+
+      <Suspense fallback={<SectionSkeleton />}>
         <MetaVerified />
       </Suspense>
 
@@ -122,11 +135,11 @@ const Index = () => {
       </Suspense>
 
       <Suspense fallback={<SectionSkeleton />}>
-        <Stats />
+        <HowItWorks />
       </Suspense>
 
       <Suspense fallback={<SectionSkeleton />}>
-        <HowItWorks />
+        <Security />
       </Suspense>
 
       <Suspense fallback={<SectionSkeleton />}>
@@ -138,7 +151,11 @@ const Index = () => {
       </Suspense>
 
       <Suspense fallback={<SectionSkeleton />}>
-        <CTA />
+        <CTA2 />
+      </Suspense>
+
+      <Suspense fallback={<SectionSkeleton />}>
+        <FAQ />
       </Suspense>
 
       <Footer />

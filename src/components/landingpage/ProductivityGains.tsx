@@ -4,29 +4,29 @@ import { TrendingUp, Clock, FileSpreadsheet, FileText, Sparkles, Zap } from "luc
 
 const methods = [
   {
-    name: "Controle no Papel",
-    icon: FileText,
-    productivity: 23,
-    description: "Lento, sujeito a erros e difícil de analisar",
-    color: "from-gray-400 to-gray-500",
-    bgColor: "bg-gray-100 dark:bg-gray-800",
+    name: "BeCash",
+    icon: Zap,
+    productivity: 93,
+    description: "Rápido, automático e inteligente",
+    color: "from-[#00cfec] to-[#007cca]",
+    bgColor: "bg-gradient-to-r from-[#00cfec]/10 to-[#007cca]/10",
+    featured: true,
   },
   {
     name: "Planilha Manual",
     icon: FileSpreadsheet,
     productivity: 45,
     description: "Requer tempo para abrir, lançar e salvar",
-    color: "from-green-400 to-green-500",
-    bgColor: "bg-green-50 dark:bg-green-900/20",
+    color: "from-blue-400 to-blue-500",
+    bgColor: "bg-blue-50 dark:bg-blue-900/20",
   },
   {
-    name: "BeCash",
-    icon: Zap,
-    productivity: 93,
-    description: "Rápido, automático e inteligente",
-    color: "from-primary to-accent",
-    bgColor: "bg-primary/10",
-    featured: true,
+    name: "Controle no Papel",
+    icon: FileText,
+    productivity: 23,
+    description: "Lento, sujeito a erros e difícil de analisar",
+    color: "from-gray-400 to-gray-500",
+    bgColor: "bg-gray-100 dark:bg-gray-800",
   },
 ];
 
@@ -61,48 +61,42 @@ export const ProductivityGains = () => {
 
   return (
     <section className="py-24 bg-background relative overflow-hidden" ref={ref}>
-      {/* Background Decoration */}
-      <div className="absolute inset-0 pointer-events-none">
-        <motion.div
-          className="absolute top-1/4 right-0 w-[600px] h-[600px] bg-gradient-to-l from-primary/5 to-transparent rounded-full blur-3xl"
-          animate={{
-            scale: [1, 1.1, 1],
-            opacity: [0.3, 0.5, 0.3],
-          }}
-          transition={{ duration: 8, repeat: Infinity }}
-        />
+      <div className="absolute inset-0">
+        <div className="absolute top-0 left-1/4 w-72 h-72 bg-[#00cfec]/10 rounded-full blur-3xl" />
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
+          viewport={{ once: true, margin: "-50px" }}
+          transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
           <motion.div
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4"
-            initial={{ scale: 0.9 }}
-            whileInView={{ scale: 1 }}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-[#00cfec]/10 to-[#007cca]/10 text-[#007cca] dark:text-[#00cfec] text-xs font-medium mb-3 border border-[#00cfec]/20"
+            initial={{ scale: 0.95, opacity: 0 }}
+            whileInView={{ scale: 1, opacity: 1 }}
             viewport={{ once: true }}
+            transition={{ delay: 0.1, duration: 0.3 }}
           >
             <TrendingUp className="w-4 h-4" />
             <span>Ganho de Produtividade</span>
           </motion.div>
 
-          <h2 className="text-3xl md:text-5xl font-bold text-foreground mb-4">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3 tracking-tight">
             Economize{" "}
-            <span className="gradient-text">Tempo e Energia</span>
+            <span className="bg-gradient-to-r from-[#00cfec] to-[#007cca] bg-clip-text text-transparent">
+              Tempo e Energia
+            </span>
           </h2>
 
-          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+          <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-sm md:text-base leading-relaxed">
             Compare o tempo gasto com métodos tradicionais e veja como o BeCash 
             transforma sua rotina financeira
           </p>
         </motion.div>
 
-        {/* Comparison Cards */}
         <div className="max-w-4xl mx-auto space-y-6">
           {methods.map((method, index) => (
             <motion.div
@@ -113,14 +107,13 @@ export const ProductivityGains = () => {
               transition={{ duration: 0.5, delay: index * 0.15 }}
               className={`relative rounded-3xl p-6 md:p-8 transition-all duration-500 ${
                 method.featured 
-                  ? 'ring-2 ring-primary shadow-2xl scale-105 z-10' 
-                  : 'border border-border/50'
+                  ? 'ring-2 ring-[#00cfec] shadow-2xl shadow-[#00cfec]/20 scale-105 z-10' 
+                  : 'border border-gray-200/60 dark:border-gray-800/60'
               } ${method.bgColor}`}
             >
-              {/* Featured Badge */}
               {method.featured && (
                 <motion.div
-                  className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-gradient-to-r from-primary to-accent text-white text-sm font-bold flex items-center gap-2"
+                  className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white text-xs font-bold flex items-center gap-2 shadow-lg"
                   animate={{
                     scale: [1, 1.05, 1],
                   }}
@@ -132,38 +125,35 @@ export const ProductivityGains = () => {
               )}
 
               <div className="flex flex-col md:flex-row md:items-center gap-6">
-                {/* Icon & Name */}
                 <div className="flex items-center gap-4 md:w-1/4">
                   <motion.div
                     className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
                       method.featured 
-                        ? 'bg-gradient-to-br from-primary to-accent shadow-lg' 
-                        : 'bg-secondary'
+                        ? 'bg-gradient-to-br from-[#00cfec] to-[#007cca] shadow-lg shadow-[#00cfec]/30' 
+                        : 'bg-gray-200 dark:bg-gray-800'
                     }`}
                     whileHover={{ scale: 1.1, rotate: 5 }}
                     transition={{ type: "spring", stiffness: 400 }}
                   >
-                    <method.icon className={`w-7 h-7 ${method.featured ? 'text-white' : 'text-muted-foreground'}`} />
+                    <method.icon className={`w-7 h-7 ${method.featured ? 'text-white' : 'text-gray-600 dark:text-gray-400'}`} />
                   </motion.div>
                   <div>
-                    <h3 className={`font-bold text-lg ${method.featured ? 'text-foreground' : 'text-foreground/70'}`}>
+                    <h3 className={`font-bold text-lg ${method.featured ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
                       {method.name}
                     </h3>
-                    <p className="text-sm text-muted-foreground hidden md:block">{method.description}</p>
+                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 hidden md:block">{method.description}</p>
                   </div>
                 </div>
 
-                {/* Progress Bar */}
                 <div className="flex-1">
                   <div className="flex items-center gap-4">
-                    <div className="flex-1 h-8 rounded-full bg-secondary/50 overflow-hidden relative">
+                    <div className="flex-1 h-8 rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden relative">
                       <motion.div
                         className={`h-full rounded-full bg-gradient-to-r ${method.color} relative`}
                         initial={{ width: 0 }}
                         animate={isInView ? { width: `${method.productivity}%` } : { width: 0 }}
                         transition={{ duration: 1.2, delay: 0.3 + index * 0.2, ease: "easeOut" }}
                       >
-                        {/* Shimmer Effect for Featured */}
                         {method.featured && (
                           <motion.div
                             className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
@@ -180,10 +170,9 @@ export const ProductivityGains = () => {
                       </motion.div>
                     </div>
 
-                    {/* Percentage */}
-                    <div className={`w-20 text-right ${method.featured ? 'text-primary' : 'text-muted-foreground'}`}>
+                    <div className={`w-20 text-right ${method.featured ? 'text-[#007cca] dark:text-[#00cfec]' : 'text-gray-600 dark:text-gray-400'}`}>
                       <motion.span
-                        className={`text-2xl md:text-3xl font-bold ${method.featured ? 'text-primary' : ''}`}
+                        className={`text-2xl md:text-3xl font-bold`}
                         initial={{ scale: 0.5 }}
                         animate={isInView ? { scale: 1 } : { scale: 0.5 }}
                         transition={{ delay: 1 + index * 0.2 }}
@@ -192,19 +181,18 @@ export const ProductivityGains = () => {
                       </motion.span>
                     </div>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-2 md:hidden">{method.description}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 md:hidden">{method.description}</p>
                 </div>
               </div>
 
-              {/* Featured Highlight Glow */}
               {method.featured && (
                 <motion.div
                   className="absolute inset-0 rounded-3xl pointer-events-none"
                   animate={{
                     boxShadow: [
-                      '0 0 20px hsl(var(--primary) / 0.1)',
-                      '0 0 40px hsl(var(--primary) / 0.2)',
-                      '0 0 20px hsl(var(--primary) / 0.1)',
+                      '0 0 20px rgba(0, 207, 236, 0.1)',
+                      '0 0 40px rgba(0, 207, 236, 0.2)',
+                      '0 0 20px rgba(0, 207, 236, 0.1)',
                     ],
                   }}
                   transition={{ duration: 3, repeat: Infinity }}
@@ -214,7 +202,6 @@ export const ProductivityGains = () => {
           ))}
         </div>
 
-        {/* Bottom Stats */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -222,10 +209,10 @@ export const ProductivityGains = () => {
           transition={{ duration: 0.6, delay: 0.8 }}
           className="mt-16 text-center"
         >
-          <div className="inline-flex items-center gap-3 px-6 py-4 rounded-2xl bg-primary/10 border border-primary/20">
-            <Clock className="w-6 h-6 text-primary" />
-            <p className="text-foreground">
-              <span className="font-bold text-primary">Economize até 4 horas por semana</span>
+          <div className="inline-flex items-center gap-3 px-6 py-4 rounded-2xl bg-gradient-to-r from-[#00cfec]/10 to-[#007cca]/10 border border-[#00cfec]/20">
+            <Clock className="w-6 h-6 text-[#007cca] dark:text-[#00cfec]" />
+            <p className="text-gray-900 dark:text-white text-sm md:text-base">
+              <span className="font-bold text-[#007cca] dark:text-[#00cfec]">Economize até 4 horas por semana</span>
               {" "}automatizando seu controle financeiro
             </p>
           </div>

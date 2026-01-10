@@ -8,12 +8,12 @@ import {
   Shield,
   Sparkles,
   ChevronRight,
-  Coins,
   CircleDollarSign,
   BanknoteIcon,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const floatingIcons = [
   {
@@ -64,18 +64,21 @@ const animatedCoins = Array.from({ length: 12 }, (_, i) => ({
 }));
 
 export const Hero = () => {
+  const { t } = useTranslation("hero");
   const [isHoveringOffer, setIsHoveringOffer] = useState(false);
+  const [isHoveringCTA, setIsHoveringCTA] = useState(false);
+  const [isHoveringSecondary, setIsHoveringSecondary] = useState(false);
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background Effects */}
       <div className="absolute inset-0 overflow-hidden bg-background">
-        {/* Gradientes de fundo */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/30 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/30 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-primary/20 to-accent/20 rounded-full blur-3xl" />
+        {/* Gradientes de fundo mais sutis */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 dark:bg-primary/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/10 dark:bg-accent/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-primary/10 to-accent/10 dark:from-primary/5 dark:to-accent/5 rounded-full blur-3xl" />
 
-        {/* Moedas animadas */}
+        {/* Moedas animadas com melhor visibilidade */}
         {animatedCoins.map((coin) => (
           <motion.div
             key={coin.id}
@@ -97,28 +100,28 @@ export const Hero = () => {
               ease: "linear",
             }}
           >
-            <CircleDollarSign className="w-full h-full text-accent/40" />
+            <CircleDollarSign className="w-full h-full text-accent/30 dark:text-accent/25" />
           </motion.div>
         ))}
       </div>
 
-      {/* Floating Icons - Mais chamativos */}
+      {/* Floating Icons com piscar mais devagar */}
       {floatingIcons.map(({ Icon, className, delay, glow }, index) => (
         <motion.div
           key={index}
-          initial={{ opacity: 0, scale: 0, y: 20 }}
+          initial={{ opacity: 0, scale: 0.8, y: 20 }}
           animate={{
             opacity: 1,
             scale: 1,
             y: 0,
-            rotate: [0, 5, -5, 0],
+            rotate: [0, 3, -3, 0],
           }}
           transition={{
             delay: 0.3 + delay,
-            duration: 0.6,
+            duration: 0.8,
             rotate: {
               delay: 1 + delay,
-              duration: 3,
+              duration: 4,
               repeat: Infinity,
               repeatType: "reverse",
             },
@@ -126,12 +129,14 @@ export const Hero = () => {
           className={`absolute hidden lg:block ${className}`}
         >
           <div
-            className={`w-16 h-16 rounded-2xl flex items-center justify-center ${glow ? "glow-effect" : ""} bg-gradient-to-br from-secondary to-primary border border-accent/30`}
+            className={`w-16 h-16 rounded-2xl flex items-center justify-center ${glow ? "glow-effect" : ""} 
+            bg-gradient-to-br from-white/80 to-blue-50/80 dark:from-secondary/80 dark:to-primary/80 
+            border border-sky-100/50 dark:border-accent/25 shadow-lg shadow-sky-100/30 dark:shadow-sky-500/10`}
           >
-            <div className="relative w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
-              <Icon className="w-7 h-7 text-accent" />
+            <div className="relative w-12 h-12 rounded-xl bg-white/90 dark:bg-gray-900/90 flex items-center justify-center shadow-sm shadow-sky-100/20 dark:shadow-gray-800/30">
+              <Icon className="w-6 h-6 text-sky-500/90 dark:text-accent/80" />
               {glow && (
-                <div className="absolute inset-0 rounded-xl border border-accent/20 animate-ping" />
+                <div className="absolute inset-0 rounded-xl border border-sky-200/30 dark:border-accent/20 animate-pulse-slow" />
               )}
             </div>
           </div>
@@ -143,27 +148,29 @@ export const Hero = () => {
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
           className="max-w-4xl mx-auto"
         >
-          {/* Badge com oferta especial - versão clean */}
+          {/* Badge com oferta especial - com seta azul no hover */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
+            initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-sky-50 to-blue-50 dark:from-primary/10 dark:to-secondary/10 border border-sky-200 dark:border-accent/30 mb-6 group cursor-pointer hover:shadow-md transition-all"
+            transition={{ delay: 0.2, duration: 0.4 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-sky-50/80 to-blue-50/80 dark:from-primary/10 dark:to-secondary/10 border border-sky-200/60 dark:border-accent/25 mb-8 group cursor-pointer hover:shadow-sm hover:shadow-blue-500/10 dark:hover:shadow-accent/10 transition-all duration-300"
             onMouseEnter={() => setIsHoveringOffer(true)}
             onMouseLeave={() => setIsHoveringOffer(false)}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-xs font-medium text-sky-900 dark:text-white">
-              2 meses gratuitos no plano anual
+            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+            <span className="text-sm font-medium text-sky-700 dark:text-sky-200">
+              {t("offer")}
             </span>
             <motion.div
-              animate={{ x: isHoveringOffer ? 2 : 0 }}
-              transition={{ duration: 0.2 }}
+              animate={{ x: isHoveringOffer ? 3 : 0 }}
+              transition={{ duration: 0.15 }}
             >
-              <ChevronRight className="w-3 h-3 text-sky-600 dark:text-accent" />
+              <ChevronRight
+                className={`w-3.5 h-3.5 transition-colors duration-200 ${isHoveringOffer ? "text-[#007cca] dark:text-[#00cfec]" : "text-sky-600/80 dark:text-accent/70"}`}
+              />
             </motion.div>
           </motion.div>
 
@@ -171,22 +178,25 @@ export const Hero = () => {
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="text-3xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6"
+            transition={{ delay: 0.3, duration: 0.6 }}
+            className="text-3xl md:text-5xl lg:text-5xl font-bold leading-tight mb-8"
           >
-            Controle suas finanças pelo{" "}
-            <span className="relative inline-block">
-              <span className="gradient-text">WhatsApp</span>
+            <span className="block text-gray-900 dark:text-white">
+              {t("title.line1")}
+            </span>
+            <span className="relative inline-block mt-4">
+                <span className="bg-gradient-to-r from-[#00cfec] to-[#007cca] bg-clip-text text-transparent">
+                {t("title.whatsapp")}
+              </span>
               <motion.div
-                className="absolute -bottom-2 left-0 w-full h-1 bg-gradient-to-r from-accent to-transparent"
+                className="absolute -bottom-2 left-0 w-full h-0.5 bg-gradient-to-r from-[#00cfec]/60 to-transparent"
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: 1 }}
                 transition={{ delay: 0.5, duration: 0.8 }}
               />
             </span>
-            <br />
-            <span className="text-2xl md:text-4xl lg:text-5xl font-semibold mt-4 block">
-              com IA inteligente
+            <span className="block text-2xl md:text-4xl lg:text-5xl font-semibold mt-8 text-gray-900 dark:text-white">
+              {t("title.line2")}
             </span>
           </motion.h1>
 
@@ -194,68 +204,107 @@ export const Hero = () => {
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="text-base md:text-lg text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed"
+            transition={{ delay: 0.4, duration: 0.5 }}
+            className="text-base md:text-lg text-gray-800/90 dark:text-gray-300/90 mb-12 max-w-2xl mx-auto leading-relaxed"
           >
-            O BeCash é seu assistente financeiro que transforma mensagens do
-            WhatsApp em controle financeiro completo. Lançamentos automáticos,
-            limites por categoria, metas compartilhadas e análises de IA para
-            você economizar de verdade.
+            {t("subtitle")}
           </motion.p>
 
-          {/* CTA Buttons */}
+          {/* CTA Buttons - Ajustes finos */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+            transition={{ delay: 0.5, duration: 0.5 }}
+            className="flex flex-col sm:flex-row gap-3 justify-center items-center"
           >
             <Button
               size="lg"
-              className="gradient-bg text-primary-foreground glow px-8 py-6 text-lg font-semibold hover:opacity-90 transition-all group relative overflow-hidden"
+              className="px-8 py-5 text-lg font-medium bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:shadow-md hover:shadow-[#00cfec]/25 dark:hover:shadow-[#00cfec]/15 transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] rounded-xl border border-[#00cfec]/40"
+              onMouseEnter={() => setIsHoveringCTA(true)}
+              onMouseLeave={() => setIsHoveringCTA(false)}
             >
+              <span className="relative z-10">{t("buttons.startFree")}</span>
               <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-accent/20 to-transparent"
-                animate={{
-                  x: ["0%", "100%"],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "linear",
-                }}
-              />
-              <span className="relative z-10">Começar Gratuitamente</span>
-              <ArrowRight className="ml-2 w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
+                animate={{ x: isHoveringCTA ? 3 : 0 }}
+                transition={{ duration: 0.15 }}
+                className="relative z-10 ml-2"
+              >
+                <ArrowRight className="w-4 h-4" />
+              </motion.div>
             </Button>
+
             <Button
               size="lg"
               variant="outline"
-              className="px-8 py-6 text-lg font-semibold glass hover:bg-secondary/50 border-accent/30 hover:border-accent/50 transition-all"
+              className="px-8 py-5 text-lg font-medium border border-gray-300/80 dark:border-gray-700/80 hover:border-[#007cca]/40 dark:hover:border-[#00cfec]/40 text-gray-800 dark:text-gray-200 hover:text-[#007cca] dark:hover:text-[#00cfec] transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] rounded-xl bg-white/70 dark:bg-gray-900/30 backdrop-blur-sm"
+              onMouseEnter={() => setIsHoveringSecondary(true)}
+              onMouseLeave={() => setIsHoveringSecondary(false)}
             >
-              <Sparkles className="mr-2 w-5 h-5" />
-              Ver Demonstração
+              <motion.div
+                animate={{ y: isHoveringSecondary ? [0, 1.5, 0] : 0 }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  repeatType: "loop",
+                  ease: "easeInOut",
+                }}
+                className="mr-2"
+              >
+                <ChevronRight className="w-4 h-4 rotate-90 text-gray-600 dark:text-gray-400 group-hover:text-[#007cca] dark:group-hover:text-[#00cfec] transition-colors duration-200" />
+              </motion.div>
+              {t("buttons.howItWorks")}
             </Button>
           </motion.div>
-          {/* Trust Indicators */}
+
+          {/* Trust Indicators - Ajustes finos */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.7 }}
-            className="mt-16 flex flex-wrap justify-center items-center gap-8 text-muted-foreground"
+            transition={{ delay: 0.7, duration: 0.6 }}
+            className="mt-20 flex flex-wrap justify-center items-center gap-5"
           >
-            <div className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-primary" />
-              <span className="text-sm">Dados Protegidos</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary" />
-              <span className="text-sm">IA Avançada</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-primary" />
-              <span className="text-sm">+30% Economia Média</span>
-            </div>
+            <motion.span
+              className="justify-center gap-3 text-center px-3 py-1.5 rounded-full bg-gradient-to-r from-[#00cfec]/10 to-[#007cca]/10 text-[#007cca] dark:text-[#00cfec] text-xs font-medium mb-3 border border-[#00cfec]/20 flex align-middle items-center"
+              initial={{ scale: 0.95, opacity: 0 }}
+              whileInView={{ scale: 1, opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1, duration: 0.3 }}
+            >
+              {" "}
+              <div className="w-8 h-8 rounded-full flex bg-gradient-to-br from-[#00cfec] to-[#007cca] flex items-center justify-center shadow-sm">
+                <Shield className="w-3.5 h-3.5 text-white" />
+              </div>
+              {t("trust.dataProtected")}
+            </motion.span>
+
+            <motion.span
+              className="justify-center gap-3 text-center px-3 py-1.5 rounded-full bg-gradient-to-r from-[#00cfec]/10 to-[#007cca]/10 text-[#007cca] dark:text-[#00cfec] text-xs font-medium mb-3 border border-[#00cfec]/20 flex align-middle items-center"
+              initial={{ scale: 0.95, opacity: 0 }}
+              whileInView={{ scale: 1, opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1, duration: 0.3 }}
+            >
+              {" "}
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#00cfec] to-[#007cca] flex items-center justify-center shadow-sm">
+                <Sparkles className="w-3.5 h-3.5 text-white" />
+              </div>
+              {t("trust.aiAdvanced")}
+            </motion.span>
+
+                        <motion.span
+              className="justify-center gap-3 text-center px-3 py-1.5 rounded-full bg-gradient-to-r from-[#00cfec]/10 to-[#007cca]/10 text-[#007cca] dark:text-[#00cfec] text-xs font-medium mb-3 border border-[#00cfec]/20 flex align-middle items-center"
+              initial={{ scale: 0.95, opacity: 0 }}
+              whileInView={{ scale: 1, opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1, duration: 0.3 }}
+            >
+              {" "}
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#09acc1] to-[#007cca] flex items-center justify-center shadow-sm">
+                <TrendingUp className="w-3.5 h-3.5 text-white" />
+              </div>
+             {t("trust.averageSavings")}
+            </motion.span>
+
           </motion.div>
         </motion.div>
       </div>
@@ -264,21 +313,21 @@ export const Hero = () => {
       <style jsx global>{`
         .glow-effect {
           box-shadow:
-            0 0 20px rgba(56, 189, 248, 0.3),
-            0 0 40px rgba(56, 189, 248, 0.2),
-            0 0 60px rgba(56, 189, 248, 0.1);
+            0 0 20px rgba(56, 189, 248, 0.15),
+            0 0 40px rgba(56, 189, 248, 0.08),
+            0 0 60px rgba(56, 189, 248, 0.04);
         }
 
         .float-animation {
-          animation: float 6s ease-in-out infinite;
+          animation: float 8s ease-in-out infinite;
         }
 
         .float-animation-delayed {
-          animation: float 7s ease-in-out infinite 0.5s;
+          animation: float 9s ease-in-out infinite 0.5s;
         }
 
         .float-animation-slow {
-          animation: float 8s ease-in-out infinite 1s;
+          animation: float 10s ease-in-out infinite 1s;
         }
 
         @keyframes float {
@@ -287,25 +336,22 @@ export const Hero = () => {
             transform: translateY(0) rotate(0deg);
           }
           50% {
-            transform: translateY(-20px) rotate(5deg);
+            transform: translateY(-15px) rotate(2deg);
           }
         }
 
-        .gradient-text {
-          background: linear-gradient(135deg, #38bdf8 0%, #7dd3fc 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+        @keyframes pulse-slow {
+          0%,
+          100% {
+            opacity: 0.3;
+          }
+          50% {
+            opacity: 0.7;
+          }
         }
 
-        .gradient-bg {
-          background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
-        }
-
-        .glass {
-          background: rgba(17, 24, 39, 0.7);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(56, 189, 248, 0.1);
+        .animate-pulse-slow {
+          animation: pulse-slow 4s ease-in-out infinite;
         }
       `}</style>
     </section>

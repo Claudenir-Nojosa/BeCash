@@ -1,138 +1,195 @@
-// components/FAQ.tsx
-'use client';
+import { motion, AnimatePresence } from "framer-motion";
+import { Plus, Minus } from "lucide-react";
+import { useState } from "react";
 
-import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Minus } from 'lucide-react';
-import { useState } from 'react';
+interface FAQItemProps {
+  question: string;
+  answer: string;
+  isOpen: boolean;
+  onClick: () => void;
+}
 
-const faqs = [
+const faqData = [
   {
-    question: "Como o BeCash protege meus dados financeiros?",
-    answer: "Utilizamos criptografia de banco com padrão AES-256, autenticação de dois fatores e seguimos todas as regulamentações LGPD. Seus dados nunca são compartilhados com terceiros sem sua autorização.",
-    color: "border-[#00cfec]/20 dark:border-[#00cfec]/30"
+    question: "Como funciona o becash?",
+    answer:
+      "O becash é um assistente financeiro inteligente que analisa seus gastos, identifica padrões e oferece recomendações personalizadas. Conecte suas contas bancárias de forma segura e deixe nossa IA fazer o trabalho pesado de organizar e otimizar suas finanças.",
   },
   {
-    question: "A IA realmente faz recomendações personalizadas?",
-    answer: "Sim! Nossa IA analisa seus padrões de gastos, objetivos financeiros e perfil de risco para criar recomendações únicas. Ela aprende continuamente com seu comportamento para melhorar as sugestões.",
-    color: "border-[#007cca]/20 dark:border-[#007cca]/30"
-  },
-  {
-    question: "Posso cancelar a qualquer momento?",
-    answer: "Sim, você pode cancelar seu plano a qualquer momento sem taxas ou multas. Se cancelar durante o período de teste gratuito, não será cobrado.",
-    color: "border-[#5665ba]/20 dark:border-[#5665ba]/30"
+    question: "Meus dados financeiros estão seguros?",
+    answer:
+      "Sim! Utilizamos criptografia de nível bancário (256-bit SSL) e nunca armazenamos suas credenciais de acesso. Somos certificados pela PCI DSS e seguimos rigorosamente a LGPD. Seus dados são exclusivamente seus e jamais são compartilhados com terceiros.",
   },
   {
     question: "Quais bancos são compatíveis?",
-    answer: "Somos compatíveis com todos os principais bancos brasileiros e várias corretoras. A lista completa está disponível durante o processo de conexão.",
-    color: "border-[#00cfec]/20 dark:border-[#00cfec]/30"
+    answer:
+      "Trabalhamos com mais de 300 instituições financeiras brasileiras, incluindo Nubank, Itaú, Bradesco, Santander, Banco do Brasil, Caixa, Inter, C6 Bank e muitos outros. A integração é feita via Open Banking, garantindo segurança máxima.",
   },
   {
-    question: "Como funciona o suporte?",
-    answer: "Oferecemos suporte por chat 24/7 para todos os usuários, com resposta em menos de 5 minutos para planos Pro e Empresas.",
-    color: "border-[#007cca]/20 dark:border-[#007cca]/30"
-  }
+    question: "Posso cancelar minha assinatura a qualquer momento?",
+    answer:
+      "Sim, sem burocracia! Você pode cancelar sua assinatura a qualquer momento direto no aplicativo. Não há taxas de cancelamento e você continuará com acesso aos recursos até o final do período pago.",
+  },
+  {
+    question: "Como funciona o período de teste gratuito?",
+    answer:
+      "Oferecemos 14 dias de teste gratuito com acesso completo a todos os recursos premium. Não é necessário cartão de crédito para começar. Após o período de teste, você escolhe se deseja continuar com um dos nossos planos.",
+  },
+  {
+    question: "O becash funciona em dispositivos móveis?",
+    answer:
+      "Sim! Temos aplicativos nativos para iOS e Android, além da versão web. Seus dados são sincronizados em tempo real entre todos os dispositivos, permitindo que você gerencie suas finanças de qualquer lugar.",
+  },
+  {
+    question: "Como funciona a análise de IA?",
+    answer:
+      "Nossa inteligência artificial analisa seus padrões de gastos, compara com benchmarks do mercado e identifica oportunidades de economia. Ela aprende com seu comportamento e oferece insights cada vez mais personalizados ao longo do tempo.",
+  },
+  {
+    question: "Preciso de conhecimento financeiro para usar?",
+    answer:
+      "Não! O becash foi desenvolvido para ser intuitivo e acessível para todos. Nossa interface é simples e explicamos cada métrica de forma clara. Oferecemos também tutoriais e dicas educativas para quem deseja aprender mais sobre finanças pessoais.",
+  },
 ];
 
-export default function FAQ() {
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
+const FAQItem = ({ question, answer, isOpen, onClick }: FAQItemProps) => {
+  return (
+    <motion.div
+      layout
+      className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl overflow-hidden border border-gray-200/60 dark:border-gray-800/60"
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.5 }}
+    >
+      <motion.button
+        className="w-full px-6 py-5 flex items-center justify-between gap-4 text-left hover:bg-[#00cfec]/5 transition-colors"
+        onClick={onClick}
+      >
+        <span className="font-semibold text-gray-900 dark:text-white pr-4 text-sm md:text-base">
+          {question}
+        </span>
+        <motion.div
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+          className="flex-shrink-0"
+        >
+          {isOpen ? (
+            <Minus className="w-5 h-5 text-[#007cca] dark:text-[#00cfec]" />
+          ) : (
+            <Plus className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          )}
+        </motion.div>
+      </motion.button>
+
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+          >
+            <div className="px-6 pb-5 pt-2">
+              <motion.p
+                initial={{ y: -10 }}
+                animate={{ y: 0 }}
+                className="text-gray-600 dark:text-gray-400 leading-relaxed text-sm md:text-base"
+              >
+                {answer}
+              </motion.p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
+
+export const FAQ = () => {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  const toggleFAQ = (index: number) => {
+    setOpenIndex(openIndex === index ? null : index);
+  };
 
   return (
-    <section id="faq" className="py-20 bg-white dark:bg-gray-900 transition-colors">
-      <div className="container mx-auto px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-16"
-        >
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
-            Perguntas <span className="text-[#007cca] dark:text-[#00cfec]">frequentes</span>
-          </h2>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            Tire suas dúvidas sobre a plataforma BeCash
-          </p>
-        </motion.div>
+    <section className="py-24 relative overflow-hidden bg-background" id="faq">
+   <div className="absolute inset-0 overflow-hidden">
+  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background" />
+  
+  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-96">
+    <div className="absolute top-0 left-2/3 w-96 h-96 bg-[#00cfec]/10 rounded-full blur-3xl" />
 
-        <div className="max-w-3xl mx-auto">
-          {faqs.map((faq, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+  </div>
+</div>
+      <div className="container mx-auto px-4 relative z-10">
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.5 }}
+          >
+            <motion.span
+              className="inline-block px-3 py-1.5 rounded-full bg-gradient-to-r from-[#00cfec]/10 to-[#007cca]/10 text-[#007cca] dark:text-[#00cfec] text-xs font-medium mb-3 border border-[#00cfec]/20"
+              initial={{ scale: 0.95, opacity: 0 }}
+              whileInView={{ scale: 1, opacity: 1 }}
               viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-              className={`mb-4 rounded-xl border-2 ${faq.color} bg-gradient-to-r from-white to-gray-50/50 dark:from-gray-800 dark:to-gray-800/50 overflow-hidden transition-all`}
+              transition={{ delay: 0.1, duration: 0.3 }}
             >
-              <button
-                onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                className="w-full p-6 text-left flex justify-between items-center hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors"
-              >
-                <span className="text-lg font-semibold text-gray-900 dark:text-white pr-4">
-                  {faq.question}
-                </span>
-                <motion.div
-                  animate={{ rotate: openIndex === index ? 180 : 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="flex-shrink-0"
-                >
-                  {openIndex === index ? (
-                    <Minus className="w-6 h-6 text-[#007cca] dark:text-[#00cfec]" />
-                  ) : (
-                    <Plus className="w-6 h-6 text-[#007cca] dark:text-[#00cfec]" />
-                  )}
-                </motion.div>
-              </button>
-              
-              <AnimatePresence>
-                {openIndex === index && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <div className="px-6 pb-6 pt-2">
-                      <p className="text-gray-600 dark:text-gray-300">{faq.answer}</p>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
+              Perguntas Frequentes
+            </motion.span>
+
+            <h2 className="text-2xl md:text-3xl font-bold mb-3 text-gray-900 dark:text-white tracking-tight">
+              Dúvidas? Nós temos as{" "}
+              <span className="bg-gradient-to-r from-[#00cfec] to-[#007cca] bg-clip-text text-transparent">
+                respostas
+              </span>
+            </h2>
+
+            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+              Confira as perguntas mais comuns sobre o becash. Não encontrou o
+              que procura? Entre em contato conosco!
+            </p>
+          </motion.div>
+        </div>
+
+        <div className="max-w-3xl mx-auto space-y-4">
+          {faqData.map((faq, index) => (
+            <FAQItem
+              key={index}
+              question={faq.question}
+              answer={faq.answer}
+              isOpen={openIndex === index}
+              onClick={() => toggleFAQ(index)}
+            />
           ))}
         </div>
 
         <motion.div
+          className="text-center mt-12"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mt-16 text-center"
+          transition={{ duration: 0.6, delay: 0.2 }}
         >
-          <div className="bg-gradient-to-r from-[#00cfec]/10 via-[#007cca]/10 to-[#5665ba]/10 dark:from-[#00cfec]/20 dark:via-[#007cca]/20 dark:to-[#5665ba]/20 rounded-2xl p-8 md:p-12 transition-colors">
-            <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-              Ainda tem dúvidas?
-            </h3>
-            <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-8">
-              Nossa equipe está pronta para ajudar você a começar sua jornada financeira.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-8 py-3 rounded-lg font-semibold text-white bg-gradient-to-r from-[#00cfec] to-[#007cca] hover:shadow-lg dark:hover:shadow-[0_10px_25px_rgba(0,207,236,0.3)] transition-shadow"
-              >
-                Falar com Especialista
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-8 py-3 rounded-lg font-semibold border-2 border-[#007cca] dark:border-[#00cfec] text-[#007cca] dark:text-[#00cfec] hover:bg-[#007cca]/5 dark:hover:bg-[#00cfec]/10 transition-colors"
-              >
-                Ver Tutorials
-              </motion.button>
-            </div>
-          </div>
+          <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm">
+            Ainda tem dúvidas?
+          </p>
+          <motion.a
+            href="#"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border border-gray-200/60 dark:border-gray-800/60 hover:bg-[#00cfec]/5 transition-colors font-medium text-gray-900 dark:text-white text-sm"
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            Fale com nosso suporte
+            <span className="text-[#007cca] dark:text-[#00cfec]">→</span>
+          </motion.a>
         </motion.div>
       </div>
     </section>
   );
-}
+};
+
+export default FAQ;

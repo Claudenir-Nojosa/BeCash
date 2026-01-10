@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { CheckCircle2, Shield, MessageCircle, Verified } from "lucide-react";
+import Image from "next/image";
 
 export const MetaVerified = () => {
   return (
@@ -8,12 +9,12 @@ export const MetaVerified = () => {
       <motion.div
         className="absolute inset-0 opacity-10"
         animate={{
-          backgroundPosition: ['0% 0%', '100% 100%'],
+          backgroundPosition: ["0% 0%", "100% 100%"],
         }}
         transition={{
           duration: 20,
           repeat: Infinity,
-          repeatType: 'reverse',
+          repeatType: "reverse",
         }}
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23ffffff' fill-opacity='1' fill-rule='evenodd'/%3E%3C/svg%3E")`,
@@ -56,19 +57,28 @@ export const MetaVerified = () => {
             className="relative"
           >
             <motion.div
-              className="w-40 h-40 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center border-4 border-white/30"
+              className="w-40 h-40 rounded-full bg-white backdrop-blur-xl flex items-center justify-center border-4 border-white/30 shadow-xl" // Alterado para bg-white
               animate={{
                 boxShadow: [
-                  '0 0 30px rgba(255,255,255,0.2)',
-                  '0 0 60px rgba(255,255,255,0.4)',
-                  '0 0 30px rgba(255,255,255,0.2)',
+                  "0 0 30px rgba(255,255,255,0.5)",
+                  "0 0 60px rgba(255,255,255,0.7)",
+                  "0 0 30px rgba(255,255,255,0.5)",
                 ],
               }}
               transition={{ duration: 3, repeat: Infinity }}
             >
-              <MessageCircle className="w-20 h-20 text-white" />
+              {/* Container para logo com padding */}
+              <div className="w-28 h-28 p-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                <Image
+                  src="/icons/meta.svg"
+                  alt="Meta"
+                  width={80}
+                  height={80}
+                  className="text-white filter brightness-0 invert" // Torna a logo branca
+                />
+              </div>
             </motion.div>
-            
+
             {/* Verified Badge */}
             <motion.div
               className="absolute -bottom-2 -right-2 w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-2xl"
@@ -120,16 +130,31 @@ export const MetaVerified = () => {
             </h2>
 
             <p className="text-white/90 text-lg mb-8">
-              O BeCash é um parceiro oficial da Meta, garantindo a máxima segurança 
-              e confiabilidade na integração com o WhatsApp. Seus dados financeiros 
-              estão protegidos pelos mais altos padrões de segurança.
+              O BeCash é um parceiro oficial da Meta, garantindo a máxima
+              segurança e confiabilidade na integração com o WhatsApp. Seus
+              dados financeiros estão protegidos pelos mais altos padrões de
+              segurança.
             </p>
 
             <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
               {[
                 { icon: Shield, text: "Dados Criptografados" },
                 { icon: CheckCircle2, text: "API Oficial" },
-                { icon: MessageCircle, text: "WhatsApp Business" },
+                {
+                  text: "WhatsApp Business",
+                  // Componente direto para o WhatsApp
+                  iconComponent: (
+                    <div className="w-6 h-6 relative">
+                      <Image
+                        src="/icons/hats.png"
+                        alt="WhatsApp Business"
+                        width={20}
+                        height={20}
+                        className="w-full h-full"
+                      />
+                    </div>
+                  ),
+                },
               ].map((item, index) => (
                 <motion.div
                   key={item.text}
@@ -139,7 +164,7 @@ export const MetaVerified = () => {
                   transition={{ delay: 0.4 + index * 0.1 }}
                   className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm text-white"
                 >
-                  <item.icon className="w-4 h-4" />
+                  {item.iconComponent || <item.icon className="w-4 h-4" />}
                   <span className="text-sm font-medium">{item.text}</span>
                 </motion.div>
               ))}

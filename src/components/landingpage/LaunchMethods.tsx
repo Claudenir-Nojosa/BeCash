@@ -7,28 +7,46 @@ const launchMethods = [
     id: "audio",
     title: "Lançamento via Áudio",
     icon: Mic,
-    description: "Basta gravar um áudio descrevendo sua despesa ou receita. Nossa IA transcreve e categoriza automaticamente, tornando o registro tão natural quanto conversar.",
-    features: ["Transcrição automática", "Categorização inteligente", "Hands-free"],
-    image: "https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=800&auto=format&fit=crop&q=80",
-    gradient: "from-violet-500 to-purple-600",
+    description:
+      "Basta gravar um áudio descrevendo sua despesa ou receita. Nossa IA transcreve e categoriza automaticamente, tornando o registro tão natural quanto conversar.",
+    features: [
+      "Transcrição automática",
+      "Categorização inteligente",
+      "Hands-free",
+    ],
+    image:
+      "https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=800&auto=format&fit=crop&q=80",
+    gradient: "from-blue-600 to-cyan-700",
   },
   {
     id: "message",
     title: "Lançamento via Mensagem",
     icon: MessageSquare,
-    description: "Envie uma mensagem pelo WhatsApp com sua transação. Nossa integração com a Meta API processa e lança automaticamente no seu controle financeiro.",
-    features: ["WhatsApp integrado", "Resposta instantânea", "Confirmação automática"],
-    image: "https://images.unsplash.com/photo-1611746872915-64382b5c76da?w=800&auto=format&fit=crop&q=80",
-    gradient: "from-green-500 to-emerald-600",
+    description:
+      "Envie uma mensagem pelo WhatsApp com sua transação. Nossa integração com a Meta API processa e lança automaticamente no seu controle financeiro.",
+    features: [
+      "WhatsApp integrado",
+      "Resposta instantânea",
+      "Confirmação automática",
+    ],
+    image:
+      "https://images.unsplash.com/photo-1611746872915-64382b5c76da?w=800&auto=format&fit=crop&q=80",
+    gradient: "from-blue-500 to-cyan-600",
   },
   {
     id: "normal",
     title: "Lançamento Normal",
     icon: Edit3,
-    description: "Para quem prefere o controle total, nossa interface intuitiva permite lançamentos manuais rápidos com categorização, tags e anexos.",
-    features: ["Interface intuitiva", "Campos personalizáveis", "Anexo de comprovantes"],
-    image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&auto=format&fit=crop&q=80",
-    gradient: "from-blue-500 to-cyan-600",
+    description:
+      "Para quem prefere o controle total, nossa interface intuitiva permite lançamentos manuais rápidos com categorização, tags e anexos.",
+    features: [
+      "Interface intuitiva",
+      "Campos personalizáveis",
+      "Anexo de comprovantes",
+    ],
+    image:
+      "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&auto=format&fit=crop&q=80",
+    gradient: "from-blue-400 to-cyan-500",
   },
 ];
 
@@ -37,34 +55,42 @@ export const LaunchMethods = () => {
 
   return (
     <section className="py-24 bg-background relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl" />
-      </div>
-
+<div className="absolute inset-0 overflow-hidden">
+  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background" />
+  
+  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-96">
+    <div className="absolute top-0 left-0 w-96 h-96 bg-[#00cfec]/10 rounded-full blur-3xl" />
+    <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#007cca]/10 rounded-full blur-3xl" />
+  </div>
+</div>
       <div className="container mx-auto px-4 relative z-10">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
+          viewport={{ once: true, margin: "-50px" }}
+          transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <motion.span 
-            className="inline-block px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4"
-            initial={{ scale: 0.9 }}
-            whileInView={{ scale: 1 }}
+          <motion.span
+            className="inline-block px-3 py-1.5 rounded-full bg-gradient-to-r from-[#00cfec]/10 to-[#007cca]/10 text-[#007cca] dark:text-[#00cfec] text-xs font-medium mb-3 border border-[#00cfec]/20"
+            initial={{ scale: 0.95, opacity: 0 }}
+            whileInView={{ scale: 1, opacity: 1 }}
             viewport={{ once: true }}
+            transition={{ delay: 0.1, duration: 0.3 }}
           >
             Múltiplas Formas de Lançar
           </motion.span>
-          <h2 className="text-3xl md:text-5xl font-bold text-foreground mb-4">
+
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3 tracking-tight">
             Lance suas transações{" "}
-            <span className="gradient-text">do seu jeito</span>
+            <span className="bg-gradient-to-r from-[#00cfec] to-[#007cca] bg-clip-text text-transparent">
+              do seu jeito
+            </span>
           </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Escolha o método que melhor se adapta ao seu momento. Flexibilidade é a nossa prioridade.
+
+          <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-sm md:text-base leading-relaxed">
+            Escolha o método que melhor se adapta ao seu momento. Flexibilidade
+            é a nossa prioridade.
           </p>
         </motion.div>
 
@@ -80,58 +106,66 @@ export const LaunchMethods = () => {
             >
               <motion.div
                 className={`relative rounded-3xl overflow-hidden cursor-pointer transition-all duration-500 ${
-                  activeMethod === method.id 
-                    ? 'ring-2 ring-primary shadow-2xl' 
-                    : 'hover:shadow-xl'
+                  activeMethod === method.id
+                    ? "ring-2 ring-[#00cfec] shadow-2xl shadow-[#00cfec]/20"
+                    : "hover:shadow-xl"
                 }`}
-                onClick={() => setActiveMethod(activeMethod === method.id ? null : method.id)}
+                onClick={() =>
+                  setActiveMethod(activeMethod === method.id ? null : method.id)
+                }
                 whileHover={{ scale: activeMethod === method.id ? 1 : 1.02 }}
                 layout
               >
-                {/* Card Header */}
-                <div className={`relative p-8 bg-gradient-to-br ${method.gradient} text-white`}>
+                <div
+                  className={`relative p-8 bg-gradient-to-br ${method.gradient} text-white`}
+                >
                   <motion.div
                     className="absolute inset-0 opacity-20"
                     animate={{
-                      backgroundPosition: ['0% 0%', '100% 100%'],
+                      backgroundPosition: ["0% 0%", "100% 100%"],
                     }}
                     transition={{
                       duration: 10,
                       repeat: Infinity,
-                      repeatType: 'reverse',
+                      repeatType: "reverse",
                     }}
                     style={{
-                      backgroundImage: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.15"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+                      backgroundImage:
+                        'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.15"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
                     }}
                   />
-                  
+
                   <div className="relative z-10">
-                    <motion.div 
+                    <motion.div
                       className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-6"
                       whileHover={{ rotate: [0, -10, 10, 0] }}
                       transition={{ duration: 0.5 }}
                     >
                       <method.icon className="w-8 h-8" />
                     </motion.div>
-                    
-                    <h3 className="text-2xl font-bold mb-2">{method.title}</h3>
-                    
-                    <motion.div 
+
+                    <h3 className="text-xl font-bold mb-2">{method.title}</h3>
+
+                    <motion.div
                       className="flex items-center gap-2 text-white/80"
-                      animate={{ y: activeMethod === method.id ? 0 : [0, 3, 0] }}
-                      transition={{ duration: 2, repeat: activeMethod === method.id ? 0 : Infinity }}
+                      animate={{
+                        y: activeMethod === method.id ? 0 : [0, 3, 0],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: activeMethod === method.id ? 0 : Infinity,
+                      }}
                     >
                       <span className="text-sm">Clique para ver mais</span>
-                      <ChevronDown 
+                      <ChevronDown
                         className={`w-4 h-4 transition-transform duration-300 ${
-                          activeMethod === method.id ? 'rotate-180' : ''
-                        }`} 
+                          activeMethod === method.id ? "rotate-180" : ""
+                        }`}
                       />
                     </motion.div>
                   </div>
                 </div>
 
-                {/* Expandable Content */}
                 <AnimatePresence>
                   {activeMethod === method.id && (
                     <motion.div
@@ -139,11 +173,11 @@ export const LaunchMethods = () => {
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.4, ease: "easeInOut" }}
-                      className="overflow-hidden bg-card"
+                      className="overflow-hidden bg-white dark:bg-gray-900"
                     >
                       <div className="p-6">
-                        <motion.p 
-                          className="text-muted-foreground mb-6"
+                        <motion.p
+                          className="text-gray-600 dark:text-gray-400 mb-6 text-sm md:text-base"
                           initial={{ y: 20, opacity: 0 }}
                           animate={{ y: 0, opacity: 1 }}
                           transition={{ delay: 0.1 }}
@@ -151,7 +185,7 @@ export const LaunchMethods = () => {
                           {method.description}
                         </motion.p>
 
-                        <motion.div 
+                        <motion.div
                           className="flex flex-wrap gap-2 mb-6"
                           initial={{ y: 20, opacity: 0 }}
                           animate={{ y: 0, opacity: 1 }}
@@ -160,7 +194,7 @@ export const LaunchMethods = () => {
                           {method.features.map((feature, i) => (
                             <motion.span
                               key={feature}
-                              className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium"
+                              className="px-3 py-1 rounded-full bg-gradient-to-r from-[#00cfec]/10 to-[#007cca]/10 text-[#007cca] dark:text-[#00cfec] text-xs font-medium border border-[#00cfec]/20"
                               initial={{ scale: 0 }}
                               animate={{ scale: 1 }}
                               transition={{ delay: 0.3 + i * 0.1 }}
