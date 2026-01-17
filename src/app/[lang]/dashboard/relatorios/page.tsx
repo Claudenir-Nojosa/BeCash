@@ -91,11 +91,59 @@ export default function RelatoriosPage() {
     carregarDados();
   }, []);
 
-  useEffect(() => {
-    if (cartoes.length > 0) {
-      carregarLancamentos();
+  const carregarDados = async () => {
+    try {
+      setCarregando(true);
+
+      // Carregar cartões
+      const cartoesResponse = await fetch("/api/cartoes");
+      if (cartoesResponse.ok) {
+        const cartoesData = await cartoesResponse.json();
+        setCartoes(cartoesData);
+        
+        // Após carregar cartões, carregar lançamentos
+        await carregarLancamentos(cartoesData);
+      }
+    } catch (error) {
+      console.error(t("mensagens.erroCarregarDados"), error);
+    } finally {
+      setCarregando(false);
     }
-  }, [filtros, cartoes]);
+  };
+
+  const carregarLancamentos = async (cartoesData: Cartao[]) => {
+    try {
+      let url = "/api/lancamentos?";
+      const params = new URLSearchParams();
+
+      if (filtros.cartaoId !== "todos") {
+        params.append("cartaoId", filtros.cartaoId);
+      }
+
+      if (filtros.periodo !== "todos") {
+        const dataFim = new Date();
+        const dataInicio = new Date();
+        dataInicio.setDate(dataInicio.getDate() - parseInt(filtros.periodo));
+        params.append("dataInicio", dataInicio.toISOString());
+        params.append("dataFim", dataFim.toISOString());
+      }
+
+      const response = await fetch(url + params.toString());
+      if (response.ok) {
+        const data = await response.json();
+        setLancamentos(data);
+      }
+    } catch (error) {
+      console.error(t("mensagens.erroCarregarLancamentos"), error);
+    }
+  };
+
+  useEffect(() => {
+    // Atualizar lançamentos quando os filtros mudarem
+    if (cartoes.length > 0) {
+      carregarLancamentos(cartoes);
+    }
+  }, [filtros]);
 
   const exportarPDF = () => {
     const doc = new jsPDF();
@@ -238,50 +286,6 @@ export default function RelatoriosPage() {
     );
   };
 
-  const carregarDados = async () => {
-    try {
-      setCarregando(true);
-
-      // Carregar cartões
-      const cartoesResponse = await fetch("/api/cartoes");
-      if (cartoesResponse.ok) {
-        const cartoesData = await cartoesResponse.json();
-        setCartoes(cartoesData);
-      }
-    } catch (error) {
-      console.error(t("mensagens.erroCarregarDados"), error);
-    } finally {
-      setCarregando(false);
-    }
-  };
-
-  const carregarLancamentos = async () => {
-    try {
-      let url = "/api/lancamentos?";
-      const params = new URLSearchParams();
-
-      if (filtros.cartaoId !== "todos") {
-        params.append("cartaoId", filtros.cartaoId);
-      }
-
-      if (filtros.periodo !== "todos") {
-        const dataFim = new Date();
-        const dataInicio = new Date();
-        dataInicio.setDate(dataInicio.getDate() - parseInt(filtros.periodo));
-        params.append("dataInicio", dataInicio.toISOString());
-        params.append("dataFim", dataFim.toISOString());
-      }
-
-      const response = await fetch(url + params.toString());
-      if (response.ok) {
-        const data = await response.json();
-        setLancamentos(data);
-      }
-    } catch (error) {
-      console.error(t("mensagens.erroCarregarLancamentos"), error);
-    }
-  };
-
   // Calcular estatísticas
   const estatisticas = {
     totalDespesas: lancamentos
@@ -352,14 +356,14 @@ export default function RelatoriosPage() {
     ([, a], [, b]) => b.total - a.total
   );
 
-const formatarMoeda = (valor: number) => {
-  const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
-  const currency = i18n.language === "pt" ? "BRL" : "USD"; // ✅ Dinâmico
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: currency,
-  }).format(valor);
-};
+  const formatarMoeda = (valor: number) => {
+    const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
+    const currency = i18n.language === "pt" ? "BRL" : "USD"; // ✅ Dinâmico
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: currency,
+    }).format(valor);
+  };
 
   const getIcone = (icone: string) => {
     try {
@@ -401,6 +405,52 @@ const formatarMoeda = (valor: number) => {
       <div className="min-h-screen flex items-center justify-center">
         <Loading />
       </div>
+    );
+  }
+
+  // Se não houver dados, mostrar mensagem
+  if (!carregando && lancamentos.length === 0 && cartoes.length === 0) {
+    return (
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="min-h-screen p-3 sm:p-4 md:p-6 bg-white dark:bg-transparent flex items-center justify-center"
+      >
+        <div className="max-w-md mx-auto text-center">
+          <motion.div
+            animate={{ 
+              scale: [1, 1.1, 1],
+              rotate: [0, 5, -5, 0]
+            }}
+            transition={{ 
+              duration: 2,
+              repeat: Infinity,
+              repeatType: "reverse"
+            }}
+            className="mb-6"
+          >
+            <BarChart3 className="h-16 w-16 sm:h-24 sm:w-24 text-gray-300 dark:text-gray-600 mx-auto" />
+          </motion.div>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-3">
+            {t("mensagens.semDadosTitulo")}
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base mb-6">
+            {t("mensagens.semDadosDescricao")}
+          </p>
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Button
+              onClick={() => router.push(getLocalizedPath("/dashboard"))}
+              className="bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white"
+            >
+              {t("botoes.voltarDashboard")}
+            </Button>
+          </motion.div>
+        </div>
+      </motion.div>
     );
   }
 
