@@ -1,3 +1,5 @@
+"use client";
+
 import { motion } from "framer-motion";
 import {
   Shield,
@@ -9,48 +11,53 @@ import {
   ShieldCheck,
   Fingerprint,
 } from "lucide-react";
-
-const securityFeatures = [
-  {
-    icon: Lock,
-    title: "Criptografia de ponta",
-    description:
-      "Todos os dados são protegidos com criptografia AES-256, o mesmo padrão usado por bancos e instituições governamentais.",
-  },
-  {
-    icon: Eye,
-    title: "Você controla tudo",
-    description:
-      "Seus dados são exclusivamente seus. Você decide o que compartilhar e pode deletar tudo a qualquer momento.",
-  },
-  {
-    icon: FileCheck,
-    title: "Conformidade total",
-    description:
-      "Seguimos rigorosamente a LGPD e normas do Banco Central. Auditados constantemente por terceiros independentes.",
-  },
-  {
-    icon: Server,
-    title: "Infraestrutura segura",
-    description:
-      "Servidores em cloud tier 1 com redundância geográfica, backups automáticos e monitoramento 24/7.",
-  },
-];
-
-const certifications = [
-  { icon: ShieldCheck, label: "PCI DSS" },
-  { icon: Lock, label: "ISO 27001" },
-  { icon: Fingerprint, label: "LGPD" },
-  { icon: Key, label: "SOC 2" },
-];
+import { useTranslation } from "react-i18next";
 
 export const Security = () => {
+  const { t } = useTranslation("security");
+
+  const securityFeatures = [
+    {
+      icon: Lock,
+      title: t("features.encryption.title", "Criptografia de ponta"),
+      description: t("features.encryption.description", "Todos os dados são protegidos com criptografia AES-256, o mesmo padrão usado por bancos e instituições governamentais."),
+    },
+    {
+      icon: Eye,
+      title: t("features.control.title", "Você controla tudo"),
+      description: t("features.control.description", "Seus dados são exclusivamente seus. Você decide o que compartilhar e pode deletar tudo a qualquer momento."),
+    },
+    {
+      icon: FileCheck,
+      title: t("features.compliance.title", "Conformidade total"),
+      description: t("features.compliance.description", "Seguimos rigorosamente a LGPD e normas do Banco Central. Auditados constantemente por terceiros independentes."),
+    },
+    {
+      icon: Server,
+      title: t("features.infrastructure.title", "Infraestrutura segura"),
+      description: t("features.infrastructure.description", "Servidores em cloud tier 1 com redundância geográfica, backups automáticos e monitoramento 24/7."),
+    },
+  ];
+
+  const certifications = [
+    { icon: ShieldCheck, label: "PCI DSS" },
+    { icon: Lock, label: "ISO 27001" },
+    { icon: Fingerprint, label: "LGPD" },
+    { icon: Key, label: "SOC 2" },
+  ];
+
+  const protectionItems = [
+    t("protection.twoFactor", "Autenticação de dois fatores (2FA)"),
+    t("protection.monitoring", "Monitoramento de atividades suspeitas"),
+    t("protection.notifications", "Notificações em tempo real"),
+    t("protection.noPasswords", "Nunca armazenamos senhas bancárias"),
+  ];
+
   return (
     <section
       className="py-24 relative overflow-hidden bg-background"
       id="security"
     >
-
       <div className="container mx-auto px-4 relative z-10">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <motion.div
@@ -74,19 +81,18 @@ export const Security = () => {
               viewport={{ once: true }}
               transition={{ delay: 0.1, duration: 0.3 }}
             >
-              Segurança e Privacidade
+              {t("badge", "Segurança e Privacidade")}
             </motion.span>
 
             <h2 className="text-2xl md:text-3xl font-bold mb-3 leading-tight text-gray-900 dark:text-white tracking-tight">
-              Seus dados estão{" "}
+              {t("title.yourData", "Seus dados estão")}{" "}
               <span className="bg-gradient-to-r from-[#00cfec] to-[#007cca] bg-clip-text text-transparent">
-                100% protegidos
+                {t("title.highlight", "100% protegidos")}
               </span>
             </h2>
 
             <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
-              Segurança de nível bancário para você gerenciar suas finanças com
-              total tranquilidade. Sua privacidade é nossa prioridade.
+              {t("description", "Segurança de nível bancário para você gerenciar suas finanças com total tranquilidade. Sua privacidade é nossa prioridade.")}
             </p>
           </motion.div>
         </div>
@@ -176,21 +182,13 @@ export const Security = () => {
                   transition={{ duration: 0.8 }}
                 >
                   <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
-                    Proteção em todas as camadas
+                    {t("layeredProtection.title", "Proteção em todas as camadas")}
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-sm md:text-base">
-                    Implementamos múltiplas camadas de segurança para garantir
-                    que suas informações financeiras estejam sempre protegidas.
-                    Do momento em que você faz login até cada transação
-                    processada, tudo é criptografado e monitorado.
+                    {t("layeredProtection.description", "Implementamos múltiplas camadas de segurança para garantir que suas informações financeiras estejam sempre protegidas. Do momento em que você faz login até cada transação processada, tudo é criptografado e monitorado.")}
                   </p>
                   <div className="space-y-3">
-                    {[
-                      "Autenticação de dois fatores (2FA)",
-                      "Monitoramento de atividades suspeitas",
-                      "Notificações em tempo real",
-                      "Nunca armazenamos senhas bancárias",
-                    ].map((item, index) => (
+                    {protectionItems.map((item, index) => (
                       <motion.div
                         key={index}
                         className="flex items-center gap-3"
@@ -267,7 +265,7 @@ export const Security = () => {
         >
           <div className="text-center mb-8">
             <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-400">
-              Certificações e Conformidades
+              {t("certifications.title", "Certificações e Conformidades")}
             </h3>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-8">

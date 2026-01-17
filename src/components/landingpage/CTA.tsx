@@ -1,18 +1,23 @@
+"use client";
+
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "../ui/button";
+import { useTranslation } from "react-i18next";
 
 export const CTA = () => {
+  const { t } = useTranslation("cta");
+
   return (
     <section id="pricing" className="py-24 relative overflow-hidden bg-background">
-<div className="absolute inset-0 overflow-hidden">
-  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background" />
-  
-  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-96">
-    <div className="absolute top-0 left-0 w-96 h-96 bg-[#00cfec]/10 rounded-full blur-3xl" />
-    <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#007cca]/10 rounded-full blur-3xl" />
-  </div>
-</div>
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background" />
+        
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-96">
+          <div className="absolute top-0 left-0 w-96 h-96 bg-[#00cfec]/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#007cca]/10 rounded-full blur-3xl" />
+        </div>
+      </div>
 
       <div className="container mx-auto px-4 relative z-10">
         <motion.div
@@ -40,27 +45,26 @@ export const CTA = () => {
               <Sparkles className="w-6 h-6 text-[#007cca]/30" />
             </motion.div>
 
-          <motion.div
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-[#00cfec]/10 to-[#007cca]/10 text-[#007cca] dark:text-[#00cfec] text-xs font-medium mb-3 border border-[#00cfec]/20"
-            initial={{ scale: 0.95, opacity: 0 }}
-            whileInView={{ scale: 1, opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1, duration: 0.3 }}
-          >
+            <motion.div
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-[#00cfec]/10 to-[#007cca]/10 text-[#007cca] dark:text-[#00cfec] text-xs font-medium mb-3 border border-[#00cfec]/20"
+              initial={{ scale: 0.95, opacity: 0 }}
+              whileInView={{ scale: 1, opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1, duration: 0.3 }}
+            >
               <span className="w-2 h-2 rounded-full bg-cyan-500" />
-              Comece grátis, sem cartão de crédito
+              {t("badge", "Comece grátis, sem cartão de crédito")}
             </motion.div>
     
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3 tracking-tight">
-              Pronto para{" "}
+              {t("title.start", "Pronto para")}{" "}
               <span className="bg-gradient-to-r from-[#00cfec] to-[#007cca] bg-clip-text text-transparent">
-                transformar suas finanças
+                {t("title.highlight", "transformar suas finanças")}
               </span>?
             </h2>
 
             <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base leading-relaxed mb-10 max-w-2xl mx-auto">
-              Junte-se a milhares de brasileiros que já estão economizando mais e
-              construindo um futuro financeiro mais seguro com o becash.
+              {t("description", "Junte-se a milhares de brasileiros que já estão economizando mais e construindo um futuro financeiro mais seguro com o becash.")}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -68,7 +72,7 @@ export const CTA = () => {
                 size="lg"
                 className="bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white px-8 py-6 text-lg font-semibold hover:opacity-90 transition-all group shadow-lg shadow-[#00cfec]/30"
               >
-                Criar Conta Grátis
+                {t("buttons.createAccount", "Criar Conta Grátis")}
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
               <Button
@@ -76,12 +80,12 @@ export const CTA = () => {
                 variant="outline"
                 className="px-8 py-6 text-lg font-semibold glass hover:bg-gray-100/50 dark:hover:bg-gray-800/50 border-gray-200 dark:border-gray-800"
               >
-                Falar com Vendas
+                {t("buttons.contactSales", "Falar com Vendas")}
               </Button>
             </div>
 
             <p className="text-xs text-gray-500 dark:text-gray-500 mt-8">
-              ✨ Mais de 10.000 usuários confiam no becash
+              {t("stats", "✨ Mais de 10.000 usuários confiam no becash")}
             </p>
           </div>
         </motion.div>

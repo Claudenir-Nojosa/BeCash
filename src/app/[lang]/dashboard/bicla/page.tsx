@@ -4,6 +4,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -185,10 +186,15 @@ export default function BiclaPage() {
   ];
 
   return (
-    <div className="min-h-screen p-4 sm:p-6">
-      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
+    <div className="h-full flex flex-col overflow-hidden p-4 sm:p-6">
+      <div className="max-w-4xl mx-auto w-full h-full flex flex-col gap-4 sm:gap-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 flex-shrink-0"
+        >
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-500 to-blue-600 dark:from-gray-500 dark:to-gray-600 rounded-lg flex items-center justify-center flex-shrink-0">
               <Brain className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
@@ -213,127 +219,162 @@ export default function BiclaPage() {
               <span className="truncate">{t("botoes.limparChat")}</span>
             </Button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Área de Chat */}
-        <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm flex flex-col h-[calc(100vh-10rem)] sm:h-[calc(100vh-12rem)]">
-          <CardContent className="p-0 flex flex-col h-full">
-            {/* Mensagens com Scroll */}
-            <div
-              ref={messagesContainerRef}
-              className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 md:space-y-6"
-            >
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`max-w-[85%] sm:max-w-[80%] rounded-xl sm:rounded-2xl p-3 sm:p-4 ${
-                      message.sender === "user"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-300"
-                    }`}
-                  >
-                    <div className="text-xs sm:text-sm whitespace-pre-wrap break-words">
-                      {message.sender === "bicla"
-                        ? formatMessage(message.content)
-                        : message.content}
-                    </div>
-                    <div
-                      className={`text-xs mt-1 sm:mt-2 ${
-                        message.sender === "user"
-                          ? "text-blue-100"
-                          : "text-gray-500 dark:text-gray-400"
-                      }`}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+          className="flex-1 min-h-0"
+        >
+          <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm flex flex-col h-full">
+            <CardContent className="p-0 flex flex-col h-full">
+              {/* Mensagens com Scroll */}
+              <div
+                ref={messagesContainerRef}
+                className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 md:space-y-6"
+              >
+                <AnimatePresence mode="popLayout">
+                  {messages.map((message) => (
+                    <motion.div
+                      key={message.id}
+                      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.3 }}
+                      className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
                     >
-                      {message.timestamp.toLocaleTimeString("pt-BR", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {isTyping && (
-                <div className="flex justify-start">
-                  <div className="bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl sm:rounded-2xl p-3 sm:p-4 max-w-[85%] sm:max-w-[80%]">
-                    <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                      <div className="flex space-x-1">
-                        <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                      <div
+                        className={`max-w-[85%] sm:max-w-[80%] rounded-xl sm:rounded-2xl p-3 sm:p-4 ${
+                          message.sender === "user"
+                            ? "bg-blue-500 text-white"
+                            : "bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-300"
+                        }`}
+                      >
+                        <div className="text-xs sm:text-sm whitespace-pre-wrap break-words">
+                          {message.sender === "bicla"
+                            ? formatMessage(message.content)
+                            : message.content}
+                        </div>
                         <div
-                          className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gray-400 rounded-full animate-bounce"
-                          style={{ animationDelay: "0.1s" }}
-                        ></div>
-                        <div
-                          className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gray-400 rounded-full animate-bounce"
-                          style={{ animationDelay: "0.2s" }}
-                        ></div>
+                          className={`text-xs mt-1 sm:mt-2 ${
+                            message.sender === "user"
+                              ? "text-blue-100"
+                              : "text-gray-500 dark:text-gray-400"
+                          }`}
+                        >
+                          {message.timestamp.toLocaleTimeString("pt-BR", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
                       </div>
-                      <span className="truncate">{t("estados.pensando")}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Quick Prompts */}
-            {messages.length <= 1 && (
-              <div className="border-t border-gray-200 dark:border-gray-800 p-2 sm:p-4 bg-gray-50 dark:bg-gray-800/50">
-                <div className="flex flex-wrap gap-1 sm:gap-2 justify-center">
-                  {quickPrompts.map((prompt, index) => (
-                    <Button
-                      key={index}
-                      variant="outline"
-                      size="sm"
-                      className="border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white text-xs px-2 py-1 h-auto"
-                      onClick={() => {
-                        setInputMessage(prompt);
-                        setTimeout(handleSendMessage, 100);
-                      }}
-                    >
-                      <span className="truncate max-w-[120px] sm:max-w-none">
-                        {prompt}
-                      </span>
-                    </Button>
+                    </motion.div>
                   ))}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                  {isTyping && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex justify-start"
+                    >
+                      <div className="bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl sm:rounded-2xl p-3 sm:p-4 max-w-[85%] sm:max-w-[80%]">
+                        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                          <div className="flex space-x-1">
+                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                            <div
+                              className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gray-400 rounded-full animate-bounce"
+                              style={{ animationDelay: "0.1s" }}
+                            ></div>
+                            <div
+                              className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gray-400 rounded-full animate-bounce"
+                              style={{ animationDelay: "0.2s" }}
+                            ></div>
+                          </div>
+                          <span className="truncate">{t("estados.pensando")}</span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Quick Prompts */}
+              <AnimatePresence>
+                {messages.length <= 1 && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="border-t border-gray-200 dark:border-gray-800 p-2 sm:p-4 bg-gray-50 dark:bg-gray-800/50 flex-shrink-0"
+                  >
+                    <div className="flex flex-wrap gap-1 sm:gap-2 justify-center">
+                      {quickPrompts.map((prompt, index) => (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: index * 0.1, duration: 0.2 }}
+                        >
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white text-xs px-2 py-1 h-auto"
+                            onClick={() => {
+                              setInputMessage(prompt);
+                              setTimeout(handleSendMessage, 100);
+                            }}
+                          >
+                            <span className="truncate max-w-[120px] sm:max-w-none">
+                              {prompt}
+                            </span>
+                          </Button>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Input Area */}
+              <div className="border-t border-gray-200 dark:border-gray-800 p-3 sm:p-4 bg-gray-50 dark:bg-gray-800/30 flex-shrink-0">
+                <div className="flex gap-2 sm:gap-3">
+                  <Input
+                    placeholder={t("input.placeholder")}
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    className="flex-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-500 focus:border-blue-500 dark:focus:border-blue-500 text-sm sm:text-base"
+                    disabled={isTyping}
+                  />
+                  <Button
+                    onClick={handleSendMessage}
+                    disabled={!inputMessage.trim() || isTyping}
+                    size="icon"
+                    className="bg-blue-500 hover:bg-blue-600 text-white disabled:bg-gray-300 disabled:text-gray-500 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 dark:disabled:bg-gray-700 dark:disabled:text-gray-500 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Footer */}
+                <div className="text-center mt-2 sm:mt-3">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 px-2">
+                    {t("dicas.recomendacao")}
+                  </p>
                 </div>
               </div>
-            )}
-
-            {/* Input Area */}
-            <div className="border-t border-gray-200 dark:border-gray-800 p-3 sm:p-4 bg-gray-50 dark:bg-gray-800/30">
-              <div className="flex gap-2 sm:gap-3">
-                <Input
-                  placeholder={t("input.placeholder")}
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  className="flex-1 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-500 focus:border-blue-500 dark:focus:border-blue-500 text-sm sm:text-base"
-                  disabled={isTyping}
-                />
-                <Button
-                  onClick={handleSendMessage}
-                  disabled={!inputMessage.trim() || isTyping}
-                  size="icon"
-                  className="bg-blue-500 hover:bg-blue-600 text-white disabled:bg-gray-300 disabled:text-gray-500 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 dark:disabled:bg-gray-700 dark:disabled:text-gray-500 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {/* Footer */}
-              <div className="text-center mt-2 sm:mt-3">
-                <p className="text-xs text-gray-500 dark:text-gray-400 px-2">
-                  {t("dicas.recomendacao")}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     </div>
   );

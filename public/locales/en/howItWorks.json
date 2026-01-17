@@ -1,0 +1,26 @@
+{
+  "badge": "How It Works",
+  "title": {
+    "simple": "Simple as",
+    "highlight": "1, 2, 3, 4"
+  },
+  "description": "Start transforming your finances in just a few minutes with our simplified process.",
+  "steps": {
+    "createAccount": {
+      "title": "Create your account",
+      "description": "Sign up in seconds with your email or social media."
+    },
+    "connectAccounts": {
+      "title": "Connect your accounts",
+      "description": "Link your bank accounts and cards securely."
+    },
+    "receiveInsights": {
+      "title": "Receive insights",
+      "description": "Our AI analyzes your spending and suggests personalized improvements."
+    },
+    "reachGoals": {
+      "title": "Reach your goals",
+      "description": "Track your progress and watch your money grow."
+    }
+  }
+}

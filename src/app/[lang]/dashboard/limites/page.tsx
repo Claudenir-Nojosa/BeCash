@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -77,10 +78,10 @@ export default function LimitesPage() {
     string | null
   >(null);
   const [mesSelecionado, setMesSelecionado] = useState(
-    new Date().getMonth().toString()
+    new Date().getMonth().toString(),
   );
   const [anoSelecionado, setAnoSelecionado] = useState<string>(
-    new Date().getFullYear().toString()
+    new Date().getFullYear().toString(),
   );
 
   // MESES localizados
@@ -215,8 +216,8 @@ export default function LimitesPage() {
 
       setLimites((prev) =>
         prev.map((limite) =>
-          limite.id === limiteId ? limiteAtualizado : limite
-        )
+          limite.id === limiteId ? limiteAtualizado : limite,
+        ),
       );
 
       toast.success(t("mensagens.limiteAjustadoSucesso"));
@@ -262,14 +263,14 @@ export default function LimitesPage() {
     }
   };
 
- const formatarMoeda = (valor: number) => {
-  const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
-  const currency = i18n.language === "pt" ? "BRL" : "USD"; // ✅ Dinâmico
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: currency,
-  }).format(valor);
-};
+  const formatarMoeda = (valor: number) => {
+    const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
+    const currency = i18n.language === "pt" ? "BRL" : "USD";
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: currency,
+    }).format(valor);
+  };
 
   const obterStatusLimite = (limite: LimiteCategoria) => {
     const percentual = (limite.gastoAtual / limite.limiteMensal) * 100;
@@ -304,7 +305,7 @@ export default function LimitesPage() {
   };
 
   const categoriasSemLimite = categorias.filter(
-    (cat) => !limites.some((limite) => limite.categoriaId === cat.id)
+    (cat) => !limites.some((limite) => limite.categoriaId === cat.id),
   );
 
   const obterNomeMesAbreviado = (mes: string) => {
@@ -354,7 +355,12 @@ export default function LimitesPage() {
     <div className="min-h-screen p-3 sm:p-4 md:p-6 bg-white dark:bg-transparent">
       <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
         {/* Cabeçalho */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 sm:gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 sm:gap-4"
+        >
           <div className="flex items-center gap-2 sm:gap-3 w-full lg:w-auto">
             <div className="min-w-0 flex-1">
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white truncate">
@@ -369,7 +375,12 @@ export default function LimitesPage() {
           {/* Seletor de Mês no Header */}
           <div className="w-full lg:w-auto">
             <div className="flex items-center justify-between lg:justify-end gap-2 sm:gap-4">
-              <div className="flex items-center justify-center gap-1 sm:gap-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-800 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 shadow-sm min-w-0 flex-1 lg:flex-none">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
+                className="flex items-center justify-center gap-1 sm:gap-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-800 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 shadow-sm min-w-0 flex-1 lg:flex-none"
+              >
                 {/* Seta esquerda */}
                 <Button
                   variant="ghost"
@@ -414,375 +425,531 @@ export default function LimitesPage() {
                 >
                   <ChevronRight className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                 </Button>
-              </div>
+              </motion.div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Cards de Limites Existentes */}
         <div className="space-y-3 sm:space-y-4">
-          {limites.length === 0 ? (
-            <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm rounded-xl">
-              <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12 px-4 text-center">
-                <Target className="h-10 w-10 sm:h-14 sm:w-14 text-gray-300 dark:text-gray-600 mb-3" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                  {t("mensagens.nenhumLimiteDefinido")}
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 text-sm mb-6 max-w-xs sm:max-w-md">
-                  {t("mensagens.iniciarLimites")}
-                </p>
-                <Button
-                  onClick={() => {
-                    const primeiraCategoria = categoriasSemLimite[0];
-                    if (primeiraCategoria) {
-                      setEditando(primeiraCategoria.id);
-                      setNovoLimite("");
-                    }
-                  }}
-                  className="w-full sm:w-auto bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white px-5 py-2.5 text-sm"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  {t("botoes.criarPrimeiroLimite")}
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            limites.map((limite) => {
-              const percentual =
-                (limite.gastoAtual / limite.limiteMensal) * 100;
-              const status = obterStatusLimite(limite);
-              const valorSlider = Math.min(percentual, 100);
-
-              return (
-                <Card
-                  key={limite.id}
-                  className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm rounded-xl overflow-hidden"
-                >
-                  <CardContent className="p-4 sm:p-6">
-                    {/* Cabeçalho com categoria e badge */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div
-                          className="w-3 h-3 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: limite.categoria.cor }}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <h3 className="font-semibold text-gray-900 dark:text-white text-base truncate">
-                            {limite.categoria.nome}
-                          </h3>
-                        </div>
-                      </div>
-
-                      {/* Badge de status e menu mobile */}
-                      <div className="flex items-center gap-2 ml-2">
-                        <Badge
-                          variant="outline"
-                          className={`${status.bgCor} ${status.cor} ${status.borderCor} text-xs px-2 py-0.5 hidden xs:inline-flex`}
-                        >
-                          <div className="flex items-center gap-1">
-                            {status.icone}
-                            <span className="truncate max-w-[80px]">
-                              {status.texto}
-                            </span>
-                          </div>
-                        </Badge>
-
-                        {/* Menu mobile - sempre visível */}
-                        <DropdownMenu
-                          open={dropdownAberto === limite.id}
-                          onOpenChange={(open) => {
-                            if (!open) setDropdownAberto(null);
-                          }}
-                        >
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setDropdownAberto(limite.id)}
-                              className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent
-                            align="end"
-                            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white shadow-lg w-44"
-                            onInteractOutside={() => setDropdownAberto(null)}
-                            onEscapeKeyDown={() => setDropdownAberto(null)}
-                          >
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setEditando(limite.id);
-                                setNovoLimite(limite.limiteMensal.toString());
-                                setDropdownAberto(null);
-                              }}
-                              className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm px-3 py-2"
-                            >
-                              <Edit className="h-4 w-4" />
-                              {t("menu.ajustarLimite")}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setDialogExclusaoAberto(limite.id);
-                                setDropdownAberto(null);
-                              }}
-                              className="flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 cursor-pointer text-sm px-3 py-2"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              {t("menu.excluirLimite")}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-
-                    {/* Badge de status mobile (abaixo do cabeçalho) */}
-                    <div className="mb-4 xs:hidden">
-                      <Badge
-                        variant="outline"
-                        className={`${status.bgCor} ${status.cor} ${status.borderCor} text-xs px-2 py-1 w-full justify-center`}
+          <AnimatePresence mode="wait">
+            {limites.length === 0 ? (
+              <motion.div
+                key="empty-state"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm rounded-xl">
+                  <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12 px-4 text-center">
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{
+                        delay: 0.2,
+                        type: "spring",
+                        stiffness: 200,
+                      }}
+                    >
+                      <Target className="h-10 w-10 sm:h-14 sm:w-14 text-gray-300 dark:text-gray-600 mb-3" />
+                    </motion.div>
+                    <motion.h3
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="text-lg font-semibold text-gray-900 dark:text-white mb-2"
+                    >
+                      {t("mensagens.nenhumLimiteDefinido")}
+                    </motion.h3>
+                    <motion.p
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="text-gray-600 dark:text-gray-400 text-sm mb-6 max-w-xs sm:max-w-md"
+                    >
+                      {t("mensagens.iniciarLimites")}
+                    </motion.p>
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.5 }}
+                    >
+                      <Button
+                        onClick={() => {
+                          const primeiraCategoria = categoriasSemLimite[0];
+                          if (primeiraCategoria) {
+                            setEditando(primeiraCategoria.id);
+                            setNovoLimite("");
+                          }
+                        }}
+                        className="w-full sm:w-auto bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white px-5 py-2.5 text-sm"
                       >
-                        <div className="flex items-center gap-1">
-                          {status.icone}
-                          <span>{status.texto}</span>
-                        </div>
-                      </Badge>
-                    </div>
+                        <Plus className="mr-2 h-4 w-4" />
+                        {t("botoes.criarPrimeiroLimite")}
+                      </Button>
+                    </motion.div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ) : (
+              limites.map((limite, index) => {
+                const percentual =
+                  (limite.gastoAtual / limite.limiteMensal) * 100;
+                const status = obterStatusLimite(limite);
+                const valorSlider = Math.min(percentual, 100);
 
-                    {/* Slider */}
-                    <div className="space-y-2 mb-4">
-                      <div className="relative w-full h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                        <div
-                          className={`absolute top-0 left-0 h-full rounded-full ${
-                            percentual > 100
-                              ? "bg-red-500"
-                              : percentual > 80
-                                ? "bg-amber-500"
-                                : "bg-emerald-500"
-                          }`}
-                          style={{ width: `${valorSlider}%` }}
-                        />
-                      </div>
-
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-600 dark:text-gray-400 font-medium truncate">
-                          {formatarMoeda(limite.gastoAtual)}
-                        </span>
-                        <span className="font-bold text-gray-900 dark:text-white mx-2 flex-shrink-0 px-2">
-                          {percentual.toFixed(0)}%
-                        </span>
-                        <span className="text-gray-600 dark:text-gray-400 font-medium truncate text-right">
-                          {formatarMoeda(limite.limiteMensal)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Informações financeiras */}
-                    <div className="grid grid-cols-2 gap-3 text-sm mb-4">
-                      <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
-                        <div className="text-gray-600 dark:text-gray-400 text-xs mb-1">
-                          {t("limites.gasto")}
-                        </div>
-                        <div className="font-semibold text-gray-900 dark:text-white truncate">
-                          {formatarMoeda(limite.gastoAtual)}
-                        </div>
-                      </div>
-
-                      <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
-                        <div className="text-gray-600 dark:text-gray-400 text-xs mb-1">
-                          {t("limites.restante")}
-                        </div>
-                        <div className="font-semibold text-gray-900 dark:text-white truncate">
-                          {formatarMoeda(
-                            limite.limiteMensal - limite.gastoAtual
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Modal de edição inline */}
-                    {editando === limite.id && (
-                      <div className="mt-4 p-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
-                        <div className="space-y-4">
-                          <div>
-                            <Label
-                              htmlFor="ajuste-limite"
-                              className="text-gray-700 dark:text-white text-sm mb-2 block"
-                            >
-                              {t("formularios.novoValorLimite")}
-                            </Label>
-                            <div className="relative">
-                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                                {i18n.language === "pt" ? "R$" : "$"}
-                              </span>
-                              <Input
-                                id="ajuste-limite"
-                                type="number"
-                                step="0.01"
-                                min="0.01"
-                                placeholder="0,00"
-                                value={novoLimite}
-                                onChange={(e) => setNovoLimite(e.target.value)}
-                                className="pl-10 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white h-11 text-base"
-                                autoFocus
-                              />
+                return (
+                  <motion.div
+                    key={limite.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -100 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
+                    layout
+                  >
+                    <Card className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm rounded-xl overflow-hidden">
+                      <CardContent className="p-4 sm:p-6">
+                        {/* Cabeçalho com categoria e badge */}
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              transition={{
+                                delay: 0.1 + index * 0.05,
+                                type: "spring",
+                              }}
+                              className="w-3 h-3 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: limite.categoria.cor }}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <h3 className="font-semibold text-gray-900 dark:text-white text-base truncate">
+                                {limite.categoria.nome}
+                              </h3>
                             </div>
                           </div>
 
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              onClick={() => setEditando(null)}
-                              className="flex-1 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300"
+                          {/* Badge de status e menu mobile */}
+                          <div className="flex items-center gap-2 ml-2">
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ delay: 0.2 + index * 0.05 }}
                             >
-                              {t("botoes.cancelar")}
-                            </Button>
-                            <Button
-                              onClick={() =>
-                                ajustarLimite(limite.id, parseFloat(novoLimite))
-                              }
-                              disabled={salvando === limite.id || !novoLimite}
-                              className="flex-1 bg-emerald-600 hover:bg-emerald-700 dark:bg-green-600 dark:hover:bg-green-700 text-white"
+                              <Badge
+                                variant="outline"
+                                className={`${status.bgCor} ${status.cor} ${status.borderCor} text-xs px-2 py-0.5 hidden xs:inline-flex`}
+                              >
+                                <div className="flex items-center gap-1">
+                                  {status.icone}
+                                  <span className="truncate max-w-[80px]">
+                                    {status.texto}
+                                  </span>
+                                </div>
+                              </Badge>
+                            </motion.div>
+
+                            {/* Menu mobile - sempre visível */}
+                            <DropdownMenu
+                              open={dropdownAberto === limite.id}
+                              onOpenChange={(open) => {
+                                if (!open) setDropdownAberto(null);
+                              }}
                             >
-                              {salvando === limite.id
-                                ? t("botoes.salvando")
-                                : t("botoes.salvar")}
-                            </Button>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setDropdownAberto(limite.id)}
+                                  className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                align="end"
+                                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white shadow-lg w-44"
+                                onInteractOutside={() =>
+                                  setDropdownAberto(null)
+                                }
+                                onEscapeKeyDown={() => setDropdownAberto(null)}
+                              >
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setEditando(limite.id);
+                                    setNovoLimite(
+                                      limite.limiteMensal.toString(),
+                                    );
+                                    setDropdownAberto(null);
+                                  }}
+                                  className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm px-3 py-2"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                  {t("menu.ajustarLimite")}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setDialogExclusaoAberto(limite.id);
+                                    setDropdownAberto(null);
+                                  }}
+                                  className="flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 cursor-pointer text-sm px-3 py-2"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  {t("menu.excluirLimite")}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })
-          )}
+
+                        {/* Badge de status mobile (abaixo do cabeçalho) */}
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 0.3 + index * 0.05 }}
+                          className="mb-4 xs:hidden"
+                        >
+                          <Badge
+                            variant="outline"
+                            className={`${status.bgCor} ${status.cor} ${status.borderCor} text-xs px-2 py-1 w-full justify-center`}
+                          >
+                            <div className="flex items-center gap-1">
+                              {status.icone}
+                              <span>{status.texto}</span>
+                            </div>
+                          </Badge>
+                        </motion.div>
+
+                        {/* Slider */}
+                        <motion.div
+                          initial={{ opacity: 0, scaleX: 0 }}
+                          animate={{ opacity: 1, scaleX: 1 }}
+                          transition={{
+                            delay: 0.4 + index * 0.05,
+                            duration: 0.5,
+                          }}
+                          className="space-y-2 mb-4"
+                        >
+                          <div className="relative w-full h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${valorSlider}%` }}
+                              transition={{
+                                delay: 0.5 + index * 0.05,
+                                duration: 0.8,
+                                ease: "easeOut",
+                              }}
+                              className={`absolute top-0 left-0 h-full rounded-full ${
+                                percentual > 100
+                                  ? "bg-red-500"
+                                  : percentual > 80
+                                    ? "bg-amber-500"
+                                    : "bg-emerald-500"
+                              }`}
+                            />
+                          </div>
+
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-gray-600 dark:text-gray-400 font-medium truncate">
+                              {formatarMoeda(limite.gastoAtual)}
+                            </span>
+                            <motion.span
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              transition={{
+                                delay: 0.6 + index * 0.05,
+                                type: "spring",
+                              }}
+                              className="font-bold text-gray-900 dark:text-white mx-2 flex-shrink-0 px-2"
+                            >
+                              {percentual.toFixed(0)}%
+                            </motion.span>
+                            <span className="text-gray-600 dark:text-gray-400 font-medium truncate text-right">
+                              {formatarMoeda(limite.limiteMensal)}
+                            </span>
+                          </div>
+                        </motion.div>
+
+                        {/* Informações financeiras */}
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.5 + index * 0.05 }}
+                          className="grid grid-cols-2 gap-3 text-sm mb-4"
+                        >
+                          <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
+                            <div className="text-gray-600 dark:text-gray-400 text-xs mb-1">
+                              {t("limites.gasto")}
+                            </div>
+                            <div className="font-semibold text-gray-900 dark:text-white truncate">
+                              {formatarMoeda(limite.gastoAtual)}
+                            </div>
+                          </div>
+
+                          <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
+                            <div className="text-gray-600 dark:text-gray-400 text-xs mb-1">
+                              {t("limites.restante")}
+                            </div>
+                            <div className="font-semibold text-gray-900 dark:text-white truncate">
+                              {formatarMoeda(
+                                limite.limiteMensal - limite.gastoAtual,
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+
+                        {/* Modal de edição inline */}
+                        <AnimatePresence>
+                          {editando === limite.id && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.3 }}
+                              className="mt-4 p-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/50 overflow-hidden"
+                            >
+                              <div className="space-y-4">
+                                <div>
+                                  <Label
+                                    htmlFor="ajuste-limite"
+                                    className="text-gray-700 dark:text-white text-sm mb-2 block"
+                                  >
+                                    {t("formularios.novoValorLimite")}
+                                  </Label>
+                                  <div className="relative">
+                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                                      {i18n.language === "pt" ? "R$" : "$"}
+                                    </span>
+                                    <Input
+                                      id="ajuste-limite"
+                                      type="number"
+                                      step="0.01"
+                                      min="0.01"
+                                      placeholder="0,00"
+                                      value={novoLimite}
+                                      onChange={(e) =>
+                                        setNovoLimite(e.target.value)
+                                      }
+                                      className="pl-10 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white h-11 text-base"
+                                      autoFocus
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => setEditando(null)}
+                                    className="flex-1 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300"
+                                  >
+                                    {t("botoes.cancelar")}
+                                  </Button>
+                                  <Button
+                                    onClick={() =>
+                                      ajustarLimite(
+                                        limite.id,
+                                        parseFloat(novoLimite),
+                                      )
+                                    }
+                                    disabled={
+                                      salvando === limite.id || !novoLimite
+                                    }
+                                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 dark:bg-green-600 dark:hover:bg-green-700 text-white"
+                                  >
+                                    {salvando === limite.id
+                                      ? t("botoes.salvando")
+                                      : t("botoes.salvar")}
+                                  </Button>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Seção para adicionar novos limites */}
-        {categoriasSemLimite.length > 0 && (
-          <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
-            <CardHeader className="px-4 sm:px-6">
-              <CardTitle className="text-gray-900 dark:text-white text-lg sm:text-xl">
-                {t("titulos.adicionarNovoLimite")}
-              </CardTitle>
-              <CardDescription className="text-gray-600 dark:text-gray-400 text-sm">
-                {t("subtitulos.selecioneCategoria")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="px-3 sm:px-6">
-              <div className="space-y-2 sm:space-y-3">
-                {categoriasSemLimite.map((categoria) => (
-                  <div
-                    key={categoria.id}
-                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-300 dark:hover:border-gray-700 transition-colors bg-gray-50/50 dark:bg-gray-800/50 gap-3"
-                  >
-                    <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                      <div
-                        className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: categoria.cor }}
-                      />
-                      <span className="font-medium text-gray-900 dark:text-white text-sm sm:text-base truncate">
-                        {categoria.nome}
-                      </span>
-                    </div>
-
-                    {editando === categoria.id ? (
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
-                        <div className="relative w-full sm:w-32">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">
-                            {i18n.language === "pt" ? "R$" : "$"}
-                          </span>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0.01"
-                            placeholder="0,00"
-                            value={novoLimite}
-                            onChange={(e) => setNovoLimite(e.target.value)}
-                            className="pl-8 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm sm:text-base h-9 w-full"
-                          />
-                        </div>
-                        <div className="flex gap-2 w-full sm:w-auto">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => salvarLimite(categoria.id)}
-                            disabled={salvando === categoria.id}
-                            className="bg-emerald-600 hover:bg-emerald-700 dark:bg-green-600 dark:hover:bg-green-700 text-white border-emerald-600 dark:border-green-600 flex-1 sm:flex-none"
-                          >
-                            {salvando === categoria.id
-                              ? t("botoes.salvando")
-                              : t("botoes.salvar")}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setEditando(null)}
-                            className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex-1 sm:flex-none"
-                          >
-                            {t("botoes.cancelar")}
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setEditando(categoria.id);
-                          setNovoLimite("");
-                        }}
-                        className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white w-full sm:w-auto"
+        <AnimatePresence>
+          {categoriasSemLimite.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+            >
+              <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
+                <CardHeader className="px-4 sm:px-6">
+                  <CardTitle className="text-gray-900 dark:text-white text-lg sm:text-xl">
+                    {t("titulos.adicionarNovoLimite")}
+                  </CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-400 text-sm">
+                    {t("subtitulos.selecioneCategoria")}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="px-3 sm:px-6">
+                  <div className="space-y-2 sm:space-y-3">
+                    {categoriasSemLimite.map((categoria, index) => (
+                      <motion.div
+                        key={categoria.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-300 dark:hover:border-gray-700 transition-colors bg-gray-50/50 dark:bg-gray-800/50 gap-3"
                       >
-                        <Plus className="mr-2 h-3 w-3" />
-                        {t("botoes.definirLimite")}
-                      </Button>
-                    )}
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{
+                              delay: 0.1 + index * 0.05,
+                              type: "spring",
+                            }}
+                            className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: categoria.cor }}
+                          />
+                          <span className="font-medium text-gray-900 dark:text-white text-sm sm:text-base truncate">
+                            {categoria.nome}
+                          </span>
+                        </div>
+
+                        <AnimatePresence mode="wait">
+                          {editando === categoria.id ? (
+                            <motion.div
+                              key="editing"
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.95 }}
+                              transition={{ duration: 0.2 }}
+                              className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto"
+                            >
+                              <div className="relative w-full sm:w-32">
+                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">
+                                  {i18n.language === "pt" ? "R$" : "$"}
+                                </span>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0.01"
+                                  placeholder="0,00"
+                                  value={novoLimite}
+                                  onChange={(e) =>
+                                    setNovoLimite(e.target.value)
+                                  }
+                                  className="pl-8 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm sm:text-base h-9 w-full"
+                                />
+                              </div>
+                              <div className="flex gap-2 w-full sm:w-auto">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => salvarLimite(categoria.id)}
+                                  disabled={salvando === categoria.id}
+                                  className="bg-emerald-600 hover:bg-emerald-700 dark:bg-green-600 dark:hover:bg-green-700 text-white border-emerald-600 dark:border-green-600 flex-1 sm:flex-none"
+                                >
+                                  {salvando === categoria.id
+                                    ? t("botoes.salvando")
+                                    : t("botoes.salvar")}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setEditando(null)}
+                                  className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex-1 sm:flex-none"
+                                >
+                                  {t("botoes.cancelar")}
+                                </Button>
+                              </div>
+                            </motion.div>
+                          ) : (
+                            <motion.div
+                              key="not-editing"
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.95 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setEditando(categoria.id);
+                                  setNovoLimite("");
+                                }}
+                                className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white w-full sm:w-auto"
+                              >
+                                <Plus className="mr-2 h-3 w-3" />
+                                {t("botoes.definirLimite")}
+                              </Button>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
+
       {/* Dialog de Confirmação de Exclusão */}
-      <Dialog
-        open={!!dialogExclusaoAberto}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDialogExclusaoAberto(null);
-          }
-        }}
-      >
-        <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white max-w-[95vw] sm:max-w-md mx-2 sm:mx-4">
-          <DialogHeader>
-            <DialogTitle className="text-gray-900 dark:text-white text-lg sm:text-xl">
-              {t("dialogs.excluirLimiteTitulo")}
-            </DialogTitle>
-            <DialogDescription className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">
-              {t("dialogs.excluirLimiteDescricao")}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
-            <Button
-              variant="outline"
-              onClick={() => setDialogExclusaoAberto(null)}
-              className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 order-2 sm:order-1"
-            >
-              {t("botoes.cancelar")}
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => excluirLimite(dialogExclusaoAberto!)}
-              disabled={!!excluindoLimite}
-              className="order-1 sm:order-2"
-            >
-              {excluindoLimite ? t("botoes.excluindo") : t("botoes.confirmar")}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <AnimatePresence>
+        {dialogExclusaoAberto && (
+          <Dialog
+            open={!!dialogExclusaoAberto}
+            onOpenChange={(open) => {
+              if (!open) {
+                setDialogExclusaoAberto(null);
+              }
+            }}
+          >
+            <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white max-w-[95vw] sm:max-w-md mx-2 sm:mx-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+              >
+                <DialogHeader>
+                  <DialogTitle className="text-gray-900 dark:text-white text-lg sm:text-xl">
+                    {t("dialogs.excluirLimiteTitulo")}
+                  </DialogTitle>
+                  <DialogDescription className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">
+                    {t("dialogs.excluirLimiteDescricao")}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => setDialogExclusaoAberto(null)}
+                    className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 order-2 sm:order-1"
+                  >
+                    {t("botoes.cancelar")}
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => excluirLimite(dialogExclusaoAberto!)}
+                    disabled={!!excluindoLimite}
+                    className="order-1 sm:order-2"
+                  >
+                    {excluindoLimite
+                      ? t("botoes.excluindo")
+                      : t("botoes.confirmar")}
+                  </Button>
+                </div>
+              </motion.div>
+            </DialogContent>
+          </Dialog>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

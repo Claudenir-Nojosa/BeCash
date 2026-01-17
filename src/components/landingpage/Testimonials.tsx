@@ -1,5 +1,8 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 // --- Types ---
 interface Testimonial {
@@ -8,77 +11,6 @@ interface Testimonial {
   name: string;
   role: string;
 }
-
-// --- Data ---
-const testimonials: Testimonial[] = [
-  {
-    text: "This ERP revolutionized our operations, streamlining finance and inventory. The cloud-based platform keeps us productive, even remotely.",
-    image:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150&h=150",
-    name: "Briana Patton",
-    role: "Operations Manager",
-  },
-  {
-    text: "Implementing this ERP was smooth and quick. The customizable, user-friendly interface made team training effortless.",
-    image:
-      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150&h=150",
-    name: "Bilal Ahmed",
-    role: "IT Manager",
-  },
-  {
-    text: "The support team is exceptional, guiding us through setup and providing ongoing assistance, ensuring our satisfaction.",
-    image:
-      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=150&h=150",
-    name: "Saman Malik",
-    role: "Customer Support Lead",
-  },
-  {
-    text: "This ERP's seamless integration enhanced our business operations and efficiency. Highly recommend for its intuitive interface.",
-    image:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150&h=150",
-    name: "Omar Raza",
-    role: "CEO",
-  },
-  {
-    text: "Its robust features and quick support have transformed our workflow, making us significantly more efficient.",
-    image:
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150&h=150",
-    name: "Zainab Hussain",
-    role: "Project Manager",
-  },
-  {
-    text: "The smooth implementation exceeded expectations. It streamlined processes, improving overall business performance.",
-    image:
-      "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=150&h=150",
-    name: "Aliza Khan",
-    role: "Business Analyst",
-  },
-  {
-    text: "Our business functions improved with a user-friendly design and positive customer feedback.",
-    image:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=150&h=150",
-    name: "Farhan Siddiqui",
-    role: "Marketing Director",
-  },
-  {
-    text: "They delivered a solution that exceeded expectations, understanding our needs and enhancing our operations.",
-    image:
-      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=150&h=150",
-    name: "Sana Sheikh",
-    role: "Sales Manager",
-  },
-  {
-    text: "Using this ERP, our online presence and conversions significantly improved, boosting business performance.",
-    image:
-      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=150&h=150",
-    name: "Hassan Ali",
-    role: "E-commerce Manager",
-  },
-];
-
-const firstColumn = testimonials.slice(0, 3);
-const secondColumn = testimonials.slice(3, 6);
-const thirdColumn = testimonials.slice(6, 9);
 
 // --- Sub-Components ---
 const TestimonialsColumn = (props: {
@@ -111,12 +43,13 @@ const TestimonialsColumn = (props: {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{
                     duration: 0.4,
-                    delay: (i * 0.1) + (index * 0.3),
+                    delay: i * 0.1 + index * 0.3,
                   }}
                   whileHover={{
                     scale: 1.02,
-                    boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-                    transition: { duration: 0.2 }
+                    boxShadow:
+                      "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+                    transition: { duration: 0.2 },
                   }}
                 >
                   <motion.div
@@ -127,7 +60,7 @@ const TestimonialsColumn = (props: {
                     <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
                       {text}
                     </p>
-                    <motion.div 
+                    <motion.div
                       className="flex items-center gap-3"
                       whileHover={{ gap: 4 }}
                       transition={{ duration: 0.2 }}
@@ -140,14 +73,14 @@ const TestimonialsColumn = (props: {
                         transition={{ duration: 0.2 }}
                       />
                       <div>
-                        <motion.p 
+                        <motion.p
                           className="font-semibold text-sm text-gray-900 dark:text-white"
                           whileHover={{ x: 2 }}
                           transition={{ duration: 0.2 }}
                         >
                           {name}
                         </motion.p>
-                        <motion.p 
+                        <motion.p
                           className="text-xs text-gray-600 dark:text-gray-400"
                           whileHover={{ x: 2 }}
                           transition={{ duration: 0.2, delay: 0.05 }}
@@ -168,38 +101,137 @@ const TestimonialsColumn = (props: {
 };
 
 const TestimonialsSection = () => {
+  const { t } = useTranslation("testimonials");
+
+  const testimonials: Testimonial[] = [
+    {
+      text: t(
+        "items.0.text",
+        "This ERP revolutionized our operations, streamlining finance and inventory. The cloud-based platform keeps us productive, even remotely.",
+      ),
+      image:
+        "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150&h=150",
+      name: t("items.0.name", "Briana Patton"),
+      role: t("items.0.role", "Operations Manager"),
+    },
+    {
+      text: t(
+        "items.1.text",
+        "Implementing this ERP was smooth and quick. The customizable, user-friendly interface made team training effortless.",
+      ),
+      image:
+        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150&h=150",
+      name: t("items.1.name", "Bilal Ahmed"),
+      role: t("items.1.role", "IT Manager"),
+    },
+    {
+      text: t(
+        "items.2.text",
+        "The support team is exceptional, guiding us through setup and providing ongoing assistance, ensuring our satisfaction.",
+      ),
+      image:
+        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=150&h=150",
+      name: t("items.2.name", "Saman Malik"),
+      role: t("items.2.role", "Customer Support Lead"),
+    },
+    {
+      text: t(
+        "items.3.text",
+        "This ERP's seamless integration enhanced our business operations and efficiency. Highly recommend for its intuitive interface.",
+      ),
+      image:
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150&h=150",
+      name: t("items.3.name", "Omar Raza"),
+      role: t("items.3.role", "CEO"),
+    },
+    {
+      text: t(
+        "items.4.text",
+        "Its robust features and quick support have transformed our workflow, making us significantly more efficient.",
+      ),
+      image:
+        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150&h=150",
+      name: t("items.4.name", "Zainab Hussain"),
+      role: t("items.4.role", "Project Manager"),
+    },
+    {
+      text: t(
+        "items.5.text",
+        "The smooth implementation exceeded expectations. It streamlined processes, improving overall business performance.",
+      ),
+      image:
+        "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=150&h=150",
+      name: t("items.5.name", "Aliza Khan"),
+      role: t("items.5.role", "Business Analyst"),
+    },
+    {
+      text: t(
+        "items.6.text",
+        "Our business functions improved with a user-friendly design and positive customer feedback.",
+      ),
+      image:
+        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=150&h=150",
+      name: t("items.6.name", "Farhan Siddiqui"),
+      role: t("items.6.role", "Marketing Director"),
+    },
+    {
+      text: t(
+        "items.7.text",
+        "They delivered a solution that exceeded expectations, understanding our needs and enhancing our operations.",
+      ),
+      image:
+        "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=150&h=150",
+      name: t("items.7.name", "Sana Sheikh"),
+      role: t("items.7.role", "Sales Manager"),
+    },
+    {
+      text: t(
+        "items.8.text",
+        "Using this ERP, our online presence and conversions significantly improved, boosting business performance.",
+      ),
+      image:
+        "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=150&h=150",
+      name: t("items.8.name", "Hassan Ali"),
+      role: t("items.8.role", "E-commerce Manager"),
+    },
+  ];
+
+  const firstColumn = testimonials.slice(0, 3);
+  const secondColumn = testimonials.slice(3, 6);
+  const thirdColumn = testimonials.slice(6, 9);
+
   return (
     <section className="w-full relative overflow-hidden bg-background">
       {/* Background Effects */}
-      <motion.div 
+      <motion.div
         className="absolute inset-0"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1 }}
       >
-        <motion.div 
+        <motion.div
           className="absolute top-1/4 left-1/4 w-72 h-72 bg-[#00cfec]/10 rounded-full blur-3xl"
-          animate={{ 
+          animate={{
             scale: [1, 1.1, 1],
-            opacity: [0.5, 0.8, 0.5]
+            opacity: [0.5, 0.8, 0.5],
           }}
-          transition={{ 
+          transition={{
             duration: 8,
             repeat: Infinity,
-            ease: "easeInOut"
+            ease: "easeInOut",
           }}
         />
-        <motion.div 
+        <motion.div
           className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-[#007cca]/10 rounded-full blur-3xl"
-          animate={{ 
+          animate={{
             scale: [1, 1.15, 1],
-            opacity: [0.5, 0.7, 0.5]
+            opacity: [0.5, 0.7, 0.5],
           }}
-          transition={{ 
+          transition={{
             duration: 10,
             repeat: Infinity,
             ease: "easeInOut",
-            delay: 1
+            delay: 1,
           }}
         />
       </motion.div>
@@ -218,12 +250,12 @@ const TestimonialsSection = () => {
             whileInView={{ scale: 1, opacity: 1 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1, duration: 0.3 }}
-            whileHover={{ 
+            whileHover={{
               scale: 1.05,
-              boxShadow: "0 0 20px rgba(0, 124, 202, 0.2)"
+              boxShadow: "0 0 20px rgba(0, 124, 202, 0.2)",
             }}
           >
-            Depoimentos
+            {t("badge", "Depoimentos")}
           </motion.span>
 
           <motion.div
@@ -233,22 +265,22 @@ const TestimonialsSection = () => {
             transition={{ delay: 0.2, duration: 0.5 }}
           >
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3 tracking-tight">
-              O que nossos{" "}
-              <motion.span 
+              {t("title.what", "O que nossos")}{" "}
+              <motion.span
                 className="bg-gradient-to-r from-[#00cfec] to-[#007cca] bg-clip-text text-transparent inline-block"
-                animate={{ 
-                  backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"]
+                animate={{
+                  backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
                 }}
-                transition={{ 
+                transition={{
                   duration: 5,
                   repeat: Infinity,
-                  ease: "easeInOut"
+                  ease: "easeInOut",
                 }}
-                style={{ 
-                  backgroundSize: "200% 100%"
+                style={{
+                  backgroundSize: "200% 100%",
                 }}
               >
-                usuários dizem
+                {t("title.highlight", "usuários dizem")}
               </motion.span>
             </h2>
           </motion.div>
@@ -260,13 +292,15 @@ const TestimonialsSection = () => {
             viewport={{ once: true }}
             transition={{ delay: 0.3, duration: 0.5 }}
           >
-            Descubra como milhares de pessoas estão transformando suas finanças
-            com nossa plataforma.
+            {t(
+              "description",
+              "Descubra como milhares de pessoas estão transformando suas finanças com nossa plataforma.",
+            )}
           </motion.p>
         </motion.div>
       </div>
 
-      <motion.div 
+      <motion.div
         className="relative h-[600px] overflow-hidden z-10"
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
@@ -290,14 +324,14 @@ const TestimonialsSection = () => {
             className="flex-1 hidden lg:block"
           />
         </div>
-        
+
         {/* Gradient overlays with animation */}
-        <motion.div 
+        <motion.div
           className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-background to-transparent pointer-events-none"
           animate={{ opacity: [0.8, 1, 0.8] }}
           transition={{ duration: 3, repeat: Infinity }}
         />
-        <motion.div 
+        <motion.div
           className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-background to-transparent pointer-events-none"
           animate={{ opacity: [0.8, 1, 0.8] }}
           transition={{ duration: 3, repeat: Infinity, delay: 1.5 }}

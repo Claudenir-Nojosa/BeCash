@@ -1,7 +1,12 @@
+"use client";
+
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles, Star, Lock } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export const CTA2 = () => {
+  const { t } = useTranslation("cta2");
+
   return (
     <section className="py-32 relative overflow-hidden bg-background" id="cta">
       <div className="absolute inset-0 overflow-hidden">
@@ -68,10 +73,10 @@ export const CTA2 = () => {
                     transition={{ duration: 0.5, delay: 0.2 }}
                   >
                     <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 leading-tight text-gray-900 dark:text-white tracking-tight">
-                      Comece sua jornada
+                      {t("title.start", "Comece sua jornada")}
                       <br />
                       <span className="bg-gradient-to-r from-[#00cfec] to-[#007cca] bg-clip-text text-transparent">
-                        financeira hoje
+                        {t("title.highlight", "financeira hoje")}
                       </span>
                     </h2>
                   </motion.div>
@@ -83,8 +88,7 @@ export const CTA2 = () => {
                     viewport={{ once: true }}
                     transition={{ duration: 0.6, delay: 0.3 }}
                   >
-                    Dê o primeiro passo rumo à liberdade financeira. Configure
-                    sua conta em minutos e veja a mágica acontecer.
+                    {t("description", "Dê o primeiro passo rumo à liberdade financeira. Configure sua conta em minutos e veja a mágica acontecer.")}
                   </motion.p>
                 </div>
 
@@ -101,7 +105,7 @@ export const CTA2 = () => {
                     whileTap={{ scale: 0.98 }}
                   >
                     <span className="relative z-10 flex items-center justify-center gap-3">
-                      Criar conta gratuita
+                      {t("button", "Criar conta gratuita")}
                       <motion.div
                         animate={{ x: [0, 5, 0] }}
                         transition={{
@@ -144,10 +148,10 @@ export const CTA2 = () => {
                     </div>
                     <div className="text-left">
                       <div className="font-bold text-gray-900 dark:text-white text-sm">
-                        100% Seguro
+                        {t("features.secure.title", "100% Seguro")}
                       </div>
                       <div className="text-xs text-gray-600 dark:text-gray-400">
-                        Criptografia bancária
+                        {t("features.secure.subtitle", "Criptografia bancária")}
                       </div>
                     </div>
                   </motion.div>
@@ -163,10 +167,10 @@ export const CTA2 = () => {
                     </div>
                     <div className="text-left">
                       <div className="font-bold text-gray-900 dark:text-white text-sm">
-                        14 dias grátis
+                        {t("features.trial.title", "14 dias grátis")}
                       </div>
                       <div className="text-xs text-gray-600 dark:text-gray-400">
-                        Sem cartão de crédito
+                        {t("features.trial.subtitle", "Sem cartão de crédito")}
                       </div>
                     </div>
                   </motion.div>
@@ -186,10 +190,10 @@ export const CTA2 = () => {
                     </div>
                     <div className="text-left">
                       <div className="font-bold text-gray-900 dark:text-white text-sm">
-                        Adorado
+                        {t("features.loved.title", "Adorado")}
                       </div>
                       <div className="text-xs text-gray-600 dark:text-gray-400">
-                        Por milhares de usuários
+                        {t("features.loved.subtitle", "Por milhares de usuários")}
                       </div>
                     </div>
                   </motion.div>

@@ -144,7 +144,7 @@ export const Hero = () => {
       ))}
 
       {/* Content */}
-      <div className="container mx-auto px-4 relative z-10 text-center">
+      <div className="container mx-auto px-4 relative z-10 text-center pt-16 md:pt-0">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -156,7 +156,7 @@ export const Hero = () => {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2, duration: 0.4 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-sky-50/80 to-blue-50/80 dark:from-primary/10 dark:to-secondary/10 border border-sky-200/60 dark:border-accent/25 mb-8 group cursor-pointer hover:shadow-sm hover:shadow-blue-500/10 dark:hover:shadow-accent/10 transition-all duration-300"
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-sky-50/80 to-blue-50/80 dark:from-primary/10 dark:to-secondary/10 border border-sky-200/60 dark:border-accent/25 mb-6 md:mb-8 group cursor-pointer hover:shadow-sm hover:shadow-blue-500/10 dark:hover:shadow-accent/10 transition-all duration-300"
             onMouseEnter={() => setIsHoveringOffer(true)}
             onMouseLeave={() => setIsHoveringOffer(false)}
           >
@@ -179,12 +179,12 @@ export const Hero = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.6 }}
-            className="text-3xl md:text-5xl lg:text-5xl font-bold leading-tight mb-8"
+            className="text-3xl md:text-5xl lg:text-5xl font-bold leading-tight mb-6 md:mb-8"
           >
             <span className="block text-gray-900 dark:text-white">
               {t("title.line1")}
             </span>
-            <span className="relative inline-block mt-4">
+            <span className="relative inline-block mt-3 md:mt-4">
                 <span className="bg-gradient-to-r from-[#00cfec] to-[#007cca] bg-clip-text text-transparent">
                 {t("title.whatsapp")}
               </span>
@@ -195,7 +195,7 @@ export const Hero = () => {
                 transition={{ delay: 0.5, duration: 0.8 }}
               />
             </span>
-            <span className="block text-2xl md:text-4xl lg:text-5xl font-semibold mt-8 text-gray-900 dark:text-white">
+            <span className="block text-2xl md:text-4xl lg:text-5xl font-semibold mt-6 md:mt-8 text-gray-900 dark:text-white">
               {t("title.line2")}
             </span>
           </motion.h1>
@@ -205,7 +205,7 @@ export const Hero = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.5 }}
-            className="text-base md:text-lg text-gray-800/90 dark:text-gray-300/90 mb-12 max-w-2xl mx-auto leading-relaxed"
+            className="text-base md:text-lg text-gray-800/90 dark:text-gray-300/90 mb-8 md:mb-12 max-w-2xl mx-auto leading-relaxed px-2"
           >
             {t("subtitle")}
           </motion.p>
@@ -215,11 +215,11 @@ export const Hero = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.5 }}
-            className="flex flex-col sm:flex-row gap-3 justify-center items-center"
+            className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-8 md:mb-0"
           >
             <Button
               size="lg"
-              className="px-8 py-5 text-lg font-medium bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:shadow-md hover:shadow-[#00cfec]/25 dark:hover:shadow-[#00cfec]/15 transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] rounded-xl border border-[#00cfec]/40"
+              className="px-6 md:px-8 py-5 text-lg font-medium bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:shadow-md hover:shadow-[#00cfec]/25 dark:hover:shadow-[#00cfec]/15 transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] rounded-xl border border-[#00cfec]/40 w-full sm:w-auto"
               onMouseEnter={() => setIsHoveringCTA(true)}
               onMouseLeave={() => setIsHoveringCTA(false)}
             >
@@ -236,7 +236,7 @@ export const Hero = () => {
             <Button
               size="lg"
               variant="outline"
-              className="px-8 py-5 text-lg font-medium border border-gray-300/80 dark:border-gray-700/80 hover:border-[#007cca]/40 dark:hover:border-[#00cfec]/40 text-gray-800 dark:text-gray-200 hover:text-[#007cca] dark:hover:text-[#00cfec] transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] rounded-xl bg-white/70 dark:bg-gray-900/30 backdrop-blur-sm"
+              className="px-6 md:px-8 py-5 text-lg font-medium border border-gray-300/80 dark:border-gray-700/80 hover:border-[#007cca]/40 dark:hover:border-[#00cfec]/40 text-gray-800 dark:text-gray-200 hover:text-[#007cca] dark:hover:text-[#00cfec] transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] rounded-xl bg-white/70 dark:bg-gray-900/30 backdrop-blur-sm w-full sm:w-auto"
               onMouseEnter={() => setIsHoveringSecondary(true)}
               onMouseLeave={() => setIsHoveringSecondary(false)}
             >
@@ -261,24 +261,24 @@ export const Hero = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.7, duration: 0.6 }}
-            className="mt-20 flex flex-wrap justify-center items-center gap-5"
+            className="mt-12 md:mt-20 flex flex-wrap justify-center items-center gap-4 md:gap-5"
           >
             <motion.span
-              className="justify-center gap-3 text-center px-3 py-1.5 rounded-full bg-gradient-to-r from-[#00cfec]/10 to-[#007cca]/10 text-[#007cca] dark:text-[#00cfec] text-xs font-medium mb-3 border border-[#00cfec]/20 flex align-middle items-center"
+              className="justify-center gap-3 text-center px-3 py-1.5 rounded-full bg-gradient-to-r from-[#00cfec]/10 to-[#007cca]/10 text-[#007cca] dark:text-[#00cfec] text-xs font-medium mb-2 md:mb-3 border border-[#00cfec]/20 flex align-middle items-center"
               initial={{ scale: 0.95, opacity: 0 }}
               whileInView={{ scale: 1, opacity: 1 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1, duration: 0.3 }}
             >
               {" "}
-              <div className="w-8 h-8 rounded-full flex bg-gradient-to-br from-[#00cfec] to-[#007cca] flex items-center justify-center shadow-sm">
+              <div className="w-8 h-8 rounded-full flex bg-gradient-to-br from-[#00cfec] to-[#007cca] items-center justify-center shadow-sm">
                 <Shield className="w-3.5 h-3.5 text-white" />
               </div>
               {t("trust.dataProtected")}
             </motion.span>
 
             <motion.span
-              className="justify-center gap-3 text-center px-3 py-1.5 rounded-full bg-gradient-to-r from-[#00cfec]/10 to-[#007cca]/10 text-[#007cca] dark:text-[#00cfec] text-xs font-medium mb-3 border border-[#00cfec]/20 flex align-middle items-center"
+              className="justify-center gap-3 text-center px-3 py-1.5 rounded-full bg-gradient-to-r from-[#00cfec]/10 to-[#007cca]/10 text-[#007cca] dark:text-[#00cfec] text-xs font-medium mb-2 md:mb-3 border border-[#00cfec]/20 flex align-middle items-center"
               initial={{ scale: 0.95, opacity: 0 }}
               whileInView={{ scale: 1, opacity: 1 }}
               viewport={{ once: true }}
@@ -291,8 +291,8 @@ export const Hero = () => {
               {t("trust.aiAdvanced")}
             </motion.span>
 
-                        <motion.span
-              className="justify-center gap-3 text-center px-3 py-1.5 rounded-full bg-gradient-to-r from-[#00cfec]/10 to-[#007cca]/10 text-[#007cca] dark:text-[#00cfec] text-xs font-medium mb-3 border border-[#00cfec]/20 flex align-middle items-center"
+            <motion.span
+              className="justify-center gap-3 text-center px-3 py-1.5 rounded-full bg-gradient-to-r from-[#00cfec]/10 to-[#007cca]/10 text-[#007cca] dark:text-[#00cfec] text-xs font-medium mb-2 md:mb-3 border border-[#00cfec]/20 flex align-middle items-center"
               initial={{ scale: 0.95, opacity: 0 }}
               whileInView={{ scale: 1, opacity: 1 }}
               viewport={{ once: true }}

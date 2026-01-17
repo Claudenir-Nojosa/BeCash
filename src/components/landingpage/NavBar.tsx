@@ -71,7 +71,7 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
               "text-lg font-medium text-gray-900 dark:text-gray-100 py-3 px-4 rounded-lg transition-all duration-200",
               "hover:text-[#007cca] dark:hover:text-[#00cfec]",
               "hover:bg-gray-100 dark:hover:bg-gray-800",
-              "focus:outline-none focus:ring-2 focus:ring-[#007cca] focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+              "focus:outline-none focus:ring-2 focus:ring-[#007cca] focus:ring-offset-2 dark:focus:ring-offset-gray-900",
             )}
             onClick={handleLinkClick}
             aria-label={`${t("aria.navigateTo")} ${link.label}`}
@@ -79,6 +79,11 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
             {link.label}
           </Link>
         ))}
+
+        {/* Adicionando LanguageSwitcher na versão mobile */}
+        <div className="py-3 px-4">
+          <LanguageSwitcher />
+        </div>
 
         <div className="flex flex-col gap-3 pt-6 mt-4 border-t border-gray-300 dark:border-gray-800">
           <Button
@@ -102,7 +107,7 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
 
 const DesktopNavLinks = () => {
   const { t } = useTranslation("navbar");
-  
+
   const NAV_LINKS: NavLink[] = [
     { label: t("links.features"), href: "/#features" },
     { label: t("links.howItWorks"), href: "/#how-it-works" },
@@ -126,7 +131,7 @@ const DesktopNavLinks = () => {
             className={cn(
               "relative text-gray-800 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white",
               "transition-colors duration-300 font-medium text-sm",
-              "group py-2 px-1"
+              "group py-2 px-1",
             )}
             aria-label={`${t("aria.navigateTo")} ${link.label}`}
           >
@@ -231,6 +236,7 @@ export const Navbar = () => {
 
             {/* Mobile Actions */}
             <div className="flex md:hidden items-center gap-3">
+              <LanguageSwitcher />
               <ThemeToggle />
               <button
                 onClick={toggleMenu}

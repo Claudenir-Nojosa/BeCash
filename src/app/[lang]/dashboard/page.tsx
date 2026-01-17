@@ -38,6 +38,7 @@ import {
 import { useSession } from "next-auth/react";
 import NotificacoesSino from "@/components/dashboard/NotificacoesCompartilhamento";
 import AuthGuard from "@/components/shared/AuthGuard";
+import { motion } from "framer-motion";
 
 // Array de meses para o seletor
 const MESES = [
@@ -133,10 +134,10 @@ export default function DashboardPage() {
   const [nomeUsuario, setNomeUsuario] = useState("");
   const [fraseMotivacional, setFraseMotivacional] = useState("");
   const [mesSelecionado, setMesSelecionado] = useState<string>(
-    (new Date().getMonth() + 1).toString()
+    (new Date().getMonth() + 1).toString(),
   );
   const [anoSelecionado, setAnoSelecionado] = useState<string>(
-    new Date().getFullYear().toString()
+    new Date().getFullYear().toString(),
   );
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -228,11 +229,11 @@ export default function DashboardPage() {
 
       const [resumoRes, metasRes, limitesRes] = await Promise.all([
         fetch(
-          `/api/dashboard/resumo?mes=${mesSelecionado}&ano=${anoSelecionado}`
+          `/api/dashboard/resumo?mes=${mesSelecionado}&ano=${anoSelecionado}`,
         ),
         fetch("/api/dashboard/metas"),
         fetch(
-          `/api/dashboard/limites?mes=${mesSelecionado}&ano=${anoSelecionado}`
+          `/api/dashboard/limites?mes=${mesSelecionado}&ano=${anoSelecionado}`,
         ),
       ]);
 
@@ -305,12 +306,20 @@ export default function DashboardPage() {
   if (status === "loading") {
     return (
       <div className="min-h-screen p-6 flex items-center justify-center bg-white dark:bg-transparent">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-800 dark:border-white mx-auto mb-4"></div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center"
+        >
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="rounded-full h-12 w-12 border-b-2 border-gray-800 dark:border-white mx-auto mb-4"
+          />
           <p className="text-gray-600 dark:text-gray-300">
             {t("status.verificando")}
           </p>
-        </div>
+        </motion.div>
       </div>
     );
   }
@@ -332,12 +341,12 @@ export default function DashboardPage() {
 
   const obterStatusLimites = () => {
     const limitesEstourados = limites.filter(
-      (limite) => limite.gastoAtual > limite.limiteMensal
+      (limite) => limite.gastoAtual > limite.limiteMensal,
     );
     const limitesProximos = limites.filter(
       (limite) =>
         limite.gastoAtual > limite.limiteMensal * 0.8 &&
-        limite.gastoAtual <= limite.limiteMensal
+        limite.gastoAtual <= limite.limiteMensal,
     );
 
     if (limitesEstourados.length > 0) {
@@ -416,340 +425,495 @@ export default function DashboardPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen p-4 sm:p-6 bg-white dark:bg-transparent">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="min-h-screen p-4 sm:p-6 bg-white dark:bg-transparent"
+      >
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Cabeçalho */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <motion.div
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.4 }}
+            className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+          >
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
+              <motion.h1
+                initial={{ x: -10, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.1 }}
+                className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight"
+              >
                 {t("titulo")}
-              </h1>
-              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1 sm:mt-2">
+              </motion.h1>
+              <motion.p
+                initial={{ x: -10, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.15 }}
+                className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1 sm:mt-2"
+              >
                 {fraseMotivacional}
-              </p>
+              </motion.p>
             </div>
 
             {/* Controles do Header */}
-            <div className="flex items-center gap-2 sm:gap-3">
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="flex items-center gap-2 sm:gap-3"
+            >
               {/* Seletor de Mês */}
               <div className="flex items-center gap-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 shadow-sm hover:shadow-md transition-shadow">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    let novoMes = parseInt(mesSelecionado) - 1;
-                    let novoAno = parseInt(anoSelecionado);
-                    if (novoMes < 1) {
-                      novoMes = 12;
-                      novoAno = novoAno - 1;
-                    }
-                    setMesSelecionado(novoMes.toString());
-                    setAnoSelecionado(novoAno.toString());
-                  }}
-                  className="h-7 w-7 sm:h-8 sm:w-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
+                <motion.div
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
-                </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      let novoMes = parseInt(mesSelecionado) - 1;
+                      let novoAno = parseInt(anoSelecionado);
+                      if (novoMes < 1) {
+                        novoMes = 12;
+                        novoAno = novoAno - 1;
+                      }
+                      setMesSelecionado(novoMes.toString());
+                      setAnoSelecionado(novoAno.toString());
+                    }}
+                    className="h-7 w-7 sm:h-8 sm:w-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
+                  >
+                    <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+                  </Button>
+                </motion.div>
 
-                <div className="text-center min-w-16 sm:min-w-20">
+                <motion.div
+                  className="text-center min-w-16 sm:min-w-20"
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
                   <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">
                     {obterNomeMesAbreviado(mesSelecionado)}/{anoSelecionado}
                   </p>
-                </div>
+                </motion.div>
 
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    let novoMes = parseInt(mesSelecionado) + 1;
-                    let novoAno = parseInt(anoSelecionado);
-                    if (novoMes > 12) {
-                      novoMes = 1;
-                      novoAno = novoAno + 1;
-                    }
-                    setMesSelecionado(novoMes.toString());
-                    setAnoSelecionado(novoAno.toString());
-                  }}
-                  className="h-7 w-7 sm:h-8 sm:w-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
+                <motion.div
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
-                </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      let novoMes = parseInt(mesSelecionado) + 1;
+                      let novoAno = parseInt(anoSelecionado);
+                      if (novoMes > 12) {
+                        novoMes = 1;
+                        novoAno = novoAno + 1;
+                      }
+                      setMesSelecionado(novoMes.toString());
+                      setAnoSelecionado(novoAno.toString());
+                    }}
+                    className="h-7 w-7 sm:h-8 sm:w-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
+                  >
+                    <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
+                  </Button>
+                </motion.div>
               </div>
 
               {/* Botão de Refresh */}
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleRefresh}
-                disabled={carregando}
-                className="h-8 w-8 sm:h-9 sm:w-9 border-gray-300 dark:border-gray-700 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 shadow-sm"
-                title={t("botoes.refresh")}
+              <motion.div
+                whileHover={{ scale: 1.05, rotate: 180 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 300 }}
               >
-                <RefreshCw
-                  className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${carregando ? "animate-spin" : ""}`}
-                />
-              </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleRefresh}
+                  disabled={carregando}
+                  className="h-8 w-8 sm:h-9 sm:w-9 border-gray-300 dark:border-gray-700 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 shadow-sm"
+                  title={t("botoes.refresh")}
+                >
+                  <RefreshCw
+                    className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${carregando ? "animate-spin" : ""}`}
+                  />
+                </Button>
+              </motion.div>
 
               {/* Sino de Notificações */}
-              <NotificacoesSino />
-            </div>
-          </div>
+              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                <NotificacoesSino />
+              </motion.div>
+            </motion.div>
+          </motion.div>
 
           {/* Cards de Resumo */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5"
+          >
             {/* Receita */}
-            <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-300 hover:shadow-lg">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2 text-gray-800 dark:text-white">
-                  <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/30">
-                    <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                  {t("cards.receita.titulo")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {carregando ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-7 sm:h-8 w-32 bg-gray-200 dark:bg-gray-800" />
-                    <Skeleton className="h-3 w-20 bg-gray-200 dark:bg-gray-800" />
-                  </div>
-                ) : (
-                  <>
-                    <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-emerald-400">
-                      {formatarMoeda(resumo.receita)}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {t("cards.receita.subtitulo")}
-                    </p>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+            <motion.div
+              whileHover={{ y: -5 }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
+              <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-300 hover:shadow-lg">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2 text-gray-800 dark:text-white">
+                    <motion.div
+                      className="p-1.5 sm:p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/30"
+                      whileHover={{ rotate: 15 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                    >
+                      <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600 dark:text-emerald-400" />
+                    </motion.div>
+                    {t("cards.receita.titulo")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {carregando ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-7 sm:h-8 w-32 bg-gray-200 dark:bg-gray-800" />
+                      <Skeleton className="h-3 w-20 bg-gray-200 dark:bg-gray-800" />
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-emerald-400">
+                        {formatarMoeda(resumo.receita)}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {t("cards.receita.subtitulo")}
+                      </p>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
 
             {/* Despesa */}
-            <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-300 hover:shadow-lg">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2 text-gray-800 dark:text-white">
-                  <div className="p-1.5 sm:p-2 rounded-lg bg-red-50 dark:bg-red-900/30">
-                    <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5 text-red-600 dark:text-red-400" />
-                  </div>
-                  {t("cards.despesa.titulo")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {carregando ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-7 sm:h-8 w-32 bg-gray-200 dark:bg-gray-800" />
-                    <Skeleton className="h-3 w-20 bg-gray-200 dark:bg-gray-800" />
-                  </div>
-                ) : (
-                  <>
-                    <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-red-400">
-                      {formatarMoeda(resumo.despesa)}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {t("cards.despesa.subtitulo")}
-                    </p>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+            <motion.div
+              whileHover={{ y: -5 }}
+              transition={{ type: "spring", stiffness: 300, delay: 0.05 }}
+            >
+              <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-300 hover:shadow-lg">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2 text-gray-800 dark:text-white">
+                    <motion.div
+                      className="p-1.5 sm:p-2 rounded-lg bg-red-50 dark:bg-red-900/30"
+                      whileHover={{ rotate: -15 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                    >
+                      <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5 text-red-600 dark:text-red-400" />
+                    </motion.div>
+                    {t("cards.despesa.titulo")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {carregando ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-7 sm:h-8 w-32 bg-gray-200 dark:bg-gray-800" />
+                      <Skeleton className="h-3 w-20 bg-gray-200 dark:bg-gray-800" />
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-red-400">
+                        {formatarMoeda(resumo.despesa)}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {t("cards.despesa.subtitulo")}
+                      </p>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
 
             {/* Despesas Compartilhadas */}
-            <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-300 hover:shadow-lg">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2 text-gray-800 dark:text-white">
-                  <div className="p-1.5 sm:p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30">
-                    <Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  {t("cards.compartilhadas.titulo")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {carregando ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-7 sm:h-8 w-32 bg-gray-200 dark:bg-gray-800" />
-                    <Skeleton className="h-3 w-20 bg-gray-200 dark:bg-gray-800" />
-                  </div>
-                ) : (
-                  <>
-                    <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-blue-400">
-                      {formatarMoeda(resumo.despesasCompartilhadas)}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {t("cards.compartilhadas.subtitulo")}
-                    </p>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+            <motion.div
+              whileHover={{ y: -5 }}
+              transition={{ type: "spring", stiffness: 300, delay: 0.1 }}
+            >
+              <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-300 hover:shadow-lg">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2 text-gray-800 dark:text-white">
+                    <motion.div
+                      className="p-1.5 sm:p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30"
+                      whileHover={{ rotate: 15 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                    >
+                      <Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
+                    </motion.div>
+                    {t("cards.compartilhadas.titulo")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {carregando ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-7 sm:h-8 w-32 bg-gray-200 dark:bg-gray-800" />
+                      <Skeleton className="h-3 w-20 bg-gray-200 dark:bg-gray-800" />
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-blue-400">
+                        {formatarMoeda(resumo.despesasCompartilhadas)}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {t("cards.compartilhadas.subtitulo")}
+                      </p>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
 
             {/* Saldo */}
-            <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-300 hover:shadow-lg">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2 text-gray-800 dark:text-white">
-                  <div className="p-1.5 sm:p-2 rounded-lg bg-purple-50 dark:bg-purple-900/30">
-                    <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  {t("cards.saldo.titulo")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {carregando ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-7 sm:h-8 w-32 bg-gray-200 dark:bg-gray-800" />
-                    <Skeleton className="h-3 w-20 bg-gray-200 dark:bg-gray-800" />
-                  </div>
-                ) : (
-                  <>
-                    <p
-                      className={`text-xl sm:text-2xl font-bold ${
-                        resumo.saldo >= 0
-                          ? "text-emerald-600 dark:text-green-400"
-                          : "text-red-600 dark:text-red-400"
-                      }`}
+            <motion.div
+              whileHover={{ y: -5 }}
+              transition={{ type: "spring", stiffness: 300, delay: 0.15 }}
+            >
+              <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-300 hover:shadow-lg">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2 text-gray-800 dark:text-white">
+                    <motion.div
+                      className="p-1.5 sm:p-2 rounded-lg bg-purple-50 dark:bg-purple-900/30"
+                      whileHover={{ rotate: -15 }}
+                      transition={{ type: "spring", stiffness: 300 }}
                     >
-                      {formatarMoeda(resumo.saldo)}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {t("cards.saldo.subtitulo")}
-                    </p>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                      <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400" />
+                    </motion.div>
+                    {t("cards.saldo.titulo")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {carregando ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-7 sm:h-8 w-32 bg-gray-200 dark:bg-gray-800" />
+                      <Skeleton className="h-3 w-20 bg-gray-200 dark:bg-gray-800" />
+                    </div>
+                  ) : (
+                    <>
+                      <p
+                        className={`text-xl sm:text-2xl font-bold ${
+                          resumo.saldo >= 0
+                            ? "text-emerald-600 dark:text-green-400"
+                            : "text-red-600 dark:text-red-400"
+                        }`}
+                      >
+                        {formatarMoeda(resumo.saldo)}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {t("cards.saldo.subtitulo")}
+                      </p>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          </motion.div>
 
           {/* Conteúdo Principal */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+          >
             {/* Tabela de Lançamentos */}
-            <div className="lg:col-span-2">
+            <motion.div
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="lg:col-span-2"
+            >
               <DashboardTable
                 mes={mesSelecionado}
                 ano={anoSelecionado}
                 refreshTrigger={refreshTrigger}
               />
-            </div>
+            </motion.div>
 
             {/* Sidebar - Metas e Limites */}
-            <div className="space-y-6">
-              <MetasCard metas={metas} carregando={carregando} />
+            <motion.div
+              initial={{ x: 20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="space-y-6"
+            >
+              <motion.div>
+                <MetasCard metas={metas} carregando={carregando} />
+              </motion.div>
 
               {/* Limites por Categoria */}
-              <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow">
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white text-lg font-semibold">
-                    <div className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800">
-                      <Target className="h-4 w-4 text-gray-700 dark:text-gray-300" />
-                    </div>
-                    {t("limites.titulo")}
-                  </CardTitle>
-                  <CardDescription className="text-gray-600 dark:text-gray-400 text-sm">
-                    {obterNomeMes(mesSelecionado)} {t("limites.subtitulo")}{" "}
-                    {anoSelecionado}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {carregando ? (
-                    <div className="space-y-3">
-                      {Array.from({ length: 3 }).map((_, i) => (
-                        <Skeleton
-                          key={i}
-                          className="h-16 w-full bg-gray-200 dark:bg-gray-800"
-                        />
-                      ))}
-                    </div>
-                  ) : limites.length === 0 ? (
-                    <div className="text-center py-6">
-                      <Target className="h-12 w-12 mx-auto mb-3 text-gray-300 dark:text-gray-700" />
-                      <p className="mb-3 text-gray-600 dark:text-gray-400">
-                        {t("limites.nenhumLimite")}
-                      </p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          router.push(`/${currentLang}/dashboard/limites`)
-                        }
-                        className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+              <motion.div>
+                <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white text-lg font-semibold">
+                      <motion.div
+                        className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800"
+                        whileHover={{ rotate: 15 }}
+                        transition={{ type: "spring", stiffness: 300 }}
                       >
-                        {t("limites.configurarLimites")}
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {limites.slice(0, 3).map((limite) => {
-                        const percentual =
-                          (limite.gastoAtual / limite.limiteMensal) * 100;
-                        const estaEstourado = percentual > 100;
-                        const estaProximo = percentual > 80 && !estaEstourado;
-
-                        return (
-                          <div
-                            key={limite.id}
-                            className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-300 dark:hover:border-gray-700 transition-colors bg-gray-50/50 dark:bg-gray-800/50"
+                        <Target className="h-4 w-4 text-gray-700 dark:text-gray-300" />
+                      </motion.div>
+                      {t("limites.titulo")}
+                    </CardTitle>
+                    <CardDescription className="text-gray-600 dark:text-gray-400 text-sm">
+                      {obterNomeMes(mesSelecionado)} {t("limites.subtitulo")}{" "}
+                      {anoSelecionado}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {carregando ? (
+                      <div className="space-y-3">
+                        {Array.from({ length: 3 }).map((_, i) => (
+                          <motion.div
+                            key={i}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1 * i }}
                           >
-                            <div className="flex items-center gap-3">
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{
-                                  backgroundColor: limite.categoria.cor,
-                                }}
-                              />
-                              <div>
-                                <p className="font-medium text-gray-900 dark:text-white text-sm">
-                                  {limite.categoria.nome}
-                                </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                  {formatarMoeda(limite.gastoAtual)} /{" "}
-                                  {formatarMoeda(limite.limiteMensal)}
-                                </p>
-                              </div>
-                            </div>
-                            <Badge
-                              variant={
-                                estaEstourado
-                                  ? "destructive"
-                                  : estaProximo
-                                    ? "secondary"
-                                    : "outline"
-                              }
-                              className={`
-                                ${
-                                  estaEstourado
-                                    ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700"
-                                    : estaProximo
-                                      ? "bg-amber-100 dark:bg-yellow-900/50 text-amber-700 dark:text-yellow-300 border-amber-200 dark:border-yellow-700"
-                                      : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700"
-                                } font-medium
-                              `}
-                            >
-                              {percentual.toFixed(0)}%
-                            </Badge>
-                          </div>
-                        );
-                      })}
-                      {limites.length > 3 && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="w-full text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
-                          onClick={() =>
-                            router.push(`/${currentLang}/dashboard/limites`)
-                          }
+                            <Skeleton className="h-16 w-full bg-gray-200 dark:bg-gray-800" />
+                          </motion.div>
+                        ))}
+                      </div>
+                    ) : limites.length === 0 ? (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-center py-6"
+                      >
+                        <motion.div
+                          animate={{
+                            scale: [1, 1.1, 1],
+                            rotate: [0, 5, -5, 0],
+                          }}
+                          transition={{
+                            duration: 2,
+                            repeat: Infinity,
+                            repeatType: "reverse",
+                          }}
                         >
-                          {t("limites.verTodos")}
-                          <ArrowRight className="ml-2 h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                          <Target className="h-12 w-12 mx-auto mb-3 text-gray-300 dark:text-gray-700" />
+                        </motion.div>
+                        <p className="mb-3 text-gray-600 dark:text-gray-400">
+                          {t("limites.nenhumLimite")}
+                        </p>
+                        <motion.div
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              router.push(`/${currentLang}/dashboard/limites`)
+                            }
+                            className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                          >
+                            {t("limites.configurarLimites")}
+                          </Button>
+                        </motion.div>
+                      </motion.div>
+                    ) : (
+                      <div className="space-y-3">
+                        {limites.slice(0, 3).map((limite, index) => {
+                          const percentual =
+                            (limite.gastoAtual / limite.limiteMensal) * 100;
+                          const estaEstourado = percentual > 100;
+                          const estaProximo = percentual > 80 && !estaEstourado;
+
+                          return (
+                            <motion.div
+                              key={limite.id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.1 * index }}
+                              whileHover={{ scale: 1.02 }}
+                              className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-300 dark:hover:border-gray-700 transition-colors bg-gray-50/50 dark:bg-gray-800/50"
+                            >
+                              <div className="flex items-center gap-3">
+                                <motion.div
+                                  className="w-3 h-3 rounded-full"
+                                  style={{
+                                    backgroundColor: limite.categoria.cor,
+                                  }}
+                                  whileHover={{ scale: 1.5 }}
+                                  transition={{
+                                    type: "spring",
+                                    stiffness: 300,
+                                  }}
+                                />
+                                <div>
+                                  <p className="font-medium text-gray-900 dark:text-white text-sm">
+                                    {limite.categoria.nome}
+                                  </p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    {formatarMoeda(limite.gastoAtual)} /{" "}
+                                    {formatarMoeda(limite.limiteMensal)}
+                                  </p>
+                                </div>
+                              </div>
+                              <motion.div
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                              >
+                                <Badge
+                                  variant={
+                                    estaEstourado
+                                      ? "destructive"
+                                      : estaProximo
+                                        ? "secondary"
+                                        : "outline"
+                                  }
+                                  className={`
+                                    ${
+                                      estaEstourado
+                                        ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700"
+                                        : estaProximo
+                                          ? "bg-amber-100 dark:bg-yellow-900/50 text-amber-700 dark:text-yellow-300 border-amber-200 dark:border-yellow-700"
+                                          : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700"
+                                    } font-medium
+                                  `}
+                                >
+                                  {percentual.toFixed(0)}%
+                                </Badge>
+                              </motion.div>
+                            </motion.div>
+                          );
+                        })}
+                        {limites.length > 3 && (
+                          <motion.div
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="w-full text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
+                              onClick={() =>
+                                router.push(`/${currentLang}/dashboard/limites`)
+                              }
+                            >
+                              {t("limites.verTodos")}
+                              <ArrowRight className="ml-2 h-3.5 w-3.5" />
+                            </Button>
+                          </motion.div>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </motion.div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
     </AuthGuard>
   );
 }

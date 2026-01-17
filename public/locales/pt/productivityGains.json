@@ -1,0 +1,27 @@
+{
+  "badge": "Ganho de Produtividade",
+  "title": {
+    "save": "Economize",
+    "highlight": "Tempo e Energia"
+  },
+  "description": "Compare o tempo gasto com métodos tradicionais e veja como o BeCash transforma sua rotina financeira",
+  "methods": {
+    "becash": {
+      "name": "BeCash",
+      "description": "Rápido, automático e inteligente"
+    },
+    "spreadsheet": {
+      "name": "Planilha Manual",
+      "description": "Requer tempo para abrir, lançar e salvar"
+    },
+    "paper": {
+      "name": "Controle no Papel",
+      "description": "Lento, sujeito a erros e difícil de analisar"
+    }
+  },
+  "recommended": "Recomendado",
+  "footer": {
+    "highlight": "Economize até 4 horas por semana",
+    "text": "automatizando seu controle financeiro"
+  }
+}

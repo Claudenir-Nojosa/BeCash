@@ -1,31 +1,35 @@
+"use client";
+
 import { motion } from "framer-motion";
 import { Download, Link, Sparkles, TrendingUp } from "lucide-react";
-
-const steps = [
-  {
-    icon: Download,
-    title: "Crie sua conta",
-    description: "Cadastre-se em segundos com seu email ou redes sociais.",
-  },
-  {
-    icon: Link,
-    title: "Conecte suas contas",
-    description: "Vincule suas contas bancárias e cartões de forma segura.",
-  },
-  {
-    icon: Sparkles,
-    title: "Receba insights",
-    description:
-      "Nossa IA analisa seus gastos e sugere melhorias personalizadas.",
-  },
-  {
-    icon: TrendingUp,
-    title: "Alcance suas metas",
-    description: "Acompanhe seu progresso e veja seu dinheiro crescer.",
-  },
-];
+import { useTranslation } from "react-i18next";
 
 export const HowItWorks = () => {
+  const { t } = useTranslation("howItWorks");
+
+  const steps = [
+    {
+      icon: Download,
+      title: t("steps.createAccount.title", "Crie sua conta"),
+      description: t("steps.createAccount.description", "Cadastre-se em segundos com seu email ou redes sociais."),
+    },
+    {
+      icon: Link,
+      title: t("steps.connectAccounts.title", "Conecte suas contas"),
+      description: t("steps.connectAccounts.description", "Vincule suas contas bancárias e cartões de forma segura."),
+    },
+    {
+      icon: Sparkles,
+      title: t("steps.receiveInsights.title", "Receba insights"),
+      description: t("steps.receiveInsights.description", "Nossa IA analisa seus gastos e sugere melhorias personalizadas."),
+    },
+    {
+      icon: TrendingUp,
+      title: t("steps.reachGoals.title", "Alcance suas metas"),
+      description: t("steps.reachGoals.description", "Acompanhe seu progresso e veja seu dinheiro crescer."),
+    },
+  ];
+
   return (
     <section
       id="how-it-works"
@@ -54,19 +58,18 @@ export const HowItWorks = () => {
             viewport={{ once: true }}
             transition={{ delay: 0.1, duration: 0.3 }}
           >
-            Como Funciona
+            {t("badge", "Como Funciona")}
           </motion.span>
 
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3 tracking-tight">
-            Simples como{" "}
+            {t("title.simple", "Simples como")}{" "}
             <span className="bg-gradient-to-r from-[#00cfec] to-[#007cca] bg-clip-text text-transparent">
-              1, 2, 3, 4
+              {t("title.highlight", "1, 2, 3, 4")}
             </span>
           </h2>
 
           <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-sm md:text-base leading-relaxed">
-            Comece a transformar suas finanças em poucos minutos com nosso
-            processo simplificado.
+            {t("description", "Comece a transformar suas finanças em poucos minutos com nosso processo simplificado.")}
           </p>
         </motion.div>
 

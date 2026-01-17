@@ -169,13 +169,14 @@ export default function LancamentosPage() {
     tipo: "all",
     status: "all",
     metodoPagamento: "all",
+    cartao: "all",
   });
 
   const [anoSelecionado, setAnoSelecionado] = useState(
-    new Date().getFullYear()
+    new Date().getFullYear(),
   );
   const [mesSelecionado, setMesSelecionado] = useState(
-    new Date().getMonth() + 1
+    new Date().getMonth() + 1,
   );
   const carregarUsuarios = async () => {
     setCarregandoUsuarios(true);
@@ -271,7 +272,7 @@ export default function LancamentosPage() {
   };
 
   const calcularMesReferenciaLancamento = (
-    lancamento: Lancamento
+    lancamento: Lancamento,
   ): { ano: number; mes: number } => {
     // Para lançamentos que não são de cartão de crédito, usa a data do lançamento
     if (lancamento.metodoPagamento !== "CREDITO" || !lancamento.cartao) {
@@ -346,6 +347,10 @@ export default function LancamentosPage() {
       filtros.metodoPagamento !== "all" &&
       lancamento.metodoPagamento !== filtros.metodoPagamento
     )
+      return false;
+
+    // ✅ ADICIONAR ESTE BLOCO
+    if (filtros.cartao !== "all" && lancamento.cartao?.id !== filtros.cartao)
       return false;
 
     return true;
@@ -526,7 +531,7 @@ export default function LancamentosPage() {
       console.log("Buscando lançamento:", lancamentoId);
 
       const response = await fetch(
-        `/api/lancamentos/${lancamentoId}/visualizar`
+        `/api/lancamentos/${lancamentoId}/visualizar`,
       );
 
       console.log("Resposta da API:", {
@@ -560,6 +565,18 @@ export default function LancamentosPage() {
   }, [mostrarDialogVisualizar]);
 
   const handleEditar = (lancamento: Lancamento) => {
+    // Mapear de volta do formato do banco para o formato do formulário
+    const mapearMetodoPagamentoParaFormulario = (valor: string) => {
+      const mapeamento: { [key: string]: string } = {
+        PIX: "PIX",
+        DEBITO: "CARTAO_DEBITO",
+        CREDITO: "CARTAO_CREDITO",
+        TRANSFERENCIA: "TRANSFERENCIA",
+        DINHEIRO: "DINHEIRO",
+      };
+      return mapeamento[valor] || valor;
+    };
+
     setLancamentoSelecionado(lancamento);
     setFormData({
       descricao: lancamento.descricao,
@@ -569,7 +586,9 @@ export default function LancamentosPage() {
       tipoLancamento: lancamento.LancamentoCompartilhado?.length
         ? "compartilhado"
         : "individual",
-      tipoTransacao: lancamento.metodoPagamento,
+      tipoTransacao: mapearMetodoPagamentoParaFormulario(
+        lancamento.metodoPagamento,
+      ), // ✅ CORRIGIDO
       cartaoId: lancamento.cartao?.id || "",
       responsavel: "Claudenir",
       pago: lancamento.pago,
@@ -672,8 +691,8 @@ export default function LancamentosPage() {
         const lancamentoAtualizado = await res.json();
         setLancamentos((prev) =>
           prev.map((lanc) =>
-            lanc.id === lancamentoSelecionado.id ? lancamentoAtualizado : lanc
-          )
+            lanc.id === lancamentoSelecionado.id ? lancamentoAtualizado : lanc,
+          ),
         );
         toast.success(t("categorias.mensagens.sucessoEdicao"));
         setMostrarDialogEditar(false);
@@ -701,8 +720,8 @@ export default function LancamentosPage() {
       if (response.ok) {
         setLancamentos((prev) =>
           prev.map((lanc) =>
-            lanc.id === lancamentoId ? { ...lanc, pago: !atualStatus } : lanc
-          )
+            lanc.id === lancamentoId ? { ...lanc, pago: !atualStatus } : lanc,
+          ),
         );
         toast.success(t("categorias.mensagens.sucessoStatus"));
       } else {
@@ -714,6 +733,49 @@ export default function LancamentosPage() {
       carregarDados();
     }
   };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2,
+      },
+    },
+  } as const;
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: "spring" as const,
+        stiffness: 100,
+        damping: 12,
+      },
+    },
+  } as const;
+
+  const cardHoverVariants = {
+    rest: {
+      scale: 1,
+      transition: { duration: 0.2 },
+    },
+    hover: {
+      scale: 1.02,
+      transition: {
+        type: "spring" as const,
+        stiffness: 400,
+        damping: 25,
+      },
+    },
+  } as const;
+
+  const buttonTapVariants = {
+    tap: { scale: 0.95 },
+  } as const;
 
   const formatarDataBonita = (dataString: string): string => {
     if (dataString.includes("T")) {
@@ -736,10 +798,21 @@ export default function LancamentosPage() {
   }
 
   return (
-    <div className="min-h-screen p-3 sm:p-4 md:p-6 bg-white dark:bg-transparent">
-      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+      className="min-h-screen p-3 sm:p-4 md:p-6 bg-white dark:bg-transparent"
+    >
+      <motion.div
+        variants={itemVariants}
+        className="max-w-7xl mx-auto space-y-4 sm:space-y-6"
+      >
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+        <motion.div
+          variants={itemVariants}
+          className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4"
+        >
           <div className="flex-1 min-w-0">
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
               {t("titulo")}
@@ -770,7 +843,7 @@ export default function LancamentosPage() {
               </span>
             </Button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Filtros Expandidos */}
         <AnimatePresence>
@@ -779,6 +852,7 @@ export default function LancamentosPage() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
               className="overflow-hidden"
             >
               <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
@@ -934,9 +1008,17 @@ export default function LancamentosPage() {
                         </Label>
                         <Select
                           value={filtros.metodoPagamento}
-                          onValueChange={(value) =>
-                            setFiltros({ ...filtros, metodoPagamento: value })
-                          }
+                          onValueChange={(value) => {
+                            setFiltros({
+                              ...filtros,
+                              metodoPagamento: value,
+                              // Resetar o filtro de cartão se mudar para um método que não usa cartão
+                              cartao:
+                                value === "CREDITO" || value === "DEBITO"
+                                  ? filtros.cartao
+                                  : "all",
+                            });
+                          }}
                         >
                           <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm h-9 sm:h-10">
                             <SelectValue
@@ -949,27 +1031,67 @@ export default function LancamentosPage() {
                             </SelectItem>
                             <SelectItem value="PIX">
                               {t(
-                                "categorias.formulario.opcoesMetodoPagamento.pix"
+                                "categorias.formulario.opcoesMetodoPagamento.pix",
                               )}
                             </SelectItem>
                             <SelectItem value="CREDITO">
                               {t(
-                                "categorias.formulario.opcoesMetodoPagamento.credito"
+                                "categorias.formulario.opcoesMetodoPagamento.credito",
                               )}
                             </SelectItem>
                             <SelectItem value="DEBITO">
                               {t(
-                                "categorias.formulario.opcoesMetodoPagamento.debito"
+                                "categorias.formulario.opcoesMetodoPagamento.debito",
                               )}
                             </SelectItem>
                             <SelectItem value="TRANSFERENCIA">
                               {t(
-                                "categorias.formulario.opcoesMetodoPagamento.transferencia"
+                                "categorias.formulario.opcoesMetodoPagamento.transferencia",
                               )}
                             </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
+
+                      {/* ✅ NOVO: Filtro de Cartão (condicional) */}
+                      {(filtros.metodoPagamento === "CREDITO" ||
+                        filtros.metodoPagamento === "DEBITO") && (
+                        <div className="space-y-1.5 sm:space-y-2">
+                          <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
+                            {t("categorias.formulario.cartao")}
+                          </Label>
+                          <Select
+                            value={filtros.cartao}
+                            onValueChange={(value) =>
+                              setFiltros({ ...filtros, cartao: value })
+                            }
+                          >
+                            <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm h-9 sm:h-10">
+                              <SelectValue
+                                placeholder={t("categorias.filtros.todos")}
+                              />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm">
+                              <SelectItem value="all">
+                                {t("categorias.filtros.todos")}
+                              </SelectItem>
+                              {cartoes.map((cartao) => (
+                                <SelectItem key={cartao.id} value={cartao.id}>
+                                  <div className="flex items-center gap-1.5 sm:gap-2">
+                                    <div
+                                      className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0"
+                                      style={{ backgroundColor: cartao.cor }}
+                                    />
+                                    <span className="truncate">
+                                      {cartao.nome}
+                                    </span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -979,7 +1101,10 @@ export default function LancamentosPage() {
         </AnimatePresence>
 
         {/* Cards de Resumo */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <motion.div
+          variants={itemVariants}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
+        >
           {/* Seletor de Mês */}
           <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardContent className="p-3 sm:p-4">
@@ -1107,176 +1232,520 @@ export default function LancamentosPage() {
               </div>
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
 
         {/* Tabela de Lançamentos */}
-        <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-gray-900 dark:text-white text-base sm:text-lg">
-              {t("titulo")}
-            </CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-              {lancamentosFiltrados.length}{" "}
-              {t("categorias.tabela.nenhumLancamento").replace("nenhum ", "")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-              {/* Tabela para desktop */}
-              <div className="hidden md:block">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                      <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium text-xs sm:text-sm">
-                        {t("categorias.tabela.tipo")}
-                      </th>
-                      <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium text-xs sm:text-sm">
-                        {t("categorias.tabela.categoria")}
-                      </th>
-                      <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium text-xs sm:text-sm">
-                        {t("categorias.tabela.descricao")}
-                      </th>
-                      <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium text-xs sm:text-sm">
-                        {t("categorias.tabela.valor")}
-                      </th>
-                      <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium text-xs sm:text-sm">
-                        {t("categorias.tabela.status")}
-                      </th>
-                      <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium text-xs sm:text-sm">
-                        {t("categorias.tabela.acoes")}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
+        <motion.div variants={itemVariants} initial="hidden" animate="visible">
+          {" "}
+          <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-gray-900 dark:text-white text-base sm:text-lg">
+                {t("titulo")}
+              </CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                {lancamentosFiltrados.length}{" "}
+                {t("categorias.tabela.nenhumLancamento").replace("nenhum ", "")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                {/* Tabela para desktop */}
+                <div className="hidden md:block">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                        <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium text-xs sm:text-sm">
+                          {t("categorias.tabela.tipo")}
+                        </th>
+                        <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium text-xs sm:text-sm">
+                          {t("categorias.tabela.categoria")}
+                        </th>
+                        <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium text-xs sm:text-sm">
+                          {t("categorias.tabela.descricao")}
+                        </th>
+                        <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium text-xs sm:text-sm">
+                          {t("categorias.tabela.valor")}
+                        </th>
+                        <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium text-xs sm:text-sm">
+                          {t("categorias.tabela.status")}
+                        </th>
+                        <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium text-xs sm:text-sm">
+                          {t("categorias.tabela.acoes")}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lancamentosFiltrados.map((lancamento, index) => {
+                        const compartilhamento =
+                          getStatusCompartilhamento(lancamento);
+
+                        return (
+                          <motion.tr
+                            key={lancamento.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{
+                              delay: index * 0.05,
+                              type: "spring",
+                              stiffness: 100,
+                              damping: 15,
+                            }}
+                            className="border-b border-gray-100 dark:border-gray-800 dark:hover:bg-gray-800/50 transition-colors"
+                          >
+                            {/* Tipo */}
+                            <td className="py-3 px-4">
+                              <motion.div
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                transition={{
+                                  type: "spring",
+                                  stiffness: 400,
+                                  damping: 17,
+                                }}
+                              >
+                                <Badge
+                                  variant="outline"
+                                  className={`text-xs ${
+                                    lancamento.tipo === "RECEITA"
+                                      ? "bg-emerald-100 dark:bg-green-900/50 text-emerald-700 dark:text-green-400 border-emerald-200 dark:border-green-700"
+                                      : "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400 border-red-200 dark:border-red-700"
+                                  }`}
+                                >
+                                  {lancamento.tipo === "RECEITA"
+                                    ? t("categorias.filtros.receita")
+                                    : t("categorias.filtros.despesa")}
+                                </Badge>
+                              </motion.div>
+                            </td>
+
+                            {/* Categoria */}
+                            <td className="py-3 px-4">
+                              <motion.div
+                                whileHover={{ scale: 1.02 }}
+                                transition={{ duration: 0.2 }}
+                                className="flex items-center gap-1.5 sm:gap-2"
+                              >
+                                <div
+                                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                                  style={{
+                                    backgroundColor: lancamento.categoria.cor,
+                                  }}
+                                >
+                                  {(() => {
+                                    try {
+                                      const IconComponent =
+                                        require("lucide-react")[
+                                          lancamento.categoria.icone || "Tag"
+                                        ];
+                                      return (
+                                        <IconComponent className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                                      );
+                                    } catch {
+                                      return (
+                                        <Tag className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                                      );
+                                    }
+                                  })()}
+                                </div>
+                                <span className="text-gray-900 dark:text-white text-xs sm:text-sm truncate max-w-[100px] sm:max-w-none">
+                                  {lancamento.categoria.nome}
+                                </span>
+                              </motion.div>
+                            </td>
+
+                            {/* Descrição */}
+                            <td className="py-3 px-4">
+                              <div>
+                                <motion.p
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  transition={{ delay: index * 0.05 + 0.1 }}
+                                  className="text-gray-900 dark:text-white font-medium text-xs sm:text-sm truncate max-w-[200px]"
+                                >
+                                  {lancamento.descricao}
+                                </motion.p>
+                                <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5">
+                                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                                    {formatarDataBonita(lancamento.data)}
+                                  </span>
+                                  {compartilhamento && (
+                                    <motion.div
+                                      initial={{ scale: 0 }}
+                                      animate={{ scale: 1 }}
+                                      transition={{
+                                        type: "spring",
+                                        stiffness: 500,
+                                        damping: 15,
+                                      }}
+                                      className="group relative"
+                                    >
+                                      <Users className="h-3 w-3 text-blue-500 dark:text-blue-400" />
+                                      <motion.div
+                                        initial={{ opacity: 0, y: 5 }}
+                                        whileHover={{ opacity: 1, y: 0 }}
+                                        className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 dark:bg-gray-700 text-white text-xs rounded whitespace-nowrap"
+                                      >
+                                        {t("categorias.status.compartilhado")}
+                                      </motion.div>
+                                    </motion.div>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Valor */}
+                            <td className="py-3 px-4">
+                              <motion.span
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: index * 0.05 + 0.15 }}
+                                className={`font-semibold text-xs sm:text-sm ${
+                                  lancamento.tipo === "RECEITA"
+                                    ? "text-emerald-600 dark:text-green-400"
+                                    : "text-red-600 dark:text-red-400"
+                                }`}
+                              >
+                                {currencySymbol} {lancamento.valor.toFixed(2)}
+                              </motion.span>
+                            </td>
+
+                            {/* Status */}
+                            <td className="py-3 px-4">
+                              <motion.div
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                transition={{
+                                  type: "spring",
+                                  stiffness: 400,
+                                  damping: 17,
+                                }}
+                              >
+                                <Button
+                                  variant={
+                                    lancamento.pago ? "default" : "outline"
+                                  }
+                                  size="sm"
+                                  onClick={() =>
+                                    toggleStatus(lancamento.id, lancamento.pago)
+                                  }
+                                  className={`text-xs ${
+                                    lancamento.pago
+                                      ? "bg-emerald-600 hover:bg-emerald-700 dark:bg-green-600 dark:hover:bg-green-700"
+                                      : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                  }`}
+                                >
+                                  {lancamento.pago ? (
+                                    <>
+                                      <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                                      <span className="hidden sm:inline">
+                                        {lancamento.tipo === "RECEITA"
+                                          ? t("categorias.status.pago")
+                                          : t("categorias.status.pago")}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                                      <span className="hidden sm:inline">
+                                        {lancamento.tipo === "RECEITA"
+                                          ? t("categorias.status.pendente")
+                                          : t("categorias.status.pendente")}
+                                      </span>
+                                    </>
+                                  )}
+                                </Button>
+                              </motion.div>
+                            </td>
+
+                            {/* Ações */}
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-1 sm:gap-2">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <motion.div
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.9 }}
+                                        transition={{
+                                          type: "spring",
+                                          stiffness: 400,
+                                          damping: 17,
+                                        }}
+                                      >
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() =>
+                                            handleVisualizar(lancamento.id)
+                                          }
+                                          disabled={
+                                            carregandoVisualizacao ===
+                                            lancamento.id
+                                          }
+                                          className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 h-7 w-7 sm:h-8 sm:w-8"
+                                        >
+                                          {carregandoVisualizacao ===
+                                          lancamento.id ? (
+                                            <motion.div
+                                              animate={{ rotate: 360 }}
+                                              transition={{
+                                                duration: 1,
+                                                repeat: Infinity,
+                                                ease: "linear",
+                                              }}
+                                              className="w-3.5 h-3.5 sm:w-4 sm:h-4 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full"
+                                            />
+                                          ) : (
+                                            <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                          )}
+                                        </Button>
+                                      </motion.div>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="bg-gray-800 dark:bg-gray-700 text-white border-gray-700 dark:border-gray-600 text-xs">
+                                      <p>{t("categorias.icones.visualizar")}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <motion.div
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.9 }}
+                                        transition={{
+                                          type: "spring",
+                                          stiffness: 400,
+                                          damping: 17,
+                                        }}
+                                      >
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() =>
+                                            handleEditar(lancamento)
+                                          }
+                                          className="text-gray-600 dark:text-gray-400 hover:text-amber-600 dark:hover:text-yellow-400 hover:bg-amber-50 dark:hover:bg-yellow-900/30 h-7 w-7 sm:h-8 sm:w-8"
+                                        >
+                                          <Edit3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                        </Button>
+                                      </motion.div>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="bg-gray-800 dark:bg-gray-700 text-white border-gray-700 dark:border-gray-600 text-xs">
+                                      <p>{t("categorias.icones.editar")}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <motion.div
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.9 }}
+                                        transition={{
+                                          type: "spring",
+                                          stiffness: 400,
+                                          damping: 17,
+                                        }}
+                                      >
+                                        <Dialog
+                                          open={dialogAberto === lancamento.id}
+                                          onOpenChange={(open) =>
+                                            setDialogAberto(
+                                              open ? lancamento.id : null,
+                                            )
+                                          }
+                                        >
+                                          <DialogTrigger asChild>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 h-7 w-7 sm:h-8 sm:w-8"
+                                            >
+                                              <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                            </Button>
+                                          </DialogTrigger>
+                                          <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white w-[90vw] sm:max-w-md">
+                                            <motion.div
+                                              initial={{ opacity: 0, y: -10 }}
+                                              animate={{ opacity: 1, y: 0 }}
+                                              transition={{ duration: 0.3 }}
+                                            >
+                                              <DialogHeader>
+                                                <DialogTitle className="text-gray-900 dark:text-white text-lg">
+                                                  {t(
+                                                    "categorias.acoes.excluir",
+                                                  )}{" "}
+                                                  {t("titulo").slice(0, -1)}
+                                                </DialogTitle>
+                                                <DialogDescription className="text-gray-600 dark:text-gray-400 text-sm">
+                                                  {t(
+                                                    "categorias.mensagens.confirmacaoExclusao",
+                                                  )}
+                                                </DialogDescription>
+                                              </DialogHeader>
+                                              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
+                                                <motion.div
+                                                  whileHover={{ scale: 1.05 }}
+                                                  whileTap={{ scale: 0.95 }}
+                                                >
+                                                  <Button
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                      setDialogAberto(null)
+                                                    }
+                                                    className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm"
+                                                  >
+                                                    {t(
+                                                      "categorias.acoes.cancelar",
+                                                    )}
+                                                  </Button>
+                                                </motion.div>
+                                                <motion.div
+                                                  whileHover={{ scale: 1.05 }}
+                                                  whileTap={{ scale: 0.95 }}
+                                                >
+                                                  <Button
+                                                    variant="destructive"
+                                                    onClick={() =>
+                                                      handleDelete(
+                                                        lancamento.id,
+                                                      )
+                                                    }
+                                                    disabled={
+                                                      excluindo ===
+                                                      lancamento.id
+                                                    }
+                                                    className="text-sm"
+                                                  >
+                                                    {excluindo === lancamento.id
+                                                      ? t(
+                                                          "categorias.mensagens.carregando",
+                                                        )
+                                                      : t(
+                                                          "categorias.acoes.confirmar",
+                                                        )}
+                                                  </Button>
+                                                </motion.div>
+                                              </div>
+                                            </motion.div>
+                                          </DialogContent>
+                                        </Dialog>
+                                      </motion.div>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="bg-gray-800 dark:bg-gray-700 text-white border-gray-700 dark:border-gray-600 text-xs">
+                                      <p>{t("categorias.icones.excluir")}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                            </td>
+                          </motion.tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Lista para mobile */}
+                <div className="md:hidden">
+                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
                     {lancamentosFiltrados.map((lancamento) => {
                       const compartilhamento =
                         getStatusCompartilhamento(lancamento);
 
                       return (
-                        <tr
+                        <div
                           key={lancamento.id}
-                          className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors"
+                          className="p-3 transition-colors"
                         >
-                          {/* Tipo */}
-                          <td className="py-3 px-4">
-                            <Badge
-                              variant="outline"
-                              className={`text-xs ${
-                                lancamento.tipo === "RECEITA"
-                                  ? "bg-emerald-100 dark:bg-green-900/50 text-emerald-700 dark:text-green-400 border-emerald-200 dark:border-green-700"
-                                  : "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400 border-red-200 dark:border-red-700"
-                              }`}
-                            >
-                              {lancamento.tipo === "RECEITA"
-                                ? t("categorias.filtros.receita")
-                                : t("categorias.filtros.despesa")}
-                            </Badge>
-                          </td>
-
-                          {/* Categoria */}
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-1.5 sm:gap-2">
-                              <div
-                                className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{
-                                  backgroundColor: lancamento.categoria.cor,
-                                }}
-                              >
-                                {(() => {
-                                  try {
-                                    const IconComponent =
-                                      require("lucide-react")[
-                                        lancamento.categoria.icone || "Tag"
-                                      ];
-                                    return (
-                                      <IconComponent className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-                                    );
-                                  } catch {
-                                    return (
-                                      <Tag className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-                                    );
-                                  }
-                                })()}
-                              </div>
-                              <span className="text-gray-900 dark:text-white text-xs sm:text-sm truncate max-w-[100px] sm:max-w-none">
-                                {lancamento.categoria.nome}
-                              </span>
-                            </div>
-                          </td>
-
-                          {/* Descrição */}
-                          <td className="py-3 px-4">
-                            <div>
-                              <p className="text-gray-900 dark:text-white font-medium text-xs sm:text-sm truncate max-w-[200px]">
-                                {lancamento.descricao}
-                              </p>
-                              <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5">
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                  {formatarDataBonita(lancamento.data)}
-                                </span>
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge
+                                  variant="outline"
+                                  className={`text-xs ${
+                                    lancamento.tipo === "RECEITA"
+                                      ? "bg-emerald-100 dark:bg-green-900/50 text-emerald-700 dark:text-green-400 border-emerald-200 dark:border-green-700"
+                                      : "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400 border-red-200 dark:border-red-700"
+                                  }`}
+                                >
+                                  {lancamento.tipo === "RECEITA"
+                                    ? t("categorias.filtros.receita")
+                                    : t("categorias.filtros.despesa")}
+                                </Badge>
                                 {compartilhamento && (
-                                  <div className="group relative">
-                                    <Users className="h-3 w-3 text-blue-500 dark:text-blue-400" />
-                                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 dark:bg-gray-700 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                                      {t("categorias.status.compartilhado")}
-                                    </div>
-                                  </div>
+                                  <Users className="h-3 w-3 text-blue-500 dark:text-blue-400" />
                                 )}
                               </div>
+                              <p className="text-gray-900 dark:text-white font-medium text-sm truncate">
+                                {lancamento.descricao}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <div className="flex items-center gap-1">
+                                  <div
+                                    className="w-2 h-2 rounded-full"
+                                    style={{
+                                      backgroundColor: lancamento.categoria.cor,
+                                    }}
+                                  />
+                                  <span className="text-gray-600 dark:text-gray-400 text-xs">
+                                    {lancamento.categoria.nome}
+                                  </span>
+                                </div>
+                                <span className="text-gray-400">•</span>
+                                <span className="text-gray-500 dark:text-gray-400 text-xs">
+                                  {formatarDataBonita(lancamento.data)}
+                                </span>
+                              </div>
                             </div>
-                          </td>
-                          {/* Valor */}
-                          <td className="py-3 px-4">
-                            <span
-                              className={`font-semibold text-xs sm:text-sm ${
-                                lancamento.tipo === "RECEITA"
-                                  ? "text-emerald-600 dark:text-green-400"
-                                  : "text-red-600 dark:text-red-400"
-                              }`}
-                            >
-                              {currencySymbol} {lancamento.valor.toFixed(2)}
-                            </span>
-                          </td>
-
-                          {/* Status */}
-                          <td className="py-3 px-4">
-                            <Button
-                              variant={lancamento.pago ? "default" : "outline"}
-                              size="sm"
-                              onClick={() =>
-                                toggleStatus(lancamento.id, lancamento.pago)
-                              }
-                              className={`text-xs ${
-                                lancamento.pago
-                                  ? "bg-emerald-600 hover:bg-emerald-700 dark:bg-green-600 dark:hover:bg-green-700"
-                                  : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                              }`}
-                            >
-                              {lancamento.pago ? (
-                                <>
-                                  <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                                  <span className="hidden sm:inline">
-                                    {lancamento.tipo === "RECEITA"
-                                      ? t("categorias.status.pago")
-                                      : t("categorias.status.pago")}
-                                  </span>
-                                </>
-                              ) : (
-                                <>
-                                  <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                                  <span className="hidden sm:inline">
-                                    {lancamento.tipo === "RECEITA"
-                                      ? t("categorias.status.pendente")
-                                      : t("categorias.status.pendente")}
-                                  </span>
-                                </>
-                              )}
-                            </Button>
-                          </td>
-
-                          {/* Ações */}
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-1 sm:gap-2">
+                            <div className="text-right ml-2 min-w-[80px]">
+                              <span
+                                className={`font-semibold text-sm ${
+                                  lancamento.tipo === "RECEITA"
+                                    ? "text-emerald-600 dark:text-green-400"
+                                    : "text-red-600 dark:text-red-400"
+                                }`}
+                              >
+                                R$ {lancamento.valor.toFixed(2)}
+                              </span>
+                              <div className="mt-1">
+                                <Button
+                                  variant={
+                                    lancamento.pago ? "default" : "outline"
+                                  }
+                                  size="sm"
+                                  onClick={() =>
+                                    toggleStatus(lancamento.id, lancamento.pago)
+                                  }
+                                  className={`text-xs h-6 px-2 ${
+                                    lancamento.pago
+                                      ? "bg-emerald-600 hover:bg-emerald-700 dark:bg-green-600 dark:hover:bg-green-700"
+                                      : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                  }`}
+                                >
+                                  {lancamento.pago ? (
+                                    <>
+                                      <CheckCircle className="w-3 h-3 mr-1" />
+                                      {lancamento.tipo === "RECEITA"
+                                        ? t("categorias.status.pago")
+                                        : t("categorias.status.pago")}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Clock className="w-3 h-3 mr-1" />
+                                      {lancamento.tipo === "RECEITA"
+                                        ? t("categorias.status.pendente")
+                                        : t("categorias.status.pendente")}
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                            <div className="flex gap-1">
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
@@ -1289,13 +1758,13 @@ export default function LancamentosPage() {
                                       disabled={
                                         carregandoVisualizacao === lancamento.id
                                       }
-                                      className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 h-7 w-7 sm:h-8 sm:w-8"
+                                      className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 h-6 w-6"
                                     >
                                       {carregandoVisualizacao ===
                                       lancamento.id ? (
-                                        <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin" />
+                                        <div className="w-3 h-3 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin" />
                                       ) : (
-                                        <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                        <Eye className="w-3 h-3" />
                                       )}
                                     </Button>
                                   </TooltipTrigger>
@@ -1312,9 +1781,9 @@ export default function LancamentosPage() {
                                       variant="ghost"
                                       size="icon"
                                       onClick={() => handleEditar(lancamento)}
-                                      className="text-gray-600 dark:text-gray-400 hover:text-amber-600 dark:hover:text-yellow-400 hover:bg-amber-50 dark:hover:bg-yellow-900/30 h-7 w-7 sm:h-8 sm:w-8"
+                                      className="text-gray-600 dark:text-gray-400 hover:text-amber-600 dark:hover:text-yellow-400 hover:bg-amber-50 dark:hover:bg-yellow-900/30 h-6 w-6"
                                     >
-                                      <Edit3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                      <Edit3 className="w-3 h-3" />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent className="bg-gray-800 dark:bg-gray-700 text-white border-gray-700 dark:border-gray-600 text-xs">
@@ -1322,295 +1791,76 @@ export default function LancamentosPage() {
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
-
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Dialog
-                                      open={dialogAberto === lancamento.id}
-                                      onOpenChange={(open) =>
-                                        setDialogAberto(
-                                          open ? lancamento.id : null
-                                        )
-                                      }
-                                    >
-                                      <DialogTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 h-7 w-7 sm:h-8 sm:w-8"
-                                        >
-                                          <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                                        </Button>
-                                      </DialogTrigger>
-                                      <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white w-[90vw] sm:max-w-md">
-                                        <DialogHeader>
-                                          <DialogTitle className="text-gray-900 dark:text-white text-lg">
-                                            {t("categorias.acoes.excluir")}{" "}
-                                            {t("titulo").slice(0, -1)}
-                                          </DialogTitle>
-                                          <DialogDescription className="text-gray-600 dark:text-gray-400 text-sm">
-                                            {t(
-                                              "categorias.mensagens.confirmacaoExclusao"
-                                            )}
-                                          </DialogDescription>
-                                        </DialogHeader>
-                                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
-                                          <Button
-                                            variant="outline"
-                                            onClick={() =>
-                                              setDialogAberto(null)
-                                            }
-                                            className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm"
-                                          >
-                                            {t("categorias.acoes.cancelar")}
-                                          </Button>
-                                          <Button
-                                            variant="destructive"
-                                            onClick={() =>
-                                              handleDelete(lancamento.id)
-                                            }
-                                            disabled={
-                                              excluindo === lancamento.id
-                                            }
-                                            className="text-sm"
-                                          >
-                                            {excluindo === lancamento.id
-                                              ? t(
-                                                  "categorias.mensagens.carregando"
-                                                )
-                                              : t("categorias.acoes.confirmar")}
-                                          </Button>
-                                        </div>
-                                      </DialogContent>
-                                    </Dialog>
-                                  </TooltipTrigger>
-                                  <TooltipContent className="bg-gray-800 dark:bg-gray-700 text-white border-gray-700 dark:border-gray-600 text-xs">
-                                    <p>{t("categorias.icones.excluir")}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
                             </div>
-                          </td>
-                        </tr>
+
+                            <Dialog
+                              open={dialogAberto === lancamento.id}
+                              onOpenChange={(open) =>
+                                setDialogAberto(open ? lancamento.id : null)
+                              }
+                            >
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 text-xs h-6"
+                                >
+                                  <Trash2 className="w-3 h-3 mr-1" />
+                                  {t("categorias.icones.excluir")}
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white w-[90vw] sm:max-w-md">
+                                <DialogHeader>
+                                  <DialogTitle className="text-gray-900 dark:text-white text-lg">
+                                    {t("categorias.acoes.excluir")}{" "}
+                                    {t("titulo").slice(0, -1)}
+                                  </DialogTitle>
+                                  <DialogDescription className="text-gray-600 dark:text-gray-400 text-sm">
+                                    {t(
+                                      "categorias.mensagens.confirmacaoExclusao",
+                                    )}
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => setDialogAberto(null)}
+                                    className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm"
+                                  >
+                                    {t("categorias.acoes.cancelar")}
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    onClick={() => handleDelete(lancamento.id)}
+                                    disabled={excluindo === lancamento.id}
+                                    className="text-sm"
+                                  >
+                                    {excluindo === lancamento.id
+                                      ? t("categorias.mensagens.carregando")
+                                      : t("categorias.acoes.confirmar")}
+                                  </Button>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+                        </div>
                       );
                     })}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Lista para mobile */}
-              <div className="md:hidden">
-                <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {lancamentosFiltrados.map((lancamento) => {
-                    const compartilhamento =
-                      getStatusCompartilhamento(lancamento);
-
-                    return (
-                      <div
-                        key={lancamento.id}
-                        className="p-3 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors"
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Badge
-                                variant="outline"
-                                className={`text-xs ${
-                                  lancamento.tipo === "RECEITA"
-                                    ? "bg-emerald-100 dark:bg-green-900/50 text-emerald-700 dark:text-green-400 border-emerald-200 dark:border-green-700"
-                                    : "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400 border-red-200 dark:border-red-700"
-                                }`}
-                              >
-                                {lancamento.tipo === "RECEITA"
-                                  ? t("categorias.filtros.receita")
-                                  : t("categorias.filtros.despesa")}
-                              </Badge>
-                              {compartilhamento && (
-                                <Users className="h-3 w-3 text-blue-500 dark:text-blue-400" />
-                              )}
-                            </div>
-                            <p className="text-gray-900 dark:text-white font-medium text-sm truncate">
-                              {lancamento.descricao}
-                            </p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <div className="flex items-center gap-1">
-                                <div
-                                  className="w-2 h-2 rounded-full"
-                                  style={{
-                                    backgroundColor: lancamento.categoria.cor,
-                                  }}
-                                />
-                                <span className="text-gray-600 dark:text-gray-400 text-xs">
-                                  {lancamento.categoria.nome}
-                                </span>
-                              </div>
-                              <span className="text-gray-400">•</span>
-                              <span className="text-gray-500 dark:text-gray-400 text-xs">
-                                {formatarDataBonita(lancamento.data)}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="text-right ml-2 min-w-[80px]">
-                            <span
-                              className={`font-semibold text-sm ${
-                                lancamento.tipo === "RECEITA"
-                                  ? "text-emerald-600 dark:text-green-400"
-                                  : "text-red-600 dark:text-red-400"
-                              }`}
-                            >
-                              R$ {lancamento.valor.toFixed(2)}
-                            </span>
-                            <div className="mt-1">
-                              <Button
-                                variant={
-                                  lancamento.pago ? "default" : "outline"
-                                }
-                                size="sm"
-                                onClick={() =>
-                                  toggleStatus(lancamento.id, lancamento.pago)
-                                }
-                                className={`text-xs h-6 px-2 ${
-                                  lancamento.pago
-                                    ? "bg-emerald-600 hover:bg-emerald-700 dark:bg-green-600 dark:hover:bg-green-700"
-                                    : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                }`}
-                              >
-                                {lancamento.pago ? (
-                                  <>
-                                    <CheckCircle className="w-3 h-3 mr-1" />
-                                    {lancamento.tipo === "RECEITA"
-                                      ? t("categorias.status.pago")
-                                      : t("categorias.status.pago")}
-                                  </>
-                                ) : (
-                                  <>
-                                    <Clock className="w-3 h-3 mr-1" />
-                                    {lancamento.tipo === "RECEITA"
-                                      ? t("categorias.status.pendente")
-                                      : t("categorias.status.pendente")}
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
-                          <div className="flex gap-1">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() =>
-                                      handleVisualizar(lancamento.id)
-                                    }
-                                    disabled={
-                                      carregandoVisualizacao === lancamento.id
-                                    }
-                                    className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 h-6 w-6"
-                                  >
-                                    {carregandoVisualizacao ===
-                                    lancamento.id ? (
-                                      <div className="w-3 h-3 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin" />
-                                    ) : (
-                                      <Eye className="w-3 h-3" />
-                                    )}
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent className="bg-gray-800 dark:bg-gray-700 text-white border-gray-700 dark:border-gray-600 text-xs">
-                                  <p>{t("categorias.icones.visualizar")}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleEditar(lancamento)}
-                                    className="text-gray-600 dark:text-gray-400 hover:text-amber-600 dark:hover:text-yellow-400 hover:bg-amber-50 dark:hover:bg-yellow-900/30 h-6 w-6"
-                                  >
-                                    <Edit3 className="w-3 h-3" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent className="bg-gray-800 dark:bg-gray-700 text-white border-gray-700 dark:border-gray-600 text-xs">
-                                  <p>{t("categorias.icones.editar")}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-
-                          <Dialog
-                            open={dialogAberto === lancamento.id}
-                            onOpenChange={(open) =>
-                              setDialogAberto(open ? lancamento.id : null)
-                            }
-                          >
-                            <DialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 text-xs h-6"
-                              >
-                                <Trash2 className="w-3 h-3 mr-1" />
-                                {t("categorias.icones.excluir")}
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white w-[90vw] sm:max-w-md">
-                              <DialogHeader>
-                                <DialogTitle className="text-gray-900 dark:text-white text-lg">
-                                  {t("categorias.acoes.excluir")}{" "}
-                                  {t("titulo").slice(0, -1)}
-                                </DialogTitle>
-                                <DialogDescription className="text-gray-600 dark:text-gray-400 text-sm">
-                                  {t(
-                                    "categorias.mensagens.confirmacaoExclusao"
-                                  )}
-                                </DialogDescription>
-                              </DialogHeader>
-                              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
-                                <Button
-                                  variant="outline"
-                                  onClick={() => setDialogAberto(null)}
-                                  className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm"
-                                >
-                                  {t("categorias.acoes.cancelar")}
-                                </Button>
-                                <Button
-                                  variant="destructive"
-                                  onClick={() => handleDelete(lancamento.id)}
-                                  disabled={excluindo === lancamento.id}
-                                  className="text-sm"
-                                >
-                                  {excluindo === lancamento.id
-                                    ? t("categorias.mensagens.carregando")
-                                    : t("categorias.acoes.confirmar")}
-                                </Button>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  </div>
                 </div>
-              </div>
 
-              {lancamentosFiltrados.length === 0 && (
-                <div className="text-center py-6 sm:py-8 text-gray-500 dark:text-gray-400">
-                  <p className="text-sm">
-                    {t("categorias.tabela.nenhumLancamento")}
-                  </p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                {lancamentosFiltrados.length === 0 && (
+                  <div className="text-center py-6 sm:py-8 text-gray-500 dark:text-gray-400">
+                    <p className="text-sm">
+                      {t("categorias.tabela.nenhumLancamento")}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
 
       {/* Sheet para Novo Lançamento */}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
@@ -1685,7 +1935,7 @@ export default function LancamentosPage() {
                       .filter(
                         (cat) =>
                           cat.tipo ===
-                          (formData.tipo === "receita" ? "RECEITA" : "DESPESA")
+                          (formData.tipo === "receita" ? "RECEITA" : "DESPESA"),
                       )
                       .map((cat) => (
                         <SelectItem key={cat.id} value={cat.id}>
@@ -1770,7 +2020,7 @@ export default function LancamentosPage() {
                   <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
                     <SelectItem value="DINHEIRO">
                       {t(
-                        "categorias.formulario.opcoesMetodoPagamento.dinheiro"
+                        "categorias.formulario.opcoesMetodoPagamento.dinheiro",
                       )}
                     </SelectItem>
                     <SelectItem value="PIX">
@@ -1784,7 +2034,7 @@ export default function LancamentosPage() {
                     </SelectItem>
                     <SelectItem value="TRANSFERENCIA">
                       {t(
-                        "categorias.formulario.opcoesMetodoPagamento.transferencia"
+                        "categorias.formulario.opcoesMetodoPagamento.transferencia",
                       )}
                     </SelectItem>
                   </SelectContent>
@@ -1902,7 +2152,7 @@ export default function LancamentosPage() {
                           handleChange("valorCompartilhado", e.target.value)
                         }
                         placeholder={t(
-                          "categorias.formulario.placeholderValor"
+                          "categorias.formulario.placeholderValor",
                         )}
                         className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-sm pl-9"
                       />
@@ -2007,12 +2257,12 @@ export default function LancamentosPage() {
                       <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
                         <SelectItem value="RECORRENCIA">
                           {t(
-                            "categorias.formulario.opcoesTipoRecorrencia.recorrencia"
+                            "categorias.formulario.opcoesTipoRecorrencia.recorrencia",
                           )}
                         </SelectItem>
                         <SelectItem value="PARCELAMENTO">
                           {t(
-                            "categorias.formulario.opcoesTipoRecorrencia.parcelamento"
+                            "categorias.formulario.opcoesTipoRecorrencia.parcelamento",
                           )}
                         </SelectItem>
                       </SelectContent>
@@ -2206,7 +2456,7 @@ export default function LancamentosPage() {
                   </Label>
                   <p className="text-gray-900 dark:text-white mt-1 text-sm">
                     {new Date(lancamentoSelecionado.data).toLocaleDateString(
-                      "pt-BR"
+                      "pt-BR",
                     )}
                   </p>
                 </div>
@@ -2356,7 +2606,7 @@ export default function LancamentosPage() {
                       .filter(
                         (cat) =>
                           cat.tipo ===
-                          (formData.tipo === "receita" ? "RECEITA" : "DESPESA")
+                          (formData.tipo === "receita" ? "RECEITA" : "DESPESA"),
                       )
                       .map((cat) => (
                         <SelectItem key={cat.id} value={cat.id}>
@@ -2441,7 +2691,7 @@ export default function LancamentosPage() {
                   <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
                     <SelectItem value="DINHEIRO">
                       {t(
-                        "categorias.formulario.opcoesMetodoPagamento.dinheiro"
+                        "categorias.formulario.opcoesMetodoPagamento.dinheiro",
                       )}
                     </SelectItem>
                     <SelectItem value="PIX">
@@ -2455,7 +2705,7 @@ export default function LancamentosPage() {
                     </SelectItem>
                     <SelectItem value="TRANSFERENCIA">
                       {t(
-                        "categorias.formulario.opcoesMetodoPagamento.transferencia"
+                        "categorias.formulario.opcoesMetodoPagamento.transferencia",
                       )}
                     </SelectItem>
                   </SelectContent>
@@ -2514,7 +2764,7 @@ export default function LancamentosPage() {
                       <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 w-full">
                         <SelectValue
                           placeholder={t(
-                            "categorias.formulario.selecioneUsuario"
+                            "categorias.formulario.selecioneUsuario",
                           )}
                         />
                       </SelectTrigger>
@@ -2665,12 +2915,12 @@ export default function LancamentosPage() {
                       <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                         <SelectItem value="RECORRENCIA">
                           {t(
-                            "categorias.formulario.opcoesTipoRecorrencia.recorrencia"
+                            "categorias.formulario.opcoesTipoRecorrencia.recorrencia",
                           )}
                         </SelectItem>
                         <SelectItem value="PARCELAMENTO">
                           {t(
-                            "categorias.formulario.opcoesTipoRecorrencia.parcelamento"
+                            "categorias.formulario.opcoesTipoRecorrencia.parcelamento",
                           )}
                         </SelectItem>
                       </SelectContent>
@@ -2795,6 +3045,6 @@ export default function LancamentosPage() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   );
 }

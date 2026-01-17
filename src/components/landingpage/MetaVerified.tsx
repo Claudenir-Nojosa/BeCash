@@ -1,8 +1,32 @@
+"use client";
+
 import { motion } from "framer-motion";
 import { CheckCircle2, Shield, MessageCircle, Verified } from "lucide-react";
 import Image from "next/image";
+import { useTranslation } from "react-i18next";
 
 export const MetaVerified = () => {
+  const { t } = useTranslation("metaVerified");
+
+  const features = [
+    { icon: Shield, text: t("features.encrypted", "Dados Criptografados") },
+    { icon: CheckCircle2, text: t("features.officialApi", "API Oficial") },
+    {
+      text: t("features.whatsappBusiness", "WhatsApp Business"),
+      iconComponent: (
+        <div className="w-6 h-6 relative">
+          <Image
+            src="/icons/hats.png"
+            alt={t("features.whatsappBusiness", "WhatsApp Business")}
+            width={20}
+            height={20}
+            className="w-full h-full"
+          />
+        </div>
+      ),
+    },
+  ];
+
   return (
     <section className="py-20 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 relative overflow-hidden">
       {/* Animated Background Pattern */}
@@ -57,7 +81,7 @@ export const MetaVerified = () => {
             className="relative"
           >
             <motion.div
-              className="w-40 h-40 rounded-full bg-white backdrop-blur-xl flex items-center justify-center border-4 border-white/30 shadow-xl" // Alterado para bg-white
+              className="w-40 h-40 rounded-full bg-white backdrop-blur-xl flex items-center justify-center border-4 border-white/30 shadow-xl"
               animate={{
                 boxShadow: [
                   "0 0 30px rgba(255,255,255,0.5)",
@@ -74,7 +98,7 @@ export const MetaVerified = () => {
                   alt="Meta"
                   width={80}
                   height={80}
-                  className="text-white filter brightness-0 invert" // Torna a logo branca
+                  className="text-white filter brightness-0 invert"
                 />
               </div>
             </motion.div>
@@ -112,13 +136,13 @@ export const MetaVerified = () => {
               transition={{ duration: 2, repeat: Infinity }}
             >
               <Shield className="w-4 h-4" />
-              <span>Parceiro Oficial</span>
+              <span>{t("badge", "Parceiro Oficial")}</span>
             </motion.div>
 
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              Meta{" "}
+              {t("title.meta", "Meta")}{" "}
               <span className="relative inline-block">
-                Verified
+                {t("title.verified", "Verified")}
                 <motion.span
                   className="absolute -top-1 -right-8"
                   animate={{ rotate: [0, 15, 0] }}
@@ -130,32 +154,11 @@ export const MetaVerified = () => {
             </h2>
 
             <p className="text-white/90 text-lg mb-8">
-              O BeCash é um parceiro oficial da Meta, garantindo a máxima
-              segurança e confiabilidade na integração com o WhatsApp. Seus
-              dados financeiros estão protegidos pelos mais altos padrões de
-              segurança.
+              {t("description", "O BeCash é um parceiro oficial da Meta, garantindo a máxima segurança e confiabilidade na integração com o WhatsApp. Seus dados financeiros estão protegidos pelos mais altos padrões de segurança.")}
             </p>
 
             <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
-              {[
-                { icon: Shield, text: "Dados Criptografados" },
-                { icon: CheckCircle2, text: "API Oficial" },
-                {
-                  text: "WhatsApp Business",
-                  // Componente direto para o WhatsApp
-                  iconComponent: (
-                    <div className="w-6 h-6 relative">
-                      <Image
-                        src="/icons/hats.png"
-                        alt="WhatsApp Business"
-                        width={20}
-                        height={20}
-                        className="w-full h-full"
-                      />
-                    </div>
-                  ),
-                },
-              ].map((item, index) => (
+              {features.map((item, index) => (
                 <motion.div
                   key={item.text}
                   initial={{ opacity: 0, y: 20 }}

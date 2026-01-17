@@ -59,6 +59,7 @@ import { FormEditarCartao } from "@/components/shared/FormEditarCartao";
 import { useSession } from "next-auth/react";
 import { ConviteColaboradorDialog } from "@/components/shared/ConviteColaboradorDialog";
 import { Loading } from "@/components/ui/loading-barrinhas";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Cartao {
   id: string;
@@ -319,29 +320,45 @@ const formatarMoeda = (valor: number) => {
               onOpenChange={setDialogConvidarAberto}
             >
               <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-2 text-xs border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  <UserPlus className="h-3 w-3 mr-1" />
-                  {t("botoes.convidar")}
-                </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-2 text-xs border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+                  >
+                    <UserPlus className="h-3 w-3 mr-1" />
+                    {t("botoes.convidar")}
+                  </Button>
+                </motion.div>
               </DialogTrigger>
               <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white">
                 <DialogHeader>
-                  <DialogTitle className="text-gray-900 dark:text-white">
-                    {t("dialogs.convidarTitulo")}
-                  </DialogTitle>
-                  <DialogDescription className="text-gray-600 dark:text-gray-400">
-                    {t("dialogs.convidarDescricao")}
-                  </DialogDescription>
+                  <motion.div
+                    initial={{ y: -10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <DialogTitle className="text-gray-900 dark:text-white">
+                      {t("dialogs.convidarTitulo")}
+                    </DialogTitle>
+                    <DialogDescription className="text-gray-600 dark:text-gray-400">
+                      {t("dialogs.convidarDescricao")}
+                    </DialogDescription>
+                  </motion.div>
                 </DialogHeader>
                 <form
                   onSubmit={handleConvidarColaborador}
                   className="space-y-4"
                 >
-                  <div className="space-y-2">
+                  <motion.div
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                    className="space-y-2"
+                  >
                     <Label
                       htmlFor="email"
                       className="text-gray-900 dark:text-white"
@@ -357,8 +374,13 @@ const formatarMoeda = (valor: number) => {
                       className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
                       required
                     />
-                  </div>
-                  <div className="flex gap-3 justify-end">
+                  </motion.div>
+                  <motion.div
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="flex gap-3 justify-end"
+                  >
                     <Button
                       type="button"
                       variant="outline"
@@ -376,7 +398,7 @@ const formatarMoeda = (valor: number) => {
                         ? t("botoes.enviando")
                         : t("botoes.enviarConvite")}
                     </Button>
-                  </div>
+                  </motion.div>
                 </form>
               </DialogContent>
             </Dialog>
@@ -385,18 +407,28 @@ const formatarMoeda = (valor: number) => {
 
         <div className="space-y-2">
           {/* Dono do Cartão */}
-          <div className="flex items-center justify-between p-2 rounded-lg bg-blue-50 dark:bg-gray-800/30 border border-blue-200 dark:border-gray-700">
+          <motion.div
+            initial={{ x: -20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="flex items-center justify-between p-2 rounded-lg bg-blue-50 dark:bg-gray-800/30 border border-blue-200 dark:border-gray-700"
+          >
             <div className="flex items-center gap-3">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={cartao.user?.image || ""} />
-                <AvatarFallback className="bg-blue-600 text-white text-xs">
-                  {cartao.user?.name
-                    ?.split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .toUpperCase() || "U"}
-                </AvatarFallback>
-              </Avatar>
+              <motion.div
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={cartao.user?.image || ""} />
+                  <AvatarFallback className="bg-blue-600 text-white text-xs">
+                    {cartao.user?.name
+                      ?.split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .toUpperCase() || "U"}
+                  </AvatarFallback>
+                </Avatar>
+              </motion.div>
               <div>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
                   {cartao.user?.name || "Usuário"}
@@ -410,28 +442,36 @@ const formatarMoeda = (valor: number) => {
             <Badge className="bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700">
               {t("badges.dono")}
             </Badge>
-          </div>
+          </motion.div>
 
           {/* Colaboradores */}
-          {cartao.ColaboradorCartao.map((colaborador) => {
+          {cartao.ColaboradorCartao.map((colaborador, index) => {
             const ehUsuarioAtual =
               colaborador.user.id === session?.data?.user?.id;
             return (
-              <div
+              <motion.div
                 key={colaborador.id}
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
                 className="flex items-center justify-between p-2 rounded-lg bg-green-50 dark:bg-gray-800/30 border border-green-200 dark:border-gray-700 hover:bg-green-100 dark:hover:bg-gray-800/50 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={colaborador.user.image || ""} />
-                    <AvatarFallback className="bg-green-600 text-white text-xs">
-                      {colaborador.user.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <motion.div
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={colaborador.user.image || ""} />
+                      <AvatarFallback className="bg-green-600 text-white text-xs">
+                        {colaborador.user.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </motion.div>
                   <div>
                     <p className="text-sm font-medium text-gray-900 dark:text-white">
                       {colaborador.user.name}
@@ -449,27 +489,35 @@ const formatarMoeda = (valor: number) => {
                       : t("badges.escrita")}
                   </Badge>
                   {usuarioAtualEhDono && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        handleRemoverColaborador(colaborador.user.id)
-                      }
-                      className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/50"
+                    <motion.div
+                      whileHover={{ scale: 1.2 }}
+                      whileTap={{ scale: 0.9 }}
                     >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          handleRemoverColaborador(colaborador.user.id)
+                        }
+                        className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/50"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </motion.div>
                   )}
                 </div>
-              </div>
+              </motion.div>
             );
           })}
 
           {/* Convites Pendentes */}
           {usuarioAtualEhDono &&
-            cartao.ConviteCartao.map((convite) => (
-              <div
+            cartao.ConviteCartao.map((convite, index) => (
+              <motion.div
                 key={convite.id}
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
                 className="flex items-center justify-between p-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-800/50"
               >
                 <div className="flex items-center gap-3">
@@ -492,18 +540,35 @@ const formatarMoeda = (valor: number) => {
                 <Badge className="bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700">
                   {t("status.pendenteBadge")}
                 </Badge>
-              </div>
+              </motion.div>
             ))}
 
           {cartao.ColaboradorCartao.length === 0 &&
             (!usuarioAtualEhDono || cartao.ConviteCartao.length === 0) && (
-              <div className="text-center py-4 text-gray-600 dark:text-gray-500">
-                <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3 }}
+                className="text-center py-4 text-gray-600 dark:text-gray-500"
+              >
+                <motion.div
+                  animate={{ 
+                    y: [0, -5, 0],
+                    rotate: [0, 3, -3, 0]
+                  }}
+                  transition={{ 
+                    duration: 3,
+                    repeat: Infinity,
+                    repeatType: "reverse"
+                  }}
+                >
+                  <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                </motion.div>
                 <p className="text-sm">{t("mensagens.nenhumColaborador")}</p>
                 {usuarioAtualEhDono && (
                   <p className="text-xs">{t("mensagens.convideAlguem")}</p>
                 )}
-              </div>
+              </motion.div>
             )}
         </div>
       </div>
@@ -516,19 +581,29 @@ const formatarMoeda = (valor: number) => {
 
   if (!cartao) {
     return (
-      <div className="min-h-screen p-6">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4 }}
+        className="min-h-screen p-6"
+      >
         <div className="max-w-7xl mx-auto text-center">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
             {t("mensagens.cartaoNaoEncontrado")}
           </h1>
-          <Button
-            onClick={() => router.push(getLocalizedPath("/dashboard/cartoes"))}
-            className="bg-gray-900 hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-gray-900"
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            {t("botoes.voltar")}
-          </Button>
+            <Button
+              onClick={() => router.push(getLocalizedPath("/dashboard/cartoes"))}
+              className="bg-gray-900 hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-gray-900"
+            >
+              {t("botoes.voltar")}
+            </Button>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
@@ -546,23 +621,41 @@ const formatarMoeda = (valor: number) => {
   )[0];
 
   return (
-    <div className="min-h-screen p-3 sm:p-4 md:p-6 bg-white dark:bg-transparent">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+      className="min-h-screen p-3 sm:p-4 md:p-6 bg-white dark:bg-transparent"
+    >
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+        <motion.div 
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4"
+        >
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() =>
-                router.push(getLocalizedPath("/dashboard/cartoes"))
-              }
-              className="h-9 w-9 sm:h-10 sm:w-10 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white flex-shrink-0"
+            <motion.div
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
             >
-              <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() =>
+                  router.push(getLocalizedPath("/dashboard/cartoes"))
+                }
+                className="h-9 w-9 sm:h-10 sm:w-10 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white flex-shrink-0"
+              >
+                <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              </Button>
+            </motion.div>
             <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-              <div
+              <motion.div
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
                 className="w-2 h-6 sm:h-8 rounded flex-shrink-0"
                 style={{ backgroundColor: cartao.cor }}
               />
@@ -580,474 +673,703 @@ const formatarMoeda = (valor: number) => {
           </div>
 
           <div className="flex gap-2 w-full sm:w-auto mt-3 sm:mt-0">
-            <Button
-              variant="outline"
-              onClick={() =>
-                router.push(
-                  getLocalizedPath(`/dashboard/cartoes/${cartaoId}/faturas`)
-                )
-              }
-              className="flex-1 sm:flex-none border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white text-xs sm:text-sm"
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex-1 sm:flex-none"
             >
-              <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              <span className="truncate">{t("botoes.verFaturas")}</span>
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setSheetEditarAberto(true)}
-              className="flex-1 sm:flex-none border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white text-xs sm:text-sm"
+              <Button
+                variant="outline"
+                onClick={() =>
+                  router.push(
+                    getLocalizedPath(`/dashboard/cartoes/${cartaoId}/faturas`)
+                  )
+                }
+                className="w-full border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white text-xs sm:text-sm"
+              >
+                <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="truncate">{t("botoes.verFaturas")}</span>
+              </Button>
+            </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex-1 sm:flex-none"
             >
-              <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              <span className="truncate">{t("botoes.editarCartao")}</span>
-            </Button>
+              <Button
+                variant="outline"
+                onClick={() => setSheetEditarAberto(true)}
+                className="w-full border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white text-xs sm:text-sm"
+              >
+                <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="truncate">{t("botoes.editarCartao")}</span>
+              </Button>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Grid de Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Card 1: Informações do Cartão */}
-          <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white text-base sm:text-lg">
-                <div className="p-1 sm:p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0">
-                  <CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-700 dark:text-gray-300" />
-                </div>
-                <span className="truncate">{t("titulos.informacoes")}</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 sm:space-y-4">
-              <div className="space-y-2 sm:space-y-3">
-                <div>
-                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                    {t("labels.bandeira")}
-                  </p>
-                  <p className="text-gray-900 dark:text-white capitalize text-sm sm:text-base">
-                    {cartao.bandeira.toLowerCase()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                    {t("labels.limiteTotal")}
-                  </p>
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
-                    {formatarMoeda(cartao.limite)}
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  <div>
-                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                      {t("labels.fechamento")}
-                    </p>
-                    <p className="text-gray-900 dark:text-white flex items-center gap-1 text-sm sm:text-base">
-                      <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                      {t("labels.dia", { dia: cartao.diaFechamento })}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                      {t("labels.vencimento")}
-                    </p>
-                    <p className="text-gray-900 dark:text-white flex items-center gap-1 text-sm sm:text-base">
-                      <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                      {t("labels.dia", { dia: cartao.diaVencimento })}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="pt-2 sm:pt-3 border-t border-gray-200 dark:border-gray-800">
-                  <ColaboradoresSection />
-                </div>
-
-                {cartao.observacoes && (
-                  <div>
-                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                      {t("labels.observacoes")}
-                    </p>
-                    <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
-                      {cartao.observacoes}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="pt-3 border-t border-gray-200 dark:border-gray-800">
-                <Button
-                  className="w-full bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white text-sm sm:text-base py-2"
-                  onClick={() =>
-                    router.push(getLocalizedPath("/dashboard/lancamentos/"))
-                  }
-                >
-                  <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                  <span className="truncate">{t("botoes.novoLancamento")}</span>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Card 2: Status do Limite */}
-          <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white text-base sm:text-lg">
-                <div className="p-1 sm:p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex-shrink-0">
-                  <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
-                </div>
-                <span className="truncate">{t("titulos.statusLimite")}</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 sm:space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div className="space-y-1">
-                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                    {t("labels.utilizado")}
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                    {formatarMoeda(totalFaturaAtual)}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                    {t("labels.disponivel")}
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                    {formatarMoeda(cartao.limite - totalFaturaAtual)}
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2 sm:space-y-3">
-                <div className="flex justify-between text-xs sm:text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">
-                    {t("labels.utilizacaoLimite")}
-                  </span>
-                  <span
-                    className={`font-medium ${
-                      utilizacao >= 90
-                        ? "text-red-600 dark:text-red-400"
-                        : utilizacao >= 70
-                          ? "text-amber-600 dark:text-orange-400"
-                          : "text-emerald-600 dark:text-green-400"
-                    }`}
+          <motion.div
+            initial={{ y: 20, opacity: 0, scale: 0.95 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            whileHover={{ y: -4, transition: { duration: 0.2 } }}
+          >
+            <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white text-base sm:text-lg">
+                  <motion.div
+                    initial={{ scale: 0, rotate: -90 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ duration: 0.3, delay: 0.2 }}
                   >
-                    {utilizacao.toFixed(1)}%
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2 sm:h-3">
-                  <div
-                    className={`h-2 sm:h-3 rounded-full ${
-                      utilizacao >= 90
-                        ? "bg-red-500"
-                        : utilizacao >= 70
-                          ? "bg-amber-500 dark:bg-orange-500"
-                          : "bg-emerald-500 dark:bg-green-500"
-                    }`}
-                    style={{ width: `${Math.min(utilizacao, 100)}%` }}
-                  />
-                </div>
-              </div>
-
-              {utilizacao >= 70 && (
-                <div
-                  className={`flex items-center gap-2 p-2 sm:p-3 rounded-lg ${
-                    utilizacao >= 90
-                      ? "bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800"
-                      : "bg-amber-50 dark:bg-orange-900/50 text-amber-700 dark:text-orange-300 border border-amber-200 dark:border-orange-800"
-                  }`}
-                >
-                  <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                  <span className="text-xs sm:text-sm font-medium truncate">
-                    {utilizacao >= 90
-                      ? t("alertas.limiteCritico")
-                      : t("alertas.limiteElevado")}
-                  </span>
-                </div>
-              )}
-
-              {/* Fatura Atual */}
-              {proximaFatura && (
-                <div className="pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-800 space-y-2 sm:space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-                      {t("labels.proximaFatura")}
-                    </span>
-                    <span className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
-                      {formatarMoeda(proximaFatura.valorTotal)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-                      {t("labels.vencimento")}
-                    </span>
-                    <span className="text-gray-900 dark:text-white text-xs sm:text-sm">
-                      {formatarData(proximaFatura.dataVencimento)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-                      {t("labels.status")}
-                    </span>
-                    <Badge
-                      className={`text-xs ${getStatusColor(proximaFatura.status)}`}
-                    >
-                      {proximaFatura.status === "ABERTA"
-                        ? t("status.aberta")
-                        : proximaFatura.status === "FECHADA"
-                          ? t("status.fechada")
-                          : proximaFatura.status === "PAGA"
-                            ? t("status.paga")
-                            : t("status.vencida")}
-                    </Badge>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Card 3: Ranking de Despesas por Categoria */}
-          <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-gray-900 dark:text-white text-base sm:text-lg">
-                <span className="truncate">
-                  {t("titulos.despesasCategoria")}
-                </span>
-              </CardTitle>
-              <CardDescription className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-                {t("subtitulos.distribuicaoGastos")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3 sm:space-y-4">
-              {(() => {
-                // Calcular despesas por categoria
-                const despesasPorCategoria = cartao.lancamentos
-                  .filter((lancamento) => lancamento.tipo === "DESPESA") // Apenas despesas
-                  .reduce(
-                    (acc, lancamento) => {
-                      const categoriaNome =
-                        lancamento.categoria?.nome || "Sem Categoria";
-                      if (!acc[categoriaNome]) {
-                        acc[categoriaNome] = {
-                          total: 0,
-                          cor: lancamento.categoria?.cor || "#6B7280",
-                          icone: lancamento.categoria?.icone || "Tag",
-                        };
-                      }
-                      acc[categoriaNome].total += lancamento.valor;
-                      return acc;
-                    },
-                    {} as Record<
-                      string,
-                      { total: number; cor: string; icone: string }
-                    >
-                  );
-
-                // Converter para array e ordenar do maior para o menor
-                const rankingCategorias = Object.entries(despesasPorCategoria)
-                  .sort(([, a], [, b]) => b.total - a.total)
-                  .slice(0, 5); // Top 5 categorias
-
-                const totalDespesas = rankingCategorias.reduce(
-                  (sum, [, categoria]) => sum + categoria.total,
-                  0
-                );
-
-                if (rankingCategorias.length === 0) {
-                  return (
-                    <div className="text-center py-3 sm:py-4">
-                      <p className="text-gray-700 dark:text-gray-400 text-xs sm:text-sm">
-                        {t("mensagens.nenhumaDespesa")}
+                    <div className="p-1 sm:p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0">
+                      <CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-700 dark:text-gray-300" />
+                    </div>
+                  </motion.div>
+                  <span className="truncate">{t("titulos.informacoes")}</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 sm:space-y-4">
+                <div className="space-y-2 sm:space-y-3">
+                  <motion.div
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                  >
+                    <div>
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                        {t("labels.bandeira")}
+                      </p>
+                      <p className="text-gray-900 dark:text-white capitalize text-sm sm:text-base">
+                        {cartao.bandeira.toLowerCase()}
                       </p>
                     </div>
+                  </motion.div>
+                  
+                  <motion.div
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                  >
+                    <div>
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                        {t("labels.limiteTotal")}
+                      </p>
+                      <motion.p
+                        key={cartao.limite}
+                        initial={{ scale: 1.2 }}
+                        animate={{ scale: 1 }}
+                        className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white"
+                      >
+                        {formatarMoeda(cartao.limite)}
+                      </motion.p>
+                    </div>
+                  </motion.div>
+                  
+                  <motion.div
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4"
+                  >
+                    <div>
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                        {t("labels.fechamento")}
+                      </p>
+                      <p className="text-gray-900 dark:text-white flex items-center gap-1 text-sm sm:text-base">
+                        <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                        {t("labels.dia", { dia: cartao.diaFechamento })}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                        {t("labels.vencimento")}
+                      </p>
+                      <p className="text-gray-900 dark:text-white flex items-center gap-1 text-sm sm:text-base">
+                        <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                        {t("labels.dia", { dia: cartao.diaVencimento })}
+                      </p>
+                    </div>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    transition={{ duration: 0.5, delay: 0.6 }}
+                    className="pt-2 sm:pt-3 border-t border-gray-200 dark:border-gray-800"
+                  >
+                    <ColaboradoresSection />
+                  </motion.div>
+
+                  {cartao.observacoes && (
+                    <motion.div
+                      initial={{ y: 10, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.7 }}
+                    >
+                      <div>
+                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                          {t("labels.observacoes")}
+                        </p>
+                        <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+                          {cartao.observacoes}
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+
+                <motion.div
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.8 }}
+                  className="pt-3 border-t border-gray-200 dark:border-gray-800"
+                >
+                  <Button
+                    className="w-full bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white text-sm sm:text-base py-2"
+                    onClick={() =>
+                      router.push(getLocalizedPath("/dashboard/lancamentos/"))
+                    }
+                  >
+                    <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    <span className="truncate">{t("botoes.novoLancamento")}</span>
+                  </Button>
+                </motion.div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Card 2: Status do Limite */}
+          <motion.div
+            initial={{ y: 20, opacity: 0, scale: 0.95 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.15 }}
+            whileHover={{ y: -4, transition: { duration: 0.2 } }}
+          >
+            <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white text-base sm:text-lg">
+                  <motion.div
+                    initial={{ scale: 0, rotate: -90 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ duration: 0.3, delay: 0.25 }}
+                  >
+                    <div className="p-1 sm:p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex-shrink-0">
+                      <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                  </motion.div>
+                  <span className="truncate">{t("titulos.statusLimite")}</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 sm:space-y-4">
+                <motion.div
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.35 }}
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4"
+                >
+                  <div className="space-y-1">
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                      {t("labels.utilizado")}
+                    </p>
+                    <motion.p
+                      key={totalFaturaAtual}
+                      initial={{ scale: 1.2 }}
+                      animate={{ scale: 1 }}
+                      className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white"
+                    >
+                      {formatarMoeda(totalFaturaAtual)}
+                    </motion.p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                      {t("labels.disponivel")}
+                    </p>
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                      {formatarMoeda(cartao.limite - totalFaturaAtual)}
+                    </p>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.45 }}
+                  className="space-y-2 sm:space-y-3"
+                >
+                  <div className="flex justify-between text-xs sm:text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">
+                      {t("labels.utilizacaoLimite")}
+                    </span>
+                    <motion.span
+                      key={utilizacao}
+                      initial={{ scale: 1.2 }}
+                      animate={{ scale: 1 }}
+                      className={`font-medium ${
+                        utilizacao >= 90
+                          ? "text-red-600 dark:text-red-400"
+                          : utilizacao >= 70
+                            ? "text-amber-600 dark:text-orange-400"
+                            : "text-emerald-600 dark:text-green-400"
+                      }`}
+                    >
+                      {utilizacao.toFixed(1)}%
+                    </motion.span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2 sm:h-3 overflow-hidden">
+                    <motion.div
+                      className={`h-2 sm:h-3 rounded-full ${
+                        utilizacao >= 90
+                          ? "bg-red-500"
+                          : utilizacao >= 70
+                            ? "bg-amber-500 dark:bg-orange-500"
+                            : "bg-emerald-500 dark:bg-green-500"
+                      }`}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(utilizacao, 100)}%` }}
+                      transition={{ duration: 0.8, ease: "easeOut" }}
+                    />
+                  </div>
+                </motion.div>
+
+                {utilizacao >= 70 && (
+                  <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.55 }}
+                    className={`flex items-center gap-2 p-2 sm:p-3 rounded-lg ${
+                      utilizacao >= 90
+                        ? "bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800"
+                        : "bg-amber-50 dark:bg-orange-900/50 text-amber-700 dark:text-orange-300 border border-amber-200 dark:border-orange-800"
+                    }`}
+                  >
+                    <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm font-medium truncate">
+                      {utilizacao >= 90
+                        ? t("alertas.limiteCritico")
+                        : t("alertas.limiteElevado")}
+                    </span>
+                  </motion.div>
+                )}
+
+                {/* Fatura Atual */}
+                {proximaFatura && (
+                  <motion.div
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.65 }}
+                    className="pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-800 space-y-2 sm:space-y-3"
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                        {t("labels.proximaFatura")}
+                      </span>
+                      <motion.span
+                        key={proximaFatura.valorTotal}
+                        initial={{ scale: 1.2 }}
+                        animate={{ scale: 1 }}
+                        className="text-base sm:text-lg font-bold text-gray-900 dark:text-white"
+                      >
+                        {formatarMoeda(proximaFatura.valorTotal)}
+                      </motion.span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                        {t("labels.vencimento")}
+                      </span>
+                      <span className="text-gray-900 dark:text-white text-xs sm:text-sm">
+                        {formatarData(proximaFatura.dataVencimento)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                        {t("labels.status")}
+                      </span>
+                      <Badge
+                        className={`text-xs ${getStatusColor(proximaFatura.status)}`}
+                      >
+                        {proximaFatura.status === "ABERTA"
+                          ? t("status.aberta")
+                          : proximaFatura.status === "FECHADA"
+                            ? t("status.fechada")
+                            : proximaFatura.status === "PAGA"
+                              ? t("status.paga")
+                              : t("status.vencida")}
+                      </Badge>
+                    </div>
+                  </motion.div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Card 3: Ranking de Despesas por Categoria */}
+          <motion.div
+            initial={{ y: 20, opacity: 0, scale: 0.95 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+            whileHover={{ y: -4, transition: { duration: 0.2 } }}
+          >
+            <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-gray-900 dark:text-white text-base sm:text-lg">
+                  <span className="truncate">
+                    {t("titulos.despesasCategoria")}
+                  </span>
+                </CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                  {t("subtitulos.distribuicaoGastos")}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 sm:space-y-4">
+                {(() => {
+                  // Calcular despesas por categoria
+                  const despesasPorCategoria = cartao.lancamentos
+                    .filter((lancamento) => lancamento.tipo === "DESPESA") // Apenas despesas
+                    .reduce(
+                      (acc, lancamento) => {
+                        const categoriaNome =
+                          lancamento.categoria?.nome || "Sem Categoria";
+                        if (!acc[categoriaNome]) {
+                          acc[categoriaNome] = {
+                            total: 0,
+                            cor: lancamento.categoria?.cor || "#6B7280",
+                            icone: lancamento.categoria?.icone || "Tag",
+                          };
+                        }
+                        acc[categoriaNome].total += lancamento.valor;
+                        return acc;
+                      },
+                      {} as Record<
+                        string,
+                        { total: number; cor: string; icone: string }
+                      >
+                    );
+
+                  // Converter para array e ordenar do maior para o menor
+                  const rankingCategorias = Object.entries(despesasPorCategoria)
+                    .sort(([, a], [, b]) => b.total - a.total)
+                    .slice(0, 5); // Top 5 categorias
+
+                  const totalDespesas = rankingCategorias.reduce(
+                    (sum, [, categoria]) => sum + categoria.total,
+                    0
                   );
-                }
 
-                return (
-                  <div className="space-y-2 sm:space-y-3">
-                    {rankingCategorias.map(
-                      ([categoriaNome, categoriaData], index) => {
-                        const porcentagem =
-                          totalDespesas > 0
-                            ? (categoriaData.total / totalDespesas) * 100
-                            : 0;
+                  if (rankingCategorias.length === 0) {
+                    return (
+                      <div className="text-center py-3 sm:py-4">
+                        <p className="text-gray-700 dark:text-gray-400 text-xs sm:text-sm">
+                          {t("mensagens.nenhumaDespesa")}
+                        </p>
+                      </div>
+                    );
+                  }
 
-                        // Função para obter o ícone da categoria
-                        const getIcone = (icone: string) => {
-                          try {
-                            const IconComponent =
-                              require("lucide-react")[icone];
-                            return (
-                              <IconComponent className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
-                            );
-                          } catch {
-                            return (
-                              <Tag className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
-                            );
-                          }
-                        };
+                  return (
+                    <div className="space-y-2 sm:space-y-3">
+                      {rankingCategorias.map(
+                        ([categoriaNome, categoriaData], index) => {
+                          const porcentagem =
+                            totalDespesas > 0
+                              ? (categoriaData.total / totalDespesas) * 100
+                              : 0;
 
-                        return (
-                          <div
-                            key={categoriaNome}
-                            className="flex justify-between items-center p-2.5 sm:p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800/50 hover:bg-gray-100/80 dark:hover:bg-gray-800/70 transition-colors"
-                          >
-                            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                              <div
-                                className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{ backgroundColor: categoriaData.cor }}
-                              >
-                                {getIcone(categoriaData.icone)}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-gray-900 dark:text-white text-xs sm:text-sm font-medium truncate">
-                                  {categoriaNome}
-                                </p>
-                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1 sm:h-1.5 mt-1">
-                                  <div
-                                    className="h-1 sm:h-1.5 rounded-full"
-                                    style={{
-                                      backgroundColor: categoriaData.cor,
-                                      width: `${porcentagem}%`,
-                                    }}
-                                  />
+                          // Função para obter o ícone da categoria
+                          const getIcone = (icone: string) => {
+                            try {
+                              const IconComponent =
+                                require("lucide-react")[icone];
+                              return (
+                                <IconComponent className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
+                              );
+                            } catch {
+                              return (
+                                <Tag className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
+                              );
+                            }
+                          };
+
+                          return (
+                            <motion.div
+                              key={categoriaNome}
+                              initial={{ x: -20, opacity: 0 }}
+                              animate={{ x: 0, opacity: 1 }}
+                              transition={{ duration: 0.3, delay: index * 0.1 }}
+                              className="flex justify-between items-center p-2.5 sm:p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800/50 hover:bg-gray-100/80 dark:hover:bg-gray-800/70 transition-colors"
+                            >
+                              <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                                <div
+                                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                                  style={{ backgroundColor: categoriaData.cor }}
+                                >
+                                  {getIcone(categoriaData.icone)}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-gray-900 dark:text-white text-xs sm:text-sm font-medium truncate">
+                                    {categoriaNome}
+                                  </p>
+                                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1 sm:h-1.5 mt-1 overflow-hidden">
+                                    <motion.div
+                                      className="h-1 sm:h-1.5 rounded-full"
+                                      style={{
+                                        backgroundColor: categoriaData.cor,
+                                      }}
+                                      initial={{ width: 0 }}
+                                      animate={{ width: `${porcentagem}%` }}
+                                      transition={{ duration: 0.8, delay: 0.3 + index * 0.1 }}
+                                    />
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                            <div className="text-right flex-shrink-0 ml-1.5 sm:ml-2 min-w-[70px] sm:min-w-[80px]">
-                              <p className="text-gray-900 dark:text-white font-medium text-xs sm:text-sm">
-                                {formatarMoeda(categoriaData.total)}
-                              </p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
-                                {porcentagem.toFixed(1)}%
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      }
-                    )}
+                              <div className="text-right flex-shrink-0 ml-1.5 sm:ml-2 min-w-[70px] sm:min-w-[80px]">
+                                <motion.p
+                                  key={categoriaData.total}
+                                  initial={{ scale: 1.2 }}
+                                  animate={{ scale: 1 }}
+                                  transition={{ delay: 0.4 + index * 0.1 }}
+                                  className="text-gray-900 dark:text-white font-medium text-xs sm:text-sm"
+                                >
+                                  {formatarMoeda(categoriaData.total)}
+                                </motion.p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  {porcentagem.toFixed(1)}%
+                                </p>
+                              </div>
+                            </motion.div>
+                          );
+                        }
+                      )}
 
-                    {/* Total geral */}
-                    <div className="pt-2 sm:pt-3 border-t border-gray-200 dark:border-gray-800">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-                          Total:
-                        </span>
-                        <span className="text-gray-900 dark:text-white font-bold text-sm sm:text-base">
-                          {formatarMoeda(totalDespesas)}
-                        </span>
-                      </div>
+                      {/* Total geral */}
+                      <motion.div
+                        initial={{ y: 10, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.9 }}
+                        className="pt-2 sm:pt-3 border-t border-gray-200 dark:border-gray-800"
+                      >
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                            Total:
+                          </span>
+                          <span className="text-gray-900 dark:text-white font-bold text-sm sm:text-base">
+                            {formatarMoeda(totalDespesas)}
+                          </span>
+                        </div>
+                      </motion.div>
                     </div>
-                  </div>
-                );
-              })()}
+                  );
+                })()}
 
-              <div className="pt-2 sm:pt-3 border-t border-gray-200 dark:border-gray-800">
-                <Button
-                  variant="outline"
-                  className="w-full border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white text-xs sm:text-sm py-2"
-                  onClick={() =>
-                    router.push(getLocalizedPath("/dashboard/relatorios"))
-                  }
+                <motion.div
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 1 }}
+                  className="pt-2 sm:pt-3 border-t border-gray-200 dark:border-gray-800"
                 >
-                  <span className="truncate">
-                    {t("botoes.verRelatorioCompleto")}
-                  </span>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                  <Button
+                    variant="outline"
+                    className="w-full border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white text-xs sm:text-sm py-2"
+                    onClick={() =>
+                      router.push(getLocalizedPath("/dashboard/relatorios"))
+                    }
+                  >
+                    <span className="truncate">
+                      {t("botoes.verRelatorioCompleto")}
+                    </span>
+                  </Button>
+                </motion.div>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
 
         {/* Card 4: Lançamentos Recentes */}
-        <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-gray-900 dark:text-white text-base sm:text-lg">
-              {t("titulos.lancamentosRecentes")}
-            </CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-              {t("subtitulos.totalLancamentos", {
-                count: cartao.lancamentos.length,
-              })}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {cartao.lancamentos.length === 0 ? (
-              <div className="text-center py-6 sm:py-8">
-                <CreditCard className="h-8 w-8 sm:h-12 sm:w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3 sm:mb-4" />
-                <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4">
-                  {t("mensagens.nenhumLancamento")}
-                </p>
-                <Button
-                  className="bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white text-sm sm:text-base py-2"
-                  onClick={() =>
-                    router.push(
-                      getLocalizedPath(
-                        `/dashboard/lancamentos/novo?cartaoId=${cartaoId}`
-                      )
-                    )
-                  }
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
+        >
+          <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-gray-900 dark:text-white text-base sm:text-lg">
+                {t("titulos.lancamentosRecentes")}
+              </CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                {t("subtitulos.totalLancamentos", {
+                  count: cartao.lancamentos.length,
+                })}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {cartao.lancamentos.length === 0 ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                  className="text-center py-6 sm:py-8"
                 >
-                  <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                  <span className="truncate">
-                    {t("botoes.adicionarPrimeiro")}
-                  </span>
-                </Button>
-              </div>
-            ) : (
-              <>
-                {/* Tabela para desktop */}
-                <div className="hidden sm:block border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-800">
-                        <TableHead className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
-                          {t("labels.descricao")}
-                        </TableHead>
-                        <TableHead className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
-                          {t("labels.data")}
-                        </TableHead>
-                        <TableHead className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
-                          {t("labels.valor")}
-                        </TableHead>
-                        <TableHead className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
-                          {t("labels.status")}
-                        </TableHead>
-                        <TableHead className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
-                          {t("labels.fatura")}
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {lancamentosRecentes.map((lancamento) => (
-                        <TableRow
-                          key={lancamento.id}
-                          className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/50"
-                        >
-                          <TableCell className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm">
-                            <span className="truncate block max-w-[200px]">
+                  <motion.div
+                    animate={{ 
+                      y: [0, -5, 0],
+                      rotate: [0, 5, -5, 0]
+                    }}
+                    transition={{ 
+                      duration: 3,
+                      repeat: Infinity,
+                      repeatType: "reverse"
+                    }}
+                  >
+                    <CreditCard className="h-8 w-8 sm:h-12 sm:w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3 sm:mb-4" />
+                  </motion.div>
+                  <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4">
+                    {t("mensagens.nenhumLancamento")}
+                  </p>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Button
+                      className="bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white text-sm sm:text-base py-2"
+                      onClick={() =>
+                        router.push(
+                          getLocalizedPath(
+                            `/dashboard/lancamentos/novo?cartaoId=${cartaoId}`
+                          )
+                        )
+                      }
+                    >
+                      <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                      <span className="truncate">
+                        {t("botoes.adicionarPrimeiro")}
+                      </span>
+                    </Button>
+                  </motion.div>
+                </motion.div>
+              ) : (
+                <>
+                  {/* Tabela para desktop */}
+                  <div className="hidden sm:block border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-800">
+                          <TableHead className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
+                            {t("labels.descricao")}
+                          </TableHead>
+                          <TableHead className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
+                            {t("labels.data")}
+                          </TableHead>
+                          <TableHead className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
+                            {t("labels.valor")}
+                          </TableHead>
+                          <TableHead className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
+                            {t("labels.status")}
+                          </TableHead>
+                          <TableHead className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
+                            {t("labels.fatura")}
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {lancamentosRecentes.map((lancamento, index) => (
+                          <motion.tr
+                            key={lancamento.id}
+                            initial={{ y: 10, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ duration: 0.3, delay: index * 0.05 }}
+                            className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/50"
+                          >
+                            <TableCell className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm">
+                              <span className="truncate block max-w-[200px]">
+                                {lancamento.descricao}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm">
+                              {formatarData(lancamento.data)}
+                            </TableCell>
+                            <TableCell className="text-gray-900 dark:text-white text-xs sm:text-sm font-medium">
+                              {formatarMoeda(lancamento.valor)}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  lancamento.pago ? "default" : "secondary"
+                                }
+                                className={`text-xs ${
+                                  lancamento.pago
+                                    ? "bg-emerald-100 dark:bg-green-900/50 text-emerald-700 dark:text-green-300 border-emerald-200 dark:border-green-700"
+                                    : "bg-amber-100 dark:bg-yellow-900/50 text-amber-700 dark:text-yellow-300 border-amber-200 dark:border-yellow-700"
+                                }`}
+                              >
+                                {lancamento.pago
+                                  ? t("status.pago")
+                                  : t("status.pendenteBadge")}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm">
+                              {lancamento.Fatura ? (
+                                <Badge
+                                  className={`text-xs ${getStatusColor(lancamento.Fatura.status)}`}
+                                >
+                                  {lancamento.Fatura.mesReferencia}
+                                </Badge>
+                              ) : (
+                                <span className="text-gray-500 dark:text-gray-500">
+                                  -
+                                </span>
+                              )}
+                            </TableCell>
+                          </motion.tr>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Lista para mobile */}
+                  <div className="sm:hidden space-y-3">
+                    {lancamentosRecentes.map((lancamento, index) => (
+                      <motion.div
+                        key={lancamento.id}
+                        initial={{ y: 10, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        className="border border-gray-200 dark:border-gray-800 rounded-lg p-3 bg-gray-50/50 dark:bg-gray-800/50"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-gray-900 dark:text-white font-medium text-sm truncate mb-1">
                               {lancamento.descricao}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm">
-                            {formatarData(lancamento.data)}
-                          </TableCell>
-                          <TableCell className="text-gray-900 dark:text-white text-xs sm:text-sm font-medium">
+                            </p>
+                            <p className="text-gray-600 dark:text-gray-400 text-xs">
+                              {formatarData(lancamento.data)}
+                            </p>
+                          </div>
+                          <motion.p
+                            key={lancamento.valor}
+                            initial={{ scale: 1.2 }}
+                            animate={{ scale: 1 }}
+                            className="text-gray-900 dark:text-white font-bold text-sm ml-2"
+                          >
                             {formatarMoeda(lancamento.valor)}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={
-                                lancamento.pago ? "default" : "secondary"
-                              }
-                              className={`text-xs ${
-                                lancamento.pago
-                                  ? "bg-emerald-100 dark:bg-green-900/50 text-emerald-700 dark:text-green-300 border-emerald-200 dark:border-green-700"
-                                  : "bg-amber-100 dark:bg-yellow-900/50 text-amber-700 dark:text-yellow-300 border-amber-200 dark:border-yellow-700"
-                              }`}
-                            >
-                              {lancamento.pago
-                                ? t("status.pago")
-                                : t("status.pendenteBadge")}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm">
+                          </motion.p>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <Badge
+                            variant={lancamento.pago ? "default" : "secondary"}
+                            className={`text-xs ${
+                              lancamento.pago
+                                ? "bg-emerald-100 dark:bg-green-900/50 text-emerald-700 dark:text-green-300 border-emerald-200 dark:border-green-700"
+                                : "bg-amber-100 dark:bg-yellow-900/50 text-amber-700 dark:text-yellow-300 border-amber-200 dark:border-yellow-700"
+                            }`}
+                          >
+                            {lancamento.pago
+                              ? t("status.pago")
+                              : t("status.pendenteBadge")}
+                          </Badge>
+                          <span className="text-gray-600 dark:text-gray-300 text-xs">
                             {lancamento.Fatura ? (
                               <Badge
                                 className={`text-xs ${getStatusColor(lancamento.Fatura.status)}`}
@@ -1055,97 +1377,58 @@ const formatarMoeda = (valor: number) => {
                                 {lancamento.Fatura.mesReferencia}
                               </Badge>
                             ) : (
-                              <span className="text-gray-500 dark:text-gray-500">
-                                -
-                              </span>
+                              "-"
                             )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-
-                {/* Lista para mobile */}
-                <div className="sm:hidden space-y-3">
-                  {lancamentosRecentes.map((lancamento) => (
-                    <div
-                      key={lancamento.id}
-                      className="border border-gray-200 dark:border-gray-800 rounded-lg p-3 bg-gray-50/50 dark:bg-gray-800/50"
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-gray-900 dark:text-white font-medium text-sm truncate mb-1">
-                            {lancamento.descricao}
-                          </p>
-                          <p className="text-gray-600 dark:text-gray-400 text-xs">
-                            {formatarData(lancamento.data)}
-                          </p>
+                          </span>
                         </div>
-                        <p className="text-gray-900 dark:text-white font-bold text-sm ml-2">
-                          {formatarMoeda(lancamento.valor)}
-                        </p>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <Badge
-                          variant={lancamento.pago ? "default" : "secondary"}
-                          className={`text-xs ${
-                            lancamento.pago
-                              ? "bg-emerald-100 dark:bg-green-900/50 text-emerald-700 dark:text-green-300 border-emerald-200 dark:border-green-700"
-                              : "bg-amber-100 dark:bg-yellow-900/50 text-amber-700 dark:text-yellow-300 border-amber-200 dark:border-yellow-700"
-                          }`}
-                        >
-                          {lancamento.pago
-                            ? t("status.pago")
-                            : t("status.pendenteBadge")}
-                        </Badge>
-                        <span className="text-gray-600 dark:text-gray-300 text-xs">
-                          {lancamento.Fatura ? (
-                            <Badge
-                              className={`text-xs ${getStatusColor(lancamento.Fatura.status)}`}
-                            >
-                              {lancamento.Fatura.mesReferencia}
-                            </Badge>
-                          ) : (
-                            "-"
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-            {cartao.lancamentos.length > 10 && (
-              <Button
-                variant="outline"
-                className="w-full mt-3 sm:mt-4 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white text-xs sm:text-sm py-2"
-                onClick={() =>
-                  router.push(
-                    getLocalizedPath(
-                      `/dashboard/lancamentos?cartaoId=${cartaoId}`
-                    )
-                  )
-                }
-              >
-                <span className="truncate">
-                  {t("botoes.verTodosLancamentos")}
-                </span>
-              </Button>
-            )}
-          </CardContent>
-        </Card>
+                      </motion.div>
+                    ))}
+                  </div>
+                </>
+              )}
+              {cartao.lancamentos.length > 10 && (
+                <motion.div
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                >
+                  <Button
+                    variant="outline"
+                    className="w-full mt-3 sm:mt-4 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white text-xs sm:text-sm py-2"
+                    onClick={() =>
+                      router.push(
+                        getLocalizedPath(
+                          `/dashboard/lancamentos?cartaoId=${cartaoId}`
+                        )
+                      )
+                    }
+                  >
+                    <span className="truncate">
+                      {t("botoes.verTodosLancamentos")}
+                    </span>
+                  </Button>
+                </motion.div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
 
       <Sheet open={sheetEditarAberto} onOpenChange={setSheetEditarAberto}>
         <SheetContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white overflow-y-auto w-full sm:max-w-2xl">
           <SheetHeader className="mb-4 sm:mb-6">
-            <SheetTitle className="text-gray-900 dark:text-white text-lg sm:text-xl">
-              {t("titulos.editarCartao")}
-            </SheetTitle>
-            <SheetDescription className="text-gray-600 dark:text-gray-400 text-sm">
-              {t("subtitulos.atualizarInformacoes")}
-            </SheetDescription>
+            <motion.div
+              initial={{ y: -10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <SheetTitle className="text-gray-900 dark:text-white text-lg sm:text-xl">
+                {t("titulos.editarCartao")}
+              </SheetTitle>
+              <SheetDescription className="text-gray-600 dark:text-gray-400 text-sm">
+                {t("subtitulos.atualizarInformacoes")}
+              </SheetDescription>
+            </motion.div>
           </SheetHeader>
 
           <FormEditarCartao
@@ -1164,6 +1447,6 @@ const formatarMoeda = (valor: number) => {
         cartaoId={cartaoId}
         onConviteEnviado={handleConviteEnviado}
       />
-    </div>
+    </motion.div>
   );
 }

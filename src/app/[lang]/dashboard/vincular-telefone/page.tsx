@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -271,7 +272,12 @@ export default function VincularTelefone() {
     <div className="min-h-screen p-4 sm:p-6">
       <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-3 sm:gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex flex-col gap-3 sm:gap-4"
+        >
           <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
             <div className="flex items-center gap-3 sm:gap-4">
               <div>
@@ -284,379 +290,446 @@ export default function VincularTelefone() {
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Formulário de Vinculação */}
           <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             {/* Card de Telefone Vinculado */}
-            {phoneInfo?.temTelefoneVinculado && phoneInfo.telefone && (
-              <Card className="bg-white dark:bg-gray-900 border-green-200 dark:border-green-800 shadow-2xl">
-                <CardHeader className="p-4 sm:p-6">
-                  <CardTitle className="flex items-center justify-between text-lg sm:text-xl text-gray-900 dark:text-white">
-                    <div className="flex items-center gap-2">
-                      <Image
-                        src="/icons/whatsapp.png"
-                        alt="WhatsApp"
-                        width={20}
-                        height={20}
-                        className="h-6 w-6 sm:h-5 sm:w-5"
-                      />
-                      {t("cartoes.telefoneVinculado.titulo")}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowDeleteDialog(true)}
-                      disabled={isDeleting}
-                      className="border-red-200 dark:border-red-800 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700"
-                    >
-                      {isDeleting ? (
+            <AnimatePresence mode="wait">
+              {phoneInfo?.temTelefoneVinculado && phoneInfo.telefone && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Card className="bg-white dark:bg-gray-900 border-green-200 dark:border-green-800 shadow-2xl">
+                    <CardHeader className="p-4 sm:p-6">
+                      <CardTitle className="flex items-center justify-between text-lg sm:text-xl text-gray-900 dark:text-white">
                         <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-                          {t("estados.desvinculando")}
+                          <Image
+                            src="/icons/whatsapp.png"
+                            alt="WhatsApp"
+                            width={20}
+                            height={20}
+                            className="h-6 w-6 sm:h-5 sm:w-5"
+                          />
+                          {t("cartoes.telefoneVinculado.titulo")}
                         </div>
-                      ) : (
-                        <>
-                          <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                          {t("botoes.desvincular")}
-                        </>
-                      )}
-                    </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowDeleteDialog(true)}
+                          disabled={isDeleting}
+                          className="border-red-200 dark:border-red-800 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700"
+                        >
+                          {isDeleting ? (
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                              {t("estados.desvinculando")}
+                            </div>
+                          ) : (
+                            <>
+                              <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                              {t("botoes.desvincular")}
+                            </>
+                          )}
+                        </Button>
+                      </CardTitle>
+                      <CardDescription className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+                        {t("cartoes.telefoneVinculado.descricao")}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-4 sm:p-6 pt-0">
+                      <div className="space-y-4">
+                        <motion.div
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.1 }}
+                          className="p-3 sm:p-4 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-100 dark:border-green-800"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                              <Smartphone className="h-5 w-5 text-green-600 dark:text-green-400" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                {phoneInfo.usuario.name || t("labels.usuario")}
+                              </p>
+                              <p className="text-lg font-bold text-green-700 dark:text-green-400">
+                                {formatPhoneForDisplay(phoneInfo.telefone)}
+                              </p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                                {phoneInfo.usuario.email}
+                              </p>
+                            </div>
+                          </div>
+                        </motion.div>
+
+                        <motion.div
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.2 }}
+                          className="p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-800"
+                        >
+                          <div className="flex items-start gap-3">
+                            <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                {t("cartoes.seguranca.titulo")}
+                              </p>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {t("cartoes.seguranca.descricao")}
+                              </p>
+                            </div>
+                          </div>
+                        </motion.div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+
+              {/* Card de Vincular Novo Telefone */}
+              {!phoneInfo?.temTelefoneVinculado && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
+                    <CardHeader className="p-4 sm:p-6">
+                      <CardTitle className="flex items-center gap-2 text-lg sm:text-xl text-gray-900 dark:text-white">
+                        <Smartphone className="h-4 w-4 sm:h-5 sm:w-5" />
+                        {t("cartoes.vincularTelefone.titulo")}
+                      </CardTitle>
+                      <CardDescription className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+                        {t("cartoes.vincularTelefone.descricao")}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-4 sm:p-6 pt-0">
+                      <form
+                        className="space-y-4 sm:space-y-6"
+                        onSubmit={handleSubmit}
+                      >
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.1 }}
+                          className="space-y-2 sm:space-y-3"
+                        >
+                          <Label
+                            htmlFor="telefone"
+                            className="text-sm sm:text-base text-gray-900 dark:text-white"
+                          >
+                            {t("formulario.labelTelefone")}
+                          </Label>
+                          <Input
+                            id="telefone"
+                            name="telefone"
+                            type="tel"
+                            placeholder={t("formulario.placeholderTelefone")}
+                            required
+                            value={telefone}
+                            onChange={handleTelefoneChange}
+                            className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-500 focus:border-blue-500 dark:focus:border-blue-500 w-full text-sm sm:text-base"
+                          />
+                          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                            {t("formulario.instrucaoTelefone")}
+                          </p>
+                        </motion.div>
+
+                        <AnimatePresence>
+                          {message && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                              transition={{ duration: 0.2 }}
+                              className={`p-3 sm:p-4 rounded-lg border text-sm sm:text-base ${
+                                message.type === "success"
+                                  ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700 text-green-700 dark:text-green-300"
+                                  : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700 text-red-700 dark:text-red-300"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                {message.type === "success" ? (
+                                  <>
+                                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                                    <span className="truncate">
+                                      {message.text}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="truncate">
+                                      ❌ {message.text}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        <Button
+                          type="submit"
+                          disabled={loading || telefone.length < 14}
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white border-0 text-sm sm:text-base py-2.5 sm:py-3"
+                        >
+                          {loading ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              <span className="truncate">
+                                {t("estados.vinculando")}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="truncate">
+                              {t("botoes.vincularTelefone")}
+                            </span>
+                          )}
+                        </Button>
+                      </form>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Card de Preferências de Idioma */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+            >
+              <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-2xl">
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl text-gray-900 dark:text-white">
+                    <Globe className="h-4 w-4 sm:h-5 sm:w-5" />
+                    {t("cartoes.idioma.titulo")}
                   </CardTitle>
                   <CardDescription className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                    {t("cartoes.telefoneVinculado.descricao")}
+                    {t("cartoes.idioma.descricao")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-4 sm:p-6 pt-0">
                   <div className="space-y-4">
-                    <div className="p-3 sm:p-4 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-100 dark:border-green-800">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
-                          <Smartphone className="h-5 w-5 text-green-600 dark:text-green-400" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">
-                            {phoneInfo.usuario.name || t("labels.usuario")}
-                          </p>
-                          <p className="text-lg font-bold text-green-700 dark:text-green-400">
-                            {formatPhoneForDisplay(phoneInfo.telefone)}
-                          </p>
-                          <p className="text-xs text-gray-600 dark:text-gray-400">
-                            {phoneInfo.usuario.email}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-800">
-                      <div className="flex items-start gap-3">
-                        <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">
-                            {t("cartoes.seguranca.titulo")}
-                          </p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {t("cartoes.seguranca.descricao")}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Card de Vincular Novo Telefone */}
-            {!phoneInfo?.temTelefoneVinculado && (
-              <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
-                <CardHeader className="p-4 sm:p-6">
-                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl text-gray-900 dark:text-white">
-                    <Smartphone className="h-4 w-4 sm:h-5 sm:w-5" />
-                    {t("cartoes.vincularTelefone.titulo")}
-                  </CardTitle>
-                  <CardDescription className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                    {t("cartoes.vincularTelefone.descricao")}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-4 sm:p-6 pt-0">
-                  <form
-                    className="space-y-4 sm:space-y-6"
-                    onSubmit={handleSubmit}
-                  >
-                    <div className="space-y-2 sm:space-y-3">
+                    <div className="space-y-3">
                       <Label
-                        htmlFor="telefone"
+                        htmlFor="language"
                         className="text-sm sm:text-base text-gray-900 dark:text-white"
                       >
-                        {t("formulario.labelTelefone")}
+                        {t("formulario.labelIdioma")}
                       </Label>
-                      <Input
-                        id="telefone"
-                        name="telefone"
-                        type="tel"
-                        placeholder={t("formulario.placeholderTelefone")}
-                        required
-                        value={telefone}
-                        onChange={handleTelefoneChange}
-                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-500 focus:border-blue-500 dark:focus:border-blue-500 w-full text-sm sm:text-base"
-                      />
+                      <Select
+                        value={selectedLanguage}
+                        onValueChange={setSelectedLanguage}
+                      >
+                        <SelectTrigger className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
+                          <SelectValue
+                            placeholder={t("formulario.placeholderIdioma")}
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pt-BR">
+                            <div className="flex items-center gap-2">
+                              <span className="text-2xl">🇧🇷</span>
+                              <span>{t("idiomas.portugues")}</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="en-US">
+                            <div className="flex items-center gap-2">
+                              <span className="text-2xl">🇺🇸</span>
+                              <span>{t("idiomas.ingles")}</span>
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                       <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                        {t("formulario.instrucaoTelefone")}
+                        {t("formulario.instrucaoIdioma")}
                       </p>
                     </div>
 
-                    {message && (
-                      <div
-                        className={`p-3 sm:p-4 rounded-lg border text-sm sm:text-base ${
-                          message.type === "success"
-                            ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700 text-green-700 dark:text-green-300"
-                            : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700 text-red-700 dark:text-red-300"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          {message.type === "success" ? (
-                            <>
-                              <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                              <span className="truncate">{message.text}</span>
-                            </>
-                          ) : (
-                            <>
-                              <span className="truncate">
-                                ❌ {message.text}
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
                     <Button
-                      type="submit"
-                      disabled={loading || telefone.length < 14}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white border-0 text-sm sm:text-base py-2.5 sm:py-3"
+                      onClick={handleSaveLanguage}
+                      disabled={savingLanguage}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white"
                     >
-                      {loading ? (
+                      {savingLanguage ? (
                         <div className="flex items-center justify-center gap-2">
-                          <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          <span className="truncate">
-                            {t("estados.vinculando")}
-                          </span>
+                          <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>{t("estados.salvando")}</span>
                         </div>
                       ) : (
-                        <span className="truncate">
-                          {t("botoes.vincularTelefone")}
-                        </span>
+                        t("botoes.salvarIdioma")
                       )}
                     </Button>
-                  </form>
+
+                    <AnimatePresence>
+                      {savingLanguage && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                            <span className="text-sm text-blue-700 dark:text-blue-300">
+                              {t("estados.salvandoConfiguracao")}
+                            </span>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.3 }}
+                      className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
+                    >
+                      <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">
+                        {t("cartoes.idioma.atualSalvo")}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        {savedLanguage === "pt-BR" ? (
+                          <>
+                            <span className="text-2xl">🇧🇷</span>
+                            <span className="text-gray-700 dark:text-gray-300">
+                              {t("idiomas.portugues")}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-2xl">🇺🇸</span>
+                            <span className="text-gray-700 dark:text-gray-300">
+                              {t("idiomas.ingles")}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </motion.div>
+                  </div>
                 </CardContent>
               </Card>
-            )}
-
-            {/* Card de Preferências de Idioma */}
-            <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-2xl">
-              <CardHeader className="p-4 sm:p-6">
-                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl text-gray-900 dark:text-white">
-                  <Globe className="h-4 w-4 sm:h-5 sm:w-5" />
-                  {t("cartoes.idioma.titulo")}
-                </CardTitle>
-                <CardDescription className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                  {t("cartoes.idioma.descricao")}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 sm:p-6 pt-0">
-                <div className="space-y-4">
-                  <div className="space-y-3">
-                    <Label
-                      htmlFor="language"
-                      className="text-sm sm:text-base text-gray-900 dark:text-white"
-                    >
-                      {t("formulario.labelIdioma")}
-                    </Label>
-                    <Select
-                      value={selectedLanguage}
-                      onValueChange={setSelectedLanguage}
-                    >
-                      <SelectTrigger className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
-                        <SelectValue
-                          placeholder={t("formulario.placeholderIdioma")}
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pt-BR">
-                          <div className="flex items-center gap-2">
-                            <span className="text-2xl">🇧🇷</span>
-                            <span>{t("idiomas.portugues")}</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="en-US">
-                          <div className="flex items-center gap-2">
-                            <span className="text-2xl">🇺🇸</span>
-                            <span>{t("idiomas.ingles")}</span>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                      {t("formulario.instrucaoIdioma")}
-                    </p>
-                  </div>
-
-                  <Button
-                    onClick={handleSaveLanguage}
-                    disabled={savingLanguage}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    {savingLanguage ? (
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        <span>{t("estados.salvando")}</span>
-                      </div>
-                    ) : (
-                      t("botoes.salvarIdioma")
-                    )}
-                  </Button>
-
-                  {savingLanguage && (
-                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                        <span className="text-sm text-blue-700 dark:text-blue-300">
-                          {t("estados.salvandoConfiguracao")}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">
-                      {t("cartoes.idioma.atualSalvo")}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      {savedLanguage === "pt-BR" ? (
-                        <>
-                          <span className="text-2xl">🇧🇷</span>
-                          <span className="text-gray-700 dark:text-gray-300">
-                            {t("idiomas.portugues")}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-2xl">🇺🇸</span>
-                          <span className="text-gray-700 dark:text-gray-300">
-                            {t("idiomas.ingles")}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            </motion.div>
           </div>
 
           {/* Sidebar de Benefícios */}
           <div className="space-y-6 sm:space-y-8">
-            <Card className="border-0 shadow-2xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 overflow-hidden">
-              <CardHeader>
-                <CardTitle className="text-lg sm:text-xl text-gray-900 dark:text-white">
-                  {t("beneficios.titulo")}
-                </CardTitle>
-                <CardDescription className="text-gray-600 dark:text-gray-400">
-                  {t("beneficios.subtitulo")}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl border border-green-100 dark:border-green-800/50">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl">
-                      <Bell className="h-4 w-4 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-white">
-                        {t("beneficios.alertas.titulo")}
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        {t("beneficios.alertas.descricao")}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+            >
+              <Card className="border-0 shadow-2xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 overflow-hidden">
+                <CardHeader>
+                  <CardTitle className="text-lg sm:text-xl text-gray-900 dark:text-white">
+                    {t("beneficios.titulo")}
+                  </CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-400">
+                    {t("beneficios.subtitulo")}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {[
+                    {
+                      icon: Bell,
+                      gradient: "from-green-500 to-emerald-600",
+                      bg: "from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20",
+                      border: "border-green-100 dark:border-green-800/50",
+                      titulo: t("beneficios.alertas.titulo"),
+                      descricao: t("beneficios.alertas.descricao"),
+                      delay: 0.2,
+                    },
+                    {
+                      icon: Mic,
+                      gradient: "from-blue-500 to-cyan-600",
+                      bg: "from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20",
+                      border: "border-blue-100 dark:border-blue-800/50",
+                      titulo: t("beneficios.comandos.titulo"),
+                      descricao: t("beneficios.comandos.descricao"),
+                      delay: 0.3,
+                    },
+                    {
+                      icon: Zap,
+                      gradient: "from-purple-500 to-pink-600",
+                      bg: "from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20",
+                      border: "border-purple-100 dark:border-purple-800/50",
+                      titulo: t("beneficios.acesso.titulo"),
+                      descricao: t("beneficios.acesso.descricao"),
+                      delay: 0.4,
+                    },
+                    {
+                      icon: Lock,
+                      gradient: "from-amber-500 to-orange-600",
+                      bg: "from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20",
+                      border: "border-amber-100 dark:border-amber-800/50",
+                      titulo: t("beneficios.seguranca.titulo"),
+                      descricao: t("beneficios.seguranca.descricao"),
+                      delay: 0.5,
+                    },
+                  ].map((item, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: item.delay }}
+                      className={`p-4 bg-gradient-to-br ${item.bg} rounded-2xl border ${item.border}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`p-2 bg-gradient-to-r ${item.gradient} rounded-xl`}
+                        >
+                          <item.icon className="h-4 w-4 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900 dark:text-white">
+                            {item.titulo}
+                          </p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            {item.descricao}
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </CardContent>
+              </Card>
+            </motion.div>
 
-                <div className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-2xl border border-blue-100 dark:border-blue-800/50">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-xl">
-                      <Mic className="h-4 w-4 text-white" />
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: 0.6 }}
+            >
+              <Card className="border-0 shadow-2xl bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 overflow-hidden">
+                <CardContent className="p-6">
+                  <div className="text-center">
+                    <div className="inline-flex p-3 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-2xl mb-4">
+                      <Shield className="h-6 w-6 text-white" />
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-white">
-                        {t("beneficios.comandos.titulo")}
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        {t("beneficios.comandos.descricao")}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-2xl border border-purple-100 dark:border-purple-800/50">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl">
-                      <Zap className="h-4 w-4 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-white">
-                        {t("beneficios.acesso.titulo")}
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        {t("beneficios.acesso.descricao")}
-                      </p>
+                    <h3 className="font-bold text-gray-900 dark:text-white mb-2">
+                      {t("privacidade.titulo")}
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                      {t("privacidade.descricao")}
+                    </p>
+                    <div className="flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
+                      <CheckCircle2 className="h-4 w-4 text-green-500 mr-2" />
+                      {t("privacidade.criptografia")}
                     </div>
                   </div>
-                </div>
-
-                <div className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-2xl border border-amber-100 dark:border-amber-800/50">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl">
-                      <Lock className="h-4 w-4 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-white">
-                        {t("beneficios.seguranca.titulo")}
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        {t("beneficios.seguranca.descricao")}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-2xl bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 overflow-hidden">
-              <CardContent className="p-6">
-                <div className="text-center">
-                  <div className="inline-flex p-3 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-2xl mb-4">
-                    <Shield className="h-6 w-6 text-white" />
-                  </div>
-                  <h3 className="font-bold text-gray-900 dark:text-white mb-2">
-                    {t("privacidade.titulo")}
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    {t("privacidade.descricao")}
-                  </p>
-                  <div className="flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
-                    <CheckCircle2 className="h-4 w-4 text-green-500 mr-2" />
-                    {t("privacidade.criptografia")}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
         </div>
       </div>
-
       {/* Dialog de Confirmação para Desvincular */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent className="border-0 shadow-2xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900">

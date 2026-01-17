@@ -1,34 +1,9 @@
+"use client";
+
 import { motion, useInView } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
 import { TrendingUp, Clock, FileSpreadsheet, FileText, Sparkles, Zap } from "lucide-react";
-
-const methods = [
-  {
-    name: "BeCash",
-    icon: Zap,
-    productivity: 93,
-    description: "Rápido, automático e inteligente",
-    color: "from-[#00cfec] to-[#007cca]",
-    bgColor: "bg-gradient-to-r from-[#00cfec]/10 to-[#007cca]/10",
-    featured: true,
-  },
-  {
-    name: "Planilha Manual",
-    icon: FileSpreadsheet,
-    productivity: 45,
-    description: "Requer tempo para abrir, lançar e salvar",
-    color: "from-blue-400 to-blue-500",
-    bgColor: "bg-blue-50 dark:bg-blue-900/20",
-  },
-  {
-    name: "Controle no Papel",
-    icon: FileText,
-    productivity: 23,
-    description: "Lento, sujeito a erros e difícil de analisar",
-    color: "from-gray-400 to-gray-500",
-    bgColor: "bg-gray-100 dark:bg-gray-800",
-  },
-];
+import { useTranslation } from "react-i18next";
 
 const AnimatedCounter = ({ target, inView }: { target: number; inView: boolean }) => {
   const [count, setCount] = useState(0);
@@ -56,8 +31,37 @@ const AnimatedCounter = ({ target, inView }: { target: number; inView: boolean }
 };
 
 export const ProductivityGains = () => {
+  const { t } = useTranslation("productivityGains");
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
+
+  const methods = [
+    {
+      name: t("methods.becash.name", "BeCash"),
+      icon: Zap,
+      productivity: 93,
+      description: t("methods.becash.description", "Rápido, automático e inteligente"),
+      color: "from-[#00cfec] to-[#007cca]",
+      bgColor: "bg-gradient-to-r from-[#00cfec]/10 to-[#007cca]/10",
+      featured: true,
+    },
+    {
+      name: t("methods.spreadsheet.name", "Planilha Manual"),
+      icon: FileSpreadsheet,
+      productivity: 45,
+      description: t("methods.spreadsheet.description", "Requer tempo para abrir, lançar e salvar"),
+      color: "from-blue-400 to-blue-500",
+      bgColor: "bg-blue-50 dark:bg-blue-900/20",
+    },
+    {
+      name: t("methods.paper.name", "Controle no Papel"),
+      icon: FileText,
+      productivity: 23,
+      description: t("methods.paper.description", "Lento, sujeito a erros e difícil de analisar"),
+      color: "from-gray-400 to-gray-500",
+      bgColor: "bg-gray-100 dark:bg-gray-800",
+    },
+  ];
 
   return (
     <section className="py-24 bg-background relative overflow-hidden" ref={ref}>
@@ -81,19 +85,18 @@ export const ProductivityGains = () => {
             transition={{ delay: 0.1, duration: 0.3 }}
           >
             <TrendingUp className="w-4 h-4" />
-            <span>Ganho de Produtividade</span>
+            <span>{t("badge", "Ganho de Produtividade")}</span>
           </motion.div>
 
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3 tracking-tight">
-            Economize{" "}
+            {t("title.save", "Economize")}{" "}
             <span className="bg-gradient-to-r from-[#00cfec] to-[#007cca] bg-clip-text text-transparent">
-              Tempo e Energia
+              {t("title.highlight", "Tempo e Energia")}
             </span>
           </h2>
 
           <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-sm md:text-base leading-relaxed">
-            Compare o tempo gasto com métodos tradicionais e veja como o BeCash 
-            transforma sua rotina financeira
+            {t("description", "Compare o tempo gasto com métodos tradicionais e veja como o BeCash transforma sua rotina financeira")}
           </p>
         </motion.div>
 
@@ -120,7 +123,7 @@ export const ProductivityGains = () => {
                   transition={{ duration: 2, repeat: Infinity }}
                 >
                   <Sparkles className="w-4 h-4" />
-                  Recomendado
+                  {t("recommended", "Recomendado")}
                 </motion.div>
               )}
 
@@ -212,8 +215,8 @@ export const ProductivityGains = () => {
           <div className="inline-flex items-center gap-3 px-6 py-4 rounded-2xl bg-gradient-to-r from-[#00cfec]/10 to-[#007cca]/10 border border-[#00cfec]/20">
             <Clock className="w-6 h-6 text-[#007cca] dark:text-[#00cfec]" />
             <p className="text-gray-900 dark:text-white text-sm md:text-base">
-              <span className="font-bold text-[#007cca] dark:text-[#00cfec]">Economize até 4 horas por semana</span>
-              {" "}automatizando seu controle financeiro
+              <span className="font-bold text-[#007cca] dark:text-[#00cfec]">{t("footer.highlight", "Economize até 4 horas por semana")}</span>
+              {" "}{t("footer.text", "automatizando seu controle financeiro")}
             </p>
           </div>
         </motion.div>
