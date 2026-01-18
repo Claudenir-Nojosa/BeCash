@@ -11,12 +11,17 @@ import BotaoGoogleServer from "@/components/shared/botaoGoogleServer";
 import { auth } from "../../../../../auth";
 import { useParams } from "next/navigation";
 
-export default async function LoginPage({ params }: { params: { lang: string } }) {
+export default async function LoginPage({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}) {
+  const { lang } = await params;
+
   const session = await auth();
-  
+
   if (session) {
-    // Redirecionar para dashboard com a linguagem correta
-    return redirect(`/${params.lang}/dashboard`);
+    redirect(`/${lang}/dashboard`);
   }
 
   return (
@@ -44,13 +49,15 @@ export default async function LoginPage({ params }: { params: { lang: string } }
           <CardDescription>Faça seu login com email e senha.</CardDescription>
         </CardHeader>
         <CardContent>
-          <LoginForm lang={params.lang} /> {/* Passar linguagem para o formulário */}
+          <LoginForm lang={lang} />
+          {/* Passar linguagem para o formulário */}
           <div className="flex flex-col w-full justify-center items-center">
             <div className="mx-auto my-4 flex w-full items-center justify-evenly before:mr-4 before:block before:h-px before:flex-grow before:bg-muted-foreground after:ml-4 after:block after:h-px after:flex-grow after:bg-muted-foreground">
               ou
             </div>
             <div className="gap-3 flex flex-col mt-6 w-full">
-              <BotaoGoogleServer lang={params.lang} /> {/* Passar linguagem para Google */}
+              <BotaoGoogleServer lang={lang} />{" "}
+              {/* Passar linguagem para Google */}
               <div className="flex gap-5 w-full items-center"></div>
             </div>
           </div>
