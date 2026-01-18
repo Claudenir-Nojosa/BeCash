@@ -504,243 +504,246 @@ A transação foi cancelada e não foi registrada em seu extrato.
   }
 
   // Processamento principal de mensagem de texto
-  static async processarMensagemTexto(message: any) {
-    const userMessage = message.text?.body;
-    const userPhone = message.from;
-    const messageId = message.id;
+ static async processarMensagemTexto(message: any) {
+  const userMessage = message.text?.body;
+  const userPhone = message.from;
+  const messageId = message.id;
 
-    console.log("👤 Mensagem de:", userPhone);
-    console.log("💬 Texto:", userMessage);
-    console.log("🆔 Message ID:", messageId);
+  console.log("👤 Mensagem de:", userPhone);
+  console.log("💬 Texto:", userMessage);
+  console.log("🆔 Message ID:", messageId);
 
-    // Buscar usuário com suas configurações
-    const session = await UserService.getUserByPhone(userPhone);
-    if (!session) {
-      await WhatsAppService.sendMessage(
-        userPhone,
-        "❌ Seu número não está vinculado a nenhuma conta.\n\n💡 Acesse o app BeCash e vincule seu WhatsApp em Configurações.",
-      );
-      return { status: "user_not_found" };
-    }
+  // Buscar usuário com suas configurações
+  const session = await UserService.getUserByPhone(userPhone);
+  if (!session) {
+    await WhatsAppService.sendMessage(
+      userPhone,
+      "❌ Seu número não está vinculado a nenhuma conta.\n\n💡 Acesse o app BeCash e vincule seu WhatsApp em Configurações.",
+    );
+    return { status: "user_not_found" };
+  }
 
-    const userId = session.user.id;
-    const idiomaPreferido = session.idiomaPreferido;
-    console.log(`🌐 IDIOMA PREFERIDO DO USUÁRIO: ${idiomaPreferido}`);
+  const userId = session.user.id;
+  const idiomaPreferido = session.idiomaPreferido || "pt-BR";
+  console.log(`🌐 IDIOMA PREFERIDO DO USUÁRIO: ${idiomaPreferido}`);
 
-    // Detectar comando com IA
-    const comandoIA = await AIService.detectarComandoComIA(userMessage);
-    const idioma = idiomaPreferido;
+  // Inicializar cache ANTES de verificar pendências
+  if (!global.pendingLancamentos) {
+    console.log("🔄 Criando novo cache de pendingLancamentos");
+    global.pendingLancamentos = new Map();
+  }
 
-    console.log(
-      `🤖 Comando detectado pela IA: ${comandoIA.tipo} (idioma: ${idioma})`,
+  const telefoneBusca = normalizarTelefone(userPhone);
+  console.log(`🔍 Verificando lançamentos pendentes...`);
+  console.log(`📞 Telefone normalizado: ${telefoneBusca}`);
+
+  // PRIMEIRO: verificar se há lançamento pendente para este usuário
+  const pendingLancamento = global.pendingLancamentos?.get(telefoneBusca);
+
+  if (pendingLancamento) {
+    console.log(`✅ LANÇAMENTO PENDENTE ENCONTRADO`);
+
+    const validacao = validarLancamentoPendente(
+      pendingLancamento,
+      Date.now(),
     );
 
-    if (comandoIA.tipo && comandoIA.tipo !== "NENHUM") {
-      if (comandoIA.tipo === "LISTAR_CATEGORIAS") {
-        await this.processarComandoCategorias(userPhone, userId, idioma);
-        return { status: "command_processed" };
-      }
+    if (!validacao.valido) {
+      if (validacao.motivo === "expired") {
+        console.log(`⏰ Lançamento expirado`);
+        global.pendingLancamentos.delete(telefoneBusca);
 
-      if (comandoIA.tipo === "AJUDA") {
-        await this.enviarMensagemAjuda(userPhone, idioma);
-        return { status: "command_processed" };
+        let mensagemExpirado = "";
+        if (idiomaPreferido === "en-US") {
+          mensagemExpirado =
+            "❌ Confirmation expired (5 minutes).\n\n💡 Send the transaction again.";
+        } else {
+          mensagemExpirado =
+            "❌ A confirmação expirou (5 minutos).\n\n💡 Envie novamente o lançamento.";
+        }
+
+        await WhatsAppService.sendMessage(userPhone, mensagemExpirado);
+        return { status: "expired" };
       }
     }
 
-    // Inicializar cache
-    if (!global.pendingLancamentos) {
-      console.log("🔄 Criando novo cache de pendingLancamentos");
-      global.pendingLancamentos = new Map();
-    }
+    // USUÁRIO TEM LANÇAMENTO PENDENTE - tratar como resposta à confirmação
+    const resposta = userMessage.toLowerCase().trim();
 
-    const telefoneBusca = normalizarTelefone(userPhone);
-    console.log(`🔍 Verificando lançamentos pendentes...`);
-    console.log(`📞 Telefone normalizado: ${telefoneBusca}`);
-
-    const pendingLancamento = global.pendingLancamentos?.get(telefoneBusca);
-
-    if (pendingLancamento) {
-      console.log(`✅ LANÇAMENTO PENDENTE ENCONTRADO`);
-
-      const validacao = validarLancamentoPendente(
+    if (isConfirmacao(resposta)) {
+      console.log(`✅ USUÁRIO CONFIRMOU`);
+      return await this.processarConfirmacao(
+        "sim",
         pendingLancamento,
-        Date.now(),
+        telefoneBusca,
       );
-
-      if (!validacao.valido) {
-        if (validacao.motivo === "expired") {
-          console.log(`⏰ Lançamento expirado`);
-          global.pendingLancamentos.delete(telefoneBusca);
-
-          let mensagemExpirado = "";
-          if (idiomaPreferido === "en-US") {
-            mensagemExpirado =
-              "❌ Confirmation expired (5 minutes).\n\n💡 Send the transaction again.";
-          } else {
-            mensagemExpirado =
-              "❌ A confirmação expirou (5 minutos).\n\n💡 Envie novamente o lançamento.";
-          }
-
-          await WhatsAppService.sendMessage(userPhone, mensagemExpirado);
-          return { status: "expired" };
-        }
-      }
-
-      const resposta = userMessage.toLowerCase().trim();
-
-      if (isConfirmacao(resposta)) {
-        console.log(`✅ USUÁRIO CONFIRMOU`);
-        return await this.processarConfirmacao(
-          "sim",
-          pendingLancamento,
-          telefoneBusca,
-        );
-      }
-
-      if (isCancelamento(resposta)) {
-        console.log(`❌ USUÁRIO CANCELOU`);
-        return await this.processarConfirmacao(
-          "não",
-          pendingLancamento,
-          telefoneBusca,
-        );
-      }
-
-      // Resposta não reconhecida
-      let mensagemInvalida = "";
-      if (idiomaPreferido === "en-US") {
-        mensagemInvalida =
-          `❌ I didn't understand your response: "${userMessage}"\n\n` +
-          `Reply with:\n` +
-          `✅ *YES* - To confirm the transaction\n` +
-          `❌ *NO* - To cancel\n\n` +
-          `Or send a new message to create another transaction.`;
-      } else {
-        mensagemInvalida =
-          `❌ Não entendi sua resposta: "${userMessage}"\n\n` +
-          `Responda com:\n` +
-          `✅ *SIM* - Para confirmar o lançamento\n` +
-          `❌ *NÃO* - Para cancelar\n\n` +
-          `Ou envie uma nova mensagem para criar outro lançamento.`;
-      }
-
-      await WhatsAppService.sendMessage(userPhone, mensagemInvalida);
-      return { status: "invalid_confirmation_response" };
     }
 
-    if (userMessage && userPhone) {
-      // Extrair dados
-
-      const dadosExtracao = await AIService.extrairDadosComIA(
-        userMessage,
-        idiomaPreferido || "pt-BR",
+    if (isCancelamento(resposta)) {
+      console.log(`❌ USUÁRIO CANCELOU`);
+      return await this.processarConfirmacao(
+        "não",
+        pendingLancamento,
+        telefoneBusca,
       );
-      console.log("📊 Dados extraídos:", dadosExtracao);
-
-      if (!dadosExtracao.sucesso) {
-        let erroMsg = "";
-        if (idiomaPreferido === "en-US") {
-          erroMsg = `❌ ${dadosExtracao.erro}\n\n💡 Example: "I spent 50 on lunch"`;
-        } else {
-          erroMsg = `❌ ${dadosExtracao.erro}\n\n💡 Exemplo: "Gastei 50 no almoço"`;
-        }
-
-        await WhatsAppService.sendMessage(userPhone, erroMsg);
-        return { status: "extraction_failed" };
-      }
-
-      // Buscar categorias
-      const categoriasUsuario = await UserService.getCategoriasUsuario(userId);
-      console.log("🏷️ Categorias do usuário:", categoriasUsuario);
-
-      if (categoriasUsuario.length === 0) {
-        let mensagemErro = "";
-        if (idiomaPreferido === "en-US") {
-          mensagemErro =
-            "❌ No categories found. Create categories first in the app.";
-        } else {
-          mensagemErro =
-            "❌ Nenhuma categoria encontrada. Crie categorias primeiro no app.";
-        }
-        await WhatsAppService.sendMessage(userPhone, mensagemErro);
-        return { status: "no_categories" };
-      }
-
-      const categoriaEscolhida = await AIService.escolherMelhorCategoria(
-        dadosExtracao.dados.descricao,
-        categoriasUsuario,
-        dadosExtracao.dados.tipo,
-        dadosExtracao.dados.categoriaSugerida,
-      );
-
-      if (!categoriaEscolhida) {
-        let mensagemErro = "";
-        if (idiomaPreferido === "en-US") {
-          mensagemErro = `❌ No ${dadosExtracao.dados.tipo === "DESPESA" ? "expense" : "income"} category found.`;
-        } else {
-          mensagemErro = `❌ Nenhuma categoria do tipo ${dadosExtracao.dados.tipo} encontrada.`;
-        }
-        await WhatsAppService.sendMessage(userPhone, mensagemErro);
-        return { status: "no_matching_category" };
-      }
-
-      // Limpar descrição
-      const descricaoLimpa = await AIService.limparDescricaoComClaude(
-        dadosExtracao.dados.descricao,
-        idiomaPreferido,
-      );
-
-      // Identificar cartão
-      let cartaoEncontrado = null;
-      if (dadosExtracao.dados.metodoPagamento === "CREDITO") {
-        cartaoEncontrado = await LancamentoService.identificarCartao(
-          userMessage,
-          userId,
-        );
-      }
-
-      // Gerar mensagem de confirmação
-      const mensagemConfirmacao = await this.gerarMensagemConfirmacao(
-        dadosExtracao.dados,
-        descricaoLimpa,
-        categoriaEscolhida,
-        cartaoEncontrado,
-        userId,
-        idiomaPreferido,
-      );
-
-      // Salvar no cache
-      const lancamentoTemporario: LancamentoTemporario = {
-        dados: dadosExtracao.dados,
-        categoriaEscolhida,
-        userId,
-        userPhone,
-        timestamp: Date.now(),
-        descricaoLimpa,
-        cartaoEncontrado,
-        mensagemOriginal: userMessage,
-        descricaoOriginal: dadosExtracao.dados.descricao,
-      };
-
-      global.pendingLancamentos.set(telefoneBusca, lancamentoTemporario);
-
-      // Limpar após 5 minutos
-      setTimeout(
-        () => {
-          if (global.pendingLancamentos?.has(telefoneBusca)) {
-            global.pendingLancamentos.delete(telefoneBusca);
-          }
-        },
-        5 * 60 * 1000,
-      );
-
-      await WhatsAppService.sendMessage(userPhone, mensagemConfirmacao);
-
-      return { status: "waiting_confirmation" };
     }
 
-    return { status: "processed" };
+    // Resposta não reconhecida - mas usuário ainda tem pendente
+    let mensagemInvalida = "";
+    if (idiomaPreferido === "en-US") {
+      mensagemInvalida =
+        `❌ I didn't understand your response: "${userMessage}"\n\n` +
+        `Reply with:\n` +
+        `✅ *YES* - To confirm the transaction\n` +
+        `❌ *NO* - To cancel\n\n` +
+        `Or send a new message to create another transaction.`;
+    } else {
+      mensagemInvalida =
+        `❌ Não entendi sua resposta: "${userMessage}"\n\n` +
+        `Responda com:\n` +
+        `✅ *SIM* - Para confirmar o lançamento\n` +
+        `❌ *NÃO* - Para cancelar\n\n` +
+        `Ou envie uma nova mensagem para criar outro lançamento.`;
+    }
+
+    await WhatsAppService.sendMessage(userPhone, mensagemInvalida);
+    return { status: "invalid_confirmation_response" };
   }
+
+  // SE NÃO HÁ LANÇAMENTO PENDENTE, então processar como nova mensagem/comando
+
+  // Detectar comando com IA
+  const comandoIA = await AIService.detectarComandoComIA(userMessage);
+
+  console.log(
+    `🤖 Comando detectado pela IA: ${comandoIA.tipo} (idioma: ${comandoIA.idioma})`,
+  );
+
+  if (comandoIA.tipo && comandoIA.tipo !== "NENHUM") {
+    if (comandoIA.tipo === "LISTAR_CATEGORIAS") {
+      await this.processarComandoCategorias(userPhone, userId, idiomaPreferido);
+      return { status: "command_processed" };
+    }
+
+    if (comandoIA.tipo === "AJUDA") {
+      await this.enviarMensagemAjuda(userPhone, idiomaPreferido);
+      return { status: "command_processed" };
+    }
+  }
+
+  // Se não é comando e não tem pendência, tratar como novo lançamento
+  if (userMessage && userPhone) {
+    // Extrair dados
+    const dadosExtracao = await AIService.extrairDadosComIA(
+      userMessage,
+      idiomaPreferido,
+    );
+    console.log("📊 Dados extraídos:", dadosExtracao);
+
+    if (!dadosExtracao.sucesso) {
+      let erroMsg = "";
+      if (idiomaPreferido === "en-US") {
+        erroMsg = `❌ ${dadosExtracao.erro}\n\n💡 Example: "I spent 50 on lunch"`;
+      } else {
+        erroMsg = `❌ ${dadosExtracao.erro}\n\n💡 Exemplo: "Gastei 50 no almoço"`;
+      }
+
+      await WhatsAppService.sendMessage(userPhone, erroMsg);
+      return { status: "extraction_failed" };
+    }
+
+    // Buscar categorias
+    const categoriasUsuario = await UserService.getCategoriasUsuario(userId);
+    console.log("🏷️ Categorias do usuário:", categoriasUsuario);
+
+    if (categoriasUsuario.length === 0) {
+      let mensagemErro = "";
+      if (idiomaPreferido === "en-US") {
+        mensagemErro =
+          "❌ No categories found. Create categories first in the app.";
+      } else {
+        mensagemErro =
+          "❌ Nenhuma categoria encontrada. Crie categorias primeiro no app.";
+      }
+      await WhatsAppService.sendMessage(userPhone, mensagemErro);
+      return { status: "no_categories" };
+    }
+
+    const categoriaEscolhida = await AIService.escolherMelhorCategoria(
+      dadosExtracao.dados.descricao,
+      categoriasUsuario,
+      dadosExtracao.dados.tipo,
+      dadosExtracao.dados.categoriaSugerida,
+    );
+
+    if (!categoriaEscolhida) {
+      let mensagemErro = "";
+      if (idiomaPreferido === "en-US") {
+        mensagemErro = `❌ No ${dadosExtracao.dados.tipo === "DESPESA" ? "expense" : "income"} category found.`;
+      } else {
+        mensagemErro = `❌ Nenhuma categoria do tipo ${dadosExtracao.dados.tipo} encontrada.`;
+      }
+      await WhatsAppService.sendMessage(userPhone, mensagemErro);
+      return { status: "no_matching_category" };
+    }
+
+    // Limpar descrição
+    const descricaoLimpa = await AIService.limparDescricaoComClaude(
+      dadosExtracao.dados.descricao,
+      idiomaPreferido,
+    );
+
+    // Identificar cartão
+    let cartaoEncontrado = null;
+    if (dadosExtracao.dados.metodoPagamento === "CREDITO") {
+      cartaoEncontrado = await LancamentoService.identificarCartao(
+        userMessage,
+        userId,
+      );
+    }
+
+    // Gerar mensagem de confirmação
+    const mensagemConfirmacao = await this.gerarMensagemConfirmacao(
+      dadosExtracao.dados,
+      descricaoLimpa,
+      categoriaEscolhida,
+      cartaoEncontrado,
+      userId,
+      idiomaPreferido,
+    );
+
+    // Salvar no cache
+    const lancamentoTemporario: LancamentoTemporario = {
+      dados: dadosExtracao.dados,
+      categoriaEscolhida,
+      userId,
+      userPhone,
+      timestamp: Date.now(),
+      descricaoLimpa,
+      cartaoEncontrado,
+      mensagemOriginal: userMessage,
+      descricaoOriginal: dadosExtracao.dados.descricao,
+    };
+
+    global.pendingLancamentos.set(telefoneBusca, lancamentoTemporario);
+
+    // Limpar após 5 minutos
+    setTimeout(
+      () => {
+        if (global.pendingLancamentos?.has(telefoneBusca)) {
+          global.pendingLancamentos.delete(telefoneBusca);
+        }
+      },
+      5 * 60 * 1000,
+    );
+
+    await WhatsAppService.sendMessage(userPhone, mensagemConfirmacao);
+
+    return { status: "waiting_confirmation" };
+  }
+
+  return { status: "processed" };
+}
 
   // Processar confirmação
   static async processarConfirmacao(

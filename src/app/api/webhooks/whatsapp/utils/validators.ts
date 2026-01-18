@@ -64,17 +64,58 @@ export function validarLancamentoPendente(
 }
 
 export function isConfirmacao(resposta: string): boolean {
-  const confirmacoesIngles = [
+  const confirmacoes = [
     "sim", "s", "confirmar", "ok", "yes", "✅", "y", "confirm", "yeah", "yep",
+    "sure", "affirmative", "positive", "true", "correct", "right", "yea",
+    "claro", "pode ser", "vamos", "beleza", "blz", "okay", "tá bom"
   ];
   
-  return confirmacoesIngles.includes(resposta.toLowerCase().trim());
+  const respostaLower = resposta.toLowerCase().trim();
+  
+  // Verificar se é apenas um emoji de confirmação
+  if (respostaLower === "✅") {
+    return true;
+  }
+  
+  // Verificar palavras completas
+  return confirmacoes.includes(respostaLower);
 }
 
 export function isCancelamento(resposta: string): boolean {
-  const cancelamentosIngles = [
+  const cancelamentos = [
     "não", "nao", "n", "cancelar", "no", "❌", "nope", "cancel", "stop",
+    "negative", "false", "wrong", "incorrect", "not", "nah", "nem",
+    "cancelar", "parar", "desistir", "abortar", "deixa", "esquece",
+    "deixa pra lá", "não quero", "nao quero"
   ];
   
-  return cancelamentosIngles.includes(resposta.toLowerCase().trim());
+  const respostaLower = resposta.toLowerCase().trim();
+  
+  // Verificar se é apenas um emoji de cancelamento
+  if (respostaLower === "❌") {
+    return true;
+  }
+  
+  // Verificar palavras completas
+  return cancelamentos.includes(respostaLower);
+}
+
+// Função auxiliar para verificar se a mensagem é uma resposta simples (sim/não)
+export function isRespostaSimples(texto: string): boolean {
+  const textoLower = texto.toLowerCase().trim();
+  
+  // Lista de respostas simples que não devem ser tratadas como lançamentos
+  const respostasSimples = [
+    "sim", "não", "nao", "s", "n", "yes", "no", "y", "nope", "yep",
+    "yeah", "nah", "✅", "❌", "ok", "okay", "cancel", "confirm",
+    "cancelar", "confirmar", "claro", "nem", "deixa", "esquece"
+  ];
+  
+  // Verificar se é uma resposta de 1-3 palavras que está na lista
+  const palavras = textoLower.split(/\s+/);
+  return palavras.length <= 3 && respostasSimples.some(resposta => 
+    textoLower === resposta || 
+    (palavras.length === 1 && resposta.includes(textoLower)) ||
+    (palavras.length === 2 && resposta.includes(palavras[0]))
+  );
 }
