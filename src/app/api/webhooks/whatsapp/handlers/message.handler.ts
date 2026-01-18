@@ -47,8 +47,10 @@ export class MessageHandler {
 - "I bought 600 in 3 installments"
 - "I spent 1200 in 6x on credit"
 
-*Shared:*
-- "I spent 100 on dinner shared with Mary"
+*Shared with personalized division:*
+- "I spent 100 on dinner shared with Mary, my part is 60" → You pay 60, Mary pays 40
+- "I paid 50, my part is 60%" → You pay 60% (R$30), other person pays 40% (R$20)
+- "Expense of 80 shared with John, I take 45" → You pay 45, John pays 35
 
 *📋 AVAILABLE COMMANDS:*
 - "Which categories do I have?"
@@ -80,8 +82,10 @@ export class MessageHandler {
 - "Comprei 600 parcelado em 3 vezes"
 - "Gastei 1200 em 6x no crédito"
 
-*Compartilhado:*
-- "Gastei 100 no jantar compartilhada com Maria"
+*Compartilhado com divisão personalizada:*
+- "Gastei 100 no jantar compartilhada com Maria, minha parte é 60" → Você paga 60, Maria paga 40
+- "Paguei 50, minha parte é 60%" → Você paga 60% (R$30), outra pessoa paga 40% (R$20)
+- "Despesa de 80 compartilhada com João, eu fico com 45" → Você paga 45, João paga 35
 
 *📋 COMANDOS DISPONÍVEIS:*
 - "Quais categorias tenho?"
@@ -205,6 +209,7 @@ A transação foi cancelada e não foi registrada em seu extrato.
         templateEN += `💰 *Total amount:* ${valorFormatado}\n`;
         templateEN += `🏷️ *Category:* ${categoriaEscolhida.nome}\n`;
 
+        // NOVO: Tratamento de divisão personalizada após criação
         if (
           resultadoCriacao?.usuarioAlvo &&
           resultadoCriacao.valorCompartilhado > 0
@@ -221,6 +226,11 @@ A transação foi cancelada e não foi registrada em seu extrato.
           templateEN += `\n👥 *SHARED EXPENSE*\n`;
           templateEN += `   • Your part: ${valorUsuario}\n`;
           templateEN += `   • ${resultadoCriacao.usuarioAlvo.name}: ${valorCompartilhado}\n`;
+
+          // Adicionar tipo de divisão
+          if (resultadoCriacao.tipoDivisao) {
+            templateEN += `   • Division type: ${resultadoCriacao.tipoDivisao}\n`;
+          }
         }
 
         if (resultadoCriacao?.ehParcelado && resultadoCriacao.parcelasTotal) {
@@ -245,30 +255,42 @@ A transação foi cancelada e não foi registrada em seu extrato.
         templatePT += `💰 *Valor total:* ${valorFormatado}\n`;
         templatePT += `🏷️ *Categoria:* ${categoriaEscolhida.nome}\n`;
 
+        // NOVO: Tratamento de divisão personalizada após criação
         if (
           resultadoCriacao?.usuarioAlvo &&
           resultadoCriacao.valorCompartilhado > 0
         ) {
-          const valorUsuario =
-            resultadoCriacao.valorUsuarioCriador.toLocaleString("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            });
-
-          const valorCompartilhado =
-            resultadoCriacao.valorCompartilhado.toLocaleString("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            });
+          const valorUsuario = formatarValorComMoeda(
+            resultadoCriacao.valorUsuarioCriador,
+            idioma,
+          );
+          const valorCompartilhado = formatarValorComMoeda(
+            resultadoCriacao.valorCompartilhado,
+            idioma,
+          );
 
           templatePT += `\n👥 *COMPARTILHAMENTO*\n`;
           templatePT += `   • Sua parte: ${valorUsuario}\n`;
           templatePT += `   • ${resultadoCriacao.usuarioAlvo.name}: ${valorCompartilhado}\n`;
+
+          // Adicionar tipo de divisão
+          if (resultadoCriacao.tipoDivisao) {
+            const tiposDivisao: Record<string, string> = {
+              metade: "Metade (50/50)",
+              porcentagem: `Porcentagem (${resultadoCriacao.porcentagemUsuario}%)`,
+              valor_fixo: "Valor fixo",
+            };
+
+            const tipoDivisaoTraduzido =
+              tiposDivisao[resultadoCriacao.tipoDivisao] ||
+              resultadoCriacao.tipoDivisao;
+            templatePT += `   • Tipo de divisão: ${tipoDivisaoTraduzido}\n`;
+          }
         }
 
         if (resultadoCriacao?.ehParcelado && resultadoCriacao.parcelasTotal) {
           templatePT += `\n💳 *PARCELAMENTO*\n`;
-          templatePT += `   • ${resultadoCriacao.parcelasTotal}x de ${resultadoCriacao.valorParcela.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+          templatePT += `   • ${resultadoCriacao.parcelasTotal}x de ${formatarValorComMoeda(resultadoCriacao.valorParcela, idioma)}\n`;
         }
 
         if (cartaoEncontrado) {
@@ -366,10 +388,30 @@ A transação foi cancelada e não foi registrada em seu extrato.
         }
       }
 
+      // NOVO: Tratamento de divisão personalizada na confirmação
       if (dados.ehCompartilhado && dados.nomeUsuarioCompartilhado) {
         const valorTotal = parseFloat(dados.valor);
-        const valorCompartilhado = valorTotal / 2;
-        const valorUsuario = valorTotal / 2;
+
+        // Calcular valores baseados no tipo de divisão
+        let valorUsuario = 0;
+        let valorCompartilhado = 0;
+        let infoDivisao = "";
+
+        if (dados.tipoDivisao === "porcentagem" && dados.porcentagemUsuario) {
+          const porcentagem = dados.porcentagemUsuario / 100;
+          valorUsuario = valorTotal * porcentagem;
+          valorCompartilhado = valorTotal - valorUsuario;
+          infoDivisao = `📊 Division: ${dados.porcentagemUsuario}% / ${100 - dados.porcentagemUsuario}%`;
+        } else if (dados.tipoDivisao === "valor_fixo" && dados.valorUsuario) {
+          valorUsuario = dados.valorUsuario;
+          valorCompartilhado = valorTotal - valorUsuario;
+          infoDivisao = `💰 Division: Fixed amount`;
+        } else {
+          // Divisão padrão (metade)
+          valorUsuario = valorTotal / 2;
+          valorCompartilhado = valorTotal / 2;
+          infoDivisao = `📊 Division: Half (50/50)`;
+        }
 
         const valorUsuarioFormatado = formatarValorComMoeda(
           valorUsuario,
@@ -381,6 +423,7 @@ A transação foi cancelada e não foi registrada em seu extrato.
         );
 
         templateEN += `*👥 Shared with:* ${dados.nomeUsuarioCompartilhado}\n`;
+        templateEN += `*${infoDivisao}*\n`;
         templateEN += `*🤝 Your part:* ${valorUsuarioFormatado}\n`;
         templateEN += `*👤 ${dados.nomeUsuarioCompartilhado}'s part:* ${valorCompartilhadoFormatado}\n`;
       }
@@ -478,12 +521,33 @@ A transação foi cancelada e não foi registrada em seu extrato.
         }
       }
 
+      // NOVO: Tratamento de divisão personalizada na confirmação
       if (dados.ehCompartilhado && dados.nomeUsuarioCompartilhado) {
         const valorTotal = parseFloat(dados.valor);
-        const valorCompartilhado = valorTotal / 2;
-        const valorUsuario = valorTotal / 2;
+
+        // Calcular valores baseados no tipo de divisão
+        let valorUsuario = 0;
+        let valorCompartilhado = 0;
+        let infoDivisao = "";
+
+        if (dados.tipoDivisao === "porcentagem" && dados.porcentagemUsuario) {
+          const porcentagem = dados.porcentagemUsuario / 100;
+          valorUsuario = valorTotal * porcentagem;
+          valorCompartilhado = valorTotal - valorUsuario;
+          infoDivisao = `📊 Divisão: ${dados.porcentagemUsuario}% / ${100 - dados.porcentagemUsuario}%`;
+        } else if (dados.tipoDivisao === "valor_fixo" && dados.valorUsuario) {
+          valorUsuario = dados.valorUsuario;
+          valorCompartilhado = valorTotal - valorUsuario;
+          infoDivisao = `💰 Divisão: Valor específico`;
+        } else {
+          // Divisão padrão (metade)
+          valorUsuario = valorTotal / 2;
+          valorCompartilhado = valorTotal / 2;
+          infoDivisao = `📊 Divisão: Metade (50/50)`;
+        }
 
         templatePT += `*👥 Compartilhado com:* ${dados.nomeUsuarioCompartilhado}\n`;
+        templatePT += `*${infoDivisao}*\n`;
         templatePT += `*🤝 Sua parte:* ${valorUsuario.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
         templatePT += `*👤 Parte ${dados.nomeUsuarioCompartilhado}:* ${valorCompartilhado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
       }
@@ -504,246 +568,250 @@ A transação foi cancelada e não foi registrada em seu extrato.
   }
 
   // Processamento principal de mensagem de texto
- static async processarMensagemTexto(message: any) {
-  const userMessage = message.text?.body;
-  const userPhone = message.from;
-  const messageId = message.id;
+  static async processarMensagemTexto(message: any) {
+    const userMessage = message.text?.body;
+    const userPhone = message.from;
+    const messageId = message.id;
 
-  console.log("👤 Mensagem de:", userPhone);
-  console.log("💬 Texto:", userMessage);
-  console.log("🆔 Message ID:", messageId);
+    console.log("👤 Mensagem de:", userPhone);
+    console.log("💬 Texto:", userMessage);
+    console.log("🆔 Message ID:", messageId);
 
-  // Buscar usuário com suas configurações
-  const session = await UserService.getUserByPhone(userPhone);
-  if (!session) {
-    await WhatsAppService.sendMessage(
-      userPhone,
-      "❌ Seu número não está vinculado a nenhuma conta.\n\n💡 Acesse o app BeCash e vincule seu WhatsApp em Configurações.",
-    );
-    return { status: "user_not_found" };
-  }
-
-  const userId = session.user.id;
-  const idiomaPreferido = session.idiomaPreferido || "pt-BR";
-  console.log(`🌐 IDIOMA PREFERIDO DO USUÁRIO: ${idiomaPreferido}`);
-
-  // Inicializar cache ANTES de verificar pendências
-  if (!global.pendingLancamentos) {
-    console.log("🔄 Criando novo cache de pendingLancamentos");
-    global.pendingLancamentos = new Map();
-  }
-
-  const telefoneBusca = normalizarTelefone(userPhone);
-  console.log(`🔍 Verificando lançamentos pendentes...`);
-  console.log(`📞 Telefone normalizado: ${telefoneBusca}`);
-
-  // PRIMEIRO: verificar se há lançamento pendente para este usuário
-  const pendingLancamento = global.pendingLancamentos?.get(telefoneBusca);
-
-  if (pendingLancamento) {
-    console.log(`✅ LANÇAMENTO PENDENTE ENCONTRADO`);
-
-    const validacao = validarLancamentoPendente(
-      pendingLancamento,
-      Date.now(),
-    );
-
-    if (!validacao.valido) {
-      if (validacao.motivo === "expired") {
-        console.log(`⏰ Lançamento expirado`);
-        global.pendingLancamentos.delete(telefoneBusca);
-
-        let mensagemExpirado = "";
-        if (idiomaPreferido === "en-US") {
-          mensagemExpirado =
-            "❌ Confirmation expired (5 minutes).\n\n💡 Send the transaction again.";
-        } else {
-          mensagemExpirado =
-            "❌ A confirmação expirou (5 minutos).\n\n💡 Envie novamente o lançamento.";
-        }
-
-        await WhatsAppService.sendMessage(userPhone, mensagemExpirado);
-        return { status: "expired" };
-      }
+    // Buscar usuário com suas configurações
+    const session = await UserService.getUserByPhone(userPhone);
+    if (!session) {
+      await WhatsAppService.sendMessage(
+        userPhone,
+        "❌ Seu número não está vinculado a nenhuma conta.\n\n💡 Acesse o app BeCash e vincule seu WhatsApp em Configurações.",
+      );
+      return { status: "user_not_found" };
     }
 
-    // USUÁRIO TEM LANÇAMENTO PENDENTE - tratar como resposta à confirmação
-    const resposta = userMessage.toLowerCase().trim();
+    const userId = session.user.id;
+    const idiomaPreferido = session.idiomaPreferido || "pt-BR";
+    console.log(`🌐 IDIOMA PREFERIDO DO USUÁRIO: ${idiomaPreferido}`);
 
-    if (isConfirmacao(resposta)) {
-      console.log(`✅ USUÁRIO CONFIRMOU`);
-      return await this.processarConfirmacao(
-        "sim",
+    // Inicializar cache ANTES de verificar pendências
+    if (!global.pendingLancamentos) {
+      console.log("🔄 Criando novo cache de pendingLancamentos");
+      global.pendingLancamentos = new Map();
+    }
+
+    const telefoneBusca = normalizarTelefone(userPhone);
+    console.log(`🔍 Verificando lançamentos pendentes...`);
+    console.log(`📞 Telefone normalizado: ${telefoneBusca}`);
+
+    // PRIMEIRO: verificar se há lançamento pendente para este usuário
+    const pendingLancamento = global.pendingLancamentos?.get(telefoneBusca);
+
+    if (pendingLancamento) {
+      console.log(`✅ LANÇAMENTO PENDENTE ENCONTRADO`);
+
+      const validacao = validarLancamentoPendente(
         pendingLancamento,
-        telefoneBusca,
+        Date.now(),
       );
-    }
 
-    if (isCancelamento(resposta)) {
-      console.log(`❌ USUÁRIO CANCELOU`);
-      return await this.processarConfirmacao(
-        "não",
-        pendingLancamento,
-        telefoneBusca,
-      );
-    }
-
-    // Resposta não reconhecida - mas usuário ainda tem pendente
-    let mensagemInvalida = "";
-    if (idiomaPreferido === "en-US") {
-      mensagemInvalida =
-        `❌ I didn't understand your response: "${userMessage}"\n\n` +
-        `Reply with:\n` +
-        `✅ *YES* - To confirm the transaction\n` +
-        `❌ *NO* - To cancel\n\n` +
-        `Or send a new message to create another transaction.`;
-    } else {
-      mensagemInvalida =
-        `❌ Não entendi sua resposta: "${userMessage}"\n\n` +
-        `Responda com:\n` +
-        `✅ *SIM* - Para confirmar o lançamento\n` +
-        `❌ *NÃO* - Para cancelar\n\n` +
-        `Ou envie uma nova mensagem para criar outro lançamento.`;
-    }
-
-    await WhatsAppService.sendMessage(userPhone, mensagemInvalida);
-    return { status: "invalid_confirmation_response" };
-  }
-
-  // SE NÃO HÁ LANÇAMENTO PENDENTE, então processar como nova mensagem/comando
-
-  // Detectar comando com IA
-  const comandoIA = await AIService.detectarComandoComIA(userMessage);
-
-  console.log(
-    `🤖 Comando detectado pela IA: ${comandoIA.tipo} (idioma: ${comandoIA.idioma})`,
-  );
-
-  if (comandoIA.tipo && comandoIA.tipo !== "NENHUM") {
-    if (comandoIA.tipo === "LISTAR_CATEGORIAS") {
-      await this.processarComandoCategorias(userPhone, userId, idiomaPreferido);
-      return { status: "command_processed" };
-    }
-
-    if (comandoIA.tipo === "AJUDA") {
-      await this.enviarMensagemAjuda(userPhone, idiomaPreferido);
-      return { status: "command_processed" };
-    }
-  }
-
-  // Se não é comando e não tem pendência, tratar como novo lançamento
-  if (userMessage && userPhone) {
-    // Extrair dados
-    const dadosExtracao = await AIService.extrairDadosComIA(
-      userMessage,
-      idiomaPreferido,
-    );
-    console.log("📊 Dados extraídos:", dadosExtracao);
-
-    if (!dadosExtracao.sucesso) {
-      let erroMsg = "";
-      if (idiomaPreferido === "en-US") {
-        erroMsg = `❌ ${dadosExtracao.erro}\n\n💡 Example: "I spent 50 on lunch"`;
-      } else {
-        erroMsg = `❌ ${dadosExtracao.erro}\n\n💡 Exemplo: "Gastei 50 no almoço"`;
-      }
-
-      await WhatsAppService.sendMessage(userPhone, erroMsg);
-      return { status: "extraction_failed" };
-    }
-
-    // Buscar categorias
-    const categoriasUsuario = await UserService.getCategoriasUsuario(userId);
-    console.log("🏷️ Categorias do usuário:", categoriasUsuario);
-
-    if (categoriasUsuario.length === 0) {
-      let mensagemErro = "";
-      if (idiomaPreferido === "en-US") {
-        mensagemErro =
-          "❌ No categories found. Create categories first in the app.";
-      } else {
-        mensagemErro =
-          "❌ Nenhuma categoria encontrada. Crie categorias primeiro no app.";
-      }
-      await WhatsAppService.sendMessage(userPhone, mensagemErro);
-      return { status: "no_categories" };
-    }
-
-    const categoriaEscolhida = await AIService.escolherMelhorCategoria(
-      dadosExtracao.dados.descricao,
-      categoriasUsuario,
-      dadosExtracao.dados.tipo,
-      dadosExtracao.dados.categoriaSugerida,
-    );
-
-    if (!categoriaEscolhida) {
-      let mensagemErro = "";
-      if (idiomaPreferido === "en-US") {
-        mensagemErro = `❌ No ${dadosExtracao.dados.tipo === "DESPESA" ? "expense" : "income"} category found.`;
-      } else {
-        mensagemErro = `❌ Nenhuma categoria do tipo ${dadosExtracao.dados.tipo} encontrada.`;
-      }
-      await WhatsAppService.sendMessage(userPhone, mensagemErro);
-      return { status: "no_matching_category" };
-    }
-
-    // Limpar descrição
-    const descricaoLimpa = await AIService.limparDescricaoComClaude(
-      dadosExtracao.dados.descricao,
-      idiomaPreferido,
-    );
-
-    // Identificar cartão
-    let cartaoEncontrado = null;
-    if (dadosExtracao.dados.metodoPagamento === "CREDITO") {
-      cartaoEncontrado = await LancamentoService.identificarCartao(
-        userMessage,
-        userId,
-      );
-    }
-
-    // Gerar mensagem de confirmação
-    const mensagemConfirmacao = await this.gerarMensagemConfirmacao(
-      dadosExtracao.dados,
-      descricaoLimpa,
-      categoriaEscolhida,
-      cartaoEncontrado,
-      userId,
-      idiomaPreferido,
-    );
-
-    // Salvar no cache
-    const lancamentoTemporario: LancamentoTemporario = {
-      dados: dadosExtracao.dados,
-      categoriaEscolhida,
-      userId,
-      userPhone,
-      timestamp: Date.now(),
-      descricaoLimpa,
-      cartaoEncontrado,
-      mensagemOriginal: userMessage,
-      descricaoOriginal: dadosExtracao.dados.descricao,
-    };
-
-    global.pendingLancamentos.set(telefoneBusca, lancamentoTemporario);
-
-    // Limpar após 5 minutos
-    setTimeout(
-      () => {
-        if (global.pendingLancamentos?.has(telefoneBusca)) {
+      if (!validacao.valido) {
+        if (validacao.motivo === "expired") {
+          console.log(`⏰ Lançamento expirado`);
           global.pendingLancamentos.delete(telefoneBusca);
+
+          let mensagemExpirado = "";
+          if (idiomaPreferido === "en-US") {
+            mensagemExpirado =
+              "❌ Confirmation expired (5 minutes).\n\n💡 Send the transaction again.";
+          } else {
+            mensagemExpirado =
+              "❌ A confirmação expirou (5 minutos).\n\n💡 Envie novamente o lançamento.";
+          }
+
+          await WhatsAppService.sendMessage(userPhone, mensagemExpirado);
+          return { status: "expired" };
         }
-      },
-      5 * 60 * 1000,
+      }
+
+      // USUÁRIO TEM LANÇAMENTO PENDENTE - tratar como resposta à confirmação
+      const resposta = userMessage.toLowerCase().trim();
+
+      if (isConfirmacao(resposta)) {
+        console.log(`✅ USUÁRIO CONFIRMOU`);
+        return await this.processarConfirmacao(
+          "sim",
+          pendingLancamento,
+          telefoneBusca,
+        );
+      }
+
+      if (isCancelamento(resposta)) {
+        console.log(`❌ USUÁRIO CANCELOU`);
+        return await this.processarConfirmacao(
+          "não",
+          pendingLancamento,
+          telefoneBusca,
+        );
+      }
+
+      // Resposta não reconhecida - mas usuário ainda tem pendente
+      let mensagemInvalida = "";
+      if (idiomaPreferido === "en-US") {
+        mensagemInvalida =
+          `❌ I didn't understand your response: "${userMessage}"\n\n` +
+          `Reply with:\n` +
+          `✅ *YES* - To confirm the transaction\n` +
+          `❌ *NO* - To cancel\n\n` +
+          `Or send a new message to create another transaction.`;
+      } else {
+        mensagemInvalida =
+          `❌ Não entendi sua resposta: "${userMessage}"\n\n` +
+          `Responda com:\n` +
+          `✅ *SIM* - Para confirmar o lançamento\n` +
+          `❌ *NÃO* - Para cancelar\n\n` +
+          `Ou envie uma nova mensagem para criar outro lançamento.`;
+      }
+
+      await WhatsAppService.sendMessage(userPhone, mensagemInvalida);
+      return { status: "invalid_confirmation_response" };
+    }
+
+    // SE NÃO HÁ LANÇAMENTO PENDENTE, então processar como nova mensagem/comando
+
+    // Detectar comando com IA
+    const comandoIA = await AIService.detectarComandoComIA(userMessage);
+
+    console.log(
+      `🤖 Comando detectado pela IA: ${comandoIA.tipo} (idioma: ${comandoIA.idioma})`,
     );
 
-    await WhatsAppService.sendMessage(userPhone, mensagemConfirmacao);
+    if (comandoIA.tipo && comandoIA.tipo !== "NENHUM") {
+      if (comandoIA.tipo === "LISTAR_CATEGORIAS") {
+        await this.processarComandoCategorias(
+          userPhone,
+          userId,
+          idiomaPreferido,
+        );
+        return { status: "command_processed" };
+      }
 
-    return { status: "waiting_confirmation" };
+      if (comandoIA.tipo === "AJUDA") {
+        await this.enviarMensagemAjuda(userPhone, idiomaPreferido);
+        return { status: "command_processed" };
+      }
+    }
+
+    // Se não é comando e não tem pendência, tratar como novo lançamento
+    if (userMessage && userPhone) {
+      // Extrair dados
+      const dadosExtracao = await AIService.extrairDadosComIA(
+        userMessage,
+        idiomaPreferido,
+      );
+      console.log("📊 Dados extraídos:", dadosExtracao);
+
+      if (!dadosExtracao.sucesso) {
+        let erroMsg = "";
+        if (idiomaPreferido === "en-US") {
+          erroMsg = `❌ ${dadosExtracao.erro}\n\n💡 Example: "I spent 50 on lunch"`;
+        } else {
+          erroMsg = `❌ ${dadosExtracao.erro}\n\n💡 Exemplo: "Gastei 50 no almoço"`;
+        }
+
+        await WhatsAppService.sendMessage(userPhone, erroMsg);
+        return { status: "extraction_failed" };
+      }
+
+      // Buscar categorias
+      const categoriasUsuario = await UserService.getCategoriasUsuario(userId);
+      console.log("🏷️ Categorias do usuário:", categoriasUsuario);
+
+      if (categoriasUsuario.length === 0) {
+        let mensagemErro = "";
+        if (idiomaPreferido === "en-US") {
+          mensagemErro =
+            "❌ No categories found. Create categories first in the app.";
+        } else {
+          mensagemErro =
+            "❌ Nenhuma categoria encontrada. Crie categorias primeiro no app.";
+        }
+        await WhatsAppService.sendMessage(userPhone, mensagemErro);
+        return { status: "no_categories" };
+      }
+
+      const categoriaEscolhida = await AIService.escolherMelhorCategoria(
+        dadosExtracao.dados.descricao,
+        categoriasUsuario,
+        dadosExtracao.dados.tipo,
+        dadosExtracao.dados.categoriaSugerida,
+      );
+
+      if (!categoriaEscolhida) {
+        let mensagemErro = "";
+        if (idiomaPreferido === "en-US") {
+          mensagemErro = `❌ No ${dadosExtracao.dados.tipo === "DESPESA" ? "expense" : "income"} category found.`;
+        } else {
+          mensagemErro = `❌ Nenhuma categoria do tipo ${dadosExtracao.dados.tipo} encontrada.`;
+        }
+        await WhatsAppService.sendMessage(userPhone, mensagemErro);
+        return { status: "no_matching_category" };
+      }
+
+      // Limpar descrição
+      const descricaoLimpa = await AIService.limparDescricaoComClaude(
+        dadosExtracao.dados.descricao,
+        idiomaPreferido,
+      );
+
+      // Identificar cartão
+      let cartaoEncontrado = null;
+      if (dadosExtracao.dados.metodoPagamento === "CREDITO") {
+        cartaoEncontrado = await LancamentoService.identificarCartao(
+          userMessage,
+          userId,
+        );
+      }
+
+      // Gerar mensagem de confirmação
+      const mensagemConfirmacao = await this.gerarMensagemConfirmacao(
+        dadosExtracao.dados,
+        descricaoLimpa,
+        categoriaEscolhida,
+        cartaoEncontrado,
+        userId,
+        idiomaPreferido,
+      );
+
+      // Salvar no cache
+      const lancamentoTemporario: LancamentoTemporario = {
+        dados: dadosExtracao.dados,
+        categoriaEscolhida,
+        userId,
+        userPhone,
+        timestamp: Date.now(),
+        descricaoLimpa,
+        cartaoEncontrado,
+        mensagemOriginal: userMessage,
+        descricaoOriginal: dadosExtracao.dados.descricao,
+      };
+
+      global.pendingLancamentos.set(telefoneBusca, lancamentoTemporario);
+
+      // Limpar após 5 minutos
+      setTimeout(
+        () => {
+          if (global.pendingLancamentos?.has(telefoneBusca)) {
+            global.pendingLancamentos.delete(telefoneBusca);
+          }
+        },
+        5 * 60 * 1000,
+      );
+
+      await WhatsAppService.sendMessage(userPhone, mensagemConfirmacao);
+
+      return { status: "waiting_confirmation" };
+    }
+
+    return { status: "processed" };
   }
-
-  return { status: "processed" };
-}
 
   // Processar confirmação
   static async processarConfirmacao(

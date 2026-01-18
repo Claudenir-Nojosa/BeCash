@@ -229,6 +229,19 @@ export class LancamentoService {
     try {
       console.log(`🔥🔥🔥 CRIAÇÃO DE LANÇAMENTO INICIADA 🔥🔥🔥`);
       console.log(`📨 Mensagem recebida: "${userMessage}"`);
+      console.log(`📊 Dados recebidos:`, dados);
+
+      // NOVO: Log dos dados de divisão personalizada
+      if (dados.ehCompartilhado) {
+        console.log(`🤝 DADOS DE DIVISÃO PERSONALIZADA:`);
+        console.log(`   • Tipo de divisão: ${dados.tipoDivisao || "metade"}`);
+        console.log(
+          `   • Porcentagem usuário: ${dados.porcentagemUsuario || 50}%`,
+        );
+        console.log(
+          `   • Valor usuário: ${dados.valorUsuario || "não especificado"}`,
+        );
+      }
 
       const msgLower = userMessage?.toLowerCase() || "";
       if (msgLower.includes("compartilhada") && msgLower.includes("beatriz")) {
@@ -248,6 +261,8 @@ export class LancamentoService {
       const valorTotal = parseFloat(dados.valor);
       let valorUsuarioCriador = valorTotal;
       let valorCompartilhado = 0;
+      let tipoDivisao = dados.tipoDivisao || "metade";
+      let porcentagemUsuario = dados.porcentagemUsuario || 50;
 
       console.log(
         `🛒 Dados: Compartilhado=${dados.ehCompartilhado}, Parcelado=${dados.ehParcelado}, Parcelas=${dados.parcelas}`,
@@ -270,6 +285,7 @@ export class LancamentoService {
         }
       }
 
+      // NOVO: Lógica de divisão personalizada
       if (dados.ehCompartilhado && dados.nomeUsuarioCompartilhado) {
         console.log(
           `🔍 Buscando usuário para compartilhamento: "${dados.nomeUsuarioCompartilhado}"`,
@@ -284,10 +300,63 @@ export class LancamentoService {
           console.log(
             `✅ Usuário encontrado para compartilhamento: ${usuarioAlvo.name} (${usuarioAlvo.id})`,
           );
-          valorCompartilhado = valorTotal / 2;
-          valorUsuarioCriador = valorTotal / 2;
+
+          // Calcular valores com base no tipo de divisão
+          if (dados.tipoDivisao === "porcentagem" && dados.porcentagemUsuario) {
+            const porcentagem = dados.porcentagemUsuario / 100;
+            valorUsuarioCriador = valorTotal * porcentagem;
+            valorCompartilhado = valorTotal - valorUsuarioCriador;
+            tipoDivisao = "porcentagem";
+            porcentagemUsuario = dados.porcentagemUsuario;
+
+            console.log(
+              `💰 DIVISÃO POR PORCENTAGEM: ${dados.porcentagemUsuario}%`,
+            );
+            console.log(
+              `   • Sua parte (${dados.porcentagemUsuario}%): R$ ${valorUsuarioCriador.toFixed(2)}`,
+            );
+            console.log(
+              `   • Parte ${usuarioAlvo.name} (${100 - dados.porcentagemUsuario}%): R$ ${valorCompartilhado.toFixed(2)}`,
+            );
+          } else if (dados.tipoDivisao === "valor_fixo" && dados.valorUsuario) {
+            valorUsuarioCriador = dados.valorUsuario;
+            valorCompartilhado = valorTotal - valorUsuarioCriador;
+            tipoDivisao = "valor_fixo";
+
+            // Validar se o valor faz sentido
+            if (valorUsuarioCriador > valorTotal) {
+              throw new Error(
+                `Valor especificado (R$ ${valorUsuarioCriador}) é maior que o total da despesa (R$ ${valorTotal}).`,
+              );
+            }
+
+            if (valorUsuarioCriador < 0) {
+              throw new Error("Valor especificado não pode ser negativo.");
+            }
+
+            console.log(`💰 DIVISÃO POR VALOR FIXO`);
+            console.log(`   • Sua parte: R$ ${valorUsuarioCriador.toFixed(2)}`);
+            console.log(
+              `   • Parte ${usuarioAlvo.name}: R$ ${valorCompartilhado.toFixed(2)}`,
+            );
+          } else {
+            // Divisão padrão (metade)
+            valorCompartilhado = valorTotal / 2;
+            valorUsuarioCriador = valorTotal / 2;
+            tipoDivisao = "metade";
+            porcentagemUsuario = 50;
+
+            console.log(`💰 DIVISÃO PADRÃO (METADE)`);
+            console.log(`   • Sua parte: R$ ${valorUsuarioCriador.toFixed(2)}`);
+            console.log(
+              `   • Parte ${usuarioAlvo.name}: R$ ${valorCompartilhado.toFixed(2)}`,
+            );
+          }
+
+          console.log(`📊 TOTAL: R$ ${valorTotal.toFixed(2)}`);
+          console.log(`   • Seu valor: R$ ${valorUsuarioCriador.toFixed(2)}`);
           console.log(
-            `💰 VALORES DIVIDIDOS: Total=${valorTotal}, Seu=${valorUsuarioCriador}, Compartilhado=${valorCompartilhado}`,
+            `   • Valor compartilhado: R$ ${valorCompartilhado.toFixed(2)}`,
           );
         } else {
           console.log(
@@ -298,6 +367,7 @@ export class LancamentoService {
           dados.nomeUsuarioCompartilhado = undefined;
         }
       }
+
       // LÓGICA DE PARCELAMENTO
       if (dados.ehParcelado && dados.parcelas && dados.parcelas > 1) {
         console.log(`🔄 CRIANDO PARCELAMENTO: ${dados.parcelas} parcelas`);
@@ -306,29 +376,33 @@ export class LancamentoService {
         const valorParcelaCompartilhada = valorCompartilhado / dados.parcelas;
 
         console.log(
-          `💰 VALOR POR PARCELA: Sua parte=${valorParcela}, Compartilhada=${valorParcelaCompartilhada}`,
+          `💰 VALOR POR PARCELA: Sua parte=${valorParcela.toFixed(2)}, Compartilhada=${valorParcelaCompartilhada.toFixed(2)}`,
         );
 
         // Criar primeira parcela (lançamento principal)
-        const lancamentoPrincipalData: any = {
-          descricao: `${descricaoLimpa} (1/${dados.parcelas})`,
-          valor: valorParcela,
-          tipo: dados.tipo.toUpperCase(),
-          metodoPagamento: dados.metodoPagamento,
-          data: dataLancamento,
-          categoriaId: categoriaEscolhida.id,
-          userId: userId,
-          pago: false,
-          tipoParcelamento: "PARCELADO",
-          parcelasTotal: dados.parcelas,
-          parcelaAtual: 1,
-          recorrente: false,
-          observacoes:
-            `Criado via WhatsApp - Categoria: ${categoriaEscolhida.nome}` +
-            (cartaoEncontrado ? ` - Cartão: ${cartaoEncontrado.nome}` : "") +
-            (usuarioAlvo ? ` - Compartilhado com: ${usuarioAlvo.name}` : "") +
-            ` - Parcelado em ${dados.parcelas}x`,
-        };
+        const observacoesDivisao = tipoDivisao !== 'metade' ? ` - Divisão: ${tipoDivisao}${tipoDivisao === 'porcentagem' ? ` (${porcentagemUsuario}%)` : ''}` : '';
+
+      const lancamentoPrincipalData: any = {
+  descricao: `${descricaoLimpa} (1/${dados.parcelas})`,
+  valor: valorParcela,
+  tipo: dados.tipo.toUpperCase(),
+  metodoPagamento: dados.metodoPagamento,
+  data: dataLancamento,
+  categoriaId: categoriaEscolhida.id,
+  userId: userId,
+  pago: false,
+  tipoParcelamento: "PARCELADO",
+  parcelasTotal: dados.parcelas,
+  parcelaAtual: 1,
+  recorrente: false,
+  observacoes:
+    `Criado via WhatsApp - Categoria: ${categoriaEscolhida.nome}` +
+    (cartaoEncontrado ? ` - Cartão: ${cartaoEncontrado.nome}` : "") +
+    (usuarioAlvo ? ` - Compartilhado com: ${usuarioAlvo.name}` : "") +
+    ` - Parcelado em ${dados.parcelas}x` +
+    observacoesDivisao, 
+};
+
 
         if (dados.metodoPagamento === "CREDITO" && cartaoId) {
           lancamentoPrincipalData.cartaoId = cartaoId;
@@ -384,7 +458,9 @@ export class LancamentoService {
             parcelaAtual: i,
             recorrente: false,
             lancamentoPaiId: lancamentoPrincipal.id,
-            observacoes: `Parcela ${i} de ${dados.parcelas} - Criado via WhatsApp`,
+            observacoes:
+              `Parcela ${i} de ${dados.parcelas} - Criado via WhatsApp` +
+              (tipoDivisao !== "metade" ? ` - Divisão: ${tipoDivisao}` : ""),
           };
 
           parcelasFuturas.push(parcelaData);
@@ -434,6 +510,8 @@ export class LancamentoService {
           ehParcelado: true,
           parcelasTotal: dados.parcelas,
           valorParcela: valorParcela,
+          tipoDivisao: tipoDivisao, // NOVO: Retornar tipo de divisão
+          porcentagemUsuario: porcentagemUsuario, // NOVO: Retornar porcentagem
         };
       }
 
@@ -457,7 +535,8 @@ export class LancamentoService {
         observacoes:
           `Criado via WhatsApp - Categoria: ${categoriaEscolhida.nome}` +
           (cartaoEncontrado ? ` - Cartão: ${cartaoEncontrado.nome}` : "") +
-          (usuarioAlvo ? ` - Compartilhado com: ${usuarioAlvo.name}` : ""),
+          (usuarioAlvo ? ` - Compartilhado com: ${usuarioAlvo.name}` : "") +
+          (tipoDivisao !== "metade" ? ` - Divisão: ${tipoDivisao}` : ""),
       };
 
       if (dados.metodoPagamento === "CREDITO" && cartaoId) {
@@ -493,6 +572,8 @@ export class LancamentoService {
         usuarioAlvo,
         valorCompartilhado,
         valorUsuarioCriador,
+        tipoDivisao: tipoDivisao, // NOVO: Retornar tipo de divisão
+        porcentagemUsuario: porcentagemUsuario, // NOVO: Retornar porcentagem
       };
     } catch (error) {
       console.error("Erro ao criar lançamento:", error);

@@ -1,6 +1,56 @@
-// app/api/webhooks/whatsapp/utils/extractors.ts
-import { ResultadoExtracao } from "../types";
+import { DadosLancamento, ResultadoExtracao } from "../types";
 import { detectarIdioma, detectarCompartilhamento, detectarParcelamento } from "./detectors";
+
+// NOVA FUNÇÃO: Detectar divisão personalizada
+export function detectarDivisaoPersonalizada(texto: string): {
+  tipo: 'metade' | 'porcentagem' | 'valor_fixo';
+  valor?: number;
+} | null {
+  const lower = texto.toLowerCase();
+  
+  // Padrões para porcentagem: "eu pago 60%", "minha parte é 70 por cento"
+  const porcentagemMatch = lower.match(/(eu\s+pago|minha\s+parte[ée]?|eu\s+fico\s+com|eu\s+assumo)\s*(\d{1,3})\s*(%|por\s+cento|porcento)/);
+  if (porcentagemMatch) {
+    const porcentagem = parseInt(porcentagemMatch[2]);
+    if (porcentagem >= 0 && porcentagem <= 100) {
+      console.log(`✅ Divisão por porcentagem detectada: ${porcentagem}%`);
+      return { tipo: 'porcentagem', valor: porcentagem };
+    }
+  }
+  
+  // Padrões para valor fixo: "eu pago 6 reais", "minha parte é 25"
+  const valorMatch = lower.match(/(eu\s+pago|minha\s+parte[ée]?|eu\s+fico\s+com|eu\s+assumo)\s*(r\$?\s*)?(\d+([.,]\d{1,2})?)\s*(?:reais?)?/);
+  if (valorMatch) {
+    const valorTexto = valorMatch[3].replace(',', '.');
+    const valor = parseFloat(valorTexto);
+    if (!isNaN(valor) && valor > 0) {
+      console.log(`✅ Divisão por valor fixo detectada: R$ ${valor}`);
+      return { tipo: 'valor_fixo', valor };
+    }
+  }
+  
+  // Padrões alternativos: "6 reais pra mim", "fico com 8"
+  const valorAlternativoMatch = lower.match(/(?:(\d+([.,]\d{1,2})?)\s*reais?\s*(?:para|pra)\s*mim|(?:para|pra)\s*mim\s*(\d+([.,]\d{1,2})?)\s*reais?|(?:fico\s+com|assumo)\s*(\d+([.,]\d{1,2})?))/);
+  if (valorAlternativoMatch) {
+    const valores = [valorAlternativoMatch[1], valorAlternativoMatch[3], valorAlternativoMatch[5]].filter(v => v);
+    if (valores.length > 0) {
+      const valorTexto = valores[0].replace(',', '.');
+      const valor = parseFloat(valorTexto);
+      if (!isNaN(valor) && valor > 0) {
+        console.log(`✅ Divisão por valor fixo (alternativo) detectada: R$ ${valor}`);
+        return { tipo: 'valor_fixo', valor };
+      }
+    }
+  }
+  
+  // Padrões para "metade", "meio a meio", etc (já existente)
+  if (lower.includes('metade') || lower.includes('meio a meio') || lower.includes('50%') || lower.includes('meio')) {
+    console.log(`✅ Divisão por metade detectada`);
+    return { tipo: 'metade', valor: 50 };
+  }
+  
+  return null;
+}
 
 export function extrairMetodoPagamento(texto: string, ehParcelado: boolean = false): string {
   const textoLower = texto.toLowerCase();
@@ -120,6 +170,9 @@ export function tentarFallbackExtracao(mensagem: string, idioma: string): Result
   const valor = numeros[0].replace(",", ".");
   console.log(`🔍 Fallback: Valor encontrado: ${valor}`);
 
+  // NOVO: Detectar divisão personalizada no fallback também
+  const divisao = detectarDivisaoPersonalizada(mensagem);
+  
   let descricao = "";
   const palavras = mensagem.split(/\s+/);
   const indexValor = palavras.findIndex(palavra => palavra.includes(valor.replace(".", "")));
@@ -128,7 +181,8 @@ export function tentarFallbackExtracao(mensagem: string, idioma: string): Result
     descricao = palavras.slice(indexValor + 1, indexValor + 4).join(" ");
     const palavrasComuns = [
       "on", "for", "at", "with", "using", "via", "my", "the",
-      "reais", "real", "r$", "$"
+      "reais", "real", "r$", "$", "compartilhado", "compartilhada",
+      "com", "compartilhar", "share", "shared"
     ];
     descricao = descricao
       .split(/\s+/)
@@ -150,23 +204,40 @@ export function tentarFallbackExtracao(mensagem: string, idioma: string): Result
   }
 
   const metodoPagamento = extrairMetodoPagamentoInternacional(mensagem, false, idioma);
+  const compartilhamento = detectarCompartilhamento(mensagem);
 
-  console.log(`🔍 Fallback resultado:`, { tipo, valor, descricao, metodoPagamento });
+  console.log(`🔍 Fallback resultado:`, { tipo, valor, descricao, metodoPagamento, divisao });
+
+  const dados: DadosLancamento = {
+    tipo,
+    valor,
+    descricao: descricao.trim(),
+    metodoPagamento,
+    data: "hoje",
+    ehCompartilhado: compartilhamento.ehCompartilhado,
+    nomeUsuarioCompartilhado: compartilhamento.nomeUsuario,
+    ehParcelado: false,
+    parcelas: undefined,
+    tipoParcelamento: undefined,
+  };
+
+  // Adicionar informações de divisão se detectadas
+  if (divisao) {
+    if (divisao.tipo === 'porcentagem') {
+      dados.porcentagemUsuario = divisao.valor;
+      dados.tipoDivisao = 'porcentagem';
+    } else if (divisao.tipo === 'valor_fixo') {
+      dados.valorUsuario = divisao.valor;
+      dados.tipoDivisao = 'valor_fixo';
+    } else if (divisao.tipo === 'metade') {
+      dados.tipoDivisao = 'metade';
+      dados.porcentagemUsuario = 50;
+    }
+  }
 
   return {
     sucesso: true,
-    dados: {
-      tipo,
-      valor,
-      descricao: descricao.trim(),
-      metodoPagamento,
-      data: "hoje",
-      ehCompartilhado: false,
-      nomeUsuarioCompartilhado: undefined,
-      ehParcelado: false,
-      parcelas: undefined,
-      tipoParcelamento: undefined,
-    },
+    dados: dados,
   };
 }
 
@@ -180,6 +251,8 @@ export function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
 
   const compartilhamento = detectarCompartilhamento(mensagem);
   const parcelamento = detectarParcelamento(mensagem);
+  // NOVO: Detectar divisão personalizada
+  const divisao = detectarDivisaoPersonalizada(mensagem);
 
   const padroesIngles = [
     /(?:i\s+)?(spent|paid|received|earned|bought|purchased)\s+([\d.,]+)\s+(?:reais?|r\$)?\s*(?:on|for|at|with)\s+(?:the\s+)?([^,.\d]+?)(?=\s*,\s*|\s*\.|\s+card|\s+using|\s+with|\s+via|\s+$)/i,
@@ -275,20 +348,36 @@ export function extrairDadosLancamento(mensagem: string): ResultadoExtracao {
       }
     }
 
+    const dados: DadosLancamento = {
+      tipo,
+      valor: valor.replace(",", "."),
+      descricao: descricao,
+      metodoPagamento: metodoPagamentoCorrigido,
+      data: "hoje",
+      ehCompartilhado: compartilhamento.ehCompartilhado,
+      nomeUsuarioCompartilhado: compartilhamento.nomeUsuario,
+      ehParcelado: parcelamento.ehParcelado,
+      parcelas: parcelamento.parcelas,
+      tipoParcelamento: parcelamento.tipoParcelamento,
+    };
+
+    // Adicionar informações de divisão se detectadas
+    if (divisao && dados.ehCompartilhado) {
+      if (divisao.tipo === 'porcentagem') {
+        dados.porcentagemUsuario = divisao.valor;
+        dados.tipoDivisao = 'porcentagem';
+      } else if (divisao.tipo === 'valor_fixo') {
+        dados.valorUsuario = divisao.valor;
+        dados.tipoDivisao = 'valor_fixo';
+      } else if (divisao.tipo === 'metade') {
+        dados.tipoDivisao = 'metade';
+        dados.porcentagemUsuario = 50;
+      }
+    }
+
     return {
       sucesso: true,
-      dados: {
-        tipo,
-        valor: valor.replace(",", "."),
-        descricao: descricao,
-        metodoPagamento: metodoPagamentoCorrigido,
-        data: "hoje",
-        ehCompartilhado: compartilhamento.ehCompartilhado,
-        nomeUsuarioCompartilhado: compartilhamento.nomeUsuario,
-        ehParcelado: parcelamento.ehParcelado,
-        parcelas: parcelamento.parcelas,
-        tipoParcelamento: parcelamento.tipoParcelamento,
-      },
+      dados: dados,
     };
   }
 

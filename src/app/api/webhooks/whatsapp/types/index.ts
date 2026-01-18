@@ -1,5 +1,3 @@
-// app/api/webhooks/whatsapp/types/index.ts
-
 export type DadosLancamento = {
   tipo: string;
   valor: string;
@@ -12,6 +10,10 @@ export type DadosLancamento = {
   parcelas?: number;
   tipoParcelamento?: string;
   categoriaSugerida?: string;
+  // NOVOS CAMPOS PARA DIVISÃO PERSONALIZADA
+  porcentagemUsuario?: number; // Ex: 60 (usuário paga 60%)
+  valorUsuario?: number; // Ex: 6 (usuário paga R$ 6,00)
+  tipoDivisao?: 'metade' | 'porcentagem' | 'valor_fixo'; // Tipo de divisão
 };
 
 export type ExtracaoSucesso = {
@@ -55,6 +57,10 @@ export interface CompartilhamentoInfo {
   ehCompartilhado: boolean;
   nomeUsuario?: string;
   tipoCompartilhamento?: string;
+  // NOVOS CAMPOS
+  porcentagemUsuario?: number;
+  valorUsuario?: number;
+  tipoDivisao?: 'metade' | 'porcentagem' | 'valor_fixo';
 }
 
 export interface ParcelamentoInfo {

@@ -1,4 +1,3 @@
-// app/api/webhooks/whatsapp/services/ai.service.ts
 import { ResultadoExtracao, DadosLancamento, ComandoDetectado } from "../types";
 import { extrairDadosLancamento } from "../utils/extractors";
 import {
@@ -53,11 +52,23 @@ REGRAS DE EXTRAÇÃO:
    - PIX, CREDITO, DEBITO, DINHEIRO, TRANSFERENCIA
    - Default: PIX
 
+6. DIVISÃO PERSONALIZADA EM COMPARTILHAMENTO (SE APLICÁVEL):
+   - Se o usuário especificar como será dividido um valor compartilhado, extraia:
+     * tipoDivisao: "metade", "porcentagem" ou "valor_fixo"
+     * porcentagemUsuario: número (se for porcentagem) → "eu pago 60%" → 60
+     * valorUsuario: número (se for valor fixo) → "minha parte é 6 reais" → 6
+   - IMPORTANTE: Só extraia esses campos se a despesa for compartilhada
+   - Exemplos:
+     * "gastei 10 reais, minha parte é 6" → {"valorUsuario": 6, "tipoDivisao": "valor_fixo"}
+     * "paguei 100, eu fico com 60%" → {"porcentagemUsuario": 60, "tipoDivisao": "porcentagem"}
+     * "despesa de 50 compartilhada com João, eu pago 30" → {"valorUsuario": 30, "tipoDivisao": "valor_fixo"}
+
 IMPORTANTE:
 - Seja inteligente: "papagaia" é um pet, "internet" é conta de casa, "luz" é conta de casa
 - A descrição deve ser curta e clara
 - NUNCA retorne "Transação" como descrição - isso é muito genérico
 - Use o contexto para entender: "minha papagaia, que é minha pet" → descrição: "Pet"
+- Para divisão personalizada: certifique-se que só extraia se for realmente um compartilhamento
 
 RESPONDA APENAS JSON (sem markdown):
 {
@@ -65,7 +76,10 @@ RESPONDA APENAS JSON (sem markdown):
   "valor": "número",
   "descricao": "texto curto",
   "categoriaSugerida": "nome da categoria" | null,
-  "metodoPagamento": "PIX" | "CREDITO" | "DEBITO" | "DINHEIRO" | "TRANSFERENCIA"
+  "metodoPagamento": "PIX" | "CREDITO" | "DEBITO" | "DINHEIRO" | "TRANSFERENCIA",
+  "porcentagemUsuario": número | null,
+  "valorUsuario": número | null,
+  "tipoDivisao": "metade" | "porcentagem" | "valor_fixo" | null
 }`;
 
     const promptEN = `You are a financial assistant. Extract data from this financial message:
@@ -94,6 +108,17 @@ EXTRACTION RULES:
    - PIX, CREDITO, DEBITO, DINHEIRO, TRANSFERENCIA
    - Default: PIX
 
+6. PERSONALIZED SPLIT IN SHARING (IF APPLICABLE):
+   - If user specifies how a shared amount will be split, extract:
+     * tipoDivisao: "metade", "porcentagem" or "valor_fixo"
+     * porcentagemUsuario: number (if percentage) → "I pay 60%" → 60
+     * valorUsuario: number (if fixed amount) → "my part is 6 reais" → 6
+   - IMPORTANT: Only extract these fields if expense is shared
+   - Examples:
+     * "spent 10 reais, my part is 6" → {"valorUsuario": 6, "tipoDivisao": "valor_fixo"}
+     * "paid 100, I take 60%" → {"porcentagemUsuario": 60, "tipoDivisao": "porcentagem"}
+     * "expense of 50 shared with John, I pay 30" → {"valorUsuario": 30, "tipoDivisao": "valor_fixo"}
+
 IMPORTANT:
 - Be smart: understand context
 - Description should be short and clear
@@ -104,7 +129,10 @@ RESPOND ONLY JSON (no markdown):
   "valor": "number",
   "descricao": "short text",
   "categoriaSugerida": "category name" | null,
-  "metodoPagamento": "PIX" | "CREDITO" | "DEBITO" | "DINHEIRO" | "TRANSFERENCIA"
+  "metodoPagamento": "PIX" | "CREDITO" | "DEBITO" | "DINHEIRO" | "TRANSFERENCIA",
+  "porcentagemUsuario": number | null,
+  "valorUsuario": number | null,
+  "tipoDivisao": "metade" | "porcentagem" | "valor_fixo" | null
 }`;
 
     const prompt = idioma === "en-US" ? promptEN : promptPT;
@@ -140,21 +168,37 @@ RESPOND ONLY JSON (no markdown):
       const compartilhamento = detectarCompartilhamento(mensagem);
       const parcelamento = detectarParcelamento(mensagem);
 
+      // Combinar dados da IA com detecção de compartilhamento
+      const dadosCompletos: DadosLancamento = {
+        tipo: dadosExtraidos.tipo,
+        valor: dadosExtraidos.valor.toString().replace(",", "."),
+        descricao: dadosExtraidos.descricao,
+        metodoPagamento: dadosExtraidos.metodoPagamento,
+        data: "hoje",
+        ehCompartilhado: compartilhamento.ehCompartilhado,
+        nomeUsuarioCompartilhado: compartilhamento.nomeUsuario,
+        ehParcelado: parcelamento.ehParcelado,
+        parcelas: parcelamento.parcelas,
+        tipoParcelamento: parcelamento.tipoParcelamento,
+        categoriaSugerida: dadosExtraidos.categoriaSugerida,
+      };
+
+      // Adicionar campos de divisão personalizada se a IA os extraiu
+      if (dadosExtraidos.porcentagemUsuario !== null && dadosExtraidos.porcentagemUsuario !== undefined) {
+        dadosCompletos.porcentagemUsuario = dadosExtraidos.porcentagemUsuario;
+      }
+      if (dadosExtraidos.valorUsuario !== null && dadosExtraidos.valorUsuario !== undefined) {
+        dadosCompletos.valorUsuario = dadosExtraidos.valorUsuario;
+      }
+      if (dadosExtraidos.tipoDivisao !== null && dadosExtraidos.tipoDivisao !== undefined) {
+        dadosCompletos.tipoDivisao = dadosExtraidos.tipoDivisao;
+      }
+
+      console.log(`✅ Dados completos com divisão:`, dadosCompletos);
+
       return {
         sucesso: true,
-        dados: {
-          tipo: dadosExtraidos.tipo,
-          valor: dadosExtraidos.valor.toString().replace(",", "."),
-          descricao: dadosExtraidos.descricao,
-          metodoPagamento: dadosExtraidos.metodoPagamento,
-          data: "hoje",
-          ehCompartilhado: compartilhamento.ehCompartilhado,
-          nomeUsuarioCompartilhado: compartilhamento.nomeUsuario,
-          ehParcelado: parcelamento.ehParcelado,
-          parcelas: parcelamento.parcelas,
-          tipoParcelamento: parcelamento.tipoParcelamento,
-          categoriaSugerida: dadosExtraidos.categoriaSugerida,
-        },
+        dados: dadosCompletos,
       };
     } catch (error) {
       console.error("❌ Erro na extração com IA:", error);
