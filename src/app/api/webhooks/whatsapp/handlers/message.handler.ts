@@ -591,7 +591,7 @@ A transação foi cancelada e não foi registrada em seu extrato.
     const idiomaPreferido = session.idiomaPreferido || "pt-BR";
     console.log(`🌐 IDIOMA PREFERIDO DO USUÁRIO: ${idiomaPreferido}`);
 
-    // Inicializar cache ANTES de verificar pendências
+    // Inicializar cache ANTES de qualquer coisa
     if (!global.pendingLancamentos) {
       console.log("🔄 Criando novo cache de pendingLancamentos");
       global.pendingLancamentos = new Map();
@@ -601,11 +601,11 @@ A transação foi cancelada e não foi registrada em seu extrato.
     console.log(`🔍 Verificando lançamentos pendentes...`);
     console.log(`📞 Telefone normalizado: ${telefoneBusca}`);
 
-    // PRIMEIRO: verificar se há lançamento pendente para este usuário
+    // PRIMEIRÍSSIMO: verificar se há lançamento pendente para este usuário
     const pendingLancamento = global.pendingLancamentos?.get(telefoneBusca);
 
     if (pendingLancamento) {
-      console.log(`✅ LANÇAMENTO PENDENTE ENCONTRADO`);
+      console.log(`✅ LANÇAMENTO PENDENTE ENCONTRADO para: ${telefoneBusca}`);
 
       const validacao = validarLancamentoPendente(
         pendingLancamento,
@@ -634,23 +634,12 @@ A transação foi cancelada e não foi registrada em seu extrato.
       // USUÁRIO TEM LANÇAMENTO PENDENTE - tratar como resposta à confirmação
       const resposta = userMessage.toLowerCase().trim();
 
-      if (isConfirmacao(resposta)) {
-        console.log(`✅ USUÁRIO CONFIRMOU`);
-        return await this.processarConfirmacao(
-          "sim",
-          pendingLancamento,
-          telefoneBusca,
-        );
-      }
-
-      if (isCancelamento(resposta)) {
-        console.log(`❌ USUÁRIO CANCELOU`);
-        return await this.processarConfirmacao(
-          "não",
-          pendingLancamento,
-          telefoneBusca,
-        );
-      }
+      // Processar imediatamente como confirmação/cancelamento
+      return await this.processarConfirmacao(
+        resposta,
+        pendingLancamento,
+        userPhone,
+      );
 
       // Resposta não reconhecida - mas usuário ainda tem pendente
       let mensagemInvalida = "";
@@ -819,7 +808,7 @@ A transação foi cancelada e não foi registrada em seu extrato.
     pendingLancamento: LancamentoTemporario,
     userPhone: string,
   ) {
-    console.log(`🎯 PROCESSANDO CONFIRMAÇÃO: ${resposta} para ${userPhone}`);
+    console.log(`🎯 PROCESSANDO CONFIRMAÇÃO: "${resposta}" para ${userPhone}`);
 
     const session = await UserService.getUserByPhone(userPhone);
     if (!session) {
@@ -830,14 +819,18 @@ A transação foi cancelada e não foi registrada em seu extrato.
       return { status: "user_not_found" };
     }
 
-    const idiomaPreferido = session.idiomaPreferido;
-
-    // Remover do cache de pendentes
-    global.pendingLancamentos?.delete(userPhone);
-    console.log(`🗑️ Removido lançamento pendente para: ${userPhone}`);
-
+    const idiomaPreferido = session.idiomaPreferido || "pt-BR";
     const respostaLower = resposta.toLowerCase().trim();
 
+    console.log(`🤔 Resposta do usuário: "${respostaLower}"`);
+    console.log(`📱 Idioma: ${idiomaPreferido}`);
+
+    // REMOVER do cache de pendentes ANTES de qualquer coisa
+    const telefoneBusca = normalizarTelefone(userPhone);
+    global.pendingLancamentos?.delete(telefoneBusca);
+    console.log(`🗑️ Removido lançamento pendente para: ${telefoneBusca}`);
+
+    // Verificar se é cancelamento
     if (isCancelamento(respostaLower)) {
       console.log(`❌ Usuário cancelou o lançamento`);
       const mensagemCancelamento =
@@ -846,6 +839,7 @@ A transação foi cancelada e não foi registrada em seu extrato.
       return { status: "cancelled" };
     }
 
+    // Verificar se é confirmação
     if (isConfirmacao(respostaLower)) {
       console.log(`✅ Usuário confirmou - criando lançamento...`);
       try {
@@ -888,23 +882,20 @@ A transação foi cancelada e não foi registrada em seu extrato.
       }
     }
 
-    console.log(`⚠️ Resposta inválida na confirmação: ${resposta}`);
+    // Se chegou aqui, resposta não reconhecida
+    console.log(`⚠️ Resposta inválida na confirmação: "${resposta}"`);
 
     let mensagemInvalida = "";
     if (idiomaPreferido === "en-US") {
       mensagemInvalida =
         `❌ I didn't understand your response: "${resposta}"\n\n` +
-        `Reply with:\n` +
-        `✅ *YES* - To confirm the transaction\n` +
-        `❌ *NO* - To cancel\n\n` +
-        `Or send a new message to create another transaction.`;
+        `The transaction has been canceled.\n\n` +
+        `💡 Send a new message to create another transaction.`;
     } else {
       mensagemInvalida =
         `❌ Não entendi sua resposta: "${resposta}"\n\n` +
-        `Responda com:\n` +
-        `✅ *SIM* - Para confirmar o lançamento\n` +
-        `❌ *NÃO* - Para cancelar\n\n` +
-        `Ou envie uma nova mensagem para criar outro lançamento.`;
+        `A transação foi cancelada.\n\n` +
+        `💡 Envie uma nova mensagem para criar outro lançamento.`;
     }
 
     await WhatsAppService.sendMessage(userPhone, mensagemInvalida);
