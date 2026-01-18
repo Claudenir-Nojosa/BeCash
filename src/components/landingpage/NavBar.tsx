@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback } from "react";
 import { ThemeToggle } from "../shared/themeToggle";
 import { Button } from "../ui/button";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { LanguageSwitcher } from "../ui/language-switcher";
@@ -26,12 +26,14 @@ interface MobileMenuProps {
 const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
   const { t } = useTranslation("navbar");
   const pathname = usePathname();
+  const params = useParams();
+  const currentLang = (params?.lang as string) || "pt";
 
   const NAV_LINKS: NavLink[] = [
-    { label: t("links.features"), href: "/#features" },
-    { label: t("links.howItWorks"), href: "/#how-it-works" },
-    { label: t("links.testimonials"), href: "/#testimonials" },
-    { label: t("links.pricing"), href: "/#pricing" },
+    { label: t("links.features"), href: `/${currentLang}/#features` },
+    { label: t("links.howItWorks"), href: `/${currentLang}/#how-it-works` },
+    { label: t("links.testimonials"), href: `/${currentLang}/#testimonials` },
+    { label: t("links.pricing"), href: `/${currentLang}/#pricing` },
   ];
 
   useEffect(() => {
@@ -86,19 +88,23 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
         </div>
 
         <div className="flex flex-col gap-3 pt-6 mt-4 border-t border-gray-300 dark:border-gray-800">
-          <Button
-            variant="outline"
-            className="w-full border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"
-            onClick={handleLinkClick}
-          >
-            {t("buttons.login")}
-          </Button>
-          <Button
-            className="w-full bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90 transition-opacity"
-            onClick={handleLinkClick}
-          >
-            {t("buttons.startFree")}
-          </Button>
+          <Link href={`/${currentLang}/login`}>
+            <Button
+              variant="outline"
+              className="w-full border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"
+              onClick={handleLinkClick}
+            >
+              {t("buttons.login")}
+            </Button>
+          </Link>
+          <Link href={`/${currentLang}/signup`}>
+            <Button
+              className="w-full bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90 transition-opacity"
+              onClick={handleLinkClick}
+            >
+              {t("buttons.startFree")}
+            </Button>
+          </Link>
         </div>
       </div>
     </motion.div>
@@ -107,12 +113,14 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
 
 const DesktopNavLinks = () => {
   const { t } = useTranslation("navbar");
+  const params = useParams();
+  const currentLang = (params?.lang as string) || "pt";
 
   const NAV_LINKS: NavLink[] = [
-    { label: t("links.features"), href: "/#features" },
-    { label: t("links.howItWorks"), href: "/#how-it-works" },
-    { label: t("links.testimonials"), href: "/#testimonials" },
-    { label: t("links.pricing"), href: "/#pricing" },
+    { label: t("links.features"), href: `/${currentLang}/#features` },
+    { label: t("links.howItWorks"), href: `/${currentLang}/#how-it-works` },
+    { label: t("links.testimonials"), href: `/${currentLang}/#testimonials` },
+    { label: t("links.pricing"), href: `/${currentLang}/#pricing` },
   ];
 
   const pathname = usePathname();
@@ -146,6 +154,8 @@ const DesktopNavLinks = () => {
 
 export const Navbar = () => {
   const { t } = useTranslation("navbar");
+  const params = useParams();
+  const currentLang = (params?.lang as string) || "pt";
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const { scrollY } = useScroll();
@@ -193,7 +203,7 @@ export const Navbar = () => {
               className="flex items-center gap-2"
             >
               <Link
-                href="/"
+                href={`/${currentLang}`}
                 className="flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#007cca] focus:ring-offset-2 dark:focus:ring-offset-gray-900 rounded-lg p-1"
                 aria-label={t("aria.goHome")}
               >
@@ -219,19 +229,23 @@ export const Navbar = () => {
             <div className="hidden md:flex items-center gap-4">
               <LanguageSwitcher />
               <ThemeToggle />
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-gray-800 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 text-sm font-medium"
-              >
-                {t("buttons.login")}
-              </Button>
-              <Button
-                size="sm"
-                className="bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:shadow-lg hover:shadow-blue-500/25 dark:hover:shadow-blue-500/50 transition-all duration-300 text-sm font-medium"
-              >
-                {t("buttons.startFree")}
-              </Button>
+              <Link href={`/${currentLang}/login`}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-800 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 text-sm font-medium"
+                >
+                  {t("buttons.login")}
+                </Button>
+              </Link>
+              <Link href={`/${currentLang}/signup`}>
+                <Button
+                  size="sm"
+                  className="bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:shadow-lg hover:shadow-blue-500/25 dark:hover:shadow-blue-500/50 transition-all duration-300 text-sm font-medium"
+                >
+                  {t("buttons.startFree")}
+                </Button>
+              </Link>
             </div>
 
             {/* Mobile Actions */}

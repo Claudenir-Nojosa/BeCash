@@ -8,6 +8,7 @@ import { signIn } from "../../../../../auth";
 export default async function loginAction(_prevState: any, formData: FormData) {
   const email = formData.get("email") as string;
   const provider = formData.get("provider") as string | null;
+  const lang = formData.get("lang") as string || "pt"; // Adicionar linguagem do formulário
 
   try {
     // Login normal, sem restrição de e-mail
@@ -15,6 +16,7 @@ export default async function loginAction(_prevState: any, formData: FormData) {
       email,
       password: formData.get("password") as string,
       redirect: false,
+      callbackUrl: `/${lang}/dashboard`, // Adicionar callbackUrl com linguagem
     });
 
     // Verifica se o usuário já existe no banco
@@ -22,7 +24,11 @@ export default async function loginAction(_prevState: any, formData: FormData) {
       where: { email },
     });
 
-    return { success: true, message: "Login realizado com sucesso!" };
+    return { 
+      success: true, 
+      message: "Login realizado com sucesso!",
+      redirectTo: `/${lang}/dashboard` // Retornar redirecionamento correto
+    };
   } catch (e: any) {
     if (e instanceof AuthError) {
       switch (e.type) {

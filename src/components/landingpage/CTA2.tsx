@@ -3,9 +3,13 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles, Star, Lock } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useParams } from "next/navigation"; // Adicionar useParams
+import Link from "next/link";
 
 export const CTA2 = () => {
   const { t } = useTranslation("cta2");
+  const params = useParams(); // Obter parâmetros da URL
+  const currentLang = (params?.lang as string) || "pt"; // Extrair linguagem
 
   return (
     <section className="py-32 relative overflow-hidden bg-background" id="cta">
@@ -99,37 +103,40 @@ export const CTA2 = () => {
                   viewport={{ once: true }}
                   transition={{ duration: 0.6, delay: 0.4 }}
                 >
-                  <motion.button
-                    className="group relative px-10 py-5 rounded-2xl bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white font-bold text-base md:text-lg shadow-2xl shadow-[#00cfec]/40 overflow-hidden w-full sm:w-auto"
-                    whileHover={{ scale: 1.05, y: -3 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <span className="relative z-10 flex items-center justify-center gap-3">
-                      {t("button", "Criar conta gratuita")}
+                  <Link href={`/${currentLang}/signup`}>
+                    <motion.button
+                      className="group relative px-10 py-5 rounded-2xl bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white font-bold text-base md:text-lg shadow-2xl shadow-[#00cfec]/40 overflow-hidden w-full sm:w-auto"
+                      whileHover={{ scale: 1.05, y: -3 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <span className="relative z-10 flex items-center justify-center gap-3">
+                        {t("button", "Criar conta gratuita")}
+                        <motion.div
+                          animate={{ x: [0, 5, 0] }}
+                          transition={{
+                            duration: 1.5,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                          }}
+                        >
+                          <ArrowRight className="w-5 h-5" />
+                        </motion.div>
+                      </span>
+
                       <motion.div
-                        animate={{ x: [0, 5, 0] }}
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12"
+                        animate={{
+                          x: ["-200%", "200%"],
+                        }}
                         transition={{
-                          duration: 1.5,
+                          duration: 2.5,
                           repeat: Infinity,
                           ease: "easeInOut",
+                          repeatDelay: 1.5,
                         }}
-                      >
-                      </motion.div>
-                    </span>
-
-                    <motion.div
-                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12"
-                      animate={{
-                        x: ["-200%", "200%"],
-                      }}
-                      transition={{
-                        duration: 2.5,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                        repeatDelay: 1.5,
-                      }}
-                    />
-                  </motion.button>
+                      />
+                    </motion.button>
+                  </Link>
                 </motion.div>
 
                 <motion.div

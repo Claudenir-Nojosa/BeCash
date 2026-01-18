@@ -10,14 +10,21 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "../../../../../auth";
 
-export default async function RegisterPage() {
+// Adicione a prop params
+export default async function RegisterPage({ 
+  params 
+}: { 
+  params: { lang: string } 
+}) {
   const session = await auth();
+  
   if (session) {
-    return redirect("/dashboard");
+    // Redirecionar para dashboard com linguagem correta
+    return redirect(`/${params.lang}/dashboard`);
   }
+  
   return (
     <>
-      {" "}
       <div>
         <div className="isolate">
           <div
@@ -40,13 +47,15 @@ export default async function RegisterPage() {
           <CardDescription>Faça seu cadastro gratuitamente.</CardDescription>
         </CardHeader>
         <CardContent>
-          <RegisterForm />
+          {/* Passar linguagem para o RegisterForm */}
+          <RegisterForm lang={params.lang} />
           <div className="flex flex-col w-full justify-center items-center">
             <div className="mx-auto my-4 flex w-full items-center justify-evenly before:mr-4 before:block before:h-px before:flex-grow before:bg-muted-foreground after:ml-4 after:block after:h-px after:flex-grow after:bg-muted-foreground">
               ou
             </div>
             <div className="gap-3 flex flex-col mt-6 w-full">
-              <BotaoGoogle />
+              {/* Passar linguagem para o BotaoGoogle */}
+              <BotaoGoogle lang={params.lang} />
               <div className="flex gap-5 w-full items-center"></div>
             </div>
           </div>
@@ -54,7 +63,8 @@ export default async function RegisterPage() {
       </Card>
       <p className="text-sm text-muted-foreground mt-3">
         Já possui cadastro?{" "}
-        <Link className="text-gradient" href="/login">
+        {/* Ajustar link para incluir linguagem */}
+        <Link className="text-gradient" href={`/${params.lang}/login`}>
           Faça o login
         </Link>
         .

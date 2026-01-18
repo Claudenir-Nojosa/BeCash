@@ -14,6 +14,8 @@ import {
 import { Button } from "../ui/button";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import Link from "next/link";
+import { useParams } from "next/navigation"; // Adicione esta importação
 
 const floatingIcons = [
   {
@@ -65,6 +67,9 @@ const animatedCoins = Array.from({ length: 12 }, (_, i) => ({
 
 export const Hero = () => {
   const { t } = useTranslation("hero");
+  const params = useParams(); // Obter parâmetros da URL
+  const currentLang = (params?.lang as string) || "pt"; // Extrair linguagem ou usar "pt" como padrão
+
   const [isHoveringOffer, setIsHoveringOffer] = useState(false);
   const [isHoveringCTA, setIsHoveringCTA] = useState(false);
   const [isHoveringSecondary, setIsHoveringSecondary] = useState(false);
@@ -185,7 +190,7 @@ export const Hero = () => {
               {t("title.line1")}
             </span>
             <span className="relative inline-block mt-3 md:mt-4">
-                <span className="bg-gradient-to-r from-[#00cfec] to-[#007cca] bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[#00cfec] to-[#007cca] bg-clip-text text-transparent">
                 {t("title.whatsapp")}
               </span>
               <motion.div
@@ -217,21 +222,24 @@ export const Hero = () => {
             transition={{ delay: 0.5, duration: 0.5 }}
             className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-8 md:mb-0"
           >
-            <Button
-              size="lg"
-              className="px-6 md:px-8 py-5 text-lg font-medium bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:shadow-md hover:shadow-[#00cfec]/25 dark:hover:shadow-[#00cfec]/15 transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] rounded-xl border border-[#00cfec]/40 w-full sm:w-auto"
-              onMouseEnter={() => setIsHoveringCTA(true)}
-              onMouseLeave={() => setIsHoveringCTA(false)}
-            >
-              <span className="relative z-10">{t("buttons.startFree")}</span>
-              <motion.div
-                animate={{ x: isHoveringCTA ? 3 : 0 }}
-                transition={{ duration: 0.15 }}
-                className="relative z-10 ml-2"
+            {/* Botão Start Free com Link */}
+            <Link href={`/${currentLang}/signup`}>
+              <Button
+                size="lg"
+                className="px-6 md:px-8 py-5 text-lg font-medium bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:shadow-md hover:shadow-[#00cfec]/25 dark:hover:shadow-[#00cfec]/15 transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] rounded-xl border border-[#00cfec]/40 w-full sm:w-auto"
+                onMouseEnter={() => setIsHoveringCTA(true)}
+                onMouseLeave={() => setIsHoveringCTA(false)}
               >
-                <ArrowRight className="w-4 h-4" />
-              </motion.div>
-            </Button>
+                <span className="relative z-10">{t("buttons.startFree")}</span>
+                <motion.div
+                  animate={{ x: isHoveringCTA ? 3 : 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="relative z-10 ml-2"
+                >
+                  <ArrowRight className="w-4 h-4" />
+                </motion.div>
+              </Button>
+            </Link>
 
             <Button
               size="lg"
@@ -302,9 +310,8 @@ export const Hero = () => {
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#09acc1] to-[#007cca] flex items-center justify-center shadow-sm">
                 <TrendingUp className="w-3.5 h-3.5 text-white" />
               </div>
-             {t("trust.averageSavings")}
+              {t("trust.averageSavings")}
             </motion.span>
-
           </motion.div>
         </motion.div>
       </div>

@@ -9,12 +9,28 @@ import { useActionState } from "react";
 import { Toaster, toast } from "sonner";
 import { useState, useEffect } from "react";
 import { Icons } from "./loadingSpinner";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 
-export default function LoginForm() {
+// Defina as props do componente
+interface LoginFormProps {
+  lang?: string; // Propriedade opcional
+}
+
+export default function LoginForm({ lang }: LoginFormProps) {
+  const params = useParams();
+  
+  // Usar a prop lang se fornecida, caso contrário extrair dos params
+  const currentLang = lang || (params?.lang as string) || "pt";
+  
   const [state, formAction, isPending] = useActionState(loginAction, null);
   const [hasShownToast, setHasShownToast] = useState(false);
   const router = useRouter();
+
+  // Adicionar linguagem ao FormData
+  const handleFormAction = (formData: FormData) => {
+    formData.append("lang", currentLang); // Adicionar linguagem ao FormData
+    formAction(formData);
+  };
 
   useEffect(() => {
     if (state && !hasShownToast) {
@@ -27,11 +43,12 @@ export default function LoginForm() {
 
         // Aguarda um tempo para mostrar o toast e depois redireciona
         setTimeout(() => {
-          window.location.reload(); // Recarrega a página como um F5
+          // Redirecionar para dashboard com linguagem correta
+          router.push(`/${currentLang}/dashboard`);
         }, 1500);
       }
     }
-  }, [state, hasShownToast, router]);
+  }, [state, hasShownToast, router, currentLang]);
 
   useEffect(() => {
     if (!isPending) {
@@ -41,7 +58,10 @@ export default function LoginForm() {
 
   return (
     <>
-      <Form action={formAction}>
+      <Form action={handleFormAction}>
+        {/* Adicionar campo hidden para linguagem */}
+        <input type="hidden" name="lang" value={currentLang} />
+        
         <div>
           <Label>Email</Label>
           <Input type="email" name="email" placeholder="eu@exemplo.com" />

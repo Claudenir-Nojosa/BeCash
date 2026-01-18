@@ -14,6 +14,7 @@ export default async function registerAction(
     name: string;
     email: string;
     password: string;
+    lang?: string; // Adicionar linguagem
   };
 
   // Se não tiver e-mail, nome ou senha, retornar erro
@@ -50,6 +51,7 @@ export default async function registerAction(
   console.log("------ Server Action - Registrar Usuário ------");
   console.log(data);
 
-
-  redirect(`/dashboard`);
+  // Redirecionar para dashboard com linguagem (ou pt como padrão)
+  const lang = data.lang || "pt";
+  redirect(`/${lang}/dashboard`);
 }

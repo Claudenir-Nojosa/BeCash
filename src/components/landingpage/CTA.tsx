@@ -4,9 +4,13 @@ import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "../ui/button";
 import { useTranslation } from "react-i18next";
+import Link from "next/link";
+import { useParams } from "next/navigation"; // Adicionar useParams
 
 export const CTA = () => {
   const { t } = useTranslation("cta");
+  const params = useParams(); // Obter parâmetros da URL
+  const currentLang = (params?.lang as string) || "pt"; // Extrair linguagem
 
   return (
     <section id="pricing" className="py-24 relative overflow-hidden bg-background">
@@ -68,13 +72,15 @@ export const CTA = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white px-8 py-6 text-lg font-semibold hover:opacity-90 transition-all group shadow-lg shadow-[#00cfec]/30"
-              >
-                {t("buttons.createAccount", "Criar Conta Grátis")}
-                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </Button>
+              <Link href={`/${currentLang}/signup`}>
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white px-8 py-6 text-lg font-semibold hover:opacity-90 transition-all group shadow-lg shadow-[#00cfec]/30"
+                >
+                  {t("buttons.createAccount", "Criar Conta Grátis")}
+                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </Link>
               <Button
                 size="lg"
                 variant="outline"

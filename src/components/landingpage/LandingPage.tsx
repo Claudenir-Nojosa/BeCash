@@ -19,6 +19,7 @@ import CTA2 from "./CTA2";
 import Security from "./Security";
 import { FAQ } from "./FAQ";
 import { useTranslation } from "react-i18next";
+import { useParams } from "next/navigation"; // Adicione esta importação
 
 // Componente de loading para sections
 const SectionSkeleton = () => (
@@ -28,11 +29,13 @@ const SectionSkeleton = () => (
       <div className="h-8 bg-gray-200 dark:bg-gray-800 rounded w-1/4 mb-4"></div>
       <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/2"></div>
     </div>
-  </div>
+</div>
 );
 
 const Index = () => {
   const { t } = useTranslation(["pricing", "pricingPlans"]);
+  const params = useParams(); // Obter parâmetros da URL
+  const currentLang = (params?.lang as string) || "pt"; // Extrair linguagem ou usar "pt" como padrão
 
   // Função para garantir que features seja sempre um array de strings
   const getFeaturesArray = (features: any): string[] => {
@@ -71,7 +74,7 @@ const Index = () => {
       })),
       description: t("pricingPlans:plans.basic.description", "Perfeito para começar a controlar suas finanças"),
       buttonText: t("pricingPlans:plans.basic.buttonText", "Começar Grátis"),
-      href: "/signup",
+      href: `/${currentLang}/signup`, // Adicionado linguagem
       isPopular: false
     },
     {
@@ -95,7 +98,7 @@ const Index = () => {
       })),
       description: t("pricingPlans:plans.pro.description", "Para quem leva finanças a sério"),
       buttonText: t("pricingPlans:plans.pro.buttonText", "Experimentar Gratuitamente"),
-      href: "/signup?plan=pro",
+      href: `/${currentLang}/signup?plan=pro`, // Adicionado linguagem
       isPopular: true
     },
     {
@@ -119,10 +122,10 @@ const Index = () => {
       })),
       description: t("pricingPlans:plans.family.description", "Ideal para famílias que querem controlar tudo junto"),
       buttonText: t("pricingPlans:plans.family.buttonText", "Começar Teste Grátis"),
-      href: "/signup?plan=family",
+      href: `/${currentLang}/signup?plan=family`, // Adicionado linguagem
       isPopular: false
     }
-  ], [t]); // Recalcula quando a tradução muda
+  ], [t, currentLang]); // Adicionado currentLang nas dependências
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 overflow-x-hidden">

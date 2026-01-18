@@ -9,11 +9,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import BotaoGoogleServer from "@/components/shared/botaoGoogleServer";
 import { auth } from "../../../../../auth";
+import { useParams } from "next/navigation";
 
-export default async function LoginPage() {
+export default async function LoginPage({ params }: { params: { lang: string } }) {
   const session = await auth();
+  
   if (session) {
-    return redirect("/dashboard");
+    // Redirecionar para dashboard com a linguagem correta
+    return redirect(`/${params.lang}/dashboard`);
   }
 
   return (
@@ -41,13 +44,13 @@ export default async function LoginPage() {
           <CardDescription>Faça seu login com email e senha.</CardDescription>
         </CardHeader>
         <CardContent>
-          <LoginForm />
+          <LoginForm lang={params.lang} /> {/* Passar linguagem para o formulário */}
           <div className="flex flex-col w-full justify-center items-center">
             <div className="mx-auto my-4 flex w-full items-center justify-evenly before:mr-4 before:block before:h-px before:flex-grow before:bg-muted-foreground after:ml-4 after:block after:h-px after:flex-grow after:bg-muted-foreground">
               ou
             </div>
             <div className="gap-3 flex flex-col mt-6 w-full">
-              <BotaoGoogleServer />
+              <BotaoGoogleServer lang={params.lang} /> {/* Passar linguagem para Google */}
               <div className="flex gap-5 w-full items-center"></div>
             </div>
           </div>

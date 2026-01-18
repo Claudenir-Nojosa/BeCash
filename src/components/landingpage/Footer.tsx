@@ -24,7 +24,6 @@ export const Footer = () => {
     legal: [
       { label: t("links.legal.privacy", "Privacidade"), href: "#" },
       { label: t("links.legal.terms", "Termos"), href: "#" },
-      { label: t("links.legal.cookies", "Cookies"), href: "#" },
     ],
   };
 
@@ -88,7 +87,7 @@ export const Footer = () => {
                 <li key={link.label}>
                   <a
                     href={link.href}
-                    className="text-gray-600 dark:text-gray-400 hover:text-[#007cca] dark:hover:text-[#00cfec] transition-colors text-sm hover:pl-1 transition-all duration-200"
+                    className="text-gray-600 dark:text-gray-400 hover:text-[#007cca] dark:hover:text-[#00cfec] transition-colors text-sm hover:pl-1  duration-200"
                   >
                     {link.label}
                   </a>
@@ -106,7 +105,7 @@ export const Footer = () => {
                 <li key={link.label}>
                   <a
                     href={link.href}
-                    className="text-gray-600 dark:text-gray-400 hover:text-[#007cca] dark:hover:text-[#00cfec] transition-colors text-sm hover:pl-1 transition-all duration-200"
+                    className="text-gray-600 dark:text-gray-400 hover:text-[#007cca] dark:hover:text-[#00cfec] transition-colors text-sm hover:pl-1  duration-200"
                   >
                     {link.label}
                   </a>
@@ -124,7 +123,7 @@ export const Footer = () => {
                 <li key={link.label}>
                   <a
                     href={link.href}
-                    className="text-gray-600 dark:text-gray-400 hover:text-[#007cca] dark:hover:text-[#00cfec] transition-colors text-sm hover:pl-1 transition-all duration-200"
+                    className="text-gray-600 dark:text-gray-400 hover:text-[#007cca] dark:hover:text-[#00cfec] transition-colors text-sm hover:pl-1  duration-200"
                   >
                     {link.label}
                   </a>

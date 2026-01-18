@@ -30,8 +30,24 @@ export function LanguageSwitcher() {
       // Use a instância do i18n diretamente
       await i18n.changeLanguage(newLocale);
 
-      // Atualiza a URL
-      const newPathname = pathname.replace(`/${params.lang}`, `/${newLocale}`);
+      // Lógica para construir a nova URL
+      const segments = pathname.split("/");
+      
+      // Verifica se a URL já tem um código de linguagem (ex: /pt, /en, /es)
+      const hasLangParam = languages.some(lang => segments[1] === lang.code);
+      
+      let newPathname: string;
+      
+      if (hasLangParam) {
+        // Se já tem linguagem, substitui pelo novo código
+        segments[1] = newLocale;
+        newPathname = segments.join("/");
+      } else {
+        // Se não tem linguagem, adiciona no início
+        newPathname = `/${newLocale}${pathname === "/" ? "" : pathname}`;
+      }
+
+      // Navega para a nova URL
       router.push(newPathname);
 
       // Força um reload suave para atualizar os textos
@@ -41,7 +57,21 @@ export function LanguageSwitcher() {
     }
   };
 
-  const currentLanguage = languages.find((lang) => lang.code === i18n.language);
+  // Determina a linguagem atual baseada na URL ou i18n
+  const getCurrentLanguage = () => {
+    // Primeiro tenta pegar da URL
+    const urlLang = pathname.split("/")[1];
+    const langFromUrl = languages.find(lang => lang.code === urlLang);
+    
+    if (langFromUrl) {
+      return langFromUrl;
+    }
+    
+    // Se não encontrar na URL, usa do i18n
+    return languages.find(lang => lang.code === i18n.language) || languages[0];
+  };
+
+  const currentLanguage = getCurrentLanguage();
 
   return (
     <DropdownMenu>
@@ -53,7 +83,7 @@ export function LanguageSwitcher() {
         >
           <Globe className="h-4 w-4" />
           <span className="hidden md:inline">
-            {currentLanguage?.flag} {currentLanguage?.name}
+            {currentLanguage.flag} {currentLanguage.name}
           </span>
         </Button>
       </DropdownMenuTrigger>
@@ -67,7 +97,7 @@ export function LanguageSwitcher() {
             onClick={() => handleLanguageChange(language.code)}
             className={`
               cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-700 
-              ${i18n.language === language.code 
+              ${currentLanguage.code === language.code 
                 ? "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white" 
                 : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               }
