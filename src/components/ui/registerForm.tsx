@@ -8,27 +8,26 @@ import registerAction from "@/app/[lang]/(auth)/signup/registerAction";
 import { Toaster, toast } from "sonner";
 import { useActionState } from "react";
 import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation"; // Adicione useParams
+import { useRouter, useParams } from "next/navigation";
 import { Icons } from "./loadingSpinner";
+import { useTranslation } from "react-i18next";
 
-// Definir props do componente
 interface RegisterFormProps {
   lang?: string;
 }
 
 export default function RegisterForm({ lang }: RegisterFormProps) {
   const params = useParams();
+  const { t } = useTranslation("register");
 
-  // Usar a prop lang se fornecida, caso contrário extrair dos params
   const currentLang = lang || (params?.lang as string) || "pt";
 
   const [state, formAction, isPending] = useActionState(registerAction, null);
   const [hasShownToast, setHasShownToast] = useState(false);
   const router = useRouter();
 
-  // Adicionar linguagem ao FormData
   const handleFormAction = (formData: FormData) => {
-    formData.append("lang", currentLang); // Adicionar linguagem ao FormData
+    formData.append("lang", currentLang);
     formAction(formData);
   };
 
@@ -41,15 +40,14 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
         toast.success(state.message);
         setHasShownToast(true);
 
-        // Redirecionar para dashboard com linguagem correta
+        // Redirecionar após sucesso
         setTimeout(() => {
-          router.push(`/${currentLang}/dashboard`);
-        }, 3200);
+          router.push(`/${state.lang || currentLang}/dashboard`);
+        }, 2000);
       }
     }
   }, [state, hasShownToast, router, currentLang]);
 
-  // Se apertar o botão, mudar para false e mostrar mais toasts
   useEffect(() => {
     if (!isPending) {
       setHasShownToast(false);
@@ -58,31 +56,76 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
 
   return (
     <>
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          className: "font-sans",
+          duration: 4000,
+        }}
+      />
+      
       <Form action={handleFormAction}>
-        {/* Adicionar campo hidden para linguagem */}
         <input type="hidden" name="lang" value={currentLang} />
 
-        <div>
-          <Label>Nome</Label>
-          <Input type="text" name="name" placeholder="Fulano de Tal" />
-        </div>
-        <div>
-          <Label>Email</Label>
-          <Input type="email" name="email" placeholder="eu@exemplo.com" />
-        </div>
-        <div>
-          <Label>Senha</Label>
-          <Input type="password" name="password" placeholder="********" />
-        </div>
-        <div>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {t("fields.name.label")}
+            </Label>
+            <Input 
+              type="text" 
+              name="name" 
+              placeholder={t("fields.name.placeholder")}
+              className="w-full"
+              required
+              disabled={isPending}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {t("fields.email.label")}
+            </Label>
+            <Input 
+              type="email" 
+              name="email" 
+              placeholder={t("fields.email.placeholder")}
+              className="w-full"
+              required
+              disabled={isPending}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {t("fields.password.label")}
+            </Label>
+            <Input 
+              type="password" 
+              name="password" 
+              placeholder={t("fields.password.placeholder")}
+              className="w-full"
+              required
+              disabled={isPending}
+              minLength={6}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {t("fields.password.hint", "Mínimo 6 caracteres")}
+            </p>
+          </div>
+          
           <Button
-            className="w-full mt-6 bg-gradient-to-r from-blue-400 to-indigo-500 hover:from-blue-300 hover:to-indigo-400 text-white font-medium rounded-md transition-all duration-300 shadow-[0_0_15px_-3px_rgba(217,70,239,0.4)] hover:shadow-[0_0_20px_-3px_rgba(217,70,239,0.6)]"
+            className="w-full mt-4 bg-gradient-to-r from-[#00cfec] to-[#007cca] hover:from-[#00cfec]/90 hover:to-[#007cca]/90 text-white font-medium transition-all duration-300"
             type="submit"
+            disabled={isPending}
           >
             {isPending ? (
-              <Icons.spinner className="h-4 w-4 animate-spin" />
+              <>
+                <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                {t("buttons.registering")}
+              </>
             ) : (
-              <p>Registrar</p>
+              t("buttons.register")
             )}
           </Button>
         </div>

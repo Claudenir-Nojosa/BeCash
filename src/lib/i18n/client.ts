@@ -19,7 +19,7 @@ i18nInstance
 
     // Namespaces
     defaultNS: "common",
-    ns: ["common", "dashboard", "limites", "dashboardTable", "metasCard", "sidebar", "categorias", "bicla", "vincularTelefone", "metas", "upload", "cartoes", "faturas", "relatorios", "limites", "colaboradores", "editCartoes", "navbar", "hero", "tech", "features", "launchMethods", "faq", "sharedExpenses", "pricing", "footer", "cta", "metaVerified", "productivityGains", "howItWorks"],
+    ns: ["common", "dashboard", "limites", "dashboardTable", "metasCard", "sidebar", "categorias", "bicla", "vincularTelefone", "metas", "upload", "cartoes", "faturas", "relatorios", "limites", "colaboradores", "editCartoes", "navbar", "hero", "tech", "features", "launchMethods", "faq", "sharedExpenses", "pricing", "footer", "cta", "metaVerified", "productivityGains", "howItWorks", "register", "auth"],
 
     // Interpolação
     interpolation: {

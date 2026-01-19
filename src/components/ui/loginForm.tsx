@@ -10,6 +10,8 @@ import { Toaster, toast } from "sonner";
 import { useState, useEffect } from "react";
 import { Icons } from "./loadingSpinner";
 import { useRouter, useParams } from "next/navigation";
+import { useTranslation } from "react-i18next";
+import Link from "next/link";
 
 // Defina as props do componente
 interface LoginFormProps {
@@ -18,6 +20,7 @@ interface LoginFormProps {
 
 export default function LoginForm({ lang }: LoginFormProps) {
   const params = useParams();
+  const { t } = useTranslation("auth");
   
   // Usar a prop lang se fornecida, caso contrário extrair dos params
   const currentLang = lang || (params?.lang as string) || "pt";
@@ -44,7 +47,7 @@ export default function LoginForm({ lang }: LoginFormProps) {
         // Aguarda um tempo para mostrar o toast e depois redireciona
         setTimeout(() => {
           // Redirecionar para dashboard com linguagem correta
-          router.push(`/${currentLang}/dashboard`);
+          router.push(`/${state.lang || currentLang}/dashboard`);
         }, 1500);
       }
     }
@@ -58,24 +61,67 @@ export default function LoginForm({ lang }: LoginFormProps) {
 
   return (
     <>
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          className: "font-sans",
+          duration: 4000,
+        }}
+      />
+      
       <Form action={handleFormAction}>
         {/* Adicionar campo hidden para linguagem */}
         <input type="hidden" name="lang" value={currentLang} />
         
-        <div>
-          <Label>Email</Label>
-          <Input type="email" name="email" placeholder="eu@exemplo.com" />
-        </div>
-        <div>
-          <Label>Senha</Label>
-          <Input type="password" name="password" placeholder="********" />
-        </div>
-        <div>
-          <Button className="w-full mt-6 bg-gradient-to-r from-blue-400 to-indigo-500 hover:from-blue-300 hover:to-indigo-400 text-white font-medium rounded-md transition-all duration-300 shadow-[0_0_15px_-3px_rgba(217,70,239,0.4)] hover:shadow-[0_0_20px_-3px_rgba(217,70,239,0.6)]" type="submit">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {t("labels.email")}
+            </Label>
+            <Input 
+              type="email" 
+              name="email" 
+              placeholder={t("placeholders.email")}
+              className="w-full"
+              required
+              disabled={isPending}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {t("labels.password")}
+              </Label>
+              <Link
+                href={`/${currentLang}/forgot-password`}
+                className="text-xs text-[#007cca] dark:text-[#00cfec] hover:underline"
+              >
+                {t("links.forgotPassword")}
+              </Link>
+            </div>
+            <Input 
+              type="password" 
+              name="password" 
+              placeholder={t("placeholders.password")}
+              className="w-full"
+              required
+              disabled={isPending}
+            />
+          </div>
+          
+          <Button 
+            className="w-full mt-2 bg-gradient-to-r from-[#00cfec] to-[#007cca] hover:from-[#00cfec]/90 hover:to-[#007cca]/90 text-white font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            type="submit"
+            disabled={isPending}
+          >
             {isPending ? (
-              <Icons.spinner className="h-4 w-4 animate-spin" />
+              <>
+                <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                {t("buttons.signInLoading", "Entrando...")}
+              </>
             ) : (
-              <p>Login</p>
+              t("buttons.signIn")
             )}
           </Button>
         </div>
