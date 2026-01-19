@@ -19,7 +19,8 @@ import {
   Coins,
   Target,
   PhoneIncoming,
-} from "lucide-react";
+  Headphones,
+} from "lucide-react"; // Adicionado Headphones
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSession, signOut } from "next-auth/react";
 import Image from "next/image";
@@ -364,6 +365,30 @@ export default function Sidebar({ onClose }: SidebarProps) {
               {!isCollapsed && (
                 <span className="ml-4 text-sm font-medium">
                   {t("menu.bicla")}
+                </span>
+              )}
+            </Link>
+          </li>
+
+          {/* Suporte - NOVO ITEM ADICIONADO */}
+          <li>
+            <Link
+              href={createLink("/dashboard/suporte")}
+              className={`
+                flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 
+                text-gray-700 dark:text-gray-300 transition-all duration-200
+                ${isCollapsed ? "justify-center p-4" : "p-4"}
+                ${isActiveRoute("/dashboard/suporte") ? 
+                  "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700" : 
+                  ""
+                }
+              `}
+              onClick={handleLinkClick}
+            >
+              <Headphones className="h-5 w-5" />
+              {!isCollapsed && (
+                <span className="ml-4 text-sm font-medium">
+                  {t("menu.suporte") || "Suporte"}
                 </span>
               )}
             </Link>
