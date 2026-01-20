@@ -25,7 +25,9 @@
     "todasNotificacoesAceitas": "All {{count}} notifications were accepted!",
     "notificacoesComErro": "{{sucessos}} notifications accepted, {{erros}} with error",
     "todasNotificacoesRecusadas": "All {{count}} notifications were rejected!",
-    "notificacoesRecusadasComErro": "{{sucessos}} notifications rejected, {{erros}} with error"
+    "notificacoesRecusadasComErro": "{{sucessos}} notifications rejected, {{erros}} with error",
+    "nenhumaNotificacao": "No notifications",
+    "semSolicitacoes": "No pending requests"
   },
   "botoes": {
     "aceitarTodos": "Accept All",

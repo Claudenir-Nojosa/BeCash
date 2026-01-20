@@ -25,7 +25,9 @@
     "todasNotificacoesAceitas": "Todas as {{count}} notificações foram aceitas!",
     "notificacoesComErro": "{{sucessos}} notificações aceitas, {{erros}} com erro",
     "todasNotificacoesRecusadas": "Todas as {{count}} notificações foram recusadas!",
-    "notificacoesRecusadasComErro": "{{sucessos}} notificações recusadas, {{erros}} com erro"
+    "notificacoesRecusadasComErro": "{{sucessos}} notificações recusadas, {{erros}} com erro",
+    "nenhumaNotificacao": "Sem notificações",
+    "semSolicitacoes": "Sem pedido de compartilhamentos"
   },
   "botoes": {
     "aceitarTodos": "Aceitar Todos",

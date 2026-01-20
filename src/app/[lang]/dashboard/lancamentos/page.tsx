@@ -329,9 +329,22 @@ export default function LancamentosPage() {
 
     if (filtros.tipoLancamento !== "all") {
       const compartilhamento = getStatusCompartilhamento(lancamento);
-      if (filtros.tipoLancamento === "individual" && compartilhamento)
+      const temObservacaoCompartilhada =
+        lancamento.observacoes?.includes("Compartilhado por:");
+
+      // Se filtro é "individual", exclui compartilhados via tabela E via observação
+      if (
+        filtros.tipoLancamento === "individual" &&
+        (compartilhamento || temObservacaoCompartilhada)
+      )
         return false;
-      if (filtros.tipoLancamento === "compartilhado" && !compartilhamento)
+
+      // Se filtro é "compartilhado", inclui compartilhados via tabela OU via observação
+      if (
+        filtros.tipoLancamento === "compartilhado" &&
+        !compartilhamento &&
+        !temObservacaoCompartilhada
+      )
         return false;
     }
 

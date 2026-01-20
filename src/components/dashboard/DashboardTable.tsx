@@ -66,35 +66,35 @@ export default function DashboardTable({
     carregarUltimosLancamentos();
   }, [mes, ano, refreshTrigger]);
 
-  const carregarUltimosLancamentos = async () => {
-    try {
-      setCarregando(true);
+const carregarUltimosLancamentos = async () => {
+  try {
+    setCarregando(true);
 
-      const params = new URLSearchParams();
-      params.append("limit", LIMITE_LANCAMENTOS.toString());
-      params.append("sort", "createdAt_desc"); // ✅ Mudança aqui: ordenar por criação
-      if (mes) params.append("mes", mes);
-      if (ano) params.append("ano", ano);
+    const params = new URLSearchParams();
+    // ✅ REMOVIDO: limit e sort - vamos fazer do lado do servidor
+    if (mes) params.append("mes", mes);
+    if (ano) params.append("ano", ano);
 
-      const response = await fetch(`/api/lancamentos?${params}`);
-      if (!response.ok) throw new Error(t("erros.erroCarregar"));
+    const response = await fetch(`/api/lancamentos?${params}`);
+    if (!response.ok) throw new Error(t("erros.erroCarregar"));
 
-      const data = await response.json();
+    const data = await response.json();
 
-      // Já vem ordenado pela API, mas garantimos a ordenação localmente também
-      const ordenado = data.sort(
-        (a: any, b: any) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
+    // ✅ Ordenar por data de CRIAÇÃO (mais recentes primeiro)
+    const ordenado = data.sort(
+      (a: any, b: any) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
 
-      const lancamentosLimitados = ordenado.slice(0, LIMITE_LANCAMENTOS);
-      setLancamentos(lancamentosLimitados);
-    } catch (error) {
-      console.error(t("erros.erroCarregar"), error);
-    } finally {
-      setCarregando(false);
-    }
-  };
+    // ✅ Limitar aos 10 mais recentes
+    const lancamentosLimitados = ordenado.slice(0, LIMITE_LANCAMENTOS);
+    setLancamentos(lancamentosLimitados);
+  } catch (error) {
+    console.error(t("erros.erroCarregar"), error);
+  } finally {
+    setCarregando(false);
+  }
+};
 
   const formatarMoeda = (valor: number) => {
     const locale = i18n.language === "pt" ? "pt-BR" : "en-US";

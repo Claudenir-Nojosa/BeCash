@@ -1,15 +1,32 @@
-// app/api/dashboard/resumo/route.ts (com logs)
+// app/api/dashboard/resumo/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "../../../../../auth";
 import db from "@/lib/db";
 
+function calcularMesReferenciaLancamento(
+  lancamento: any
+): { ano: number; mes: number } {
+  const data = new Date(lancamento.data);
+  let ano = data.getFullYear();
+  let mes = data.getMonth() + 1;
+
+  // ✅ Para CRÉDITO, adiciona +1 mês (mês de PAGAMENTO da fatura)
+  if (lancamento.metodoPagamento === "CREDITO" && lancamento.cartao) {
+    mes += 1;
+    if (mes > 12) {
+      mes = 1;
+      ano += 1;
+    }
+  }
+
+  return { ano, mes };
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
-    console.log("API Resumo - Sessão:", session?.user?.id);
 
     if (!session?.user?.id) {
-      console.log("API Resumo - Não autorizado");
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
@@ -18,80 +35,116 @@ export async function GET(request: NextRequest) {
       searchParams.get("mes") || (new Date().getMonth() + 1).toString();
     const ano = searchParams.get("ano") || new Date().getFullYear().toString();
 
-    console.log("API Resumo - Parâmetros:", {
-      mes,
-      ano,
-      userId: session.user.id,
-    });
+    const mesNum = Number(mes);
+    const anoNum = Number(ano);
 
-    const primeiroDiaMes = new Date(Number(ano), Number(mes) - 1, 1);
-    const ultimoDiaMes = new Date(Number(ano), Number(mes), 0);
+    console.log("\n=== INÍCIO DEBUG RESUMO ===");
+    console.log("Buscando para:", { mes: mesNum, ano: anoNum, userId: session.user.id });
 
-    console.log("API Resumo - Período:", { primeiroDiaMes, ultimoDiaMes });
-
-    // Receitas do mês
-    const receitas = await db.lancamento.aggregate({
+    // ✅ Buscar TODOS os lançamentos do usuário (incluindo compartilhamentos)
+    const todosLancamentos = await db.lancamento.findMany({
       where: {
         userId: session.user.id,
-        tipo: "RECEITA",
-        data: {
-          gte: primeiroDiaMes,
-          lte: ultimoDiaMes,
-        },
       },
-      _sum: {
-        valor: true,
-      },
-    });
-
-    console.log("API Resumo - Receitas:", receitas);
-
-    // Despesas do mês
-    const despesas = await db.lancamento.aggregate({
-      where: {
-        userId: session.user.id,
-        tipo: "DESPESA",
-        data: {
-          gte: primeiroDiaMes,
-          lte: ultimoDiaMes,
-        },
-      },
-      _sum: {
-        valor: true,
-      },
-    });
-
-    console.log("API Resumo - Despesas:", despesas);
-
-    // Despesas compartilhadas pendentes
-    const despesasCompartilhadas = await db.lancamentoCompartilhado.aggregate({
-      where: {
-        usuarioAlvoId: session.user.id,
-        status: "PENDENTE",
-        lancamento: {
-          data: {
-            gte: primeiroDiaMes,
-            lte: ultimoDiaMes,
+      include: {
+        cartao: {
+          select: {
+            diaFechamento: true,
+            diaVencimento: true,
           },
         },
-      },
-      _sum: {
-        valorCompartilhado: true,
+        LancamentoCompartilhado: true, // ✅ Incluir compartilhamentos
       },
     });
 
-    console.log("API Resumo - Compartilhadas:", despesasCompartilhadas);
+    console.log("Total de lançamentos do usuário:", todosLancamentos.length);
 
-    const resumo = {
-      receita: receitas._sum.valor || 0,
-      despesa: despesas._sum.valor || 0,
-      despesasCompartilhadas:
-        despesasCompartilhadas._sum.valorCompartilhado || 0,
-      saldo: (receitas._sum.valor || 0) - (despesas._sum.valor || 0),
-      limites: 0,
+    // ✅ Filtrar usando calcularMesReferenciaLancamento
+    const lancamentosFiltrados = todosLancamentos.filter((lancamento) => {
+      const { ano, mes } = calcularMesReferenciaLancamento(lancamento);
+      return ano === anoNum && mes === mesNum;
+    });
+
+    console.log("Lançamentos filtrados:", lancamentosFiltrados.length);
+
+    // ✅ Função auxiliar para verificar se é compartilhado
+    const isCompartilhado = (lancamento: any): boolean => {
+      // Critério 1: Observações contêm "Compartilhado por:"
+      const temObservacaoCompartilhada = 
+        lancamento.observacoes && 
+        lancamento.observacoes.includes("Compartilhado por:");
+      
+      // Critério 2: Tem relacionamento LancamentoCompartilhado
+      const temRelacionamentoCompartilhado = 
+        lancamento.LancamentoCompartilhado && 
+        lancamento.LancamentoCompartilhado.length > 0;
+      
+      return temObservacaoCompartilhada || temRelacionamentoCompartilhado;
     };
 
-    console.log("API Resumo - Resultado final:", resumo);
+    // ✅ Separar RECEITAS
+    const receitas = lancamentosFiltrados.filter((l) => l.tipo === "RECEITA");
+    const valorReceita = receitas.reduce((sum, l) => sum + l.valor, 0);
+
+    console.log("\n--- RECEITAS ---");
+    console.log("Quantidade:", receitas.length);
+    console.log("Total:", valorReceita);
+    receitas.forEach(r => {
+      console.log(`  • ${r.descricao}: R$ ${r.valor}`);
+    });
+
+    // ✅ Separar DESPESAS INDIVIDUAIS (NÃO compartilhadas)
+    const despesasIndividuais = lancamentosFiltrados.filter(
+      (l) => l.tipo === "DESPESA" && !isCompartilhado(l)
+    );
+    const valorDespesaIndividual = despesasIndividuais.reduce(
+      (sum, l) => sum + l.valor, 
+      0
+    );
+
+    console.log("\n--- DESPESAS INDIVIDUAIS ---");
+    console.log("Quantidade:", despesasIndividuais.length);
+    console.log("Total:", valorDespesaIndividual);
+    despesasIndividuais.forEach(d => {
+      console.log(`  • ${d.descricao}: R$ ${d.valor}`);
+    });
+
+    // ✅ Separar DESPESAS COMPARTILHADAS
+    const despesasCompartilhadas = lancamentosFiltrados.filter(
+      (l) => l.tipo === "DESPESA" && isCompartilhado(l)
+    );
+    const valorCompartilhado = despesasCompartilhadas.reduce(
+      (sum, l) => sum + l.valor, 
+      0
+    );
+
+    console.log("\n--- DESPESAS COMPARTILHADAS ---");
+    console.log("Quantidade:", despesasCompartilhadas.length);
+    console.log("Total:", valorCompartilhado);
+    despesasCompartilhadas.forEach(d => {
+      console.log(`  • ${d.descricao}: R$ ${d.valor}`);
+      console.log(`    - Observações: ${d.observacoes || 'N/A'}`);
+      console.log(`    - Compartilhamentos: ${d.LancamentoCompartilhado?.length || 0}`);
+    });
+
+    // ✅ Calcular totais
+    const totalDespesas = valorDespesaIndividual + valorCompartilhado;
+
+    console.log("\n--- RESUMO FINAL ---");
+    console.log("Receitas:", valorReceita);
+    console.log("Despesas Individuais:", valorDespesaIndividual);
+    console.log("Despesas Compartilhadas:", valorCompartilhado);
+    console.log("Total Despesas:", totalDespesas);
+    console.log("Saldo:", valorReceita - totalDespesas);
+    console.log("=== FIM DEBUG RESUMO ===\n");
+
+    const resumo = {
+      receita: valorReceita,
+      despesa: totalDespesas,
+      despesasCompartilhadas: valorCompartilhado,
+      saldo: valorReceita - totalDespesas,
+      limites: 0,
+    };
 
     return NextResponse.json(resumo);
   } catch (error) {

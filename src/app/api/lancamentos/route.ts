@@ -5,134 +5,72 @@ import db from "@/lib/db";
 import { FaturaService } from "@/lib/faturaService";
 import { LimiteService } from "@/lib/limiteService";
 
+// ✅ MESMA função do resumo
+function calcularMesReferenciaLancamento(
+  lancamento: any
+): { ano: number; mes: number } {
+  const data = new Date(lancamento.data);
+  let ano = data.getFullYear();
+  let mes = data.getMonth() + 1;
+
+  // ✅ Para CRÉDITO, adiciona +1 mês (mês de PAGAMENTO da fatura)
+  if (lancamento.metodoPagamento === "CREDITO" && lancamento.cartao) {
+    mes += 1;
+    if (mes > 12) {
+      mes = 1;
+      ano += 1;
+    }
+  }
+
+  return { ano, mes };
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    // Obter parâmetros da query string
     const { searchParams } = new URL(request.url);
-    const competencia = searchParams.get("competencia");
     const mes = searchParams.get("mes");
     const ano = searchParams.get("ano");
-    const sort = searchParams.get("sort") || "createdAt_desc"; // ✅ Novo parâmetro
-    const limit = parseInt(searchParams.get("limit") || "100"); // ✅ Novo parâmetro
 
-    let whereClause: any = {
-      userId: session.user.id,
-    };
-
-    // Se houver competência, filtrar por mês/ano
-    if (competencia) {
-      const [anoComp, mesComp] = competencia.split("-").map(Number);
-
-      // Data inicial: primeiro dia do mês
-      const dataInicio = new Date(anoComp, mesComp - 1, 1);
-
-      // Data final: último dia do mês
-      const dataFim = new Date(anoComp, mesComp, 0, 23, 59, 59, 999);
-
-      whereClause.data = {
-        gte: dataInicio,
-        lte: dataFim,
-      };
-    }
-
-    // Filtro por mês/ano separado (para compatibilidade)
-    if (mes && ano) {
-      const mesNum = parseInt(mes);
-      const anoNum = parseInt(ano);
-
-      // Data inicial: primeiro dia do mês
-      const dataInicio = new Date(anoNum, mesNum - 1, 1);
-
-      // Data final: último dia do mês
-      const dataFim = new Date(anoNum, mesNum, 0, 23, 59, 59, 999);
-
-      whereClause.data = {
-        gte: dataInicio,
-        lte: dataFim,
-      };
-    }
-
-    // ✅ Determinar a ordenação baseada no parâmetro sort
-    let orderBy: any = {};
-    if (sort === "data_desc") {
-      orderBy = { data: "desc" };
-    } else if (sort === "data_asc") {
-      orderBy = { data: "asc" };
-    } else if (sort === "createdAt_desc") {
-      orderBy = { createdAt: "desc" }; // ✅ Ordenar por criação (mais recente primeiro)
-    } else if (sort === "createdAt_asc") {
-      orderBy = { createdAt: "asc" };
-    } else if (sort === "valor_desc") {
-      orderBy = { valor: "desc" };
-    } else if (sort === "valor_asc") {
-      orderBy = { valor: "asc" };
-    } else {
-      // Default: ordenar por criação (mais recente primeiro)
-      orderBy = { createdAt: "desc" };
-    }
-
-    const lancamentos = await db.lancamento.findMany({
-      where: whereClause,
+    // ✅ Buscar TODOS os lançamentos
+    const todosLancamentos = await db.lancamento.findMany({
+      where: {
+        userId: session.user.id,
+      },
       include: {
         categoria: true,
         cartao: {
           select: {
-            id: true,
-            nome: true,
-            bandeira: true,
             diaFechamento: true,
             diaVencimento: true,
-            cor: true,
           },
         },
-        Fatura: true,
-        lancamentosFilhos: {
-          include: {
-            categoria: true,
-            cartao: true,
-            Fatura: true,
-          },
-          orderBy: { parcelaAtual: "asc" },
-        },
-        LancamentoCompartilhado: {
-          include: {
-            usuarioAlvo: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                image: true,
-              },
-            },
-            usuarioCriador: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                image: true,
-              },
-            },
-          },
-        },
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-          },
-        },
+        LancamentoCompartilhado: true,
       },
-      orderBy: orderBy, // ✅ Usar a ordenação dinâmica
-      take: limit, // ✅ Limitar a quantidade de resultados
+      orderBy: {
+        createdAt: 'desc', // ✅ Mais recentes primeiro
+      },
     });
 
-    return NextResponse.json(lancamentos);
+    // ✅ Filtrar pelo mês/ano se fornecido
+    let lancamentosFiltrados = todosLancamentos;
+    
+    if (mes && ano) {
+      const mesNum = Number(mes);
+      const anoNum = Number(ano);
+      
+      lancamentosFiltrados = todosLancamentos.filter((lancamento) => {
+        const { ano, mes } = calcularMesReferenciaLancamento(lancamento);
+        return ano === anoNum && mes === mesNum;
+      });
+    }
+
+    return NextResponse.json(lancamentosFiltrados);
   } catch (error) {
     console.error("Erro ao buscar lançamentos:", error);
     return NextResponse.json(
