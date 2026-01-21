@@ -3,7 +3,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { PrismaClient } from "@prisma/client";
-import { PrismaAdapter } from "@auth/prisma-adapter"; // ← Mude para @auth/prisma-adapter
+import { PrismaAdapter } from "@auth/prisma-adapter";
 import { findUserByCredentials } from "@/lib/user";
 import { AuthError } from "next-auth";
 
@@ -19,23 +19,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
     Credentials({
       credentials: {
-        email: { label: "Email", type: "email" }, // ← Adicione labels para v5
+        email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
       authorize: async (credentials) => {
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Email e senha são obrigatórios");
         }
-        
+
         const user = await findUserByCredentials(
           credentials.email as string,
-          credentials.password as string
+          credentials.password as string,
         );
-        
+
         if (!user) {
           throw new Error("Credenciais inválidas");
         }
-        
+
         return user;
       },
     }),
@@ -60,6 +60,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
           if (existingUser) {
             user.id = existingUser.id;
+
+            // Usar casting para evitar erro de tipo
+            (user as any).onboardingCompleto = existingUser.onboardingCompleto || false;
 
             const existingAccount = await prisma.account.findFirst({
               where: {
@@ -98,16 +101,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return true;
     },
 
-    async jwt({ token, user, trigger, session }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.onboardingCompleto = (user as any).onboardingCompleto || false;
       }
-      
-      // Adicione suporte para atualização de sessão
-      if (trigger === "update" && session) {
-        token = { ...token, ...session };
-      }
-      
       return token;
     },
 
@@ -116,6 +114,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       if (session.user && userId) {
         session.user.id = userId as string;
+        (session.user as any).onboardingCompleto = token.onboardingCompleto || false;
 
         try {
           const user = await prisma.user.findUnique({
@@ -126,6 +125,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               email: true,
               image: true,
               subscriptionStatus: true,
+              onboardingCompleto: true,
             },
           });
 
@@ -135,14 +135,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             session.user.email = user.email;
             session.user.image = user.image;
             (session.user as any).subscriptionStatus = user.subscriptionStatus;
+            (session.user as any).onboardingCompleto = user.onboardingCompleto;
           }
         } catch (error) {
           console.error("Erro ao buscar usuário na session:", error);
         }
       }
 
-      
       return session;
+    },
+
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith(baseUrl)) return url;
+      return `${baseUrl}/dashboard`;
     },
   },
   pages: {

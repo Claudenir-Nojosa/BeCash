@@ -1,0 +1,115 @@
+{
+  "header": {
+    "subtitle": "Personalize sua experiência"
+  },
+  "loading": "Preparando seu onboarding...",
+  "progress": {
+    "label": "Progresso do onboarding"
+  },
+  "validation": {
+    "required": "Por favor, selecione uma opção antes de continuar",
+    "maxSelections": "Você pode selecionar no máximo {{max}} opções"
+  },
+  "selection": {
+    "counter": "{{current}} de {{max}} selecionados"
+  },
+  "errors": {
+    "generic": "Ocorreu um erro. Tente novamente."
+  },
+  "buttons": {
+    "back": "Voltar",
+    "continue": "Continuar",
+    "processing": "Processando...",
+    "finishing": "Finalizando...",
+    "startUsing": "Começar a usar o BeCash!"
+  },
+  "footer": {
+    "message1": "Suas respostas nos ajudam a criar a melhor experiência possível",
+    "message2": "Todas as informações são confidenciais e usadas apenas para personalização"
+  },
+  "confirmation": {
+    "title": "Tudo pronto! 🎉",
+    "description": "Com base nas suas respostas, vamos personalizar sua experiência no BeCash.",
+    "review": "Revisar",
+    "letsGo": "Vamos lá!"
+  },
+  "questions": {
+    "source": {
+      "title": "Como você conheceu o BeCash?",
+      "description": "Nos ajude a entender por onde você chegou até nós",
+      "options": {
+        "referral": "Indicação de amigo/família",
+        "social": "Redes sociais",
+        "google": "Google/Busca online",
+        "ads": "Publicidade online",
+        "otherApp": "Outro app de finanças"
+      }
+    },
+    "experience": {
+      "title": "Qual seu nível com finanças?",
+      "description": "Isso nos ajuda a personalizar sua experiência",
+      "options": {
+        "beginner": "Iniciante • Estou começando agora",
+        "intermediate": "Intermediário • Já tentei, mas não mantive",
+        "advanced": "Avançado • Já uso outro app/sistema",
+        "expert": "Especialista • Trabalho com finanças"
+      }
+    },
+    "difficulties": {
+      "title": "Quais são suas principais dificuldades?",
+      "description": "Selecione todas que se aplicam (máximo {{max}})",
+      "options": {
+        "dailyExpenses": "Controlar gastos do dia a dia",
+        "planning": "Planejar para o futuro",
+        "sharing": "Dividir despesas com família",
+        "organization": "Organizar contas e boletos",
+        "understanding": "Entender para onde vai o dinheiro",
+        "budget": "Criar e seguir um orçamento"
+      }
+    },
+    "frequency": {
+      "title": "Com que frequência pretende usar o BeCash?",
+      "description": "Isso nos ajuda a preparar notificações ideais para você",
+      "options": {
+        "daily": "Diariamente",
+        "dailyDesc": "Todo dia, várias vezes ao dia",
+        "fewTimes": "Algumas vezes por semana",
+        "fewTimesDesc": "2-3 vezes por semana",
+        "weekly": "Semanalmente",
+        "weeklyDesc": "Uma vez por semana",
+        "monthly": "Mensalmente",
+        "monthlyDesc": "Para fechamento mensal",
+        "whenNeeded": "Quando precisar",
+        "whenNeededDesc": "Registros específicos apenas"
+      }
+    },
+    "devices": {
+      "title": "Em quais dispositivos vai usar?",
+      "description": "Selecione todos que usar",
+      "options": {
+        "android": "Celular Android",
+        "iphone": "Celular iPhone",
+        "tablet": "Tablet",
+        "computer": "Computador/Notebook"
+      }
+    },
+    "features": {
+      "title": "Quais funcionalidades mais te interessam?",
+      "description": "Selecione até {{max}} que mais chamam atenção",
+      "options": {
+        "quickEntry": "Registro rápido de gastos",
+        "quickEntryDesc": "WhatsApp + IA para registrar",
+        "categories": "Controle por categorias",
+        "categoriesDesc": "Organize por tipo de gasto",
+        "expenseSharing": "Divisão de despesas",
+        "expenseSharingDesc": "Com parceiro, família, amigos",
+        "cards": "Cartões e faturas",
+        "cardsDesc": "Controle completo de crédito",
+        "goals": "Metas financeiras",
+        "goalsDesc": "Economize para seus objetivos",
+        "reports": "Relatórios e gráficos",
+        "reportsDesc": "Visualize seus padrões"
+      }
+    }
+  }
+}

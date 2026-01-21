@@ -20,5 +20,34 @@
   },
   "erros": {
     "erroCarregar": "Erro ao carregar lançamentos"
+  },
+  "dialog": {
+    "titulo": "Detalhes do Lançamento",
+    "descricao": "Informações completas da transação",
+    "secoes": {
+      "valor": "Valor",
+      "categoria": "Categoria",
+      "dataLancamento": "Data do Lançamento",
+      "metodoPagamento": "Método de Pagamento",
+      "status": "Status",
+      "parcelamento": "Parcelamento",
+      "recorrente": "Recorrente",
+      "observacoes": "Observações",
+      "dataCriacao": "Criado"
+    },
+    "status": {
+      "pago": "Pago",
+      "pendente": "Pendente"
+    },
+    "tipos": {
+      "receita": "Receita",
+      "despesa": "Despesa"
+    },
+    "parcelamento": {
+      "titulo": "Parcelamento",
+      "parcela": "parcela {{atual}}/{{total}}"
+    },
+    "recorrente": "🔄 Lançamento Recorrente",
+    "cartao": "{{nome}} ({{bandeira}})"
   }
 }

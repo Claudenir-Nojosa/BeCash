@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+// app/[locale]/login/actions.ts
 "use server";
 
 import db from "@/lib/db";
@@ -10,7 +10,6 @@ export default async function loginAction(_prevState: any, formData: FormData) {
   const provider = formData.get("provider") as string | null;
   const lang = formData.get("lang") as string || "pt";
 
-  // Mensagens de erro por idioma
   const errorMessages = {
     pt: {
       credentials: "Dados de login incorretos",
@@ -29,24 +28,41 @@ export default async function loginAction(_prevState: any, formData: FormData) {
   const t = errorMessages[lang as keyof typeof errorMessages] || errorMessages.pt;
 
   try {
-    // Login normal, sem restrição de e-mail
     await signIn(provider || "credentials", {
       email,
       password: formData.get("password") as string,
       redirect: false,
-      callbackUrl: `/${lang}/dashboard`,
     });
 
-    // Verifica se o usuário já existe no banco
+    // Buscar usuário para verificar status de onboarding
     const user = await db.user.findUnique({
       where: { email },
+      select: {
+        id: true,
+        onboardingCompleto: true,
+      }
     });
+
+    if (!user) {
+      return { 
+        success: false, 
+        message: t.credentials,
+        lang: lang
+      };
+    }
+
+    // 🆕 Decidir para onde redirecionar baseado no onboarding
+    let redirectTo = `/${lang}/dashboard`;
+    if (!user.onboardingCompleto) {
+      redirectTo = `/${lang}/onboarding`;
+    }
 
     return { 
       success: true, 
       message: t.success,
-      redirectTo: `/${lang}/dashboard`,
-      lang: lang
+      redirectTo: redirectTo,
+      lang: lang,
+      onboardingCompleto: user.onboardingCompleto
     };
   } catch (e: any) {
     if (e instanceof AuthError) {

@@ -20,5 +20,34 @@
   },
   "erros": {
     "erroCarregar": "Error loading entries"
+  },
+  "dialog": {
+    "titulo": "Entry Details",
+    "descricao": "Complete transaction information",
+    "secoes": {
+      "valor": "Amount",
+      "categoria": "Category",
+      "dataLancamento": "Transaction Date",
+      "metodoPagamento": "Payment Method",
+      "status": "Status",
+      "parcelamento": "Installment",
+      "recorrente": "Recurring",
+      "observacoes": "Notes",
+      "dataCriacao": "Created"
+    },
+    "status": {
+      "pago": "Paid",
+      "pendente": "Pending"
+    },
+    "tipos": {
+      "receita": "Income",
+      "despesa": "Expense"
+    },
+    "parcelamento": {
+      "titulo": "Installment Plan",
+      "parcela": "installment {{atual}}/{{total}}"
+    },
+    "recorrente": "🔄 Recurring Entry",
+    "cartao": "{{nome}} ({{bandeira}})"
   }
 }

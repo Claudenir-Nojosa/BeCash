@@ -3,9 +3,20 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!; // Adicione esta linha
 
+// Cliente para frontend (anon key)
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Cliente para backend (service role key - ignora RLS)
+export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+});
+
+// Suas funções existentes (mantenha-as)
 export async function uploadMetaImage(file: File, userId: string, metaId: string) {
   try {
     const fileExt = file.name.split('.').pop();
@@ -23,7 +34,6 @@ export async function uploadMetaImage(file: File, userId: string, metaId: string
       throw new Error(`Erro ao fazer upload: ${error.message}`);
     }
 
-    // Obter URL pública
     const { data: { publicUrl } } = supabase.storage
       .from('metas-images')
       .getPublicUrl(data.path);
@@ -37,10 +47,9 @@ export async function uploadMetaImage(file: File, userId: string, metaId: string
 
 export async function deleteMetaImage(imageUrl: string) {
   try {
-    // Extrai o caminho do arquivo da URL
     const url = new URL(imageUrl);
     const pathParts = url.pathname.split('/');
-    const fileName = pathParts.slice(-3).join('/'); // Pega user/id/nomearquivo
+    const fileName = pathParts.slice(-3).join('/');
     
     const { error } = await supabase.storage
       .from('metas-images')

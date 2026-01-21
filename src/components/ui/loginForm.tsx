@@ -1,3 +1,4 @@
+// components/ui/loginForm.tsx
 "use client";
 
 import loginAction from "@/app/[lang]/(auth)/login/loginAction";
@@ -12,6 +13,7 @@ import { Icons } from "./loadingSpinner";
 import { useRouter, useParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import Link from "next/link";
+import { signIn } from "next-auth/react";
 
 // Defina as props do componente
 interface LoginFormProps {
@@ -21,10 +23,10 @@ interface LoginFormProps {
 export default function LoginForm({ lang }: LoginFormProps) {
   const params = useParams();
   const { t } = useTranslation("auth");
-  
+
   // Usar a prop lang se fornecida, caso contrário extrair dos params
   const currentLang = lang || (params?.lang as string) || "pt";
-  
+
   const [state, formAction, isPending] = useActionState(loginAction, null);
   const [hasShownToast, setHasShownToast] = useState(false);
   const router = useRouter();
@@ -44,10 +46,14 @@ export default function LoginForm({ lang }: LoginFormProps) {
         toast.success(state.message);
         setHasShownToast(true);
 
+        // 🆕 REDIRECIONAMENTO INTELIGENTE BASEADO NO ONBOARDING
+        const redirectPath = state.onboardingCompleto
+          ? `/${state.lang || currentLang}/dashboard`
+          : `/${state.lang || currentLang}/onboarding`;
+
         // Aguarda um tempo para mostrar o toast e depois redireciona
         setTimeout(() => {
-          // Redirecionar para dashboard com linguagem correta
-          router.push(`/${state.lang || currentLang}/dashboard`);
+          router.push(redirectPath);
         }, 1500);
       }
     }
@@ -61,33 +67,25 @@ export default function LoginForm({ lang }: LoginFormProps) {
 
   return (
     <>
-      <Toaster 
-        position="top-right"
-        toastOptions={{
-          className: "font-sans",
-          duration: 4000,
-        }}
-      />
-      
       <Form action={handleFormAction}>
         {/* Adicionar campo hidden para linguagem */}
         <input type="hidden" name="lang" value={currentLang} />
-        
+
         <div className="space-y-4">
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
               {t("labels.email")}
             </Label>
-            <Input 
-              type="email" 
-              name="email" 
+            <Input
+              type="email"
+              name="email"
               placeholder={t("placeholders.email")}
               className="w-full"
               required
               disabled={isPending}
             />
           </div>
-          
+
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -100,17 +98,17 @@ export default function LoginForm({ lang }: LoginFormProps) {
                 {t("links.forgotPassword")}
               </Link>
             </div>
-            <Input 
-              type="password" 
-              name="password" 
+            <Input
+              type="password"
+              name="password"
               placeholder={t("placeholders.password")}
               className="w-full"
               required
               disabled={isPending}
             />
           </div>
-          
-          <Button 
+
+          <Button
             className="w-full mt-2 bg-gradient-to-r from-[#00cfec] to-[#007cca] hover:from-[#00cfec]/90 hover:to-[#007cca]/90 text-white font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             type="submit"
             disabled={isPending}

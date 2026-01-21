@@ -1,10 +1,10 @@
+// app/[locale]/signup/actions.ts (ou onde está seu registerAction)
 "use server";
 
 import db from "@/lib/db";
 import { hashSync } from "bcrypt-ts";
 import { redirect } from "next/navigation";
 
-// Interface para as mensagens de erro
 interface ErrorMessages {
   [key: string]: {
     success: string;
@@ -18,7 +18,6 @@ interface ErrorMessages {
   };
 }
 
-// Mensagens traduzidas por idioma
 const messages: ErrorMessages = {
   pt: {
     success: "Registro realizado com sucesso! Redirecionando...",
@@ -40,16 +39,6 @@ const messages: ErrorMessages = {
       generic: "An error occurred during registration. Please try again.",
     },
   },
-  es: {
-    success: "¡Registro exitoso! Redirigiendo...",
-    error: {
-      required: "Por favor, complete todos los campos",
-      email: "Por favor, ingrese un correo electrónico válido",
-      password: "La contraseña debe tener al menos 6 caracteres",
-      duplicate: "Este correo electrónico ya está registrado",
-      generic: "Ocurrió un error durante el registro. Por favor, inténtelo de nuevo.",
-    },
-  },
 };
 
 export default async function registerAction(
@@ -65,12 +54,11 @@ export default async function registerAction(
     lang?: string;
   };
 
-  // Determinar o idioma (padrão: pt)
   const lang = data.lang || "pt";
   const t = messages[lang as keyof typeof messages] || messages.pt;
 
   try {
-    // Validação básica dos campos
+    // Validação básica
     if (!data.email || !data.name || !data.password) {
       return {
         message: t.error.required,
@@ -79,7 +67,6 @@ export default async function registerAction(
       };
     }
 
-    // Validação do email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(data.email)) {
       return {
@@ -89,7 +76,6 @@ export default async function registerAction(
       };
     }
 
-    // Validação da senha
     if (data.password.length < 6) {
       return {
         message: t.error.password,
@@ -100,9 +86,7 @@ export default async function registerAction(
 
     // Verificar se usuário já existe
     const existingUser = await db.user.findUnique({
-      where: {
-        email: data.email,
-      },
+      where: { email: data.email },
     });
 
     if (existingUser) {
@@ -113,15 +97,27 @@ export default async function registerAction(
       };
     }
 
-    // Criar novo usuário
+    // 🆕 CRIAÇÃO DO USUÁRIO COM ONBOARDING INCOMPLETO
     const newUser = await db.user.create({
       data: {
         name: data.name.trim(),
         email: data.email.toLowerCase().trim(),
         password: hashSync(data.password),
-        // Adicione outros campos se necessário
-        // language: lang, // Você pode salvar o idioma do usuário
+        onboardingCompleto: false, // 🆕 IMPORTANTE: Novo usuário precisa fazer onboarding
+        subscriptionStatus: "free",
+        // Criar configurações padrão
+        configuracoesUsuarios: {
+          create: {
+            idioma: lang === "en" ? "en-US" : "pt-BR",
+          }
+        }
       },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        onboardingCompleto: true,
+      }
     });
 
     console.log("------ Server Action - Registrar Usuário ------");
@@ -129,15 +125,18 @@ export default async function registerAction(
       userId: newUser.id,
       email: newUser.email,
       name: newUser.name,
+      onboardingCompleto: newUser.onboardingCompleto,
       lang: lang,
     });
 
-    // Retornar sucesso antes do redirect
+    // 🆕 Não redirecionar aqui, vamos fazer login primeiro
     return {
       message: t.success,
       success: true,
       lang: lang,
       userId: newUser.id,
+      email: newUser.email,
+      password: data.password, // Para login automático
     };
 
   } catch (error) {
@@ -150,10 +149,4 @@ export default async function registerAction(
       error: error instanceof Error ? error.message : "Unknown error",
     };
   }
-}
-
-// Função auxiliar para redirecionamento após sucesso
-// (Esta seria chamada no cliente após receber a resposta de sucesso)
-export async function redirectAfterSuccess(lang: string = "pt") {
-  redirect(`/${lang}/dashboard`);
 }

@@ -20,7 +20,9 @@ import {
   Target,
   PhoneIncoming,
   Headphones,
-} from "lucide-react"; // Adicionado Headphones
+  User,
+  Settings,
+} from "lucide-react"; // Adicionado User e Settings
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSession, signOut } from "next-auth/react";
 import Image from "next/image";
@@ -162,9 +164,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 
                 text-gray-700 dark:text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard") ? 
-                  "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700" : 
-                  ""
+                ${
+                  isActiveRoute("/dashboard")
+                    ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700"
+                    : ""
                 }
               `}
               onClick={handleLinkClick}
@@ -186,9 +189,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 
                 text-gray-700 dark:text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${pathname.includes("/lancamentos") ? 
-                  "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700" : 
-                  ""
+                ${
+                  pathname.includes("/lancamentos")
+                    ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700"
+                    : ""
                 }
               `}
               onClick={handleLinkClick}
@@ -210,9 +214,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 
                 text-gray-700 dark:text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/limites") ? 
-                  "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700" : 
-                  ""
+                ${
+                  isActiveRoute("/dashboard/limites")
+                    ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700"
+                    : ""
                 }
               `}
               onClick={handleLinkClick}
@@ -234,9 +239,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 
                 text-gray-700 dark:text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/relatorios") ? 
-                  "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700" : 
-                  ""
+                ${
+                  isActiveRoute("/dashboard/relatorios")
+                    ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700"
+                    : ""
                 }
               `}
               onClick={handleLinkClick}
@@ -258,9 +264,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 
                 text-gray-700 dark:text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/cartoes") ? 
-                  "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700" : 
-                  ""
+                ${
+                  isActiveRoute("/dashboard/cartoes")
+                    ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700"
+                    : ""
                 }
               `}
               onClick={handleLinkClick}
@@ -282,9 +289,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 
                 text-gray-700 dark:text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/categorias") ? 
-                  "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700" : 
-                  ""
+                ${
+                  isActiveRoute("/dashboard/categorias")
+                    ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700"
+                    : ""
                 }
               `}
               onClick={handleLinkClick}
@@ -306,9 +314,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 
                 text-gray-700 dark:text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/metas") ? 
-                  "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700" : 
-                  ""
+                ${
+                  isActiveRoute("/dashboard/metas")
+                    ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700"
+                    : ""
                 }
               `}
               onClick={handleLinkClick}
@@ -330,9 +339,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 
                 text-gray-700 dark:text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/vincular-telefone") ? 
-                  "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700" : 
-                  ""
+                ${
+                  isActiveRoute("/dashboard/vincular-telefone")
+                    ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700"
+                    : ""
                 }
               `}
               onClick={handleLinkClick}
@@ -354,9 +364,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 
                 text-gray-700 dark:text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/bicla") ? 
-                  "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700" : 
-                  ""
+                ${
+                  isActiveRoute("/dashboard/bicla")
+                    ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700"
+                    : ""
                 }
               `}
               onClick={handleLinkClick}
@@ -370,7 +381,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
             </Link>
           </li>
 
-          {/* Suporte - NOVO ITEM ADICIONADO */}
+          {/* Suporte */}
           <li>
             <Link
               href={createLink("/dashboard/suporte")}
@@ -378,9 +389,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 
                 text-gray-700 dark:text-gray-300 transition-all duration-200
                 ${isCollapsed ? "justify-center p-4" : "p-4"}
-                ${isActiveRoute("/dashboard/suporte") ? 
-                  "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700" : 
-                  ""
+                ${
+                  isActiveRoute("/dashboard/suporte")
+                    ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border-l-2 border-gray-300 dark:border-gray-700"
+                    : ""
                 }
               `}
               onClick={handleLinkClick}
@@ -399,12 +411,15 @@ export default function Sidebar({ onClose }: SidebarProps) {
       {/* Rodapé da Sidebar */}
       <div className="p-4 border-t border-gray-200 dark:border-gray-800">
         <div className="space-y-3">
-          {/* Perfil do Usuário */}
-          <div
+          {/* Perfil do Usuário (Clique para ir para o perfil) */}
+          <Link
+            href={createLink("/dashboard/perfil")}
             className={`
-              flex items-center rounded-lg p-3
+              flex items-center rounded-lg p-3 hover:bg-gray-100 dark:hover:bg-gray-800 
+              transition-all duration-200 cursor-pointer
               ${isCollapsed ? "justify-center" : ""}
             `}
+            onClick={handleLinkClick}
           >
             <Avatar className="h-8 w-8 border border-gray-300 dark:border-gray-700">
               <AvatarImage
@@ -425,7 +440,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 </p>
               </div>
             )}
-          </div>
+          </Link>
 
           {/* Botão Sair */}
           <Button

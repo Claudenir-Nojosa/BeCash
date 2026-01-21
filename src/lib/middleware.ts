@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+/* import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { i18nConfig } from "./i18n/i18n-config";
 
@@ -23,4 +23,4 @@ export const config = {
     // Pular todas as rotas internas (_next)
     "/((?!api|_next|_vercel|.*\\..*).*)",
   ],
-};
+}; */
