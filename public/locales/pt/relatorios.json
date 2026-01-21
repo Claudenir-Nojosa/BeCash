@@ -58,7 +58,9 @@
     "semDadosCategorias": "Sem dados de categorias",
     "adicionarDespesasCategorizadas": "Adicione despesas categorizadas para ver a distribuição",
     "nenhumaDespesaEncontrada": "Nenhuma despesa encontrada",
-    "nenhumLancamentoEncontrado": "Nenhum lançamento encontrado"
+    "nenhumLancamentoEncontrado": "Nenhum lançamento encontrado",
+    "semDadosTitulo": "Nenhum lançamento encontrado",
+    "semDadosDescricao": "Adicione lançamentos para visualizar os relatórios"
   },
   "categorias": {
     "semCategoria": "Sem Categoria"

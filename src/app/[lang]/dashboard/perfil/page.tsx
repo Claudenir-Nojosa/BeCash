@@ -29,7 +29,8 @@ import { Label } from "@/components/ui/label";
 
 export default function PerfilPage() {
   const { data: session } = useSession();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation(); // SEM namespace específico
+
   const [isSaving, setIsSaving] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -47,21 +48,24 @@ export default function PerfilPage() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Validar tipo de arquivo
       if (!file.type.startsWith("image/")) {
-        toast.error("Por favor, selecione uma imagem válida");
+        toast.error(
+          t("perfil:notificacoes.arquivoInvalido") ||
+            "Por favor, selecione uma imagem válida",
+        );
         return;
       }
 
-      // Validar tamanho do arquivo (máximo 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        toast.error("A imagem deve ter no máximo 5MB");
+        toast.error(
+          t("perfil:notificacoes.tamanhoExcedido") ||
+            "A imagem deve ter no máximo 5MB",
+        );
         return;
       }
 
       setSelectedFile(file);
 
-      // Criar preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setAvatarPreview(reader.result as string);
@@ -75,7 +79,10 @@ export default function PerfilPage() {
 
     try {
       if (!selectedFile) {
-        toast.error("Nenhuma imagem selecionada");
+        toast.error(
+          t("perfil:notificacoes.erroAtualizar") ||
+            "Nenhuma imagem selecionada",
+        );
         setIsSaving(false);
         return;
       }
@@ -86,21 +93,26 @@ export default function PerfilPage() {
       const response = await fetch("/api/usuarios/alterar-foto", {
         method: "POST",
         body: formData,
-        // Não definir Content-Type, o browser vai definir automaticamente com boundary
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Erro ao atualizar foto");
+        throw new Error(
+          data.error ||
+            t("perfil:notificacoes.erroAtualizar") ||
+            "Erro ao atualizar foto",
+        );
       }
 
-      toast.success("Foto atualizada com sucesso!");
+      toast.success(
+        t("perfil:notificacoes.fotoAtualizada") ||
+          "Foto atualizada com sucesso!",
+      );
 
       const { getSession } = await import("next-auth/react");
       await getSession();
 
-      // Resetar estados
       setSelectedFile(null);
       setAvatarPreview(null);
 
@@ -109,7 +121,11 @@ export default function PerfilPage() {
       }
     } catch (error: any) {
       console.error("Erro ao salvar foto:", error);
-      toast.error(error.message || "Erro ao atualizar foto");
+      toast.error(
+        error.message ||
+          t("perfil:notificacoes.erroAtualizar") ||
+          "Erro ao atualizar foto",
+      );
     } finally {
       setIsSaving(false);
     }
@@ -133,11 +149,11 @@ export default function PerfilPage() {
         {/* Cabeçalho */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            {t("perfil.titulo", "Meu Perfil")}
+            {t("perfil:titulo", "Meu Perfil")}
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             {t(
-              "perfil.descricao",
+              "perfil:descricao",
               "Gerencie suas informações pessoais e preferências",
             )}
           </p>
@@ -150,15 +166,18 @@ export default function PerfilPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <User className="h-5 w-5" />
-                  {t("perfil.informacoesPessoais", "Informações Pessoais")}
+                  {t("perfil:informacoesPessoais", "Informações Pessoais")}
                 </CardTitle>
                 <CardDescription>
-                  {t(
-                    "perfil.descricaoInformacoes",
-                    selectedFile
-                      ? "Clique em Salvar Alterações para atualizar sua foto"
-                      : "Clique no ícone da câmera para alterar sua foto de perfil",
-                  )}
+                  {selectedFile
+                    ? t(
+                        "perfil:descricaoInformacoes.comFoto",
+                        "Clique em Salvar Alterações para atualizar sua foto",
+                      )
+                    : t(
+                        "perfil:descricaoInformacoes.semFoto",
+                        "Clique no ícone da câmera para alterar sua foto de perfil",
+                      )}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -176,7 +195,6 @@ export default function PerfilPage() {
                       </AvatarFallback>
                     </Avatar>
 
-                    {/* Ícone da câmera SEMPRE visível */}
                     <div className="absolute -bottom-2 -right-2">
                       <Button
                         size="icon"
@@ -228,7 +246,15 @@ export default function PerfilPage() {
                           </div>
                         </div>
                         <p className="text-xs text-gray-400 dark:text-gray-500">
-                          Tamanho máximo: 5MB • Formatos: JPG, PNG, WebP
+                          {t(
+                            "perfil:dicas.tamanhoMaximo",
+                            "Tamanho máximo: 5MB",
+                          )}{" "}
+                          •{" "}
+                          {t(
+                            "perfil:dicas.formatosSuportados",
+                            "Formatos: JPG, PNG, WebP",
+                          )}
                         </p>
                       </div>
                     )}
@@ -237,34 +263,34 @@ export default function PerfilPage() {
 
                 <Separator />
 
-                {/* Informações NÃO editáveis (só visualização) */}
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label className="text-gray-500 dark:text-gray-400">
-                        Nome Completo
+                        {t("perfil:campos.nomeCompleto", "Nome Completo")}
                       </Label>
                       <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                         <p className="text-gray-900 dark:text-white">
-                          {session?.user?.name || "Não informado"}
+                          {session?.user?.name ||
+                            t("perfil:campos.naoInformado", "Não informado")}
                         </p>
                       </div>
                     </div>
 
                     <div className="space-y-2">
                       <Label className="text-gray-500 dark:text-gray-400">
-                        E-mail
+                        {t("perfil:campos.email", "E-mail")}
                       </Label>
                       <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                         <p className="text-gray-900 dark:text-white">
-                          {session?.user?.email || "Não informado"}
+                          {session?.user?.email ||
+                            t("perfil:campos.naoInformado", "Não informado")}
                         </p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Botões de Ação - Mostrar apenas quando tiver foto selecionada */}
                 {selectedFile && (
                   <div className="flex justify-end space-x-3 pt-4">
                     <Button
@@ -272,18 +298,18 @@ export default function PerfilPage() {
                       onClick={handleCancel}
                       disabled={isSaving}
                     >
-                      {t("perfil.cancelar", "Cancelar")}
+                      {t("perfil:cancelar", "Cancelar")}
                     </Button>
                     <Button onClick={handleSave} disabled={isSaving}>
                       {isSaving ? (
                         <>
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          {t("perfil.salvando", "Salvando...")}
+                          {t("perfil:salvando", "Salvando...")}
                         </>
                       ) : (
                         <>
                           <Save className="h-4 w-4 mr-2" />
-                          {t("perfil.salvarAlteracoes", "Salvar Alterações")}
+                          {t("perfil:salvarAlteracoes", "Salvar Alterações")}
                         </>
                       )}
                     </Button>
@@ -293,33 +319,31 @@ export default function PerfilPage() {
             </Card>
           </div>
 
-          {/* Coluna Direita - Informações Adicionais */}
           <div className="space-y-6">
-            {/* Status da Conta */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">
-                  {t("perfil.statusConta", "Status da Conta")}
+                  {t("perfil:statusConta", "Status da Conta")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600 dark:text-gray-400">
-                    Plano Atual
+                    {t("perfil:campos.planoAtual", "Plano Atual")}
                   </span>
                   <Badge className="bg-gradient-to-r from-emerald-500 to-green-500">
-                    Premium
+                    {t("perfil:plano.premium", "Premium")}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600 dark:text-gray-400">
-                    Validade
+                    {t("perfil:campos.validade", "Validade")}
                   </span>
                   <span className="font-medium">31/12/2024</span>
                 </div>
                 <Button className="w-full" variant="outline">
                   <CreditCard className="h-4 w-4 mr-2" />
-                  {t("perfil.gerenciarPlano", "Gerenciar Plano")}
+                  {t("perfil:gerenciarPlano", "Gerenciar Plano")}
                 </Button>
               </CardContent>
             </Card>

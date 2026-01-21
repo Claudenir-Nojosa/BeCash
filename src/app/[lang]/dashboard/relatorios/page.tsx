@@ -25,6 +25,7 @@ import {
   BarChart3,
   PieChart,
   Plus,
+  Home,
 } from "lucide-react";
 import {
   Select,
@@ -100,7 +101,7 @@ export default function RelatoriosPage() {
       if (cartoesResponse.ok) {
         const cartoesData = await cartoesResponse.json();
         setCartoes(cartoesData);
-        
+
         // Após carregar cartões, carregar lançamentos
         await carregarLancamentos(cartoesData);
       }
@@ -163,7 +164,7 @@ export default function RelatoriosPage() {
       30,
       {
         align: "center",
-      }
+      },
     );
 
     // Informações do Filtro
@@ -176,13 +177,13 @@ export default function RelatoriosPage() {
     doc.text(
       `• ${t("pdf.periodo")}: ${filtros.periodo === "todos" ? t("periodos.todos") : t("periodos.ultimosNDias", { dias: filtros.periodo })}`,
       20,
-      yPos
+      yPos,
     );
     yPos += 5;
     doc.text(
       `• ${t("pdf.cartao")}: ${filtros.cartaoId === "todos" ? t("filtros.todosCartoes") : cartoes.find((c) => c.id === filtros.cartaoId)?.nome}`,
       20,
-      yPos
+      yPos,
     );
 
     // Estatísticas
@@ -277,12 +278,12 @@ export default function RelatoriosPage() {
         `${t("pdf.pagina")} ${i} ${t("pdf.de")} ${pageCount} • ${t("pdf.geradoPor")}`,
         105,
         290,
-        { align: "center" }
+        { align: "center" },
       );
     }
 
     doc.save(
-      `${t("pdf.nomeArquivo")}-${new Date().toISOString().split("T")[0]}.pdf`
+      `${t("pdf.nomeArquivo")}-${new Date().toISOString().split("T")[0]}.pdf`,
     );
   };
 
@@ -325,11 +326,11 @@ export default function RelatoriosPage() {
       {} as Record<
         string,
         { total: number; cor: string; icone: string; quantidade: number }
-      >
+      >,
     );
 
   const rankingCategorias = Object.entries(despesasPorCategoria).sort(
-    ([, a], [, b]) => b.total - a.total
+    ([, a], [, b]) => b.total - a.total,
   );
 
   // Agrupar por cartão
@@ -349,11 +350,11 @@ export default function RelatoriosPage() {
         acc[cartaoNome].quantidade += 1;
         return acc;
       },
-      {} as Record<string, { total: number; cor: string; quantidade: number }>
+      {} as Record<string, { total: number; cor: string; quantidade: number }>,
     );
 
   const rankingCartoes = Object.entries(despesasPorCartao).sort(
-    ([, a], [, b]) => b.total - a.total
+    ([, a], [, b]) => b.total - a.total,
   );
 
   const formatarMoeda = (valor: number) => {
@@ -411,51 +412,48 @@ export default function RelatoriosPage() {
   // Se não houver dados, mostrar mensagem
   if (!carregando && lancamentos.length === 0 && cartoes.length === 0) {
     return (
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3 }}
-        className="min-h-screen p-3 sm:p-4 md:p-6 bg-white dark:bg-transparent flex items-center justify-center"
-      >
-        <div className="max-w-md mx-auto text-center">
-          <motion.div
-            animate={{ 
-              scale: [1, 1.1, 1],
-              rotate: [0, 5, -5, 0]
-            }}
-            transition={{ 
-              duration: 2,
-              repeat: Infinity,
-              repeatType: "reverse"
-            }}
-            className="mb-6"
-          >
-            <BarChart3 className="h-16 w-16 sm:h-24 sm:w-24 text-gray-300 dark:text-gray-600 mx-auto" />
-          </motion.div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-3">
-            {t("mensagens.semDadosTitulo")}
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base mb-6">
-            {t("mensagens.semDadosDescricao")}
-          </p>
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Button
-              onClick={() => router.push(getLocalizedPath("/dashboard"))}
-              className="bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white"
+      <div className="min-h-screen bg-white dark:bg-transparent p-3 sm:p-4 md:p-6">
+        {/* Mantém o cabeçalho igual ao da página com dados */}
+        <div className="max-w-7xl mx-auto">
+
+          <div className="flex flex-col items-center justify-center py-16 sm:py-24 md:py-32">
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="text-center max-w-md mx-auto"
             >
-              {t("botoes.voltarDashboard")}
-            </Button>
-          </motion.div>
+              <div className="mb-6 sm:mb-8">
+                <motion.div
+                  animate={{
+                  }}
+                  transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    repeatType: "reverse",
+                    ease: "easeInOut",
+                  }}
+                >
+                  <BarChart3 className="h-20 w-20 sm:h-28 sm:w-28 md:h-32 md:w-32 text-gray-300 dark:text-gray-600 mx-auto" />
+                </motion.div>
+              </div>
+
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">
+                {t("mensagens.semDadosTitulo")}
+              </h2>
+
+              <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base md:text-lg mb-6 sm:mb-8">
+                {t("mensagens.semDadosDescricao")}
+              </p>
+            </motion.div>
+          </div>
         </div>
-      </motion.div>
+      </div>
     );
   }
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
@@ -463,17 +461,14 @@ export default function RelatoriosPage() {
     >
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <motion.div 
+        <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.4 }}
           className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4"
         >
           <div className="flex items-center gap-3">
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
                 variant="outline"
                 size="icon"
@@ -484,7 +479,7 @@ export default function RelatoriosPage() {
               </Button>
             </motion.div>
             <div className="flex-1 min-w-0">
-              <motion.h1 
+              <motion.h1
                 initial={{ x: -10, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.1 }}
@@ -492,7 +487,7 @@ export default function RelatoriosPage() {
               >
                 {t("titulos.relatoriosFinanceiros")}
               </motion.h1>
-              <motion.p 
+              <motion.p
                 initial={{ x: -10, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.15 }}
@@ -503,16 +498,13 @@ export default function RelatoriosPage() {
             </div>
           </div>
 
-          <motion.div 
+          <motion.div
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
             className="flex gap-2 w-full sm:w-auto mt-3 sm:mt-0"
           >
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <Button
                 variant={"outline"}
                 onClick={exportarPDF}
@@ -534,7 +526,7 @@ export default function RelatoriosPage() {
           <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white text-base sm:text-lg">
-                <motion.div 
+                <motion.div
                   className="p-1 sm:p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0"
                   whileHover={{ rotate: 15 }}
                   transition={{ type: "spring", stiffness: 300 }}
@@ -546,7 +538,7 @@ export default function RelatoriosPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
@@ -586,7 +578,7 @@ export default function RelatoriosPage() {
                   </Select>
                 </motion.div>
 
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.35 }}
@@ -605,7 +597,9 @@ export default function RelatoriosPage() {
                     }
                   >
                     <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm h-9 sm:h-10">
-                      <SelectValue placeholder={t("filtros.selecionePeriodo")} />
+                      <SelectValue
+                        placeholder={t("filtros.selecionePeriodo")}
+                      />
                     </SelectTrigger>
                     <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm">
                       <SelectItem value="7">
@@ -620,12 +614,14 @@ export default function RelatoriosPage() {
                       <SelectItem value="365">
                         {t("periodos.ultimos12Meses")}
                       </SelectItem>
-                      <SelectItem value="todos">{t("periodos.todos")}</SelectItem>
+                      <SelectItem value="todos">
+                        {t("periodos.todos")}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </motion.div>
 
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
@@ -647,7 +643,9 @@ export default function RelatoriosPage() {
                       <SelectValue placeholder={t("filtros.selecioneTipo")} />
                     </SelectTrigger>
                     <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm">
-                      <SelectItem value="todos">{t("filtros.todos")}</SelectItem>
+                      <SelectItem value="todos">
+                        {t("filtros.todos")}
+                      </SelectItem>
                       <SelectItem value="DESPESA">
                         {t("tipos.despesa")}
                       </SelectItem>
@@ -658,7 +656,7 @@ export default function RelatoriosPage() {
                   </Select>
                 </motion.div>
 
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.45 }}
@@ -684,7 +682,7 @@ export default function RelatoriosPage() {
         </motion.div>
 
         {/* Estatísticas Gerais */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
@@ -706,7 +704,8 @@ export default function RelatoriosPage() {
                 </p>
                 <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-1 sm:mt-2">
                   {t("estatisticas.lancamentosDespesa", {
-                    count: lancamentos.filter((l) => l.tipo === "DESPESA").length,
+                    count: lancamentos.filter((l) => l.tipo === "DESPESA")
+                      .length,
                   })}
                 </p>
               </CardContent>
@@ -729,7 +728,8 @@ export default function RelatoriosPage() {
                 </p>
                 <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-1 sm:mt-2">
                   {t("estatisticas.lancamentosReceita", {
-                    count: lancamentos.filter((l) => l.tipo === "RECEITA").length,
+                    count: lancamentos.filter((l) => l.tipo === "RECEITA")
+                      .length,
                   })}
                 </p>
               </CardContent>
@@ -766,7 +766,7 @@ export default function RelatoriosPage() {
           </motion.div>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
@@ -780,7 +780,7 @@ export default function RelatoriosPage() {
             <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white text-base sm:text-lg">
-                  <motion.div 
+                  <motion.div
                     className="p-1 sm:p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex-shrink-0"
                     whileHover={{ rotate: -15 }}
                     transition={{ type: "spring", stiffness: 300 }}
@@ -844,19 +844,23 @@ export default function RelatoriosPage() {
                           </div>
                         </motion.div>
                       );
-                    }
+                    },
                   )}
                   {rankingCategorias.length === 0 && !carregando && (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.3 }}
                       className="text-center py-6 sm:py-8"
                     >
-                      <motion.div 
+                      <motion.div
                         className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4"
                         animate={{ rotate: 360 }}
-                        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                        transition={{
+                          duration: 20,
+                          repeat: Infinity,
+                          ease: "linear",
+                        }}
                       >
                         <PieChart className="h-5 w-5 sm:h-8 sm:w-8 text-gray-400 dark:text-gray-600" />
                       </motion.div>
@@ -881,7 +885,7 @@ export default function RelatoriosPage() {
             <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white text-base sm:text-lg">
-                  <motion.div 
+                  <motion.div
                     className="p-1 sm:p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex-shrink-0"
                     whileHover={{ rotate: 15 }}
                     transition={{ type: "spring", stiffness: 300 }}
@@ -946,21 +950,21 @@ export default function RelatoriosPage() {
                   })}
 
                   {rankingCartoes.length === 0 && (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.3 }}
                       className="text-center py-6 sm:py-8"
                     >
                       <motion.div
-                        animate={{ 
+                        animate={{
                           scale: [1, 1.1, 1],
-                          rotate: [0, 5, -5, 0]
+                          rotate: [0, 5, -5, 0],
                         }}
-                        transition={{ 
+                        transition={{
                           duration: 2,
                           repeat: Infinity,
-                          repeatType: "reverse"
+                          repeatType: "reverse",
                         }}
                       >
                         <CreditCard className="h-8 w-8 sm:h-12 sm:w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3 sm:mb-4" />
@@ -985,14 +989,16 @@ export default function RelatoriosPage() {
           <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white text-base sm:text-lg">
-                <motion.div 
+                <motion.div
                   className="p-1 sm:p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex-shrink-0"
                   whileHover={{ rotate: -15 }}
                   transition={{ type: "spring", stiffness: 300 }}
                 >
                   <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-600 dark:text-amber-400" />
                 </motion.div>
-                <span className="truncate">{t("secoes.ultimosLancamentos")}</span>
+                <span className="truncate">
+                  {t("secoes.ultimosLancamentos")}
+                </span>
               </CardTitle>
               <CardDescription className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
                 {t("secoes.lancamentosEncontrados", {
@@ -1008,9 +1014,9 @@ export default function RelatoriosPage() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.05 * index }}
-                    whileHover={{ 
+                    whileHover={{
                       x: 5,
-                      backgroundColor: "rgba(0,0,0,0.02)"
+                      backgroundColor: "rgba(0,0,0,0.02)",
                     }}
                     className="flex justify-between items-center p-3 sm:p-4 rounded-lg bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/70 transition-colors"
                   >
@@ -1038,7 +1044,7 @@ export default function RelatoriosPage() {
                         </p>
                         <p className="text-gray-500 dark:text-gray-400 text-xs">
                           {new Date(lancamento.data).toLocaleDateString(
-                            i18n.language === "pt" ? "pt-BR" : "en-US"
+                            i18n.language === "pt" ? "pt-BR" : "en-US",
                           )}
                           {lancamento.cartao && ` • ${lancamento.cartao.nome}`}
                         </p>
@@ -1054,9 +1060,7 @@ export default function RelatoriosPage() {
                       >
                         {formatarMoeda(lancamento.valor)}
                       </p>
-                      <motion.div
-                        whileHover={{ scale: 1.05 }}
-                      >
+                      <motion.div whileHover={{ scale: 1.05 }}>
                         <Badge
                           variant="outline"
                           className={`mt-1 text-xs ${
@@ -1075,20 +1079,20 @@ export default function RelatoriosPage() {
                 ))}
 
                 {lancamentos.length === 0 && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.3 }}
                     className="text-center py-6 sm:py-8"
                   >
                     <motion.div
-                      animate={{ 
+                      animate={{
                         y: [0, -5, 0],
                       }}
-                      transition={{ 
+                      transition={{
                         duration: 2,
                         repeat: Infinity,
-                        repeatType: "reverse"
+                        repeatType: "reverse",
                       }}
                     >
                       <BarChart3 className="h-8 w-8 sm:h-12 sm:w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3 sm:mb-4" />

@@ -58,7 +58,9 @@
     "semDadosCategorias": "No category data",
     "adicionarDespesasCategorizadas": "Add categorized expenses to see distribution",
     "nenhumaDespesaEncontrada": "No expenses found",
-    "nenhumLancamentoEncontrado": "No transactions found"
+    "nenhumLancamentoEncontrado": "No transactions found",
+    "semDadosTitulo": "No transactions found",
+    "semDadosDescricao": "Add transactions to view reports"
   },
   "categorias": {
     "semCategoria": "No Category"
