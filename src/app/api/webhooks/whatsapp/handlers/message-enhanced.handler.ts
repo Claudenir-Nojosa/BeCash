@@ -349,7 +349,7 @@ export class EnhancedMessageHandler {
     }
 
     // Gerar mensagem de confirmação
-    const msgConfirmacao = await this.gerarMensagemConfirmacao(
+    const resultadoConfirmacao = await this.gerarMensagemConfirmacao(
       {
         dados: resultado.dados,
         categoriaEscolhida: categoria,
@@ -357,7 +357,23 @@ export class EnhancedMessageHandler {
         cartaoEncontrado: cartao,
       },
       idioma,
+      userId, // ADICIONAR userId como terceiro parâmetro
+      userPhone, // ADICIONAR userPhone como quarto parâmetro
     );
+
+    // Se houve erro (username não encontrado), retornar o erro
+    if (!resultadoConfirmacao.sucesso) {
+      console.log(`❌ Fluxo cancelado: ${resultadoConfirmacao.erro}`);
+
+      // Limpar qualquer pendente que possa existir
+      await ConversationRedisService.clearPendingTransaction(userPhone);
+
+      return {
+        status: "username_not_found",
+        erro: resultadoConfirmacao.erro,
+        username: resultado.dados.usernameCompartilhado,
+      };
+    }
 
     // Salvar pendente
     await ConversationRedisService.setPendingTransaction(
@@ -372,11 +388,14 @@ export class EnhancedMessageHandler {
       cartao,
     );
 
-    await WhatsAppService.sendMessage(userPhone, msgConfirmacao);
+    await WhatsAppService.sendMessage(
+      userPhone,
+      resultadoConfirmacao.mensagem!,
+    );
     await ConversationRedisService.addMessage(
       userPhone,
       "assistant",
-      msgConfirmacao,
+      resultadoConfirmacao.mensagem!,
     ); // ADICIONE AWAIT
 
     return { status: "waiting_confirmation" };
@@ -479,63 +498,160 @@ export class EnhancedMessageHandler {
   /**
    * GERAR MENSAGEM DE CONFIRMAÇÃO
    */
+  /**
+   * GERAR MENSAGEM DE CONFIRMAÇÃO
+   */
   private static async gerarMensagemConfirmacao(
     pendente: any,
     idioma: string,
-  ): Promise<string> {
-    const { dados, categoriaEscolhida, descricaoLimpa, cartaoEncontrado } =
-      pendente;
+    userId: string, // ADICIONAR userId como parâmetro
+    userPhone: string, // ADICIONAR userPhone como parâmetro
+  ): Promise<{ sucesso: boolean; mensagem?: string; erro?: string }> {
+    try {
+      const { dados, categoriaEscolhida, descricaoLimpa, cartaoEncontrado } =
+        pendente;
 
-    // Mensagem em português ou inglês baseado no idioma
-    if (idioma === "en-US") {
-      let msg = `*📋 CONFIRMATION*\n━━━━━━━━━━━━━━\n\n`;
-      msg += `*📝* ${descricaoLimpa}\n`;
-      msg += `*💰* R$ ${parseFloat(dados.valor).toFixed(2)}\n`;
-      msg += `*🏷️* ${categoriaEscolhida.nome}\n`;
-      msg += `*📱* ${dados.metodoPagamento}\n`;
+      console.log(`🔍 Validando username antes de gerar confirmação...`);
 
-      if (cartaoEncontrado) {
-        msg += `*💳* ${cartaoEncontrado.nome}\n`;
+      // VALIDAR USERNAME SE FOR COMPARTILHAMENTO
+      if (dados.ehCompartilhado && dados.usernameCompartilhado) {
+        console.log(`🎯 Verificando username: @${dados.usernameCompartilhado}`);
+
+        const usuarioAlvo = await UserService.encontrarUsuarioPorUsername(
+          dados.usernameCompartilhado,
+          userId,
+        );
+
+        if (!usuarioAlvo) {
+          const erroMsg =
+            idioma === "en-US"
+              ? `❌ User "@${dados.usernameCompartilhado}" not found.\n\n💡 Please check the username and try again.`
+              : `❌ Usuário "@${dados.usernameCompartilhado}" não encontrado.\n\n💡 Verifique o username e tente novamente.`;
+
+          console.log(`❌ Username não encontrado, cancelando fluxo`);
+
+          // Enviar mensagem de erro diretamente ao usuário
+          await WhatsAppService.sendMessage(userPhone, erroMsg);
+          await ConversationRedisService.addMessage(
+            userPhone,
+            "assistant",
+            erroMsg,
+          );
+
+          // Limpar contexto se houver pendente
+          await ConversationRedisService.clearPendingTransaction(userPhone);
+
+          return {
+            sucesso: false,
+            erro: erroMsg,
+          };
+        }
+
+        console.log(
+          `✅ Username validado: @${usuarioAlvo.username} (${usuarioAlvo.name})`,
+        );
       }
 
-      if (dados.ehParcelado) {
-        msg += `*🔢* ${dados.parcelas}x\n`;
+      // Se chegou aqui, username foi validado com sucesso (ou não é compartilhado)
+      console.log(`✅ Gerando mensagem de confirmação...`);
+
+      // Mensagem em português ou inglês baseado no idioma
+      if (idioma === "en-US") {
+        let msg = `*📋 CONFIRMATION*\n━━━━━━━━━━━━━━\n\n`;
+        msg += `*📝* ${descricaoLimpa}\n`;
+        msg += `*💰* R$ ${parseFloat(dados.valor).toFixed(2)}\n`;
+        msg += `*🏷️* ${categoriaEscolhida.nome}\n`;
+        msg += `*📱* ${dados.metodoPagamento}\n`;
+
+        if (cartaoEncontrado) {
+          msg += `*💳* ${cartaoEncontrado.nome}\n`;
+        }
+
+        if (dados.ehParcelado) {
+          msg += `*🔢* ${dados.parcelas}x\n`;
+        }
+
+        if (dados.ehCompartilhado && dados.usernameCompartilhado) {
+          msg += `*👥* Shared with @${dados.usernameCompartilhado}\n`;
+
+          // Adicionar informações de divisão se houver
+          if (dados.tipoDivisao && dados.tipoDivisao !== "metade") {
+            if (
+              dados.tipoDivisao === "porcentagem" &&
+              dados.porcentagemUsuario
+            ) {
+              msg += `*📊* Your part: ${dados.porcentagemUsuario}%\n`;
+            } else if (
+              dados.tipoDivisao === "valor_fixo" &&
+              dados.valorUsuario
+            ) {
+              msg += `*📊* Your part: R$ ${dados.valorUsuario.toFixed(2)}\n`;
+            }
+          } else {
+            msg += `*📊* Split: 50/50\n`;
+          }
+        }
+
+        msg += `\n━━━━━━━━━━━━━━\n`;
+        msg += `✅ *YES* - Confirm\n`;
+        msg += `❌ *NO* - Cancel`;
+
+        return { sucesso: true, mensagem: msg };
+      } else {
+        // Português (padrão)
+        let msg = `*📋 CONFIRMAÇÃO*\n━━━━━━━━━━━━━━\n\n`;
+        msg += `*📝* ${descricaoLimpa}\n`;
+        msg += `*💰* R$ ${parseFloat(dados.valor).toFixed(2)}\n`;
+        msg += `*🏷️* ${categoriaEscolhida.nome}\n`;
+        msg += `*📱* ${dados.metodoPagamento}\n`;
+
+        if (cartaoEncontrado) {
+          msg += `*💳* ${cartaoEncontrado.nome}\n`;
+        }
+
+        if (dados.ehParcelado) {
+          msg += `*🔢* ${dados.parcelas}x\n`;
+        }
+
+        if (dados.ehCompartilhado && dados.usernameCompartilhado) {
+          msg += `*👥* Compartilhado com @${dados.usernameCompartilhado}\n`;
+
+          // Adicionar informações de divisão se houver
+          if (dados.tipoDivisao && dados.tipoDivisao !== "metade") {
+            if (
+              dados.tipoDivisao === "porcentagem" &&
+              dados.porcentagemUsuario
+            ) {
+              msg += `*📊* Sua parte: ${dados.porcentagemUsuario}%\n`;
+            } else if (
+              dados.tipoDivisao === "valor_fixo" &&
+              dados.valorUsuario
+            ) {
+              msg += `*📊* Sua parte: R$ ${dados.valorUsuario.toFixed(2)}\n`;
+            }
+          } else {
+            msg += `*📊* Divisão: 50/50\n`;
+          }
+        }
+
+        msg += `\n━━━━━━━━━━━━━━\n`;
+        msg += `✅ *SIM* - Confirmar\n`;
+        msg += `❌ *NÃO* - Cancelar`;
+
+        return { sucesso: true, mensagem: msg };
       }
+    } catch (error) {
+      console.error("❌ Erro ao gerar mensagem de confirmação:", error);
 
-      if (dados.ehCompartilhado) {
-        msg += `*👥* With @${dados.usernameCompartilhado}\n`;
-      }
+      const erroMsg =
+        idioma === "en-US"
+          ? "❌ Error processing your request. Please try again."
+          : "❌ Erro ao processar sua solicitação. Por favor, tente novamente.";
 
-      msg += `\n━━━━━━━━━━━━━━\n`;
-      msg += `✅ *YES* - Confirm\n`;
-      msg += `❌ *NO* - Cancel`;
-
-      return msg;
-    } else {
-      // Português (padrão)
-      let msg = `*📋 CONFIRMAÇÃO*\n━━━━━━━━━━━━━━\n\n`;
-      msg += `*📝* ${descricaoLimpa}\n`;
-      msg += `*💰* R$ ${parseFloat(dados.valor).toFixed(2)}\n`;
-      msg += `*🏷️* ${categoriaEscolhida.nome}\n`;
-      msg += `*📱* ${dados.metodoPagamento}\n`;
-
-      if (cartaoEncontrado) {
-        msg += `*💳* ${cartaoEncontrado.nome}\n`;
-      }
-
-      if (dados.ehParcelado) {
-        msg += `*🔢* ${dados.parcelas}x\n`;
-      }
-
-      if (dados.ehCompartilhado) {
-        msg += `*👥* Com @${dados.usernameCompartilhado}\n`;
-      }
-
-      msg += `\n━━━━━━━━━━━━━━\n`;
-      msg += `✅ *SIM* - Confirmar\n`;
-      msg += `❌ *NÃO* - Cancelar`;
-
-      return msg;
+      return {
+        sucesso: false,
+        erro: erroMsg,
+      };
     }
   }
 
