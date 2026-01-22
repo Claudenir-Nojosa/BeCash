@@ -66,10 +66,92 @@ export class UserService {
       return [];
     }
   }
+  static async encontrarUsuarioPorUsername(
+    username: string,
+    userIdAtual: string,
+  ) {
+    try {
+      console.log(
+        `🔍 Buscando usuário por username: "@${username}" (usuário atual: ${userIdAtual})`,
+      );
+
+      // Remover @ se o usuário digitou
+      const usernameBusca = username.replace(/^@/, "").toLowerCase().trim();
+      console.log(`🎯 Username para busca: "${usernameBusca}"`);
+
+      // Buscar primeiro por username exato
+      const usuarioExato = await db.user.findFirst({
+        where: {
+          username: usernameBusca,
+          NOT: { id: userIdAtual },
+        },
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          email: true,
+          image: true,
+        },
+      });
+
+      if (usuarioExato) {
+        console.log(
+          `✅ Usuário encontrado por username exato: ${usuarioExato.name} (@${usuarioExato.username})`,
+        );
+        return usuarioExato;
+      }
+
+      // Se não encontrou por username exato, buscar por aproximação
+      const usuarios = await db.user.findMany({
+        where: {
+          NOT: { id: userIdAtual },
+          username: {
+            not: null,
+            contains: usernameBusca,
+            mode: "insensitive",
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          email: true,
+          image: true,
+        },
+        take: 5,
+      });
+
+      console.log(
+        `📋 Usuários encontrados por username parcial:`,
+        usuarios.map((u) => ({
+          name: u.name,
+          username: u.username,
+        })),
+      );
+
+      if (usuarios.length > 0) {
+        const melhorUsuario = usuarios[0];
+        console.log(
+          `✅ Usuário encontrado por username parcial: ${melhorUsuario.name} (@${melhorUsuario.username})`,
+        );
+        return melhorUsuario;
+      }
+
+      console.log(
+        `❌ Nenhum usuário encontrado com username: "@${usernameBusca}"`,
+      );
+      return null;
+    } catch (error) {
+      console.error("❌ Erro ao buscar usuário por username:", error);
+      return null;
+    }
+  }
 
   static async encontrarUsuarioPorNome(nome: string, userIdAtual: string) {
     try {
-      console.log(`🔍 Buscando usuário por nome: "${nome}" (usuário atual: ${userIdAtual})`);
+      console.log(
+        `🔍 Buscando usuário por nome: "${nome}" (usuário atual: ${userIdAtual})`,
+      );
 
       const usuarios = await db.user.findMany({
         where: {
@@ -83,7 +165,10 @@ export class UserService {
         },
       });
 
-      console.log(`📋 Usuários disponíveis para compartilhamento:`, usuarios.map(u => ({ id: u.id, name: u.name })));
+      console.log(
+        `📋 Usuários disponíveis para compartilhamento:`,
+        usuarios.map((u) => ({ id: u.id, name: u.name })),
+      );
 
       const nomeBusca = nome.toLowerCase().trim();
       console.log(`🎯 Buscando por: "${nomeBusca}"`);
@@ -110,9 +195,14 @@ export class UserService {
         for (const parteBusca of partesBusca) {
           if (parteBusca.length > 2) {
             for (const parteUsuario of partesUsuario) {
-              if (parteUsuario.includes(parteBusca) || parteBusca.includes(parteUsuario)) {
+              if (
+                parteUsuario.includes(parteBusca) ||
+                parteBusca.includes(parteUsuario)
+              ) {
                 pontuacao += 1;
-                console.log(`   ✅ Parte "${parteBusca}" corresponde a "${parteUsuario}"`);
+                console.log(
+                  `   ✅ Parte "${parteBusca}" corresponde a "${parteUsuario}"`,
+                );
               }
             }
           }
@@ -126,21 +216,30 @@ export class UserService {
         };
 
         for (const [nomeCompleto, variacoes] of Object.entries(apelidos)) {
-          if (variacoes.includes(nomeBusca) && nomeUsuario.includes(nomeCompleto)) {
+          if (
+            variacoes.includes(nomeBusca) &&
+            nomeUsuario.includes(nomeCompleto)
+          ) {
             pontuacao += 2;
-            console.log(`   ✅ Apelido "${nomeBusca}" corresponde a "${nomeCompleto}"`);
+            console.log(
+              `   ✅ Apelido "${nomeBusca}" corresponde a "${nomeCompleto}"`,
+            );
           }
         }
 
         if (pontuacao > melhorPontuacao) {
           melhorPontuacao = pontuacao;
           melhorUsuario = usuario;
-          console.log(`   🏆 Novo melhor usuário: ${usuario.name} (pontuação: ${pontuacao})`);
+          console.log(
+            `   🏆 Novo melhor usuário: ${usuario.name} (pontuação: ${pontuacao})`,
+          );
         }
       }
 
       if (melhorUsuario && melhorPontuacao >= 1) {
-        console.log(`✅ Usuário encontrado: ${melhorUsuario.name} (pontuação: ${melhorPontuacao})`);
+        console.log(
+          `✅ Usuário encontrado: ${melhorUsuario.name} (pontuação: ${melhorPontuacao})`,
+        );
         return melhorUsuario;
       }
 
@@ -155,7 +254,7 @@ export class UserService {
   static async buscarLimiteCategoria(
     categoriaId: string,
     userId: string,
-    mesReferencia: string
+    mesReferencia: string,
   ) {
     try {
       const limite = await db.limiteCategoria.findUnique({

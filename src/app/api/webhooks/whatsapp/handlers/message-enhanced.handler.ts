@@ -474,7 +474,7 @@ export class EnhancedMessageHandler {
       }
 
       if (dados.ehCompartilhado) {
-        msg += `*👥* With ${dados.nomeUsuarioCompartilhado}\n`;
+        msg += `*👥* With ${dados.usernameCompartilhado}\n`;
       }
 
       msg += `\n━━━━━━━━━━━━━━\n`;
@@ -499,7 +499,7 @@ export class EnhancedMessageHandler {
       }
 
       if (dados.ehCompartilhado) {
-        msg += `*👥* Com ${dados.nomeUsuarioCompartilhado}\n`;
+        msg += `*👥* Com ${dados.usernameCompartilhado}\n`;
       }
 
       msg += `\n━━━━━━━━━━━━━━\n`;

@@ -4,15 +4,51 @@ export function detectarIdioma(mensagem: string): string {
   const texto = mensagem.toLowerCase();
 
   const palavrasIngles = [
-    "i", "spent", "paid", "received", "earned", "bought", "purchased",
-    "on", "for", "at", "using", "with", "my", "card", "credit", "debit",
-    "cash", "money", "dollars", "usd", "answer", "english"
+    "i",
+    "spent",
+    "paid",
+    "received",
+    "earned",
+    "bought",
+    "purchased",
+    "on",
+    "for",
+    "at",
+    "using",
+    "with",
+    "my",
+    "card",
+    "credit",
+    "debit",
+    "cash",
+    "money",
+    "dollars",
+    "usd",
+    "answer",
+    "english",
   ];
 
   const palavrasPortugues = [
-    "eu", "gastei", "paguei", "recebi", "ganhei", "comprei",
-    "com", "em", "no", "na", "do", "da", "meu", "minha",
-    "cartão", "crédito", "débito", "pix", "dinheiro", "reais"
+    "eu",
+    "gastei",
+    "paguei",
+    "recebi",
+    "ganhei",
+    "comprei",
+    "com",
+    "em",
+    "no",
+    "na",
+    "do",
+    "da",
+    "meu",
+    "minha",
+    "cartão",
+    "crédito",
+    "débito",
+    "pix",
+    "dinheiro",
+    "reais",
   ];
 
   let contadorIngles = 0;
@@ -21,23 +57,25 @@ export function detectarIdioma(mensagem: string): string {
   const verbosIngles = ["spent", "paid", "received", "earned", "bought"];
   const verbosPortugues = ["gastei", "paguei", "recebi", "ganhei", "comprei"];
 
-  verbosIngles.forEach(verbo => {
+  verbosIngles.forEach((verbo) => {
     if (texto.includes(verbo)) contadorIngles += 3;
   });
 
-  verbosPortugues.forEach(verbo => {
+  verbosPortugues.forEach((verbo) => {
     if (texto.includes(verbo)) contadorPortugues += 3;
   });
 
-  palavrasIngles.forEach(palavra => {
+  palavrasIngles.forEach((palavra) => {
     if (texto.includes(palavra)) contadorIngles += 1;
   });
 
-  palavrasPortugues.forEach(palavra => {
+  palavrasPortugues.forEach((palavra) => {
     if (texto.includes(palavra)) contadorPortugues += 1;
   });
 
-  console.log(`🌐 Contagem idioma: Inglês=${contadorIngles}, Português=${contadorPortugues}`);
+  console.log(
+    `🌐 Contagem idioma: Inglês=${contadorIngles}, Português=${contadorPortugues}`,
+  );
 
   return contadorIngles > contadorPortugues ? "en-US" : "pt-BR";
 }
@@ -46,92 +84,69 @@ export function detectarComando(mensagem: string): { tipo: string | null } {
   const textoLower = mensagem.toLowerCase().trim();
 
   const comandosCategorias = [
-    "quais categorias", "categorias disponíveis", "minhas categorias",
-    "listar categorias", "ver categorias", "mostrar categorias",
-    "categorias cadastradas"
+    "quais categorias",
+    "categorias disponíveis",
+    "minhas categorias",
+    "listar categorias",
+    "ver categorias",
+    "mostrar categorias",
+    "categorias cadastradas",
   ];
 
-  if (comandosCategorias.some(cmd => textoLower.includes(cmd))) {
+  if (comandosCategorias.some((cmd) => textoLower.includes(cmd))) {
     return { tipo: "LISTAR_CATEGORIAS" };
   }
 
   return { tipo: null };
 }
 
-export function detectarCompartilhamento(mensagem: string): {
-  ehCompartilhado: boolean;
-  nomeUsuario?: string;
-  tipoCompartilhamento?: string;
-} {
-  console.log(`🔍🔍🔍 DETECÇÃO COMPARTILHAMENTO INICIADA 🔍🔍🔍`);
-  console.log(`🔍 Mensagem ORIGINAL: "${mensagem}"`);
+export function detectarCompartilhamento(mensagem: string) {
+  const lower = mensagem.toLowerCase();
+  let ehCompartilhado = false;
+  let nomeUsuario = "";
+  let username = "";
 
-  const msgLower = mensagem.toLowerCase();
+  // Padrões para detecção de username (@username)
+  const usernamePattern = /compartilhad[oa]?\s+(?:com|para|com)\s+@(\w[\w.]*)/i;
+  const usernameMatch = mensagem.match(usernamePattern);
 
-  const temCompartilhamento =
-    msgLower.includes("compartilhada") ||
-    msgLower.includes("compartilhado") ||
-    msgLower.includes("compartilhar") ||
-    msgLower.includes("dividir") ||
-    msgLower.includes("meio a meio");
-
-  console.log(`🔍 Tem compartilhamento: ${temCompartilhamento}`);
-
-  if (!temCompartilhamento) {
-    console.log(`❌ Nenhuma menção a compartilhamento encontrada`);
-    return { ehCompartilhado: false };
+  if (usernameMatch) {
+    ehCompartilhado = true;
+    username = usernameMatch[1];
+    console.log(`✅ Username detectado para compartilhamento: @${username}`);
   }
 
-  let nomeUsuario = null;
+  // Padrões antigos (nome) - fallback
+  const patterns = [
+    /compartilhad[oa]?\s+(?:com|para|com)\s+([^\s.,!?]+)/i,
+    /dividid[oa]?\s+(?:com|para|com)\s+([^\s.,!?]+)/i,
+    /(?:com|para|com)\s+([^\s.,!?]+)\s+(?:compartilhad[oa]?|dividid[oa]?)/i,
+  ];
 
-  // Tentativa 1: Padrão "compartilhada com [nome]"
-  let match = mensagem.match(/compartilhada com\s+([^\s,.]+)/i);
-  if (match && match[1]) {
-    nomeUsuario = match[1].trim();
-    console.log(`✅ Nome extraído (padrão 1): "${nomeUsuario}"`);
-  }
-
-  // Tentativa 2: Padrão "compartilhado com [nome]"
-  if (!nomeUsuario) {
-    match = mensagem.match(/compartilhado com\s+([^\s,.]+)/i);
+  for (const pattern of patterns) {
+    const match = lower.match(pattern);
     if (match && match[1]) {
-      nomeUsuario = match[1].trim();
-      console.log(`✅ Nome extraído (padrão 2): "${nomeUsuario}"`);
+      ehCompartilhado = true;
+      nomeUsuario = match[1];
+      console.log(`✅ Nome detectado para compartilhamento: ${nomeUsuario}`);
+      break;
     }
   }
 
-  // Tentativa 3: Procurar por nome explicitamente
-  if (!nomeUsuario && msgLower.includes("beatriz")) {
-    nomeUsuario = "beatriz";
-    console.log(`✅ Nome extraído (fallback beatriz): "${nomeUsuario}"`);
+  // Detectar por menção simples de "@"
+  const simpleAtPattern = /@(\w[\w.]*)/g;
+  const atMatches = [...mensagem.matchAll(simpleAtPattern)];
+
+  if (atMatches.length > 0 && !ehCompartilhado) {
+    ehCompartilhado = true;
+    username = atMatches[0][1];
+    console.log(`✅ Username detectado por menção: @${username}`);
   }
 
-  // Tentativa 4: Último recurso - pegar última palavra após "com"
-  if (!nomeUsuario) {
-    const palavras = mensagem.split(" ");
-    const indexCom = palavras.findIndex(p => p.toLowerCase() === "com");
-    if (indexCom !== -1 && indexCom < palavras.length - 1) {
-      nomeUsuario = palavras[indexCom + 1].replace(/[.,]/g, "").trim();
-      console.log(`✅ Nome extraído (última palavra): "${nomeUsuario}"`);
-    }
-  }
-
-  if (nomeUsuario) {
-    const resultado = {
-      ehCompartilhado: true,
-      nomeUsuario: nomeUsuario,
-      tipoCompartilhamento: msgLower.includes("despesa") ? "DESPESA" 
-        : msgLower.includes("receita") ? "RECEITA" : undefined,
-    };
-    console.log(`✅✅✅ COMPARTILHAMENTO CONFIRMADO:`, resultado);
-    return resultado;
-  }
-
-  console.log(`❌ Compartilhamento detectado mas nome não extraído`);
   return {
-    ehCompartilhado: true,
-    nomeUsuario: "beatriz",
-    tipoCompartilhamento: "DESPESA",
+    ehCompartilhado,
+    nomeUsuario: nomeUsuario || username,
+    username: username || undefined,
   };
 }
 
@@ -174,7 +189,11 @@ export function detectarParcelamento(mensagem: string): {
     }
   }
 
-  if (texto.includes("parcelada") || texto.includes("parcelado") || texto.includes("vezes")) {
+  if (
+    texto.includes("parcelada") ||
+    texto.includes("parcelado") ||
+    texto.includes("vezes")
+  ) {
     const todosNumeros = texto.match(/\d+/g);
     if (todosNumeros) {
       for (const numStr of todosNumeros) {

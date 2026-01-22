@@ -6,6 +6,7 @@ export type DadosLancamento = {
   data: string;
   ehCompartilhado?: boolean;
   nomeUsuarioCompartilhado?: string;
+  usernameCompartilhado?: string;
   ehParcelado?: boolean;
   parcelas?: number;
   tipoParcelamento?: string;
@@ -68,4 +69,12 @@ export interface ParcelamentoInfo {
   ehParcelado: boolean;
   parcelas?: number;
   tipoParcelamento?: string;
+}
+
+export interface UsuarioParaCompartilhamento {
+  id: string;
+  name: string;
+  username?: string;
+  email: string;
+  image?: string;
 }

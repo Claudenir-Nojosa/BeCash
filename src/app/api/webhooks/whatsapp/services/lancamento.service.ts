@@ -218,7 +218,7 @@ export class LancamentoService {
     return null;
   }
 
-  static async createLancamento(
+static async createLancamento(
     userId: string,
     dados: DadosLancamento,
     categoriaEscolhida: any,
@@ -234,8 +234,13 @@ export class LancamentoService {
         `💳 Cartão encontrado (parâmetro):`,
         cartaoEncontrado?.nome || "null",
       );
-      // NOVO: Log dos dados de divisão personalizada
+
+      // Log dos dados de compartilhamento
       if (dados.ehCompartilhado) {
+        const identificador = dados.usernameCompartilhado 
+          ? `@${dados.usernameCompartilhado}` 
+          : dados.nomeUsuarioCompartilhado;
+        console.log(`🔍 Dados de compartilhamento: ${identificador}`);
         console.log(`🤝 DADOS DE DIVISÃO PERSONALIZADA:`);
         console.log(`   • Tipo de divisão: ${dados.tipoDivisao || "metade"}`);
         console.log(
@@ -246,14 +251,7 @@ export class LancamentoService {
         );
       }
 
-      const msgLower = userMessage?.toLowerCase() || "";
-      if (msgLower.includes("compartilhada") && msgLower.includes("beatriz")) {
-        dados.ehCompartilhado = true;
-        dados.nomeUsuarioCompartilhado = "beatriz";
-      }
-
       const dataLancamento = calcularDataBrasilia(dados.data);
-
       console.log(
         `📅 Data do lançamento (Brasília): ${dataLancamento.toLocaleDateString("pt-BR")}`,
       );
@@ -305,20 +303,21 @@ export class LancamentoService {
         }
       }
 
-      // NOVO: Lógica de divisão personalizada
-      if (dados.ehCompartilhado && dados.nomeUsuarioCompartilhado) {
-        console.log(
-          `🔍 Buscando usuário para compartilhamento: "${dados.nomeUsuarioCompartilhado}"`,
-        );
+      // NOVA LÓGICA: COMPARTILHAMENTO COM USERNAME
+      if (dados.ehCompartilhado && (dados.usernameCompartilhado || dados.nomeUsuarioCompartilhado)) {
+        const identificador = dados.usernameCompartilhado || dados.nomeUsuarioCompartilhado;
+        console.log(`🔍 Buscando usuário para compartilhamento: "${identificador}"`);
 
-        usuarioAlvo = await UserService.encontrarUsuarioPorNome(
-          dados.nomeUsuarioCompartilhado,
-          userId,
+        // Usar o novo método unificado que tenta username primeiro
+        usuarioAlvo = await UserService.encontrarUsuarioPorUsername(
+          identificador!,
+          userId
         );
 
         if (usuarioAlvo) {
           console.log(
-            `✅ Usuário encontrado para compartilhamento: ${usuarioAlvo.name} (${usuarioAlvo.id})`,
+            `✅ Usuário encontrado para compartilhamento: ${usuarioAlvo.name} ` +
+            `${usuarioAlvo.username ? `(@${usuarioAlvo.username})` : ''} (${usuarioAlvo.id})`
           );
 
           // Calcular valores com base no tipo de divisão
@@ -380,11 +379,12 @@ export class LancamentoService {
           );
         } else {
           console.log(
-            `❌ Usuário para compartilhamento não encontrado: "${dados.nomeUsuarioCompartilhado}"`,
+            `❌ Usuário para compartilhamento não encontrado: "${identificador}"`,
           );
           console.log(`⚠️ Continuando sem compartilhamento...`);
           dados.ehCompartilhado = false;
           dados.nomeUsuarioCompartilhado = undefined;
+          dados.usernameCompartilhado = undefined;
         }
       }
 
@@ -405,6 +405,10 @@ export class LancamentoService {
             ? ` - Divisão: ${tipoDivisao}${tipoDivisao === "porcentagem" ? ` (${porcentagemUsuario}%)` : ""}`
             : "";
 
+        const displayNameUsuarioAlvo = usuarioAlvo 
+          ? (usuarioAlvo.username ? `@${usuarioAlvo.username}` : usuarioAlvo.name)
+          : null;
+
         const lancamentoPrincipalData: any = {
           descricao: `${descricaoLimpa} (1/${dados.parcelas})`,
           valor: valorParcela,
@@ -421,7 +425,7 @@ export class LancamentoService {
           observacoes:
             `Criado via WhatsApp - Categoria: ${categoriaEscolhida.nome}` +
             (cartaoEncontrado ? ` - Cartão: ${cartaoEncontrado.nome}` : "") +
-            (usuarioAlvo ? ` - Compartilhado com: ${usuarioAlvo.name}` : "") +
+            (displayNameUsuarioAlvo ? ` - Compartilhado com: ${displayNameUsuarioAlvo}` : "") +
             ` - Parcelado em ${dados.parcelas}x` +
             observacoesDivisao,
         };
@@ -482,6 +486,7 @@ export class LancamentoService {
             lancamentoPaiId: lancamentoPrincipal.id,
             observacoes:
               `Parcela ${i} de ${dados.parcelas} - Criado via WhatsApp` +
+              (displayNameUsuarioAlvo ? ` - Compartilhado com: ${displayNameUsuarioAlvo}` : "") +
               (tipoDivisao !== "metade" ? ` - Divisão: ${tipoDivisao}` : ""),
           };
 
@@ -532,8 +537,8 @@ export class LancamentoService {
           ehParcelado: true,
           parcelasTotal: dados.parcelas,
           valorParcela: valorParcela,
-          tipoDivisao: tipoDivisao, // NOVO: Retornar tipo de divisão
-          porcentagemUsuario: porcentagemUsuario, // NOVO: Retornar porcentagem
+          tipoDivisao: tipoDivisao,
+          porcentagemUsuario: porcentagemUsuario,
         };
       }
 
@@ -545,6 +550,10 @@ export class LancamentoService {
       }
 
       // SE NÃO FOR PARCELADO, CRIAR LANÇAMENTO ÚNICO
+      const displayNameUsuarioAlvo = usuarioAlvo 
+        ? (usuarioAlvo.username ? `@${usuarioAlvo.username}` : usuarioAlvo.name)
+        : null;
+
       const lancamentoData: any = {
         descricao: descricaoLimpa,
         valor: valorUsuarioCriador,
@@ -557,7 +566,7 @@ export class LancamentoService {
         observacoes:
           `Criado via WhatsApp - Categoria: ${categoriaEscolhida.nome}` +
           (cartaoEncontrado ? ` - Cartão: ${cartaoEncontrado.nome}` : "") +
-          (usuarioAlvo ? ` - Compartilhado com: ${usuarioAlvo.name}` : "") +
+          (displayNameUsuarioAlvo ? ` - Compartilhado com: ${displayNameUsuarioAlvo}` : "") +
           (tipoDivisao !== "metade" ? ` - Divisão: ${tipoDivisao}` : ""),
       };
 
@@ -594,8 +603,8 @@ export class LancamentoService {
         usuarioAlvo,
         valorCompartilhado,
         valorUsuarioCriador,
-        tipoDivisao: tipoDivisao, // NOVO: Retornar tipo de divisão
-        porcentagemUsuario: porcentagemUsuario, // NOVO: Retornar porcentagem
+        tipoDivisao: tipoDivisao,
+        porcentagemUsuario: porcentagemUsuario,
       };
     } catch (error) {
       console.error("Erro ao criar lançamento:", error);
