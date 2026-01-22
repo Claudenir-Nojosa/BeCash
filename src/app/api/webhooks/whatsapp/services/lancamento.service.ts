@@ -271,18 +271,32 @@ export class LancamentoService {
         `🛒 Dados: Compartilhado=${dados.ehCompartilhado}, Parcelado=${dados.ehParcelado}, Parcelas=${dados.parcelas}`,
       );
 
-      if (dados.metodoPagamento === "CREDITO") {
-        cartaoEncontrado = await this.identificarCartao(
-          dados.descricao,
-          userId,
+      // Verificar se já tem cartão identificado que veio do pendente
+      if (cartaoEncontrado) {
+        console.log(
+          `✅ Cartão já identificado do pendente: ${cartaoEncontrado.nome}`,
         );
-        if (!cartaoEncontrado && userMessage) {
+        cartaoId = cartaoEncontrado.id;
+      }
+      // Se não veio cartão identificado E é crédito, tentar identificar
+      else if (dados.metodoPagamento === "CREDITO") {
+        console.log(`🔍 Nenhum cartão identificado, tentando identificar...`);
+
+        // Tentar com a mensagem original primeiro
+        if (userMessage) {
           cartaoEncontrado = await this.identificarCartao(userMessage, userId);
         }
-        if (cartaoEncontrado) {
-          console.log(
-            `✅ Usando cartão já identificado: ${cartaoEncontrado.nome}`,
+
+        // Se não encontrou, tentar com a descrição
+        if (!cartaoEncontrado) {
+          cartaoEncontrado = await this.identificarCartao(
+            dados.descricao,
+            userId,
           );
+        }
+
+        if (cartaoEncontrado) {
+          console.log(`✅ Cartão identificado: ${cartaoEncontrado.nome}`);
           cartaoId = cartaoEncontrado.id;
         } else {
           throw new Error(
