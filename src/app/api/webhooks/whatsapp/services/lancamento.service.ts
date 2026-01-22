@@ -218,7 +218,7 @@ export class LancamentoService {
     return null;
   }
 
-static async createLancamento(
+  static async createLancamento(
     userId: string,
     dados: DadosLancamento,
     categoriaEscolhida: any,
@@ -237,10 +237,12 @@ static async createLancamento(
 
       // Log dos dados de compartilhamento
       if (dados.ehCompartilhado) {
-        const identificador = dados.usernameCompartilhado 
-          ? `@${dados.usernameCompartilhado}` 
+        const identificador = dados.usernameCompartilhado
+          ? `@${dados.usernameCompartilhado}`
           : dados.nomeUsuarioCompartilhado;
-        console.log(`🔍 Dados de compartilhamento: ${identificador}`);
+        console.log(
+          `🔍 Username para compartilhamento: @${dados.usernameCompartilhado}`,
+        );
         console.log(`🤝 DADOS DE DIVISÃO PERSONALIZADA:`);
         console.log(`   • Tipo de divisão: ${dados.tipoDivisao || "metade"}`);
         console.log(
@@ -304,20 +306,24 @@ static async createLancamento(
       }
 
       // NOVA LÓGICA: COMPARTILHAMENTO COM USERNAME
-      if (dados.ehCompartilhado && (dados.usernameCompartilhado || dados.nomeUsuarioCompartilhado)) {
-        const identificador = dados.usernameCompartilhado || dados.nomeUsuarioCompartilhado;
-        console.log(`🔍 Buscando usuário para compartilhamento: "${identificador}"`);
+      if (
+        dados.ehCompartilhado &&
+        (dados.usernameCompartilhado || dados.nomeUsuarioCompartilhado)
+      ) {
+        const identificador =
+          dados.usernameCompartilhado || dados.nomeUsuarioCompartilhado;
+            console.log(`🔍 Buscando usuário por username: "@${dados.usernameCompartilhado}"`);
 
         // Usar o novo método unificado que tenta username primeiro
         usuarioAlvo = await UserService.encontrarUsuarioPorUsername(
           identificador!,
-          userId
+          userId,
         );
 
         if (usuarioAlvo) {
           console.log(
             `✅ Usuário encontrado para compartilhamento: ${usuarioAlvo.name} ` +
-            `${usuarioAlvo.username ? `(@${usuarioAlvo.username})` : ''} (${usuarioAlvo.id})`
+              `${usuarioAlvo.username ? `(@${usuarioAlvo.username})` : ""} (${usuarioAlvo.id})`,
           );
 
           // Calcular valores com base no tipo de divisão
@@ -405,8 +411,10 @@ static async createLancamento(
             ? ` - Divisão: ${tipoDivisao}${tipoDivisao === "porcentagem" ? ` (${porcentagemUsuario}%)` : ""}`
             : "";
 
-        const displayNameUsuarioAlvo = usuarioAlvo 
-          ? (usuarioAlvo.username ? `@${usuarioAlvo.username}` : usuarioAlvo.name)
+        const displayNameUsuarioAlvo = usuarioAlvo
+          ? usuarioAlvo.username
+            ? `@${usuarioAlvo.username}`
+            : usuarioAlvo.name
           : null;
 
         const lancamentoPrincipalData: any = {
@@ -425,7 +433,9 @@ static async createLancamento(
           observacoes:
             `Criado via WhatsApp - Categoria: ${categoriaEscolhida.nome}` +
             (cartaoEncontrado ? ` - Cartão: ${cartaoEncontrado.nome}` : "") +
-            (displayNameUsuarioAlvo ? ` - Compartilhado com: ${displayNameUsuarioAlvo}` : "") +
+            (displayNameUsuarioAlvo
+              ? ` - Compartilhado com: ${displayNameUsuarioAlvo}`
+              : "") +
             ` - Parcelado em ${dados.parcelas}x` +
             observacoesDivisao,
         };
@@ -486,7 +496,9 @@ static async createLancamento(
             lancamentoPaiId: lancamentoPrincipal.id,
             observacoes:
               `Parcela ${i} de ${dados.parcelas} - Criado via WhatsApp` +
-              (displayNameUsuarioAlvo ? ` - Compartilhado com: ${displayNameUsuarioAlvo}` : "") +
+              (displayNameUsuarioAlvo
+                ? ` - Compartilhado com: ${displayNameUsuarioAlvo}`
+                : "") +
               (tipoDivisao !== "metade" ? ` - Divisão: ${tipoDivisao}` : ""),
           };
 
@@ -550,8 +562,10 @@ static async createLancamento(
       }
 
       // SE NÃO FOR PARCELADO, CRIAR LANÇAMENTO ÚNICO
-      const displayNameUsuarioAlvo = usuarioAlvo 
-        ? (usuarioAlvo.username ? `@${usuarioAlvo.username}` : usuarioAlvo.name)
+      const displayNameUsuarioAlvo = usuarioAlvo
+        ? usuarioAlvo.username
+          ? `@${usuarioAlvo.username}`
+          : usuarioAlvo.name
         : null;
 
       const lancamentoData: any = {
@@ -566,7 +580,9 @@ static async createLancamento(
         observacoes:
           `Criado via WhatsApp - Categoria: ${categoriaEscolhida.nome}` +
           (cartaoEncontrado ? ` - Cartão: ${cartaoEncontrado.nome}` : "") +
-          (displayNameUsuarioAlvo ? ` - Compartilhado com: ${displayNameUsuarioAlvo}` : "") +
+          (displayNameUsuarioAlvo
+            ? ` - Compartilhado com: ${displayNameUsuarioAlvo}`
+            : "") +
           (tipoDivisao !== "metade" ? ` - Divisão: ${tipoDivisao}` : ""),
       };
 
