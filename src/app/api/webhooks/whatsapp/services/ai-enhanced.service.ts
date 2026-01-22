@@ -5,39 +5,37 @@ import { validarCredenciaisAnthropic } from "../utils/validators";
 import { ConversationService } from "./conversation.service";
 
 export interface IntencaoUsuario {
-  tipo: 
-    | "CRIAR_LANCAMENTO"      // Novo lançamento
-    | "CONFIRMAR_LANCAMENTO"  // Confirmando lançamento pendente
-    | "CANCELAR_LANCAMENTO"   // Cancelando lançamento pendente
-    | "COMANDO_CATEGORIAS"    // Listar categorias
-    | "COMANDO_AJUDA"         // Pedir ajuda
-    | "DUVIDA_GERAL"          // Dúvida/pergunta
-    | "CORRIGIR_LANCAMENTO"   // Quer corrigir algo no lançamento pendente
-    | "INDEFINIDO";           // Não conseguiu identificar
-  
+  tipo:
+    | "CRIAR_LANCAMENTO" // Novo lançamento
+    | "CONFIRMAR_LANCAMENTO" // Confirmando lançamento pendente
+    | "CANCELAR_LANCAMENTO" // Cancelando lançamento pendente
+    | "COMANDO_CATEGORIAS" // Listar categorias
+    | "COMANDO_AJUDA" // Pedir ajuda
+    | "DUVIDA_GERAL" // Dúvida/pergunta
+    | "CORRIGIR_LANCAMENTO" // Quer corrigir algo no lançamento pendente
+    | "INDEFINIDO"; // Não conseguiu identificar
+
   confianca: number; // 0.0 a 1.0
   explicacao: string;
-  
+
   // Se for confirmação/cancelamento
   ehConfirmacao?: boolean;
   ehCancelamento?: boolean;
-  
+
   // Se for correção
   campoParaCorrigir?: "valor" | "descricao" | "categoria" | "metodo" | "data";
   novoValor?: string;
 }
 
 export class EnhancedAIService {
-  
   /**
    * FUNÇÃO PRINCIPAL: Analisa intenção do usuário usando contexto completo
    */
   static async analisarIntencaoComContexto(
     mensagemAtual: string,
     userPhone: string,
-    idioma: string = "pt-BR"
+    idioma: string = "pt-BR",
   ): Promise<IntencaoUsuario> {
-    
     if (!validarCredenciaisAnthropic()) {
       console.log("⚠️ API Anthropic não disponível, usando fallback");
       return this.fallbackIntencao(mensagemAtual, userPhone);
@@ -45,7 +43,7 @@ export class EnhancedAIService {
 
     const historico = ConversationService.getFormattedHistory(userPhone);
     const pendente = ConversationService.getPendingTransaction(userPhone);
-    
+
     const temPendente = !!pendente;
 
     const prompt = this.construirPromptIntencao(
@@ -53,12 +51,12 @@ export class EnhancedAIService {
       historico,
       temPendente,
       idioma,
-      pendente
+      pendente,
     );
 
     try {
       console.log("🤖 Analisando intenção com Claude...");
-      
+
       const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
@@ -67,7 +65,7 @@ export class EnhancedAIService {
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-          model: "claude-3-5-sonnet-20241022",
+          model: "claude-sonnet-4-20250514",
           max_tokens: 500,
           messages: [{ role: "user", content: prompt }],
         }),
@@ -84,7 +82,6 @@ export class EnhancedAIService {
 
       console.log("✅ Intenção detectada:", intencao);
       return intencao;
-
     } catch (error) {
       console.error("❌ Erro ao analisar intenção:", error);
       return this.fallbackIntencao(mensagemAtual, userPhone);
@@ -99,9 +96,8 @@ export class EnhancedAIService {
     historico: string,
     temPendente: boolean,
     idioma: string,
-    dadosPendente?: any
+    dadosPendente?: any,
   ): string {
-    
     const promptBase = `Você é o assistente financeiro BeCash. Analise a INTENÇÃO do usuário nesta conversa.
 
 MENSAGEM ATUAL DO USUÁRIO:
@@ -111,12 +107,16 @@ HISTÓRICO DA CONVERSA:
 ${historico}
 
 STATUS ATUAL:
-${temPendente ? `⚠️ EXISTE UM LANÇAMENTO AGUARDANDO CONFIRMAÇÃO:
+${
+  temPendente
+    ? `⚠️ EXISTE UM LANÇAMENTO AGUARDANDO CONFIRMAÇÃO:
 - Descrição: ${dadosPendente?.descricaoLimpa || "N/A"}
 - Valor: R$ ${dadosPendente?.dados?.valor || "N/A"}
 - Categoria: ${dadosPendente?.categoriaEscolhida?.nome || "N/A"}
 - Método: ${dadosPendente?.dados?.metodoPagamento || "N/A"}
-` : "✅ Nenhum lançamento pendente"}
+`
+    : "✅ Nenhum lançamento pendente"
+}
 
 IDIOMA PREFERIDO: ${idioma}
 
@@ -178,7 +178,7 @@ RESPONDA APENAS JSON:
    */
   private static fallbackIntencao(
     mensagem: string,
-    userPhone: string
+    userPhone: string,
   ): IntencaoUsuario {
     const msgLower = mensagem.toLowerCase().trim();
     const pendente = ConversationService.getPendingTransaction(userPhone);
@@ -189,7 +189,7 @@ RESPONDA APENAS JSON:
       const confirmacoes = ["sim", "s", "yes", "ok", "confirma", "pode", "✅"];
       const cancelamentos = ["não", "nao", "no", "n", "cancela", "❌"];
 
-      if (confirmacoes.some(c => msgLower.includes(c))) {
+      if (confirmacoes.some((c) => msgLower.includes(c))) {
         return {
           tipo: "CONFIRMAR_LANCAMENTO",
           confianca: 0.8,
@@ -198,7 +198,7 @@ RESPONDA APENAS JSON:
         };
       }
 
-      if (cancelamentos.some(c => msgLower.includes(c))) {
+      if (cancelamentos.some((c) => msgLower.includes(c))) {
         return {
           tipo: "CANCELAR_LANCAMENTO",
           confianca: 0.8,
@@ -209,7 +209,12 @@ RESPONDA APENAS JSON:
     }
 
     // Detectar novos lançamentos
-    if (/\d+/.test(mensagem) && (msgLower.includes("gastei") || msgLower.includes("spent") || msgLower.includes("paguei"))) {
+    if (
+      /\d+/.test(mensagem) &&
+      (msgLower.includes("gastei") ||
+        msgLower.includes("spent") ||
+        msgLower.includes("paguei"))
+    ) {
       return {
         tipo: "CRIAR_LANCAMENTO",
         confianca: 0.7,
@@ -247,9 +252,8 @@ RESPONDA APENAS JSON:
   static async extrairDadosCompleto(
     mensagem: string,
     categorias: any[],
-    idioma: string = "pt-BR"
+    idioma: string = "pt-BR",
   ): Promise<ResultadoExtracao> {
-    
     if (!validarCredenciaisAnthropic()) {
       console.log("⚠️ Usando fallback de extração");
       return { sucesso: false, erro: "IA não disponível" };
@@ -260,7 +264,7 @@ RESPONDA APENAS JSON:
 MENSAGEM: "${mensagem}"
 
 CATEGORIAS DISPONÍVEIS DO USUÁRIO:
-${categorias.map(c => `- ${c.nome} (${c.tipo})`).join("\n")}
+${categorias.map((c) => `- ${c.nome} (${c.tipo})`).join("\n")}
 
 IDIOMA: ${idioma}
 
@@ -332,7 +336,7 @@ RESPONDA APENAS JSON:
 }`;
 
     try {
-      console.log("🤖 Extraindo dados com Claude Sonnet 3.5...");
+      console.log("🤖 Extraindo dados com Claude Sonnet 4");
 
       const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
@@ -342,7 +346,7 @@ RESPONDA APENAS JSON:
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-          model: "claude-3-5-sonnet-20241022",
+          model: "claude-sonnet-4-20250514",
           max_tokens: 1000,
           messages: [{ role: "user", content: prompt }],
         }),
@@ -387,7 +391,6 @@ RESPONDA APENAS JSON:
         sucesso: true,
         dados,
       };
-
     } catch (error) {
       console.error("❌ Erro na extração:", error);
       return {
@@ -400,7 +403,10 @@ RESPONDA APENAS JSON:
   /**
    * Limpar e melhorar descrição
    */
-  static async limparDescricao(descricao: string, idioma: string = "pt-BR"): Promise<string> {
+  static async limparDescricao(
+    descricao: string,
+    idioma: string = "pt-BR",
+  ): Promise<string> {
     if (!validarCredenciaisAnthropic()) {
       return descricao.trim();
     }
@@ -441,10 +447,9 @@ RESPONDA APENAS A DESCRIÇÃO LIMPA (sem explicações):`;
 
       const data = await response.json();
       const limpa = data.content[0].text.trim();
-      
+
       console.log(`🧹 Descrição limpa: "${descricao}" → "${limpa}"`);
       return limpa;
-
     } catch (error) {
       console.error("❌ Erro ao limpar descrição:", error);
       return descricao.trim();
