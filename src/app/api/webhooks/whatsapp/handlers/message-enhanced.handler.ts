@@ -468,9 +468,6 @@ export class EnhancedMessageHandler {
   /**
    * GERAR MENSAGEM DE CONFIRMAÇÃO
    */
-  /**
-   * GERAR MENSAGEM DE CONFIRMAÇÃO
-   */
   private static async gerarMensagemConfirmacao(
     pendente: any,
     idioma: string,
