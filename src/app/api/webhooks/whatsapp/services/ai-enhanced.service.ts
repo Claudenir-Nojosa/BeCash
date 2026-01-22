@@ -2,7 +2,7 @@
 
 import { ResultadoExtracao, DadosLancamento } from "../types";
 import { validarCredenciaisAnthropic } from "../utils/validators";
-import { ConversationService } from "./conversation.service";
+import { ConversationRedisService } from "./conversation.service";
 
 export interface IntencaoUsuario {
   tipo:
@@ -40,8 +40,10 @@ export class EnhancedAIService {
       return this.fallbackIntencao(mensagemAtual, userPhone);
     }
 
-    const historico = ConversationService.getFormattedHistory(userPhone);
-    const pendente = ConversationService.getPendingTransaction(userPhone);
+    const historico =
+      await ConversationRedisService.getFormattedHistory(userPhone);
+    const pendente =
+      await ConversationRedisService.getPendingTransaction(userPhone);
 
     const temPendente = !!pendente;
 
@@ -180,7 +182,7 @@ RESPONDA APENAS JSON:
     userPhone: string,
   ): IntencaoUsuario {
     const msgLower = mensagem.toLowerCase().trim();
-    const pendente = ConversationService.getPendingTransaction(userPhone);
+    const pendente = ConversationRedisService.getPendingTransaction(userPhone);
     const temPendente = !!pendente;
 
     // Se tem pendente e mensagem é curta

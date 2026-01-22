@@ -3,7 +3,7 @@
 import { UserService } from "../services/user.service";
 import { WhatsAppService } from "../services/whatsapp.service";
 import { LancamentoService } from "../services/lancamento.service";
-import { ConversationService } from "../services/conversation.service";
+import { ConversationRedisService } from "../services/conversation.service";
 import { EnhancedAIService } from "../services/ai-enhanced.service";
 import { normalizarTelefone } from "../utils/validators";
 
@@ -41,14 +41,21 @@ export class EnhancedMessageHandler {
     console.log("🌐 Idioma:", idioma);
 
     // 2. GARANTIR CONTEXTO DA CONVERSA
-    let context = ConversationService.getContext(telefoneBusca);
+    let context = await ConversationRedisService.getContext(telefoneBusca); // ADICIONE AWAIT
     if (!context) {
-      context = ConversationService.createContext(userId, telefoneBusca);
+      context = await ConversationRedisService.createContext(
+        userId,
+        telefoneBusca,
+      ); // ADICIONE AWAIT
       console.log("✨ Novo contexto criado");
     }
 
     // 3. ADICIONAR MENSAGEM DO USUÁRIO AO HISTÓRICO
-    ConversationService.addMessage(telefoneBusca, "user", userMessage);
+    await ConversationRedisService.addMessage(
+      telefoneBusca,
+      "user",
+      userMessage,
+    ); // ADICIONE AWAIT
 
     // 4. ANALISAR INTENÇÃO COM IA (usando contexto completo)
     console.log("\n🤖 ANALISANDO INTENÇÃO COM IA...");
@@ -122,8 +129,10 @@ export class EnhancedMessageHandler {
   private static async confirmarLancamento(userPhone: string, idioma: string) {
     console.log("✅ Confirmando lançamento...");
 
-    const pendente = ConversationService.getPendingTransaction(userPhone);
-    const context = ConversationService.getContext(userPhone); // Pegar contexto
+    const pendente =
+      await ConversationRedisService.getPendingTransaction(userPhone); // ADICIONE AWAIT
+    const context = await ConversationRedisService.getContext(userPhone); // ADICIONE AWAIT
+
     console.log("🔍 Dados do pendente:", {
       temPendente: !!pendente,
       dados: pendente?.dados,
@@ -136,6 +145,7 @@ export class EnhancedMessageHandler {
           }
         : "Nenhum cartão encontrado",
     });
+
     if (!pendente) {
       const msg =
         idioma === "en-US"
@@ -143,7 +153,7 @@ export class EnhancedMessageHandler {
           : "❌ Nenhuma transação pendente para confirmar.\n\n💡 Envie uma nova transação.";
 
       await WhatsAppService.sendMessage(userPhone, msg);
-      ConversationService.addMessage(userPhone, "assistant", msg);
+      await ConversationRedisService.addMessage(userPhone, "assistant", msg); // ADICIONE AWAIT
       return { status: "no_pending" };
     }
 
@@ -154,6 +164,7 @@ export class EnhancedMessageHandler {
       if (!userIdParaLancamento) {
         throw new Error("User ID not found in context");
       }
+
       console.log("📤 Passando para createLancamento:", {
         userId: userIdParaLancamento,
         dados: pendente.dados,
@@ -161,9 +172,10 @@ export class EnhancedMessageHandler {
         descricaoLimpa: pendente.descricaoLimpa,
         cartao: pendente.cartaoEncontrado?.nome || "null",
       });
+
       // Criar lançamento no banco
       const resultado = await LancamentoService.createLancamento(
-        userIdParaLancamento, // Usar do contexto
+        userIdParaLancamento,
         pendente.dados,
         pendente.categoriaEscolhida,
         "", // mensagem original
@@ -179,10 +191,14 @@ export class EnhancedMessageHandler {
       );
 
       await WhatsAppService.sendMessage(userPhone, msgSucesso);
-      ConversationService.addMessage(userPhone, "assistant", msgSucesso);
+      await ConversationRedisService.addMessage(
+        userPhone,
+        "assistant",
+        msgSucesso,
+      ); // ADICIONE AWAIT
 
       // Limpar transação pendente
-      ConversationService.clearPendingTransaction(userPhone);
+      await ConversationRedisService.clearPendingTransaction(userPhone); // ADICIONE AWAIT
 
       return { status: "confirmed", lancamento: resultado };
     } catch (error: any) {
@@ -194,7 +210,11 @@ export class EnhancedMessageHandler {
           : `❌ Erro ao criar lançamento: ${error.message}`;
 
       await WhatsAppService.sendMessage(userPhone, msgErro);
-      ConversationService.addMessage(userPhone, "assistant", msgErro);
+      await ConversationRedisService.addMessage(
+        userPhone,
+        "assistant",
+        msgErro,
+      ); // ADICIONE AWAIT
 
       return { status: "error", erro: error.message };
     }
@@ -206,7 +226,8 @@ export class EnhancedMessageHandler {
   private static async cancelarLancamento(userPhone: string, idioma: string) {
     console.log("❌ Cancelando lançamento...");
 
-    const pendente = ConversationService.getPendingTransaction(userPhone);
+    const pendente =
+      await ConversationRedisService.getPendingTransaction(userPhone); // ADICIONE AWAIT
 
     if (!pendente) {
       const msg =
@@ -215,7 +236,7 @@ export class EnhancedMessageHandler {
           : "❌ Nenhuma transação pendente para cancelar.";
 
       await WhatsAppService.sendMessage(userPhone, msg);
-      ConversationService.addMessage(userPhone, "assistant", msg);
+      await ConversationRedisService.addMessage(userPhone, "assistant", msg); // ADICIONE AWAIT
       return { status: "no_pending" };
     }
 
@@ -225,10 +246,10 @@ export class EnhancedMessageHandler {
         : "❌ Lançamento cancelado.\n\n💡 Envie uma nova mensagem para criar outro lançamento.";
 
     await WhatsAppService.sendMessage(userPhone, msg);
-    ConversationService.addMessage(userPhone, "assistant", msg);
+    await ConversationRedisService.addMessage(userPhone, "assistant", msg); // ADICIONE AWAIT
 
     // Limpar pendente
-    ConversationService.clearPendingTransaction(userPhone);
+    await ConversationRedisService.clearPendingTransaction(userPhone); // ADICIONE AWAIT
 
     return { status: "cancelled" };
   }
@@ -254,7 +275,7 @@ export class EnhancedMessageHandler {
           : "❌ Nenhuma categoria encontrada. Crie categorias primeiro no app.";
 
       await WhatsAppService.sendMessage(userPhone, msg);
-      ConversationService.addMessage(userPhone, "assistant", msg);
+      await ConversationRedisService.addMessage(userPhone, "assistant", msg); // ADICIONE AWAIT
       return { status: "no_categories" };
     }
 
@@ -268,7 +289,7 @@ export class EnhancedMessageHandler {
     if (!resultado.sucesso) {
       const msg = `❌ ${resultado.erro}\n\n💡 Exemplo: "Gastei 50 no almoço"`;
       await WhatsAppService.sendMessage(userPhone, msg);
-      ConversationService.addMessage(userPhone, "assistant", msg);
+      await ConversationRedisService.addMessage(userPhone, "assistant", msg); // ADICIONE AWAIT
       return { status: "extraction_failed" };
     }
 
@@ -310,11 +331,12 @@ export class EnhancedMessageHandler {
     );
 
     // Salvar pendente
-    ConversationService.setPendingTransaction(
+    await ConversationRedisService.setPendingTransaction(
+      // ADICIONE AWAIT
       userPhone,
       {
         ...resultado.dados,
-        userId: userId, // Adicionar userId aos dados
+        userId: userId,
       },
       categoria,
       descricaoLimpa,
@@ -322,7 +344,11 @@ export class EnhancedMessageHandler {
     );
 
     await WhatsAppService.sendMessage(userPhone, msgConfirmacao);
-    ConversationService.addMessage(userPhone, "assistant", msgConfirmacao);
+    await ConversationRedisService.addMessage(
+      userPhone,
+      "assistant",
+      msgConfirmacao,
+    ); // ADICIONE AWAIT
 
     return { status: "waiting_confirmation" };
   }
@@ -340,7 +366,7 @@ export class EnhancedMessageHandler {
     if (categorias.length === 0) {
       const msg = "❌ Você ainda não tem categorias cadastradas.";
       await WhatsAppService.sendMessage(userPhone, msg);
-      ConversationService.addMessage(userPhone, "assistant", msg);
+      await ConversationRedisService.addMessage(userPhone, "assistant", msg); // ADICIONE AWAIT
       return { status: "no_categories" };
     }
 
@@ -363,7 +389,7 @@ export class EnhancedMessageHandler {
     msg += `\n━━━━━━━━━━━━━━\n✨ Total: ${categorias.length} categoria(s)`;
 
     await WhatsAppService.sendMessage(userPhone, msg);
-    ConversationService.addMessage(userPhone, "assistant", msg);
+    await ConversationRedisService.addMessage(userPhone, "assistant", msg); // ADICIONE AWAIT
 
     return { status: "categories_sent" };
   }
@@ -378,7 +404,7 @@ export class EnhancedMessageHandler {
         : `*🤖 AJUDA - BeCash*\n\nApenas envie mensagens como:\n- "Gastei 50 no almoço"\n- "Comprei 200 em 3x"\n\nEu vou entender e te ajudar!`;
 
     await WhatsAppService.sendMessage(userPhone, msg);
-    ConversationService.addMessage(userPhone, "assistant", msg);
+    await ConversationRedisService.addMessage(userPhone, "assistant", msg); // ADICIONE AWAIT
 
     return { status: "help_sent" };
   }
@@ -397,7 +423,7 @@ export class EnhancedMessageHandler {
         : "💡 Sou seu assistente financeiro. Envie transações e te ajudo a organizar!";
 
     await WhatsAppService.sendMessage(userPhone, msg);
-    ConversationService.addMessage(userPhone, "assistant", msg);
+    await ConversationRedisService.addMessage(userPhone, "assistant", msg); // ADICIONE AWAIT
 
     return { status: "doubt_answered" };
   }
@@ -416,7 +442,7 @@ export class EnhancedMessageHandler {
         : '❓ Não entendi. Envie: "Gastei 50 no almoço" ou "Ajuda"';
 
     await WhatsAppService.sendMessage(userPhone, msg);
-    ConversationService.addMessage(userPhone, "assistant", msg);
+    await ConversationRedisService.addMessage(userPhone, "assistant", msg); // ADICIONE AWAIT
 
     return { status: "undefined" };
   }
