@@ -36,6 +36,15 @@ export default function PerfilPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Extrair username do email (parte antes do @) para exibir
+  const getUsername = () => {
+    if (!session?.user?.email) return "";
+    const email = session.user.email;
+    return email.split("@")[0];
+  };
+
+  const username = getUsername();
+
   const getInitials = (name: string | undefined | null) => {
     if (!name) return "U";
     const nameParts = name.split(" ");
@@ -146,8 +155,17 @@ export default function PerfilPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-6xl mx-auto">
-        {/* Cabeçalho */}
+        {/* Cabeçalho - COM TAG DE USUÁRIO ACIMA DO TÍTULO */}
         <div className="mb-8">
+          {/* Tag de usuário acima do título */}
+          {username && (
+            <div className="mb-1">
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-normal tracking-tight">
+                @{username}
+              </span>
+            </div>
+          )}
+
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             {t("perfil:titulo", "Meu Perfil")}
           </h1>
@@ -218,6 +236,14 @@ export default function PerfilPage() {
                     <h3 className="text-lg font-semibold">
                       {session?.user?.name}
                     </h3>
+
+                    {/* Tag de usuário abaixo do nome completo */}
+                    {username && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                        @{username}
+                      </p>
+                    )}
+
                     <p className="text-gray-600 dark:text-gray-400">
                       {session?.user?.email}
                     </p>

@@ -117,7 +117,7 @@ export default function DashboardPage() {
   const params = useParams();
   const { data: session, status } = useSession();
   const { t, i18n } = useTranslation("dashboard");
-
+  const [username, setUsername] = useState<string>("");
   const currentLang = (params?.lang as string) || "pt";
 
   // ========== ESTADOS ==========
@@ -186,7 +186,7 @@ export default function DashboardPage() {
 
     const buscarUsuario = async () => {
       try {
-        const response = await fetch("/api/usuario");
+        const response = await fetch("/api/usuarios/me");
         if (response.ok) {
           const usuarioData = await response.json();
           setNomeUsuario(usuarioData.name);
@@ -198,6 +198,27 @@ export default function DashboardPage() {
     };
 
     buscarUsuario();
+  }, [session]);
+
+  // Adicione este useEffect para buscar o username do usuário
+  useEffect(() => {
+    if (!session) return;
+
+    const buscarUsername = async () => {
+      try {
+        const response = await fetch("/api/usuarios/me");
+        if (response.ok) {
+          const usuarioData = await response.json();
+          setUsername(usuarioData.username || ""); // Adicione esta linha
+          setNomeUsuario(usuarioData.name);
+          hasLoadedUserRef.current = true;
+        }
+      } catch (error) {
+        console.error("Erro ao buscar usuário:", error);
+      }
+    };
+
+    buscarUsername();
   }, [session]);
 
   // ✅ useEffect OTIMIZADO para evitar carregamentos duplicados
@@ -439,7 +460,21 @@ export default function DashboardPage() {
             transition={{ duration: 0.4 }}
             className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
           >
-            <div>
+            <div className="flex flex-col">
+              {/* Tag de usuário acima do título */}
+              {username && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 0.7 }}
+                  transition={{ delay: 0.25 }}
+                  className="flex justify-start"
+                >
+                  <span className="text-sm text-gray-500 dark:text-gray-400 font-normal tracking-tight mb-1">
+                    @{username}
+                  </span>
+                </motion.div>
+              )}
+
               <motion.h1
                 initial={{ x: -10, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
@@ -448,6 +483,7 @@ export default function DashboardPage() {
               >
                 {t("titulo")}
               </motion.h1>
+
               <motion.p
                 initial={{ x: -10, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
@@ -457,7 +493,6 @@ export default function DashboardPage() {
                 {fraseMotivacional}
               </motion.p>
             </div>
-
             {/* Controles do Header */}
             <motion.div
               initial={{ y: 20, opacity: 0 }}
@@ -560,7 +595,7 @@ export default function DashboardPage() {
           >
             {/* Receita */}
             <motion.div
-              whileHover={{ y: -5 }}
+              whileHover={{ y: -1 }}
               transition={{ type: "spring", stiffness: 300 }}
             >
               <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-300 hover:shadow-lg">
@@ -568,7 +603,7 @@ export default function DashboardPage() {
                   <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2 text-gray-800 dark:text-white">
                     <motion.div
                       className="p-1.5 sm:p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/30"
-                      whileHover={{ rotate: 15 }}
+                      whileHover={{ rotate: 5 }}
                       transition={{ type: "spring", stiffness: 300 }}
                     >
                       <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600 dark:text-emerald-400" />
@@ -598,7 +633,7 @@ export default function DashboardPage() {
 
             {/* Despesa */}
             <motion.div
-              whileHover={{ y: -5 }}
+              whileHover={{ y: -1 }}
               transition={{ type: "spring", stiffness: 300, delay: 0.05 }}
             >
               <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-300 hover:shadow-lg">
@@ -606,7 +641,7 @@ export default function DashboardPage() {
                   <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2 text-gray-800 dark:text-white">
                     <motion.div
                       className="p-1.5 sm:p-2 rounded-lg bg-red-50 dark:bg-red-900/30"
-                      whileHover={{ rotate: -15 }}
+                      whileHover={{ rotate: -5 }}
                       transition={{ type: "spring", stiffness: 300 }}
                     >
                       <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5 text-red-600 dark:text-red-400" />
@@ -636,7 +671,7 @@ export default function DashboardPage() {
 
             {/* Despesas Compartilhadas */}
             <motion.div
-              whileHover={{ y: -5 }}
+              whileHover={{ y: -1 }}
               transition={{ type: "spring", stiffness: 300, delay: 0.1 }}
             >
               <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-300 hover:shadow-lg">
@@ -644,7 +679,7 @@ export default function DashboardPage() {
                   <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2 text-gray-800 dark:text-white">
                     <motion.div
                       className="p-1.5 sm:p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30"
-                      whileHover={{ rotate: 15 }}
+                      whileHover={{ rotate: 5 }}
                       transition={{ type: "spring", stiffness: 300 }}
                     >
                       <Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
@@ -674,7 +709,7 @@ export default function DashboardPage() {
 
             {/* Saldo */}
             <motion.div
-              whileHover={{ y: -5 }}
+              whileHover={{ y: -1 }}
               transition={{ type: "spring", stiffness: 300, delay: 0.15 }}
             >
               <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-300 hover:shadow-lg">
@@ -682,7 +717,7 @@ export default function DashboardPage() {
                   <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2 text-gray-800 dark:text-white">
                     <motion.div
                       className="p-1.5 sm:p-2 rounded-lg bg-purple-50 dark:bg-purple-900/30"
-                      whileHover={{ rotate: -15 }}
+                      whileHover={{ rotate: -5 }}
                       transition={{ type: "spring", stiffness: 300 }}
                     >
                       <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400" />
@@ -756,7 +791,7 @@ export default function DashboardPage() {
                     <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white text-lg font-semibold">
                       <motion.div
                         className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800"
-                        whileHover={{ rotate: 15 }}
+                        whileHover={{ rotate: 5 }}
                         transition={{ type: "spring", stiffness: 300 }}
                       >
                         <Target className="h-4 w-4 text-gray-700 dark:text-gray-300" />
@@ -789,15 +824,6 @@ export default function DashboardPage() {
                         className="text-center py-6"
                       >
                         <motion.div
-                          animate={{
-                            scale: [1, 1.1, 1],
-                            rotate: [0, 5, -5, 0],
-                          }}
-                          transition={{
-                            duration: 2,
-                            repeat: Infinity,
-                            repeatType: "reverse",
-                          }}
                         >
                           <Target className="h-12 w-12 mx-auto mb-3 text-gray-300 dark:text-gray-700" />
                         </motion.div>

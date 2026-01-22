@@ -148,6 +148,21 @@ const translations = {
     "questions.features.options.goalsDesc": "Save for your objectives",
     "questions.features.options.reports": "Reports and charts",
     "questions.features.options.reportsDesc": "Visualize your patterns",
+    "questions.username.title": "Choose your username",
+    "questions.username.description":
+      "Pick a unique @username for your profile. You can change it later.",
+    "questions.username.placeholder": "@username",
+    "questions.username.error.required": "Username is required",
+    "questions.username.error.invalid":
+      "Only letters, numbers, dots and underscores",
+    "questions.username.error.length": "Must be 3-30 characters",
+    "questions.username.error.taken": "Username is already taken",
+    "questions.username.error.checking": "Checking availability...",
+    "questions.username.available": "Available!",
+    "questions.username.tips.title": "Tips for a good username:",
+    "questions.username.tips.tip1": "Use your name or nickname",
+    "questions.username.tips.tip2": "Keep it simple and memorable",
+    "questions.username.tips.tip3": "You can use dots and underscores",
   },
   pt: {
     // Header
@@ -259,6 +274,21 @@ const translations = {
     "questions.features.options.goalsDesc": "Economize para seus objetivos",
     "questions.features.options.reports": "Relatórios e gráficos",
     "questions.features.options.reportsDesc": "Visualize seus padrões",
+    "questions.username.title": "Escolha seu nome de usuário",
+    "questions.username.description":
+      "Escolha um @username único para seu perfil. Você pode alterar depois.",
+    "questions.username.placeholder": "@username",
+    "questions.username.error.required": "Nome de usuário é obrigatório",
+    "questions.username.error.invalid":
+      "Apenas letras, números, pontos e underlines",
+    "questions.username.error.length": "Deve ter entre 3 e 30 caracteres",
+    "questions.username.error.taken": "Nome de usuário já está em uso",
+    "questions.username.error.checking": "Verificando disponibilidade...",
+    "questions.username.available": "Disponível!",
+    "questions.username.tips.title": "Dicas para um bom username:",
+    "questions.username.tips.tip1": "Use seu nome ou apelido",
+    "questions.username.tips.tip2": "Mantenha simples e memorável",
+    "questions.username.tips.tip3": "Você pode usar pontos e underlines",
   },
 };
 
@@ -287,7 +317,81 @@ export default function OnboardingPage() {
   const [mostrarConfetti, setMostrarConfetti] = useState(false);
   const [carregandoPagina, setCarregandoPagina] = useState(true);
   const { data: session, status } = useSession();
+  const [username, setUsername] = useState("");
+  const [usernameValido, setUsernameValido] = useState(false);
+  const [verificandoUsername, setVerificandoUsername] = useState(false);
+  const [erroUsername, setErroUsername] = useState<string | null>(null);
 
+  // Função para verificar username (debounced):
+  const verificarUsername = async (valor: string) => {
+    const cleaned = valor.trim().toLowerCase();
+
+    // Validação básica
+    if (cleaned.length < 3) {
+      setErroUsername(t("questions.username.error.length"));
+      setUsernameValido(false);
+      return;
+    }
+
+    if (cleaned.length > 30) {
+      setErroUsername(t("questions.username.error.length"));
+      setUsernameValido(false);
+      return;
+    }
+
+    // Regex para permitir apenas letras, números, pontos e underscores
+    const regex = /^[a-zA-Z0-9._]+$/;
+    if (!regex.test(cleaned)) {
+      setErroUsername(t("questions.username.error.invalid"));
+      setUsernameValido(false);
+      return;
+    }
+
+    // Verificar disponibilidade no servidor
+    setVerificandoUsername(true);
+    setErroUsername(null);
+
+    try {
+      const response = await fetch(`/api/username/check?username=${cleaned}`);
+      const data = await response.json();
+
+      if (data.disponivel) {
+        setErroUsername(t("questions.username.available"));
+        setUsernameValido(true);
+      } else {
+        setErroUsername(t("questions.username.error.taken"));
+        setUsernameValido(false);
+      }
+    } catch (error) {
+      console.error("Erro ao verificar username:", error);
+      setErroUsername(t("errors.generic"));
+      setUsernameValido(false);
+    } finally {
+      setVerificandoUsername(false);
+    }
+  };
+
+  // Use um debounce para a verificação
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (username.length >= 3) {
+        verificarUsername(username);
+      } else if (username.length > 0) {
+        setErroUsername(t("questions.username.error.length"));
+        setUsernameValido(false);
+      } else {
+        setErroUsername(null);
+        setUsernameValido(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [username]);
+  // E adicione esta função para capturar o username nas respostas:
+  const handleUsernameChange = (valor: string) => {
+    const cleaned = valor.replace(/[^a-zA-Z0-9._]/g, "");
+    setUsername(cleaned);
+  };
   // Detecta o idioma da URL
   const getLanguageFromUrl = () => {
     const pathname = window.location.pathname;
@@ -648,6 +752,14 @@ export default function OnboardingPage() {
       obrigatoria: false,
       maxSelecoes: 4,
     },
+    {
+      id: "escolher_username",
+      tipo: "text",
+      pergunta: t("questions.username.title"),
+      descricao: t("questions.username.description"),
+      opcoes: [],
+      obrigatoria: true,
+    },
   ];
 
   const [respostas, setRespostas] = useState<Record<string, any>>({});
@@ -711,6 +823,15 @@ export default function OnboardingPage() {
       return;
     }
 
+    // Validação específica para username
+    if (pergunta.id === "escolher_username") {
+      if (!usernameValido || verificandoUsername) {
+        setErro(t("questions.username.error.required"));
+        return;
+      }
+      handleResposta("escolher_username", username);
+    }
+
     if (pergunta.tipo === "multiple" && pergunta.maxSelecoes) {
       const selecionadas = respostas[pergunta.id] || [];
       if (selecionadas.length > pergunta.maxSelecoes) {
@@ -743,20 +864,41 @@ export default function OnboardingPage() {
     setCarregando(true);
     setErro(null);
 
+    // 🔥 DEBUG: Verifique o que está nas respostas
+    console.log("📤 Dados antes de enviar:", {
+      usernameNoEstado: username,
+      usernameNaResposta: respostas.escolher_username,
+      todasRespostas: respostas,
+    });
+
     try {
+      // 🔥 GARANTE que o username está incluído
+      const usernameParaEnviar = username || respostas.escolher_username;
+
+      if (!usernameParaEnviar || usernameParaEnviar.length < 3) {
+        setErro("Por favor, escolha um nome de usuário válido");
+        setCarregando(false);
+        return;
+      }
+
       const response = await fetch("/api/onboarding/completar", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          respostas,
+          respostas: {
+            ...respostas,
+            escolher_username: usernameParaEnviar, // Força o username
+          },
           dataCompletado: new Date().toISOString(),
+          username: usernameParaEnviar, // Envia explicitamente
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Erro ao salvar respostas");
+        const data = await response.json();
+        throw new Error(data.error || "Erro ao salvar respostas");
       }
 
       const { atualizado } = await response.json();
@@ -859,86 +1001,188 @@ export default function OnboardingPage() {
                 )}
               </motion.div>
 
-              {/* Cards de Opções com altura fixa */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-                {pergunta.opcoes.map((opcao, index) => {
-                  const estaSelecionado =
-                    pergunta.tipo === "single"
-                      ? respostas[pergunta.id] === opcao.id
-                      : (respostas[pergunta.id] || []).includes(opcao.id);
+              {/* Renderização condicional baseada no tipo da pergunta */}
+              {pergunta.tipo === "text" ? (
+                // Renderização para pergunta de texto (username)
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="max-w-md mx-auto"
+                >
+                  <div className="mb-8">
+                    <div className="relative">
+                      <div className="flex items-center border-2 border-gray-700 rounded-xl bg-gray-900/50 p-4">
+                        <span className="text-gray-400 mr-2">@</span>
+                        <input
+                          type="text"
+                          value={username}
+                          onChange={(e) => {
+                            handleUsernameChange(e.target.value);
+                          }}
+                          onBlur={() => {
+                            // Garante que o username está salvo nas respostas quando perde o foco
+                            if (usernameValido && username.length >= 3) {
+                              handleResposta("escolher_username", username);
+                            }
+                          }}
+                          placeholder={t("questions.username.placeholder")}
+                          className="w-full bg-transparent text-white text-lg outline-none placeholder-gray-500"
+                          autoFocus
+                        />
+                        {verificandoUsername && (
+                          <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
+                        )}
+                        {usernameValido && !verificandoUsername && (
+                          <Check className="w-5 h-5 text-green-400" />
+                        )}
+                      </div>
 
-                  return (
-                    <motion.div
-                      key={opcao.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <Card
-                        className={`cursor-pointer border-2 transition-all duration-200 hover:border-gray-600 ${
-                          estaSelecionado
-                            ? "border-blue-500 bg-gray-800/50"
-                            : "border-gray-800 bg-gray-900/50"
-                        } min-h-[220px] flex flex-col`}
-                        onClick={() => toggleSelecao(opcao.id)}
-                      >
-                        <CardContent className="p-6 flex-1 flex flex-col">
-                          <div className="flex flex-col items-center text-center space-y-4 flex-1">
-                            {/* Ícone */}
-                            <div
-                              className={`w-16 h-16 rounded-xl ${opcao.gradient} flex items-center justify-center text-white shadow-lg flex-shrink-0`}
+                      {erroUsername && (
+                        <motion.p
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className={`mt-2 text-sm ${
+                            usernameValido ? "text-green-400" : "text-red-400"
+                          }`}
+                        >
+                          {erroUsername}
+                        </motion.p>
+                      )}
+                    </div>
+
+                    {/* Dicas para escolher username */}
+                    <div className="mt-8 p-6 bg-gray-800/30 rounded-xl border border-gray-700">
+                      <h4 className="font-semibold text-gray-300 mb-3">
+                        {t("questions.username.tips.title")}
+                      </h4>
+                      <ul className="space-y-2 text-gray-400">
+                        <li className="flex items-start">
+                          <Sparkles className="w-4 h-4 mr-2 mt-0.5 text-blue-400" />
+                          {t("questions.username.tips.tip1")}
+                        </li>
+                        <li className="flex items-start">
+                          <Sparkles className="w-4 h-4 mr-2 mt-0.5 text-blue-400" />
+                          {t("questions.username.tips.tip2")}
+                        </li>
+                        <li className="flex items-start">
+                          <Sparkles className="w-4 h-4 mr-2 mt-0.5 text-blue-400" />
+                          {t("questions.username.tips.tip3")}
+                        </li>
+                      </ul>
+
+                      {/* Exemplos de username disponíveis */}
+                      <div className="mt-4">
+                        <p className="text-sm text-gray-500 mb-2">
+                          Exemplos disponíveis:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            "joao.silva",
+                            "maria.fernanda",
+                            "pedro_2024",
+                            "ana.costa",
+                          ].map((exemplo) => (
+                            <button
+                              key={exemplo}
+                              type="button"
+                              onClick={() => setUsername(exemplo)}
+                              className="text-sm px-3 py-1 rounded-lg bg-gray-700/50 hover:bg-gray-700 text-gray-300 hover:text-white transition-colors"
                             >
-                              {typeof opcao.icone === "string" ? (
-                                <span className="text-2xl">{opcao.icone}</span>
-                              ) : (
-                                opcao.icone
-                              )}
-                            </div>
+                              @{exemplo}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ) : (
+                // Renderização original para perguntas com opções
+                <>
+                  {/* Cards de Opções com altura fixa */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                    {pergunta.opcoes.map((opcao, index) => {
+                      const estaSelecionado =
+                        pergunta.tipo === "single"
+                          ? respostas[pergunta.id] === opcao.id
+                          : (respostas[pergunta.id] || []).includes(opcao.id);
 
-                            {/* Texto com altura mínima */}
-                            <div className="space-y-2 flex-1 min-h-[72px]">
-                              <h3 className="font-semibold text-lg line-clamp-2">
-                                {opcao.texto}
-                              </h3>
-                              {opcao.descricao && (
-                                <p className="text-sm text-gray-400 line-clamp-2">
-                                  {opcao.descricao}
-                                </p>
-                              )}
-                            </div>
+                      return (
+                        <motion.div
+                          key={opcao.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <Card
+                            className={`cursor-pointer border-2 transition-all duration-200 hover:border-gray-600 ${
+                              estaSelecionado
+                                ? "border-blue-500 bg-gray-800/50"
+                                : "border-gray-800 bg-gray-900/50"
+                            } min-h-[220px] flex flex-col`}
+                            onClick={() => toggleSelecao(opcao.id)}
+                          >
+                            <CardContent className="p-6 flex-1 flex flex-col">
+                              <div className="flex flex-col items-center text-center space-y-4 flex-1">
+                                {/* Ícone */}
+                                <div
+                                  className={`w-16 h-16 rounded-xl ${opcao.gradient} flex items-center justify-center text-white shadow-lg flex-shrink-0`}
+                                >
+                                  {typeof opcao.icone === "string" ? (
+                                    <span className="text-2xl">
+                                      {opcao.icone}
+                                    </span>
+                                  ) : (
+                                    opcao.icone
+                                  )}
+                                </div>
 
-                            {/* Indicador de seleção */}
-                            <div
-                              className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-colors ${
-                                estaSelecionado
-                                  ? "border-blue-500 bg-blue-500/10"
-                                  : "border-gray-700"
-                              } flex-shrink-0`}
-                            >
-                              {estaSelecionado && (
-                                <Check className="w-4 h-4 text-blue-400" />
-                              )}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  );
-                })}
-              </div>
+                                {/* Texto com altura mínima */}
+                                <div className="space-y-2 flex-1 min-h-[72px]">
+                                  <h3 className="font-semibold text-lg line-clamp-2">
+                                    {opcao.texto}
+                                  </h3>
+                                  {opcao.descricao && (
+                                    <p className="text-sm text-gray-400 line-clamp-2">
+                                      {opcao.descricao}
+                                    </p>
+                                  )}
+                                </div>
 
-              {/* Contador para múltipla seleção */}
-              {pergunta.tipo === "multiple" && pergunta.maxSelecoes && (
-                <div className="text-center mb-6">
-                  <p className="text-gray-400">
-                    {t("selection.counter", {
-                      current: selecionadas.length,
-                      max: pergunta.maxSelecoes,
+                                {/* Indicador de seleção */}
+                                <div
+                                  className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-colors ${
+                                    estaSelecionado
+                                      ? "border-blue-500 bg-blue-500/10"
+                                      : "border-gray-700"
+                                  } flex-shrink-0`}
+                                >
+                                  {estaSelecionado && (
+                                    <Check className="w-4 h-4 text-blue-400" />
+                                  )}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      );
                     })}
-                  </p>
-                </div>
+                  </div>
+
+                  {/* Contador para múltipla seleção */}
+                  {pergunta.tipo === "multiple" && pergunta.maxSelecoes && (
+                    <div className="text-center mb-6">
+                      <p className="text-gray-400">
+                        {t("selection.counter", {
+                          current: selecionadas.length,
+                          max: pergunta.maxSelecoes,
+                        })}
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
 
               {/* Mensagem de erro */}
@@ -971,7 +1215,11 @@ export default function OnboardingPage() {
                 {perguntaAtual < perguntas.length - 1 ? (
                   <Button
                     onClick={avancarPergunta}
-                    disabled={carregando}
+                    disabled={
+                      carregando ||
+                      (pergunta.id === "escolher_username" &&
+                        (!usernameValido || verificandoUsername))
+                    }
                     className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white px-8 py-6 text-lg transition-all hover:shadow-lg hover:shadow-blue-500/20"
                   >
                     {carregando ? (

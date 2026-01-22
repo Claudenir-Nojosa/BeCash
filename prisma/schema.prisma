@@ -44,6 +44,8 @@ model User {
   lancamentos      Lancamento[]
   pagamentosFatura PagamentoFatura[]
 
+  username        String?   @unique
+  
   onboardingCompleto  Boolean   @default(false)
   onboardingData      DateTime?
   onboardingRespostas Json? // Para armazenar as respostas
