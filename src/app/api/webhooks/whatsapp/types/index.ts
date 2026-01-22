@@ -13,7 +13,8 @@ export type DadosLancamento = {
   // NOVOS CAMPOS PARA DIVISÃO PERSONALIZADA
   porcentagemUsuario?: number; // Ex: 60 (usuário paga 60%)
   valorUsuario?: number; // Ex: 6 (usuário paga R$ 6,00)
-  tipoDivisao?: 'metade' | 'porcentagem' | 'valor_fixo'; // Tipo de divisão
+  tipoDivisao?: "metade" | "porcentagem" | "valor_fixo"; // Tipo de divisão
+  userId?: string;
 };
 
 export type ExtracaoSucesso = {
@@ -60,7 +61,7 @@ export interface CompartilhamentoInfo {
   // NOVOS CAMPOS
   porcentagemUsuario?: number;
   valorUsuario?: number;
-  tipoDivisao?: 'metade' | 'porcentagem' | 'valor_fixo';
+  tipoDivisao?: "metade" | "porcentagem" | "valor_fixo";
 }
 
 export interface ParcelamentoInfo {

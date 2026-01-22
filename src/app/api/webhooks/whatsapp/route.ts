@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { MessageHandler } from "./handlers/message.handler";
 import { AudioHandler } from "./handlers/audio.handler";
 import { WhatsAppService } from "./services/whatsapp.service";
+import { EnhancedMessageHandler } from "./handlers/message-enhanced.handler";
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     // Processar diferentes tipos de mensagem
     if (message.type === "text") {
-      await MessageHandler.processarMensagemTexto(message);
+      await EnhancedMessageHandler.processarMensagem(message);
     } else if (message.type === "audio") {
       await AudioHandler.processarAudio(message, userPhone);
     } else {
