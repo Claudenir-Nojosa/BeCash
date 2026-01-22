@@ -230,7 +230,10 @@ export class LancamentoService {
       console.log(`🔥🔥🔥 CRIAÇÃO DE LANÇAMENTO INICIADA 🔥🔥🔥`);
       console.log(`📨 Mensagem recebida: "${userMessage}"`);
       console.log(`📊 Dados recebidos:`, dados);
-
+      console.log(
+        `💳 Cartão encontrado (parâmetro):`,
+        cartaoEncontrado?.nome || "null",
+      );
       // NOVO: Log dos dados de divisão personalizada
       if (dados.ehCompartilhado) {
         console.log(`🤝 DADOS DE DIVISÃO PERSONALIZADA:`);
@@ -277,6 +280,9 @@ export class LancamentoService {
           cartaoEncontrado = await this.identificarCartao(userMessage, userId);
         }
         if (cartaoEncontrado) {
+          console.log(
+            `✅ Usando cartão já identificado: ${cartaoEncontrado.nome}`,
+          );
           cartaoId = cartaoEncontrado.id;
         } else {
           throw new Error(
@@ -380,29 +386,31 @@ export class LancamentoService {
         );
 
         // Criar primeira parcela (lançamento principal)
-        const observacoesDivisao = tipoDivisao !== 'metade' ? ` - Divisão: ${tipoDivisao}${tipoDivisao === 'porcentagem' ? ` (${porcentagemUsuario}%)` : ''}` : '';
+        const observacoesDivisao =
+          tipoDivisao !== "metade"
+            ? ` - Divisão: ${tipoDivisao}${tipoDivisao === "porcentagem" ? ` (${porcentagemUsuario}%)` : ""}`
+            : "";
 
-      const lancamentoPrincipalData: any = {
-  descricao: `${descricaoLimpa} (1/${dados.parcelas})`,
-  valor: valorParcela,
-  tipo: dados.tipo.toUpperCase(),
-  metodoPagamento: dados.metodoPagamento,
-  data: dataLancamento,
-  categoriaId: categoriaEscolhida.id,
-  userId: userId,
-  pago: false,
-  tipoParcelamento: "PARCELADO",
-  parcelasTotal: dados.parcelas,
-  parcelaAtual: 1,
-  recorrente: false,
-  observacoes:
-    `Criado via WhatsApp - Categoria: ${categoriaEscolhida.nome}` +
-    (cartaoEncontrado ? ` - Cartão: ${cartaoEncontrado.nome}` : "") +
-    (usuarioAlvo ? ` - Compartilhado com: ${usuarioAlvo.name}` : "") +
-    ` - Parcelado em ${dados.parcelas}x` +
-    observacoesDivisao, 
-};
-
+        const lancamentoPrincipalData: any = {
+          descricao: `${descricaoLimpa} (1/${dados.parcelas})`,
+          valor: valorParcela,
+          tipo: dados.tipo.toUpperCase(),
+          metodoPagamento: dados.metodoPagamento,
+          data: dataLancamento,
+          categoriaId: categoriaEscolhida.id,
+          userId: userId,
+          pago: false,
+          tipoParcelamento: "PARCELADO",
+          parcelasTotal: dados.parcelas,
+          parcelaAtual: 1,
+          recorrente: false,
+          observacoes:
+            `Criado via WhatsApp - Categoria: ${categoriaEscolhida.nome}` +
+            (cartaoEncontrado ? ` - Cartão: ${cartaoEncontrado.nome}` : "") +
+            (usuarioAlvo ? ` - Compartilhado com: ${usuarioAlvo.name}` : "") +
+            ` - Parcelado em ${dados.parcelas}x` +
+            observacoesDivisao,
+        };
 
         if (dados.metodoPagamento === "CREDITO" && cartaoId) {
           lancamentoPrincipalData.cartaoId = cartaoId;

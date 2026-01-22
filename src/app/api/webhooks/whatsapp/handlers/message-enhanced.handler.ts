@@ -124,6 +124,18 @@ export class EnhancedMessageHandler {
 
     const pendente = ConversationService.getPendingTransaction(userPhone);
     const context = ConversationService.getContext(userPhone); // Pegar contexto
+    console.log("🔍 Dados do pendente:", {
+      temPendente: !!pendente,
+      dados: pendente?.dados,
+      categoria: pendente?.categoriaEscolhida?.nome,
+      descricao: pendente?.descricaoLimpa,
+      cartao: pendente?.cartaoEncontrado
+        ? {
+            nome: pendente.cartaoEncontrado.nome,
+            id: pendente.cartaoEncontrado.id,
+          }
+        : "Nenhum cartão encontrado",
+    });
     if (!pendente) {
       const msg =
         idioma === "en-US"
@@ -142,7 +154,13 @@ export class EnhancedMessageHandler {
       if (!userIdParaLancamento) {
         throw new Error("User ID not found in context");
       }
-
+      console.log("📤 Passando para createLancamento:", {
+        userId: userIdParaLancamento,
+        dados: pendente.dados,
+        categoria: pendente.categoriaEscolhida.nome,
+        descricaoLimpa: pendente.descricaoLimpa,
+        cartao: pendente.cartaoEncontrado?.nome || "null",
+      });
       // Criar lançamento no banco
       const resultado = await LancamentoService.createLancamento(
         userIdParaLancamento, // Usar do contexto
