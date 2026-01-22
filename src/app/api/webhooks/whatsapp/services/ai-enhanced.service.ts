@@ -12,7 +12,6 @@ export interface IntencaoUsuario {
     | "COMANDO_CATEGORIAS" // Listar categorias
     | "COMANDO_AJUDA" // Pedir ajuda
     | "DUVIDA_GERAL" // Dúvida/pergunta
-    | "CORRIGIR_LANCAMENTO" // Quer corrigir algo no lançamento pendente
     | "INDEFINIDO"; // Não conseguiu identificar
 
   confianca: number; // 0.0 a 1.0

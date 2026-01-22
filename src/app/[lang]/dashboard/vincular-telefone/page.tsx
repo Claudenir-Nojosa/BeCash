@@ -568,24 +568,6 @@ export default function VincularTelefone() {
                       )}
                     </Button>
 
-                    <AnimatePresence>
-                      {savingLanguage && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800"
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                            <span className="text-sm text-blue-700 dark:text-blue-300">
-                              {t("estados.salvandoConfiguracao")}
-                            </span>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}

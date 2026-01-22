@@ -431,29 +431,57 @@ export class EnhancedMessageHandler {
     const { dados, categoriaEscolhida, descricaoLimpa, cartaoEncontrado } =
       pendente;
 
-    let msg = `*📋 CONFIRMAÇÃO*\n━━━━━━━━━━━━━━\n\n`;
-    msg += `*📝* ${descricaoLimpa}\n`;
-    msg += `*💰* R$ ${parseFloat(dados.valor).toFixed(2)}\n`;
-    msg += `*🏷️* ${categoriaEscolhida.nome}\n`;
-    msg += `*📱* ${dados.metodoPagamento}\n`;
+    // Mensagem em português ou inglês baseado no idioma
+    if (idioma === "en-US") {
+      let msg = `*📋 CONFIRMATION*\n━━━━━━━━━━━━━━\n\n`;
+      msg += `*📝* ${descricaoLimpa}\n`;
+      msg += `*💰* R$ ${parseFloat(dados.valor).toFixed(2)}\n`;
+      msg += `*🏷️* ${categoriaEscolhida.nome}\n`;
+      msg += `*📱* ${dados.metodoPagamento}\n`;
 
-    if (cartaoEncontrado) {
-      msg += `*💳* ${cartaoEncontrado.nome}\n`;
+      if (cartaoEncontrado) {
+        msg += `*💳* ${cartaoEncontrado.nome}\n`;
+      }
+
+      if (dados.ehParcelado) {
+        msg += `*🔢* ${dados.parcelas}x\n`;
+      }
+
+      if (dados.ehCompartilhado) {
+        msg += `*👥* With ${dados.nomeUsuarioCompartilhado}\n`;
+      }
+
+      msg += `\n━━━━━━━━━━━━━━\n`;
+      msg += `✅ *YES* - Confirm\n`;
+      msg += `❌ *NO* - Cancel`;
+
+      return msg;
+    } else {
+      // Português (padrão)
+      let msg = `*📋 CONFIRMAÇÃO*\n━━━━━━━━━━━━━━\n\n`;
+      msg += `*📝* ${descricaoLimpa}\n`;
+      msg += `*💰* R$ ${parseFloat(dados.valor).toFixed(2)}\n`;
+      msg += `*🏷️* ${categoriaEscolhida.nome}\n`;
+      msg += `*📱* ${dados.metodoPagamento}\n`;
+
+      if (cartaoEncontrado) {
+        msg += `*💳* ${cartaoEncontrado.nome}\n`;
+      }
+
+      if (dados.ehParcelado) {
+        msg += `*🔢* ${dados.parcelas}x\n`;
+      }
+
+      if (dados.ehCompartilhado) {
+        msg += `*👥* Com ${dados.nomeUsuarioCompartilhado}\n`;
+      }
+
+      msg += `\n━━━━━━━━━━━━━━\n`;
+      msg += `✅ *SIM* - Confirmar\n`;
+      msg += `❌ *NÃO* - Cancelar`;
+
+      return msg;
     }
-
-    if (dados.ehParcelado) {
-      msg += `*🔢* ${dados.parcelas}x\n`;
-    }
-
-    if (dados.ehCompartilhado) {
-      msg += `*👥* Com ${dados.nomeUsuarioCompartilhado}\n`;
-    }
-
-    msg += `\n━━━━━━━━━━━━━━\n`;
-    msg += `✅ *SIM* - Confirmar\n`;
-    msg += `❌ *NÃO* - Cancelar`;
-
-    return msg;
   }
 
   /**
@@ -464,13 +492,22 @@ export class EnhancedMessageHandler {
     resultado: any,
     idioma: string,
   ): Promise<string> {
-    let msg = `✅ *LANÇAMENTO CRIADO*\n━━━━━━━━━━━━━━\n\n`;
-    msg += `*📝* ${pendente.descricaoLimpa}\n`;
-    msg += `*💰* R$ ${parseFloat(pendente.dados.valor).toFixed(2)}\n`;
-    msg += `*🏷️* ${pendente.categoriaEscolhida.nome}\n`;
-    msg += `\n━━━━━━━━━━━━━━\n`;
-    msg += `✨ Salvo com sucesso!`;
-
-    return msg;
+    if (idioma === "en-US") {
+      let msg = `✅ *TRANSACTION CREATED*\n━━━━━━━━━━━━━━\n\n`;
+      msg += `*📝* ${pendente.descricaoLimpa}\n`;
+      msg += `*💰* R$ ${parseFloat(pendente.dados.valor).toFixed(2)}\n`;
+      msg += `*🏷️* ${pendente.categoriaEscolhida.nome}\n`;
+      msg += `\n━━━━━━━━━━━━━━\n`;
+      msg += `✨ Saved successfully!`;
+      return msg;
+    } else {
+      let msg = `✅ *LANÇAMENTO CRIADO*\n━━━━━━━━━━━━━━\n\n`;
+      msg += `*📝* ${pendente.descricaoLimpa}\n`;
+      msg += `*💰* R$ ${parseFloat(pendente.dados.valor).toFixed(2)}\n`;
+      msg += `*🏷️* ${pendente.categoriaEscolhida.nome}\n`;
+      msg += `\n━━━━━━━━━━━━━━\n`;
+      msg += `✨ Salvo com sucesso!`;
+      return msg;
+    }
   }
 }
