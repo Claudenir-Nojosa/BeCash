@@ -25,6 +25,7 @@ import {
   ChevronRight,
   Eye,
   Tag,
+  X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -106,6 +107,7 @@ interface Usuario {
   name: string;
   email: string;
   image?: string;
+  username?: string;
 }
 
 interface LancamentoCompartilhado {
@@ -161,7 +163,14 @@ export default function LancamentosPage() {
   const [dialogAberto, setDialogAberto] = useState<string | null>(null);
   const [excluindo, setExcluindo] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
-
+  const [buscaUsername, setBuscaUsername] = useState("");
+  const [usuarioBuscado, setUsuarioBuscado] = useState<Usuario | null>(null);
+  const [buscandoUsuario, setBuscandoUsuario] = useState(false);
+  const [erroUsuario, setErroUsuario] = useState("");
+  const [usuariosRecentes, setUsuariosRecentes] = useState<Usuario[]>([]);
+  const [modoSelecao, setModoSelecao] = useState<"recentes" | "busca">(
+    "recentes",
+  );
   // Filtros
   const [filtros, setFiltros] = useState({
     categoria: "all",
@@ -184,8 +193,8 @@ export default function LancamentosPage() {
       const response = await fetch("/api/usuarios");
       if (response.ok) {
         const data = await response.json();
-        setUsuarios(data);
-        console.log("Usuários carregados:", data);
+        setUsuariosRecentes(data);
+        console.log("Usuários recentes carregados:", data);
       } else {
         console.error("Erro ao carregar usuários:", response.status);
       }
@@ -506,13 +515,43 @@ export default function LancamentosPage() {
     }
   };
 
-  const formatarDataSupabase = (dataString: string): string => {
-    if (dataString.includes(" ")) {
-      const [datePart] = dataString.split(" ");
-      const [year, month, day] = datePart.split("-");
-      return `${day}/${month}/${year}`;
+  const buscarUsuarioPorUsername = async () => {
+    if (!buscaUsername.trim()) {
+      setErroUsuario(t("categorias.mensagens.digitarUsername"));
+      return;
     }
-    return dataString;
+
+    setBuscandoUsuario(true);
+    setErroUsuario("");
+    setUsuarioBuscado(null);
+
+    try {
+      const response = await fetch(
+        `/api/usuarios?username=${encodeURIComponent(buscaUsername.trim())}`,
+      );
+
+      if (response.ok) {
+        const usuario = await response.json();
+        setUsuarioBuscado(usuario);
+        setModoSelecao("busca");
+        handleChange("usuarioAlvoId", usuario.id);
+        toast.success(t("categorias.mensagens.usuarioEncontrado"));
+      } else {
+        const errorData = await response.json();
+        setErroUsuario(
+          errorData.error || t("categorias.mensagens.usuarioNaoEncontrado"),
+        );
+        toast.error(
+          errorData.error || t("categorias.mensagens.usuarioNaoEncontrado"),
+        );
+      }
+    } catch (error) {
+      console.error("Erro ao buscar usuário:", error);
+      setErroUsuario(t("categorias.mensagens.erroBusca"));
+      toast.error(t("categorias.mensagens.erroBusca"));
+    } finally {
+      setBuscandoUsuario(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -577,54 +616,67 @@ export default function LancamentosPage() {
     }
   }, [mostrarDialogVisualizar]);
 
-  const handleEditar = (lancamento: Lancamento) => {
-    // Mapear de volta do formato do banco para o formato do formulário
-    const mapearMetodoPagamentoParaFormulario = (valor: string) => {
-      const mapeamento: { [key: string]: string } = {
-        PIX: "PIX",
-        DEBITO: "CARTAO_DEBITO",
-        CREDITO: "CARTAO_CREDITO",
-        TRANSFERENCIA: "TRANSFERENCIA",
-        DINHEIRO: "DINHEIRO",
+const handleEditar = async (lancamento: Lancamento) => {
+  // Buscar dados completos do lançamento incluindo usuário compartilhado
+  try {
+    const response = await fetch(`/api/lancamentos/${lancamento.id}/visualizar`);
+    if (response.ok) {
+      const lancamentoCompleto = await response.json();
+      
+      // Mapear de volta do formato do banco para o formato do formulário
+      const mapearMetodoPagamentoParaFormulario = (valor: string) => {
+        const mapeamento: { [key: string]: string } = {
+          PIX: "PIX",
+          DEBITO: "CARTAO_DEBITO",
+          CREDITO: "CARTAO_CREDITO",
+          TRANSFERENCIA: "TRANSFERENCIA",
+          DINHEIRO: "DINHEIRO",
+        };
+        return mapeamento[valor] || valor;
       };
-      return mapeamento[valor] || valor;
-    };
 
-    setLancamentoSelecionado(lancamento);
-    setFormData({
-      descricao: lancamento.descricao,
-      valor: lancamento.valor.toString(),
-      tipo: lancamento.tipo.toLowerCase(),
-      categoria: lancamento.categoria.id,
-      tipoLancamento: lancamento.LancamentoCompartilhado?.length
-        ? "compartilhado"
-        : "individual",
-      tipoTransacao: mapearMetodoPagamentoParaFormulario(
-        lancamento.metodoPagamento,
-      ), // ✅ CORRIGIDO
-      cartaoId: lancamento.cartao?.id || "",
-      responsavel: "Claudenir",
-      pago: lancamento.pago,
-      recorrente: lancamento.recorrente || false,
-      tipoRecorrencia:
-        lancamento.tipoParcelamento === "RECORRENTE"
-          ? "RECORRENCIA"
-          : "PARCELAMENTO",
-      frequencia: "mensal",
-      parcelas: lancamento.parcelasTotal?.toString() || "",
-      observacoes: lancamento.observacoes || "",
-      usuarioAlvoId:
-        lancamento.LancamentoCompartilhado?.[0]?.usuarioAlvo?.id || "",
-      valorCompartilhado:
-        lancamento.LancamentoCompartilhado?.[0]?.valorCompartilhado?.toString() ||
-        "",
-      data: new Date(lancamento.data).toISOString().split("T")[0],
-      dataFimRecorrencia: lancamento.dataFimRecorrencia
-        ? new Date(lancamento.dataFimRecorrencia).toISOString().split("T")[0]
-        : "",
-    });
-    setMostrarDialogEditar(true);
-  };
+      setLancamentoSelecionado(lancamentoCompleto);
+      setFormData({
+        descricao: lancamentoCompleto.descricao,
+        valor: lancamentoCompleto.valor.toString(),
+        tipo: lancamentoCompleto.tipo.toLowerCase(),
+        categoria: lancamentoCompleto.categoria.id,
+        tipoLancamento: lancamentoCompleto.LancamentoCompartilhado?.length
+          ? "compartilhado"
+          : "individual",
+        tipoTransacao: mapearMetodoPagamentoParaFormulario(
+          lancamentoCompleto.metodoPagamento,
+        ),
+        cartaoId: lancamentoCompleto.cartao?.id || "",
+        responsavel: "Claudenir",
+        pago: lancamentoCompleto.pago,
+        recorrente: lancamentoCompleto.recorrente || false,
+        tipoRecorrencia:
+          lancamentoCompleto.tipoParcelamento === "RECORRENTE"
+            ? "RECORRENCIA"
+            : "PARCELAMENTO",
+        frequencia: "mensal",
+        parcelas: lancamentoCompleto.parcelasTotal?.toString() || "",
+        observacoes: lancamentoCompleto.observacoes || "",
+        usuarioAlvoId:
+          lancamentoCompleto.LancamentoCompartilhado?.[0]?.usuarioAlvo?.id || "",
+        valorCompartilhado:
+          lancamentoCompleto.LancamentoCompartilhado?.[0]?.valorCompartilhado?.toString() ||
+          "",
+        data: new Date(lancamentoCompleto.data).toISOString().split("T")[0],
+        dataFimRecorrencia: lancamentoCompleto.dataFimRecorrencia
+          ? new Date(lancamentoCompleto.dataFimRecorrencia).toISOString().split("T")[0]
+          : "",
+      });
+      setMostrarDialogEditar(true);
+    } else {
+      toast.error(t("categorias.mensagens.erroCarregar"));
+    }
+  } catch (error) {
+    console.error("Erro ao carregar dados do lançamento:", error);
+    toast.error(t("categorias.mensagens.erroCarregar"));
+  }
+};
 
   const handleAtualizar = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2088,74 +2140,166 @@ export default function LancamentosPage() {
             {/* Seção de Compartilhamento */}
             {formData.tipoLancamento === "compartilhado" && (
               <div className="space-y-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  <div className="space-y-1.5 sm:space-y-2">
-                    <Label
-                      htmlFor="usuarioAlvoId"
-                      className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
-                    >
-                      {t("categorias.formulario.usuarioAlvo")} *
-                    </Label>
-                    <Select
-                      value={formData.usuarioAlvoId}
-                      onValueChange={(value) =>
-                        handleChange("usuarioAlvoId", value)
-                      }
-                      required
-                      disabled={carregandoUsuarios}
-                    >
-                      <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
-                        <SelectValue
-                          placeholder={
-                            carregandoUsuarios
-                              ? t("categorias.mensagens.carregando")
-                              : t("categorias.formulario.selecioneUsuario")
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
-                        {carregandoUsuarios ? (
-                          <SelectItem value="loading" disabled>
-                            {t("categorias.mensagens.carregando")}
-                          </SelectItem>
-                        ) : usuarios && usuarios.length > 0 ? (
-                          usuarios.map((usuario) => (
-                            <SelectItem key={usuario.id} value={usuario.id}>
-                              <div className="flex items-center gap-1.5 sm:gap-2">
-                                {usuario.image && (
-                                  <img
-                                    src={usuario.image}
-                                    alt={usuario.name}
-                                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full"
-                                  />
-                                )}
-                                <span className="truncate">{usuario.name}</span>
-                              </div>
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="no-users" disabled>
-                            {t("categorias.mensagens.semDados")}
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <Tabs
+                  value={modoSelecao}
+                  onValueChange={(v) =>
+                    setModoSelecao(v as "recentes" | "busca")
+                  }
+                  className="w-full"
+                >
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="recentes">
+                      {t("categorias.formulario.usuariosRecentes")}
+                    </TabsTrigger>
+                    <TabsTrigger value="busca">
+                      {t("categorias.formulario.buscarUsername")}
+                    </TabsTrigger>
+                  </TabsList>
 
-                  <div className="space-y-1.5 sm:space-y-2">
-                    <Label
-                      htmlFor="valorCompartilhado"
-                      className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
-                    >
+                  <TabsContent value="recentes" className="space-y-3">
+                    {usuariosRecentes.length > 0 ? (
+                      <div className="space-y-2">
+                        <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
+                          {t("categorias.formulario.selecioneUsuario")}
+                        </Label>
+                        <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto">
+                          {usuariosRecentes.map((usuario) => (
+                            <button
+                              key={usuario.id}
+                              type="button"
+                              onClick={() => {
+                                handleChange("usuarioAlvoId", usuario.id);
+                                setUsuarioBuscado(usuario);
+                              }}
+                              className={`flex items-center gap-2 p-2 rounded-md border transition-colors ${
+                                formData.usuarioAlvoId === usuario.id
+                                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                                  : "border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+                              }`}
+                            >
+                              {usuario.image && (
+                                <img
+                                  src={usuario.image}
+                                  alt={usuario.name}
+                                  className="w-8 h-8 rounded-full"
+                                />
+                              )}
+                              <div className="flex-1 text-left">
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                  {usuario.name}
+                                </p>
+                                {usuario.username && (
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    @{usuario.username}
+                                  </p>
+                                )}
+                              </div>
+                              {formData.usuarioAlvoId === usuario.id && (
+                                <CheckCircle className="w-5 h-5 text-blue-500" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                        {t("categorias.mensagens.nenhumUsuarioRecente")}
+                      </p>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="busca" className="space-y-3">
+                    <div className="space-y-2">
+                      <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
+                        {t("categorias.formulario.digitarUsername")}
+                      </Label>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                            @
+                          </span>
+                          <Input
+                            value={buscaUsername}
+                            onChange={(e) => {
+                              setBuscaUsername(e.target.value);
+                              setErroUsuario("");
+                            }}
+                            onKeyPress={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                buscarUsuarioPorUsername();
+                              }
+                            }}
+                            placeholder="username"
+                            className="pl-8 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          onClick={buscarUsuarioPorUsername}
+                          disabled={buscandoUsuario || !buscaUsername.trim()}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          {buscandoUsuario ? (
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Search className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </div>
+                      {erroUsuario && (
+                        <p className="text-xs text-red-600 dark:text-red-400">
+                          {erroUsuario}
+                        </p>
+                      )}
+                    </div>
+
+                    {usuarioBuscado && (
+                      <div className="p-3 border border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/20 rounded-md">
+                        <div className="flex items-center gap-2">
+                          {usuarioBuscado.image && (
+                            <img
+                              src={usuarioBuscado.image}
+                              alt={usuarioBuscado.name}
+                              className="w-10 h-10 rounded-full"
+                            />
+                          )}
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">
+                              {usuarioBuscado.name}
+                            </p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                              @{usuarioBuscado.username}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setUsuarioBuscado(null);
+                              setBuscaUsername("");
+                              handleChange("usuarioAlvoId", "");
+                            }}
+                            className="text-gray-500 hover:text-red-600"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
+
+                {formData.usuarioAlvoId && (
+                  <div className="space-y-2">
+                    <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
                       {t("categorias.formulario.valorCompartilhado")} (
                       {currencySymbol})
                     </Label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">
-                        R$
+                        {currencySymbol}
                       </span>
                       <Input
-                        id="valorCompartilhado"
                         type="number"
                         step="0.01"
                         min="0"
@@ -2171,7 +2315,7 @@ export default function LancamentosPage() {
                       />
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
 
@@ -2554,6 +2698,7 @@ export default function LancamentosPage() {
       </Dialog>
 
       {/* Dialog para Editar Lançamento */}
+      {/* Dialog para Editar Lançamento */}
       <Dialog open={mostrarDialogEditar} onOpenChange={setMostrarDialogEditar}>
         <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white w-[90vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -2664,7 +2809,7 @@ export default function LancamentosPage() {
               </Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">
-                  R$
+                  {currencySymbol}
                 </span>
                 <Input
                   id="valor"
@@ -2738,8 +2883,9 @@ export default function LancamentosPage() {
                     handleChange("tipoLancamento", value)
                   }
                   required
+                  disabled={true}
                 >
-                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
+                  <SelectTrigger className="bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10 cursor-not-allowed">
                     <SelectValue
                       placeholder={t("categorias.formulario.selecione")}
                     />
@@ -2756,78 +2902,104 @@ export default function LancamentosPage() {
               </div>
             </div>
 
-            {/* Seção de Compartilhamento */}
-            {formData.tipoLancamento === "compartilhado" && (
-              <div className="space-y-4 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="usuarioAlvoId"
-                      className="text-gray-700 dark:text-gray-300 text-sm sm:text-base"
-                    >
-                      {t("categorias.formulario.usuarioAlvo")} *
+            {/* Seção de Compartilhamento - SOMENTE LEITURA */}
+            {formData.tipoLancamento === "compartilhado" &&
+              lancamentoSelecionado?.LancamentoCompartilhado?.[0] && (
+                <div className="space-y-3 p-3 rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-900/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <Label className="text-blue-900 dark:text-blue-300 text-sm font-semibold">
+                      {t("categorias.detalhes.compartilhamento")}
                     </Label>
-                    <Select
-                      value={formData.usuarioAlvoId}
-                      onValueChange={(value) =>
-                        handleChange("usuarioAlvoId", value)
-                      }
-                      required
-                    >
-                      <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 w-full">
-                        <SelectValue
-                          placeholder={t(
-                            "categorias.formulario.selecioneUsuario",
-                          )}
-                        />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 max-h-60">
-                        {usuarios.map((usuario) => (
-                          <SelectItem
-                            key={usuario.id}
-                            value={usuario.id}
-                            className="truncate"
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              {usuario.image && (
-                                <img
-                                  src={usuario.image}
-                                  alt={usuario.name}
-                                  className="w-4 h-4 rounded-full flex-shrink-0"
-                                />
-                              )}
-                              <span className="truncate">{usuario.name}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="valorCompartilhado"
-                      className="text-gray-700 dark:text-gray-300 text-sm sm:text-base"
-                    >
-                      {t("categorias.formulario.valorCompartilhado")} (R$)
+                  {/* Usuário Compartilhado */}
+                  <div className="p-3 border border-blue-200 dark:border-blue-700 bg-white dark:bg-gray-800 rounded-md">
+                    <Label className="text-gray-600 dark:text-gray-400 text-xs mb-2 block">
+                      {t("categorias.formulario.usuarioAlvo")}
                     </Label>
-                    <Input
-                      id="valorCompartilhado"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max={formData.valor}
-                      value={formData.valorCompartilhado}
-                      onChange={(e) =>
-                        handleChange("valorCompartilhado", e.target.value)
-                      }
-                      placeholder={t("categorias.formulario.placeholderValor")}
-                      className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 w-full"
-                    />
+                    <div className="flex items-center gap-2">
+                      {lancamentoSelecionado.LancamentoCompartilhado[0]
+                        .usuarioAlvo?.image && (
+                        <img
+                          src={
+                            lancamentoSelecionado.LancamentoCompartilhado[0]
+                              .usuarioAlvo.image
+                          }
+                          alt={
+                            lancamentoSelecionado.LancamentoCompartilhado[0]
+                              .usuarioAlvo.name
+                          }
+                          className="w-10 h-10 rounded-full"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {
+                            lancamentoSelecionado.LancamentoCompartilhado[0]
+                              .usuarioAlvo?.name
+                          }
+                        </p>
+                        {lancamentoSelecionado.LancamentoCompartilhado[0]
+                          .usuarioAlvo?.username && (
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            @
+                            {
+                              lancamentoSelecionado.LancamentoCompartilhado[0]
+                                .usuarioAlvo.username
+                            }
+                          </p>
+                        )}
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-600"
+                      >
+                        {t("categorias.status.compartilhado")}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Valor Compartilhado - SOMENTE LEITURA */}
+                  <div className="space-y-2">
+                    <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
+                      {t("categorias.formulario.valorCompartilhado")} (
+                      {currencySymbol})
+                    </Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">
+                        {currencySymbol}
+                      </span>
+                      <Input
+                        type="text"
+                        value={lancamentoSelecionado.LancamentoCompartilhado[0].valorCompartilhado.toFixed(
+                          2,
+                        )}
+                        disabled
+                        className="bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-sm pl-9 cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
+                    <p className="text-xs text-yellow-800 dark:text-yellow-300 flex items-center gap-1">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-4 h-4"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      As informações de compartilhamento não podem ser editadas
+                    </p>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {/* Cartão de Crédito */}
             {formData.tipoTransacao === "CARTAO_CREDITO" && (

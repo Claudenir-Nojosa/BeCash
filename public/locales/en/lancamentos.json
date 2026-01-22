@@ -63,6 +63,10 @@
       "selecione": "Select...",
       "selecioneCartao": "Select card...",
       "selecioneUsuario": "Select user...",
+      "usuariosRecentes": "Recent Users",
+      "buscarUsername": "Search Username",
+      "digitarUsername": "Enter username",
+      "frequencia": "Frequency",
       "placeholderDescricao": "Transaction description",
       "placeholderValor": "0.00",
       "placeholderObservacoes": "Additional notes...",
@@ -111,7 +115,12 @@
       "erroCarregar": "Error loading data",
       "carregando": "Loading...",
       "semDados": "No transactions to display",
-      "sucessoStatus": "Status updated successfully!"
+      "sucessoStatus": "Status updated successfully!",
+      "digitarUsername": "Enter a username to search",
+      "usuarioEncontrado": "User found!",
+      "usuarioNaoEncontrado": "User not found",
+      "erroBusca": "Error searching for user",
+      "nenhumUsuarioRecente": "No recent users. Use username search."
     },
     "meses": {
       "1": "January",

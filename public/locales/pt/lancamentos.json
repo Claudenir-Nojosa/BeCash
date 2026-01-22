@@ -63,6 +63,10 @@
       "selecione": "Selecione...",
       "selecioneCartao": "Selecione um cartão...",
       "selecioneUsuario": "Selecione um usuário...",
+      "usuariosRecentes": "Usuários Recentes",
+      "buscarUsername": "Buscar Username",
+      "digitarUsername": "Digite o username",
+      "frequencia": "Frequência",
       "placeholderDescricao": "Descrição do lançamento",
       "placeholderValor": "0,00",
       "placeholderObservacoes": "Observações adicionais...",
@@ -111,7 +115,12 @@
       "erroCarregar": "Erro ao carregar dados",
       "carregando": "Carregando...",
       "semDados": "Nenhum lançamento para exibir",
-      "sucessoStatus": "Status atualizado com sucesso!"
+      "sucessoStatus": "Status atualizado com sucesso!",
+      "digitarUsername": "Digite um username para buscar",
+      "usuarioEncontrado": "Usuário encontrado!",
+      "usuarioNaoEncontrado": "Usuário não encontrado",
+      "erroBusca": "Erro ao buscar usuário",
+      "nenhumUsuarioRecente": "Nenhum usuário recente. Use a busca por username."
     },
     "meses": {
       "1": "Janeiro",

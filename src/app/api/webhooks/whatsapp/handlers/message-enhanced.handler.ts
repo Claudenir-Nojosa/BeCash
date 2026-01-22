@@ -492,8 +492,8 @@ export class EnhancedMessageHandler {
         if (!usuarioAlvo) {
           const erroMsg =
             idioma === "en-US"
-              ? `❌ User "@${dados.usernameCompartilhado}" not found.\n\n💡 Please check the username and try again.`
-              : `❌ Usuário "@${dados.usernameCompartilhado}" não encontrado.\n\n💡 Verifique o username e tente novamente.`;
+              ? `❌ User "${dados.usernameCompartilhado}" not found.\n\n💡 Please check the username and try again.`
+              : `❌ Usuário "${dados.usernameCompartilhado}" não encontrado.\n\n💡 Verifique o username e tente novamente.`;
 
           console.log(`❌ Username não encontrado, cancelando fluxo`);
 

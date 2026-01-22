@@ -527,7 +527,7 @@ export default function DashboardPage() {
 
                 <motion.div
                   className="text-center min-w-16 sm:min-w-20"
-                  whileHover={{ scale: 1.05 }}
+                  whileHover={{ scale: 1.01 }}
                   transition={{ type: "spring", stiffness: 300 }}
                 >
                   <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">
@@ -561,7 +561,7 @@ export default function DashboardPage() {
 
               {/* Botão de Refresh */}
               <motion.div
-                whileHover={{ scale: 1.05, rotate: 180 }}
+                whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 300 }}
               >
