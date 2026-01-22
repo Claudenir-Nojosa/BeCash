@@ -39,9 +39,16 @@ export class ConversationService {
   // Obter contexto da conversa
   static getContext(userPhone: string): ConversationContext | null {
     this.initCache();
-    
+    console.log(`🔍 Buscando contexto para: ${userPhone}`);
+    console.log(
+      `🔍 Total de contextos no cache: ${global.conversationContexts!.size}`,
+    );
+    console.log(
+      `🔍 Chaves no cache:`,
+      Array.from(global.conversationContexts!.keys()),
+    );
     const context = global.conversationContexts!.get(userPhone);
-    
+
     if (!context) {
       console.log(`📭 Nenhum contexto encontrado para ${userPhone}`);
       return null;
@@ -60,10 +67,7 @@ export class ConversationService {
   }
 
   // Criar novo contexto
-  static createContext(
-    userId: string,
-    userPhone: string
-  ): ConversationContext {
+  static createContext(userId: string, userPhone: string): ConversationContext {
     this.initCache();
 
     const context: ConversationContext = {
@@ -83,12 +87,12 @@ export class ConversationService {
   static addMessage(
     userPhone: string,
     role: "user" | "assistant",
-    content: string
+    content: string,
   ) {
     this.initCache();
 
     let context = this.getContext(userPhone);
-    
+
     if (!context) {
       console.log(`⚠️ Contexto não existe, mas adicionando mensagem isolada`);
       return;
@@ -108,7 +112,9 @@ export class ConversationService {
     }
 
     global.conversationContexts!.set(userPhone, context);
-    console.log(`💬 Mensagem adicionada: ${role} - "${content.substring(0, 50)}..."`);
+    console.log(
+      `💬 Mensagem adicionada: ${role} - "${content.substring(0, 50)}..."`,
+    );
   }
 
   // Salvar transação pendente no contexto
@@ -117,7 +123,7 @@ export class ConversationService {
     dados: DadosLancamento,
     categoriaEscolhida: any,
     descricaoLimpa: string,
-    cartaoEncontrado?: any
+    cartaoEncontrado?: any,
   ) {
     this.initCache();
 
@@ -137,14 +143,14 @@ export class ConversationService {
 
     context.lastInteraction = Date.now();
     global.conversationContexts!.set(userPhone, context);
-    
+
     console.log(`💾 Transação pendente salva no contexto`);
   }
 
   // Obter transação pendente
   static getPendingTransaction(userPhone: string) {
     const context = this.getContext(userPhone);
-    
+
     if (!context || !context.pendingTransaction) {
       return null;
     }
@@ -183,7 +189,7 @@ export class ConversationService {
   // Obter histórico formatado para IA
   static getFormattedHistory(userPhone: string): string {
     const context = this.getContext(userPhone);
-    
+
     if (!context || context.messages.length === 0) {
       return "Nenhum histórico de conversa.";
     }
@@ -199,7 +205,7 @@ export class ConversationService {
   // Estatísticas do contexto
   static getStats(userPhone: string) {
     const context = this.getContext(userPhone);
-    
+
     if (!context) {
       return null;
     }
@@ -207,7 +213,9 @@ export class ConversationService {
     return {
       totalMessages: context.messages.length,
       hasPending: !!context.pendingTransaction,
-      lastInteraction: new Date(context.lastInteraction).toLocaleString("pt-BR"),
+      lastInteraction: new Date(context.lastInteraction).toLocaleString(
+        "pt-BR",
+      ),
       userId: context.userId,
     };
   }
