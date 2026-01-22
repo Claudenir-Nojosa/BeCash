@@ -306,7 +306,36 @@ export class EnhancedMessageHandler {
       await WhatsAppService.sendMessage(userPhone, msg);
       return { status: "no_category" };
     }
+    // **VERIFICAR USERNAME ANTES DE CONTINUAR**
+    if (
+      resultado.dados.ehCompartilhado &&
+      resultado.dados.usernameCompartilhado
+    ) {
+      console.log(
+        `🔍 Verificando username antes de continuar: @${resultado.dados.usernameCompartilhado}`,
+      );
 
+      const usuarioAlvo = await UserService.encontrarUsuarioPorUsername(
+        resultado.dados.usernameCompartilhado,
+        userId,
+      );
+
+      if (!usuarioAlvo) {
+        const msg =
+          idioma === "en-US"
+            ? `❌ User "@${resultado.dados.usernameCompartilhado}" not found.\n\n💡 Please check the username and try again.`
+            : `❌ Usuário "@${resultado.dados.usernameCompartilhado}" não encontrado.\n\n💡 Verifique o username e tente novamente.`;
+
+        await WhatsAppService.sendMessage(userPhone, msg);
+        await ConversationRedisService.addMessage(userPhone, "assistant", msg);
+        return {
+          status: "username_not_found",
+          username: resultado.dados.usernameCompartilhado,
+        };
+      }
+
+      console.log(`✅ Usuário encontrado, continuando com processamento...`);
+    }
     // Limpar descrição
     const descricaoLimpa = await EnhancedAIService.limparDescricao(
       resultado.dados.descricao,
