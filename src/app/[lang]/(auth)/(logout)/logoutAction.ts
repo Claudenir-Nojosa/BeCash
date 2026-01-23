@@ -1,8 +1,10 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { signOut } from "../../../../../auth";
 
-
-export default async function logoutAction() {
-  await signOut();
+export async function logoutAction(locale: string) {
+  await signOut({ redirect: false });
+  redirect(`/${locale}/login`);
 }
+

@@ -62,7 +62,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             user.id = existingUser.id;
 
             // Usar casting para evitar erro de tipo
-            (user as any).onboardingCompleto = existingUser.onboardingCompleto || false;
+            (user as any).onboardingCompleto =
+              existingUser.onboardingCompleto || false;
 
             const existingAccount = await prisma.account.findFirst({
               where: {
@@ -114,7 +115,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       if (session.user && userId) {
         session.user.id = userId as string;
-        (session.user as any).onboardingCompleto = token.onboardingCompleto || false;
+        (session.user as any).onboardingCompleto =
+          token.onboardingCompleto || false;
 
         try {
           const user = await prisma.user.findUnique({
@@ -146,13 +148,54 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
 
     async redirect({ url, baseUrl }) {
-      if (url.startsWith(baseUrl)) return url;
-      return `${baseUrl}/dashboard`;
+      console.log("🔍 [AUTH REDIRECT] url:", url);
+      console.log("🔍 [AUTH REDIRECT] baseUrl:", baseUrl);
+
+      // Se a URL já contém locale (/pt ou /en), usar ela
+      if (url.startsWith(`${baseUrl}/pt`) || url.startsWith(`${baseUrl}/en`)) {
+        console.log("✅ [AUTH REDIRECT] URL já tem locale, retornando:", url);
+        return url;
+      }
+
+      // Se é URL relativa com locale
+      if (url.startsWith("/pt") || url.startsWith("/en")) {
+        const finalUrl = `${baseUrl}${url}`;
+        console.log("✅ [AUTH REDIRECT] URL relativa com locale:", finalUrl);
+        return finalUrl;
+      }
+
+      // Se a URL começa com baseUrl mas não tem locale, extrair o path e adicionar locale
+      if (url.startsWith(baseUrl)) {
+        const path = url.replace(baseUrl, "");
+
+        // Se o path já tem locale, retornar
+        if (path.startsWith("/pt") || path.startsWith("/en")) {
+          console.log("✅ [AUTH REDIRECT] Path já tem locale:", url);
+          return url;
+        }
+
+        // Adicionar locale padrão
+        const finalUrl = `${baseUrl}/pt${path || "/dashboard"}`;
+        console.log("⚠️ [AUTH REDIRECT] Adicionando locale padrão:", finalUrl);
+        return finalUrl;
+      }
+
+      // Para URLs relativas sem locale, adicionar locale padrão
+      if (url.startsWith("/")) {
+        const finalUrl = `${baseUrl}/pt${url}`;
+        console.log("⚠️ [AUTH REDIRECT] URL relativa sem locale:", finalUrl);
+        return finalUrl;
+      }
+
+      // Fallback: dashboard com locale padrão
+      const fallbackUrl = `${baseUrl}/pt/dashboard`;
+      console.log("⚠️ [AUTH REDIRECT] Fallback:", fallbackUrl);
+      return fallbackUrl;
     },
   },
   pages: {
-    signIn: "/login",
-    error: "/login",
+    signIn: "/pt/login", // ✅ COM LOCALE
+    error: "/pt/login", // ✅ COM LOCALE
   },
   session: {
     strategy: "jwt",

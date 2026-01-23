@@ -7,18 +7,20 @@ import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { Icons } from "../ui/loadingSpinner";
 
-// Defina as props do componente
 interface BotaoGoogleClientProps {
   lang?: string;
 }
 
-export default function BotaoGoogleClient({ lang = "pt" }: BotaoGoogleClientProps) {
+export default function BotaoGoogleClient({
+  lang = "pt",
+}: BotaoGoogleClientProps) {
   const { t } = useTranslation("auth");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
+      // 🔥 IMPORTANTE: Adicionar o locale no callbackUrl
       await signIn("google", {
         callbackUrl: `/${lang}/dashboard`,
         redirect: true,
@@ -47,11 +49,11 @@ export default function BotaoGoogleClient({ lang = "pt" }: BotaoGoogleClientProp
         ) : (
           <>
             <div className="relative h-5 w-5">
-              <Image 
-                src="/google.svg" 
+              <Image
+                src="/google.svg"
                 alt={t("aria.googleIcon", "Ícone do Google")}
-                height={20} 
-                width={20} 
+                height={20}
+                width={20}
                 className="object-contain"
               />
             </div>

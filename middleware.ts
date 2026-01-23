@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "./auth";
 
-
 const locales = ["pt", "en"];
 const defaultLocale = "pt";
 
@@ -57,9 +56,17 @@ function isRouteInList(pathname: string, routeList: string[]): boolean {
   });
 }
 
+// Helper para detectar locale preferido
+function getPreferredLocale(request: NextRequest): string {
+  const acceptLanguage = request.headers.get("accept-language") || "";
+  return acceptLanguage.toLowerCase().startsWith("en") ? "en" : defaultLocale;
+}
+
 export async function middleware(request: NextRequest) {
   try {
     const { pathname } = request.nextUrl;
+    
+    console.log("🔍 Middleware chamado para:", pathname);
     
     // Ignorar arquivos estáticos e APIs
     if (
@@ -71,30 +78,30 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next();
     }
 
-    // Detectar locale preferido do usuário
-    const acceptLanguage = request.headers.get("accept-language") || "";
-    const userLocale = acceptLanguage.startsWith("en") ? "en" : defaultLocale;
-    
     // Extrair locale atual (se houver)
     const currentLocale = getLocaleFromPath(pathname);
     const pathWithoutLocale = removeLocaleFromPath(pathname);
-    const locale = currentLocale || userLocale;
-
-    // LOGICA PRINCIPAL DE REDIRECIONAMENTO
     
-    // 1. Se não tem locale e não está na raiz, adicionar locale
-    if (!currentLocale && pathname !== "/") {
-      return NextResponse.redirect(new URL(`/${locale}${pathname}`, request.url));
+    // 1. CASO ESPECIAL: Rota raiz sem locale
+    if (pathname === "/") {
+      const preferredLocale = getPreferredLocale(request);
+      console.log("✅ Redirecionando / para:", `/${preferredLocale}`);
+      const redirectUrl = new URL(`/${preferredLocale}`, request.url);
+      return NextResponse.redirect(redirectUrl);
     }
 
-    // 2. Se está na raiz sem locale
-    if (pathname === "/") {
-      return NextResponse.redirect(new URL(`/${locale}`, request.url));
+    // 2. Se não tem locale em rotas não-raiz, adicionar locale
+    if (!currentLocale && pathname !== "/") {
+      const preferredLocale = getPreferredLocale(request);
+      const redirectUrl = new URL(`/${preferredLocale}${pathname}`, request.url);
+      return NextResponse.redirect(redirectUrl);
     }
+
+    // A partir daqui, temos certeza que há um locale na URL
+    const locale = currentLocale as string;
 
     // 3. Se está na raiz com locale (ex: /pt ou /en)
-    if (currentLocale && pathname === `/${currentLocale}`) {
-      // Verificar autenticação
+    if (pathname === `/${locale}`) {
       let session = null;
       let isAuthenticated = false;
       let onboardingCompleto = false;
@@ -103,66 +110,82 @@ export async function middleware(request: NextRequest) {
         session = await auth();
         isAuthenticated = !!session?.user;
         onboardingCompleto = (session?.user as any)?.onboardingCompleto || false;
+        
+        console.log("🔍 [MIDDLEWARE] Rota raiz com locale:", pathname);
+        console.log("🔍 [MIDDLEWARE] isAuthenticated:", isAuthenticated);
+        console.log("🔍 [MIDDLEWARE] User email:", session?.user?.email);
       } catch (error) {
-        console.error("Erro ao verificar autenticação:", error);
-        // Em caso de erro, tratar como não autenticado
+        console.error("❌ [MIDDLEWARE] Erro ao verificar autenticação:", error);
       }
 
       if (!isAuthenticated) {
+        console.log("➡️ [MIDDLEWARE] Redirecionando para login");
         return NextResponse.redirect(new URL(`/${locale}/login`, request.url));
       }
 
       if (!onboardingCompleto) {
+        console.log("➡️ [MIDDLEWARE] Redirecionando para onboarding");
         return NextResponse.redirect(new URL(`/${locale}/onboarding`, request.url));
       }
 
+      console.log("➡️ [MIDDLEWARE] Redirecionando para dashboard");
       return NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url));
     }
 
     // 4. Para outras rotas com locale, verificar autenticação/onboarding
-    if (currentLocale) {
-      let session = null;
-      let isAuthenticated = false;
-      let onboardingCompleto = false;
+    let session = null;
+    let isAuthenticated = false;
+    let onboardingCompleto = false;
+    
+    try {
+      session = await auth();
+      isAuthenticated = !!session?.user;
+      onboardingCompleto = (session?.user as any)?.onboardingCompleto || false;
       
-      try {
-        session = await auth();
-        isAuthenticated = !!session?.user;
-        onboardingCompleto = (session?.user as any)?.onboardingCompleto || false;
-      } catch (error) {
-        console.error("Erro ao verificar autenticação:", error);
+      console.log("🔍 [MIDDLEWARE] Session check para:", pathname);
+      console.log("🔍 [MIDDLEWARE] isAuthenticated:", isAuthenticated);
+      console.log("🔍 [MIDDLEWARE] onboardingCompleto:", onboardingCompleto);
+    } catch (error) {
+      console.error("❌ [MIDDLEWARE] Erro ao verificar autenticação:", error);
+    }
+
+    const isPublicRoute = isRouteInList(pathWithoutLocale, publicRoutes);
+    const isOnboardingRoute = isRouteInList(pathWithoutLocale, onboardingRoutes);
+    const isProtectedRoute = isRouteInList(pathWithoutLocale, protectedAfterOnboarding);
+
+    console.log("🔍 [MIDDLEWARE] Verificando rota:", pathname);
+    console.log("🔍 [MIDDLEWARE] pathWithoutLocale:", pathWithoutLocale);
+    console.log("🔍 [MIDDLEWARE] isPublicRoute:", isPublicRoute);
+    console.log("🔍 [MIDDLEWARE] isAuthenticated:", isAuthenticated);
+    console.log("🔍 [MIDDLEWARE] User email:", session?.user?.email);
+
+    // Se é rota pública e usuário está autenticado, redirecionar
+    if (isPublicRoute && isAuthenticated) {
+      const redirectPath = onboardingCompleto 
+        ? `/${locale}/dashboard`
+        : `/${locale}/onboarding`;
+      console.log("➡️ [MIDDLEWARE] Usuário autenticado em rota pública, redirecionando para:", redirectPath);
+      return NextResponse.redirect(new URL(redirectPath, request.url));
+    }
+
+    // Se não é rota pública e usuário não está autenticado, redirecionar para login
+    if (!isPublicRoute && !isAuthenticated) {
+      const loginUrl = new URL(`/${locale}/login`, request.url);
+      loginUrl.searchParams.set("callbackUrl", pathname);
+      console.log("➡️ [MIDDLEWARE] Usuário não autenticado em rota protegida, redirecionando para:", loginUrl.toString());
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // Se está autenticado, verificar onboarding
+    if (isAuthenticated) {
+      // Se está em onboarding mas já completou, redirecionar para dashboard
+      if (isOnboardingRoute && onboardingCompleto) {
+        return NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url));
       }
 
-      const isPublicRoute = isRouteInList(pathWithoutLocale, publicRoutes);
-      const isOnboardingRoute = isRouteInList(pathWithoutLocale, onboardingRoutes);
-      const isProtectedRoute = isRouteInList(pathWithoutLocale, protectedAfterOnboarding);
-
-      // Se é rota pública e usuário está autenticado, redirecionar
-      if (isPublicRoute && isAuthenticated) {
-        const redirectPath = onboardingCompleto 
-          ? `/${locale}/dashboard`
-          : `/${locale}/onboarding`;
-        return NextResponse.redirect(new URL(redirectPath, request.url));
-      }
-
-      // Se não é rota pública e usuário não está autenticado, redirecionar para login
-      if (!isPublicRoute && !isAuthenticated) {
-        const loginUrl = new URL(`/${locale}/login`, request.url);
-        loginUrl.searchParams.set("callbackUrl", pathname);
-        return NextResponse.redirect(loginUrl);
-      }
-
-      // Se está autenticado, verificar onboarding
-      if (isAuthenticated) {
-        // Se está em onboarding mas já completou, redirecionar para dashboard
-        if (isOnboardingRoute && onboardingCompleto) {
-          return NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url));
-        }
-
-        // Se não completou onboarding e tenta acessar rota protegida
-        if (!onboardingCompleto && isProtectedRoute && !isOnboardingRoute) {
-          return NextResponse.redirect(new URL(`/${locale}/onboarding`, request.url));
-        }
+      // Se não completou onboarding e tenta acessar rota protegida
+      if (!onboardingCompleto && isProtectedRoute && !isOnboardingRoute) {
+        return NextResponse.redirect(new URL(`/${locale}/onboarding`, request.url));
       }
     }
 
@@ -170,7 +193,8 @@ export async function middleware(request: NextRequest) {
     
   } catch (error) {
     console.error("Erro no middleware:", error);
-    return NextResponse.next();
+    // Em caso de erro, tentar redirecionar para login com locale padrão
+    return NextResponse.redirect(new URL(`/${defaultLocale}/login`, request.url));
   }
 }
 

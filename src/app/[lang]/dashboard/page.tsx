@@ -174,12 +174,6 @@ export default function DashboardPage() {
     }
   }, [userName, i18n.language, t]);
 
-  useEffect(() => {
-    if (status === "loading") return;
-    if (!session) {
-      router.push(`/${currentLang}/login`);
-    }
-  }, [session, status, router, currentLang]);
 
   useEffect(() => {
     if (!session || hasLoadedUserRef.current) return;

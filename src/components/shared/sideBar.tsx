@@ -27,6 +27,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSession, signOut } from "next-auth/react";
 import Image from "next/image";
 import { usePathname, useParams } from "next/navigation";
+import { logoutAction } from "@/app/[lang]/(auth)/(logout)/logoutAction";
 
 interface SidebarProps {
   onClose?: () => void;
@@ -39,8 +40,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname();
   const params = useParams();
   const [isMobile, setIsMobile] = useState(false);
-
+  const locale = pathname.split("/")[1];
   const currentLang = (params?.lang as string) || i18n.language || "pt";
+
+  const handleLogout = async () => {
+    await logoutAction(locale);
+  };
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 1024);
@@ -411,39 +416,39 @@ export default function Sidebar({ onClose }: SidebarProps) {
       {/* Rodapé da Sidebar */}
       <div className="p-4 border-t border-gray-200 dark:border-gray-800">
         <div className="space-y-3">
-        {/* Perfil do Usuário (Clique para ir para o perfil) */}
-<Link
-  href={createLink("/dashboard/perfil")}
-  className={`
+          {/* Perfil do Usuário (Clique para ir para o perfil) */}
+          <Link
+            href={createLink("/dashboard/perfil")}
+            className={`
     flex items-center rounded-lg p-3 hover:bg-gray-100 dark:hover:bg-gray-800 
     transition-all duration-200 cursor-pointer
     ${isCollapsed ? "justify-center" : ""}
   `}
-  onClick={handleLinkClick}
->
-  <div className="relative h-8 w-8 flex-shrink-0">
-    <Avatar className="h-full w-full">
-      <AvatarImage
-        src={session?.user?.image || ""}
-        alt={session?.user?.name || t("usuario.usuarioPadrao")}
-        className="object-cover"  
-      />
-      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-cyan-500 text-white text-sm">
-        {getInitials(session?.user?.name)}
-      </AvatarFallback>
-    </Avatar>
-  </div>
-  {!isCollapsed && (
-    <div className="ml-3 min-w-0 flex-1">
-      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-        {session?.user?.name}
-      </p>
-      <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-        {session?.user?.email}
-      </p>
-    </div>
-  )}
-</Link>
+            onClick={handleLinkClick}
+          >
+            <div className="relative h-8 w-8 flex-shrink-0">
+              <Avatar className="h-full w-full">
+                <AvatarImage
+                  src={session?.user?.image || ""}
+                  alt={session?.user?.name || t("usuario.usuarioPadrao")}
+                  className="object-cover"
+                />
+                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-cyan-500 text-white text-sm">
+                  {getInitials(session?.user?.name)}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+            {!isCollapsed && (
+              <div className="ml-3 min-w-0 flex-1">
+                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  {session?.user?.name}
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                  {session?.user?.email}
+                </p>
+              </div>
+            )}
+          </Link>
 
           {/* Botão Sair */}
           <Button
@@ -454,7 +459,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               transition-all duration-200
               ${isCollapsed ? "justify-center p-3" : "justify-start p-3"}
             `}
-            onClick={() => signOut()}
+            onClick={handleLogout}
           >
             <LogOut className="h-4 w-4" />
             {!isCollapsed && (

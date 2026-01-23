@@ -1,14 +1,18 @@
-// app/[locale]/login/actions.ts
+// app/[lang]/(auth)/login/loginAction.ts
 "use server";
 
 import db from "@/lib/db";
 import { AuthError } from "next-auth";
+import { redirect } from "next/navigation";
 import { signIn } from "../../../../../auth";
 
 export default async function loginAction(_prevState: any, formData: FormData) {
   const email = formData.get("email") as string;
-  const provider = formData.get("provider") as string | null;
-  const lang = formData.get("lang") as string || "pt";
+  const password = formData.get("password") as string;
+  const lang = (formData.get("lang") as string) || "pt";
+
+  console.log("🔍 [LOGIN ACTION] Lang recebido:", lang);
+  console.log("🔍 [LOGIN ACTION] Email:", email);
 
   const errorMessages = {
     pt: {
@@ -25,74 +29,80 @@ export default async function loginAction(_prevState: any, formData: FormData) {
     },
   };
 
-  const t = errorMessages[lang as keyof typeof errorMessages] || errorMessages.pt;
+  const t =
+    errorMessages[lang as keyof typeof errorMessages] || errorMessages.pt;
 
   try {
-    await signIn(provider || "credentials", {
+    // Fazer o login
+    await signIn("credentials", {
       email,
-      password: formData.get("password") as string,
+      password,
       redirect: false,
     });
 
-    // Buscar usuário para verificar status de onboarding
+    // Buscar usuário para verificar onboarding
     const user = await db.user.findUnique({
       where: { email },
       select: {
         id: true,
         onboardingCompleto: true,
-      }
+      },
     });
 
     if (!user) {
-      return { 
-        success: false, 
+      return {
+        success: false,
         message: t.credentials,
-        lang: lang
+        lang: lang,
       };
     }
 
-    // 🆕 Decidir para onde redirecionar baseado no onboarding
-    let redirectTo = `/${lang}/dashboard`;
-    if (!user.onboardingCompleto) {
-      redirectTo = `/${lang}/onboarding`;
+    // Decidir para onde redirecionar
+    const redirectTo = user.onboardingCompleto
+      ? `/${lang}/dashboard`
+      : `/${lang}/onboarding`;
+
+    console.log("✅ [LOGIN ACTION] Redirecionando para:", redirectTo);
+
+    // 🔥 FAZER O REDIRECT SERVER-SIDE (isso vai lançar um erro especial do Next.js)
+    redirect(redirectTo);
+  } catch (e: any) {
+    // ✅ IMPORTANTE: O redirect() do Next.js lança um erro especial
+    // que deve ser re-lançado para funcionar
+    if (e?.digest?.startsWith("NEXT_REDIRECT")) {
+      console.log("✅ [LOGIN ACTION] Redirect do Next.js detectado");
+      throw e;
     }
 
-    return { 
-      success: true, 
-      message: t.success,
-      redirectTo: redirectTo,
-      lang: lang,
-      onboardingCompleto: user.onboardingCompleto
-    };
-  } catch (e: any) {
+    console.error("❌ [LOGIN ACTION] Erro:", e);
+
     if (e instanceof AuthError) {
       switch (e.type) {
         case "CredentialsSignin":
-          return { 
-            success: false, 
+          return {
+            success: false,
             message: t.credentials,
-            lang: lang
+            lang: lang,
           };
         case "AccessDenied":
-          return { 
-            success: false, 
+          return {
+            success: false,
             message: e.message || t.accessDenied,
-            lang: lang
+            lang: lang,
           };
         default:
-          return { 
-            success: false, 
+          return {
+            success: false,
             message: t.generic,
-            lang: lang
+            lang: lang,
           };
       }
     }
 
-    console.error(e);
-    return { 
-      success: false, 
+    return {
+      success: false,
       message: t.generic,
-      lang: lang
+      lang: lang,
     };
   }
 }
