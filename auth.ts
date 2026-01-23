@@ -23,20 +23,48 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       authorize: async (credentials) => {
+        console.log("🔍 [AUTHORIZE] Iniciando...");
+        console.log("🔍 [AUTHORIZE] Credentials recebidas:", {
+          email: credentials?.email,
+          hasPassword: !!credentials?.password,
+        });
+
         if (!credentials?.email || !credentials?.password) {
-          throw new Error("Email e senha são obrigatórios");
+          console.log("❌ [AUTHORIZE] Credenciais faltando");
+          return null;
         }
 
-        const user = await findUserByCredentials(
-          credentials.email as string,
-          credentials.password as string,
-        );
+        try {
+          console.log("🔍 [AUTHORIZE] Buscando usuário...");
 
-        if (!user) {
-          throw new Error("Credenciais inválidas");
+          const user = await findUserByCredentials(
+            credentials.email as string,
+            credentials.password as string,
+          );
+
+          console.log("🔍 [AUTHORIZE] Usuário encontrado:", !!user);
+
+          if (!user) {
+            console.log("❌ [AUTHORIZE] Usuário não encontrado");
+            return null;
+          }
+
+          console.log("✅ [AUTHORIZE] Usuário autenticado:", {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+          });
+
+          // ✅ Retornar objeto compatível com NextAuth
+          return {
+            id: user.id,
+            email: user.email || "",
+            name: user.name || "",
+          };
+        } catch (error) {
+          console.error("❌ [AUTHORIZE] Erro no catch:", error);
+          return null;
         }
-
-        return user;
       },
     }),
   ],
@@ -150,6 +178,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async redirect({ url, baseUrl }) {
       console.log("🔍 [AUTH REDIRECT] url:", url);
       console.log("🔍 [AUTH REDIRECT] baseUrl:", baseUrl);
+
+
 
       // Se a URL já contém locale (/pt ou /en), usar ela
       if (url.startsWith(`${baseUrl}/pt`) || url.startsWith(`${baseUrl}/en`)) {

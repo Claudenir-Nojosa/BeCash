@@ -1,4 +1,3 @@
-// app/[lang]/(auth)/login/loginAction.ts
 "use server";
 
 import db from "@/lib/db";
@@ -33,12 +32,24 @@ export default async function loginAction(_prevState: any, formData: FormData) {
     errorMessages[lang as keyof typeof errorMessages] || errorMessages.pt;
 
   try {
-    // Fazer o login
-    await signIn("credentials", {
+    // ✅ Fazer o login e capturar o resultado
+    const result = await signIn("credentials", {
       email,
       password,
       redirect: false,
     });
+
+    console.log("✅ [LOGIN ACTION] SignIn result:", result);
+
+    // ✅ Verificar se o login foi bem-sucedido
+    if (!result || result.error) {
+      console.error("❌ [LOGIN ACTION] Falha no signIn:", result?.error);
+      return {
+        success: false,
+        message: t.credentials,
+        lang: lang,
+      };
+    }
 
     // Buscar usuário para verificar onboarding
     const user = await db.user.findUnique({
@@ -64,17 +75,18 @@ export default async function loginAction(_prevState: any, formData: FormData) {
 
     console.log("✅ [LOGIN ACTION] Redirecionando para:", redirectTo);
 
-    // 🔥 FAZER O REDIRECT SERVER-SIDE (isso vai lançar um erro especial do Next.js)
+    // 🔥 FAZER O REDIRECT SERVER-SIDE
     redirect(redirectTo);
   } catch (e: any) {
     // ✅ IMPORTANTE: O redirect() do Next.js lança um erro especial
-    // que deve ser re-lançado para funcionar
     if (e?.digest?.startsWith("NEXT_REDIRECT")) {
       console.log("✅ [LOGIN ACTION] Redirect do Next.js detectado");
       throw e;
     }
 
-    console.error("❌ [LOGIN ACTION] Erro:", e);
+    console.error("❌ [LOGIN ACTION] Erro completo:", e);
+    console.error("❌ [LOGIN ACTION] Tipo do erro:", e?.type);
+    console.error("❌ [LOGIN ACTION] Mensagem:", e?.message);
 
     if (e instanceof AuthError) {
       switch (e.type) {
@@ -88,6 +100,12 @@ export default async function loginAction(_prevState: any, formData: FormData) {
           return {
             success: false,
             message: e.message || t.accessDenied,
+            lang: lang,
+          };
+        case "CallbackRouteError":
+          return {
+            success: false,
+            message: t.credentials,
             lang: lang,
           };
         default:

@@ -118,11 +118,6 @@ export async function middleware(request: NextRequest) {
         console.error("❌ [MIDDLEWARE] Erro ao verificar autenticação:", error);
       }
 
-      if (!isAuthenticated) {
-        console.log("➡️ [MIDDLEWARE] Redirecionando para login");
-        return NextResponse.redirect(new URL(`/${locale}/login`, request.url));
-      }
-
       if (!onboardingCompleto) {
         console.log("➡️ [MIDDLEWARE] Redirecionando para onboarding");
         return NextResponse.redirect(new URL(`/${locale}/onboarding`, request.url));
@@ -159,6 +154,7 @@ export async function middleware(request: NextRequest) {
     console.log("🔍 [MIDDLEWARE] isAuthenticated:", isAuthenticated);
     console.log("🔍 [MIDDLEWARE] User email:", session?.user?.email);
 
+    
     // Se é rota pública e usuário está autenticado, redirecionar
     if (isPublicRoute && isAuthenticated) {
       const redirectPath = onboardingCompleto 
@@ -187,6 +183,7 @@ export async function middleware(request: NextRequest) {
       if (!onboardingCompleto && isProtectedRoute && !isOnboardingRoute) {
         return NextResponse.redirect(new URL(`/${locale}/onboarding`, request.url));
       }
+      
     }
 
     return NextResponse.next();

@@ -97,7 +97,7 @@ export default function NotificacoesSino() {
     LancamentoCompartilhado[]
   >([]);
   const [convitesPendentes, setConvitesPendentes] = useState<ConviteCartao[]>(
-    []
+    [],
   );
   const [convitesMetasPendentes, setConvitesMetasPendentes] = useState<
     ConviteMeta[]
@@ -105,12 +105,13 @@ export default function NotificacoesSino() {
   const [carregando, setCarregando] = useState(true);
   const [sheetAberto, setSheetAberto] = useState(false);
   const [processandoTodos, setProcessandoTodos] = useState(false);
-
+  const [processandoAceitarTodos, setProcessandoAceitarTodos] = useState(false);
+  const [processandoRecusarTodos, setProcessandoRecusarTodos] = useState(false);
   const [aceitandoConvites, setAceitandoConvites] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [recusandoConvites, setRecusandoConvites] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [aceitandoCompartilhamentos, setAceitandoCompartilhamentos] = useState<
     Set<string>
@@ -174,12 +175,12 @@ export default function NotificacoesSino() {
 
   const handleAceitarCompartilhamento = async (
     compartilhamentoId: string,
-    e?: React.MouseEvent
+    e?: React.MouseEvent,
   ) => {
     e?.stopPropagation();
 
     setAceitandoCompartilhamentos((prev) =>
-      new Set(prev).add(compartilhamentoId)
+      new Set(prev).add(compartilhamentoId),
     );
 
     try {
@@ -197,7 +198,7 @@ export default function NotificacoesSino() {
       if (response.ok) {
         toast.success(t("mensagens.lancamentoAceito"));
         setCompartilhamentosPendentes((prev) =>
-          prev.filter((item) => item.id !== compartilhamentoId)
+          prev.filter((item) => item.id !== compartilhamentoId),
         );
       } else {
         const error = await response.json();
@@ -217,12 +218,12 @@ export default function NotificacoesSino() {
 
   const handleRecusarCompartilhamento = async (
     compartilhamentoId: string,
-    e?: React.MouseEvent
+    e?: React.MouseEvent,
   ) => {
     e?.stopPropagation();
 
     setRecusandoCompartilhamentos((prev) =>
-      new Set(prev).add(compartilhamentoId)
+      new Set(prev).add(compartilhamentoId),
     );
 
     try {
@@ -240,7 +241,7 @@ export default function NotificacoesSino() {
       if (response.ok) {
         toast.success(t("mensagens.lancamentoRecusado"));
         setCompartilhamentosPendentes((prev) =>
-          prev.filter((item) => item.id !== compartilhamentoId)
+          prev.filter((item) => item.id !== compartilhamentoId),
         );
       } else {
         const error = await response.json();
@@ -260,7 +261,7 @@ export default function NotificacoesSino() {
 
   const handleAceitarConvite = async (
     conviteId: string,
-    e?: React.MouseEvent
+    e?: React.MouseEvent,
   ) => {
     e?.stopPropagation();
 
@@ -280,7 +281,7 @@ export default function NotificacoesSino() {
       if (response.ok) {
         toast.success(t("mensagens.conviteAceito"));
         setConvitesPendentes((prev) =>
-          prev.filter((item) => item.id !== conviteId)
+          prev.filter((item) => item.id !== conviteId),
         );
       } else {
         const error = await response.json();
@@ -300,7 +301,7 @@ export default function NotificacoesSino() {
 
   const handleRecusarConvite = async (
     conviteId: string,
-    e?: React.MouseEvent
+    e?: React.MouseEvent,
   ) => {
     e?.stopPropagation();
 
@@ -320,7 +321,7 @@ export default function NotificacoesSino() {
       if (response.ok) {
         toast.success(t("mensagens.conviteRecusado"));
         setConvitesPendentes((prev) =>
-          prev.filter((item) => item.id !== conviteId)
+          prev.filter((item) => item.id !== conviteId),
         );
       } else {
         const error = await response.json();
@@ -340,7 +341,7 @@ export default function NotificacoesSino() {
 
   const handleAceitarConviteMeta = async (
     conviteId: string,
-    e?: React.MouseEvent
+    e?: React.MouseEvent,
   ) => {
     e?.stopPropagation();
 
@@ -356,7 +357,7 @@ export default function NotificacoesSino() {
       if (response.ok) {
         toast.success(t("mensagens.conviteMetaAceito"));
         setConvitesMetasPendentes((prev) =>
-          prev.filter((item) => item.id !== conviteId)
+          prev.filter((item) => item.id !== conviteId),
         );
       } else {
         const error = await response.json();
@@ -376,7 +377,7 @@ export default function NotificacoesSino() {
 
   const handleRecusarConviteMeta = async (
     conviteId: string,
-    e?: React.MouseEvent
+    e?: React.MouseEvent,
   ) => {
     e?.stopPropagation();
 
@@ -392,7 +393,7 @@ export default function NotificacoesSino() {
       if (response.ok) {
         toast.success(t("mensagens.conviteMetaRecusado"));
         setConvitesMetasPendentes((prev) =>
-          prev.filter((item) => item.id !== conviteId)
+          prev.filter((item) => item.id !== conviteId),
         );
       } else {
         const error = await response.json();
@@ -411,16 +412,16 @@ export default function NotificacoesSino() {
   };
 
   const handleAceitarTodos = async () => {
-    if (processandoTodos) return;
+    if (processandoAceitarTodos) return;
 
-    setProcessandoTodos(true);
+    setProcessandoAceitarTodos(true);
     try {
       const promisesConvites = convitesPendentes.map((convite) =>
         fetch(`/api/convites/${convite.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ acao: "ACEITAR" }),
-        })
+        }),
       );
 
       const promisesCompartilhamentos = compartilhamentosPendentes.map(
@@ -432,7 +433,7 @@ export default function NotificacoesSino() {
               lancamentoCompartilhadoId: compartilhamento.id,
               status: "ACEITO",
             }),
-          })
+          }),
       );
 
       const promisesConvitesMetas = convitesMetasPendentes.map((convite) =>
@@ -440,7 +441,7 @@ export default function NotificacoesSino() {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ acao: "ACEITAR" }),
-        })
+        }),
       );
 
       const todasPromises = [
@@ -452,7 +453,7 @@ export default function NotificacoesSino() {
       const resultados = await Promise.allSettled(todasPromises);
 
       const sucessos = resultados.filter(
-        (result) => result.status === "fulfilled" && result.value.ok
+        (result) => result.status === "fulfilled" && result.value.ok,
       ).length;
       const erros = resultados.length - sucessos;
 
@@ -460,7 +461,7 @@ export default function NotificacoesSino() {
         toast.success(
           t("mensagens.todasNotificacoesAceitas", {
             count: todasPromises.length,
-          })
+          }),
         );
       } else {
         toast.success(t("mensagens.notificacoesComErro", { sucessos, erros }));
@@ -473,21 +474,21 @@ export default function NotificacoesSino() {
       console.error(t("mensagens.erroAceitarTodas"), error);
       toast.error(t("mensagens.erroProcessarTodas"));
     } finally {
-      setProcessandoTodos(false);
+      setProcessandoAceitarTodos(false);
     }
   };
 
   const handleRecusarTodos = async () => {
-    if (processandoTodos) return;
+    if (processandoRecusarTodos) return;
 
-    setProcessandoTodos(true);
+    setProcessandoRecusarTodos(true);
     try {
       const promisesConvites = convitesPendentes.map((convite) =>
         fetch(`/api/convites/${convite.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ acao: "RECUSAR" }),
-        })
+        }),
       );
 
       const promisesCompartilhamentos = compartilhamentosPendentes.map(
@@ -499,7 +500,7 @@ export default function NotificacoesSino() {
               lancamentoCompartilhadoId: compartilhamento.id,
               status: "RECUSADO",
             }),
-          })
+          }),
       );
 
       const promisesConvitesMetas = convitesMetasPendentes.map((convite) =>
@@ -507,7 +508,7 @@ export default function NotificacoesSino() {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ acao: "RECUSAR" }),
-        })
+        }),
       );
 
       const todasPromises = [
@@ -519,7 +520,7 @@ export default function NotificacoesSino() {
       const resultados = await Promise.allSettled(todasPromises);
 
       const sucessos = resultados.filter(
-        (result) => result.status === "fulfilled" && result.value.ok
+        (result) => result.status === "fulfilled" && result.value.ok,
       ).length;
       const erros = resultados.length - sucessos;
 
@@ -527,11 +528,11 @@ export default function NotificacoesSino() {
         toast.success(
           t("mensagens.todasNotificacoesRecusadas", {
             count: todasPromises.length,
-          })
+          }),
         );
       } else {
         toast.success(
-          t("mensagens.notificacoesRecusadasComErro", { sucessos, erros })
+          t("mensagens.notificacoesRecusadasComErro", { sucessos, erros }),
         );
       }
 
@@ -542,7 +543,7 @@ export default function NotificacoesSino() {
       console.error(t("mensagens.erroRecusarTodas"), error);
       toast.error(t("mensagens.erroProcessarTodas"));
     } finally {
-      setProcessandoTodos(false);
+      setProcessandoRecusarTodos(false);
     }
   };
 
@@ -656,16 +657,16 @@ export default function NotificacoesSino() {
                     e.stopPropagation();
                     handleAceitarTodos();
                   }}
-                  disabled={processandoTodos}
+                  disabled={processandoAceitarTodos || processandoRecusarTodos}
                   className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm"
                   size="sm"
                 >
-                  {processandoTodos ? (
+                  {processandoAceitarTodos ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
                     <CheckCircle className="h-4 w-4 mr-2" />
                   )}
-                  {processandoTodos
+                  {processandoAceitarTodos
                     ? t("botoes.processando")
                     : t("botoes.aceitarTodos")}
                 </Button>
@@ -674,17 +675,17 @@ export default function NotificacoesSino() {
                     e.stopPropagation();
                     handleRecusarTodos();
                   }}
-                  disabled={processandoTodos}
+                  disabled={processandoAceitarTodos || processandoRecusarTodos}
                   variant="outline"
                   className="flex-1 border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-400 dark:border-red-600 dark:text-red-400 dark:hover:bg-red-900/50 dark:hover:text-red-300"
                   size="sm"
                 >
-                  {processandoTodos ? (
+                  {processandoRecusarTodos ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
                     <XCircle className="h-4 w-4 mr-2" />
                   )}
-                  {processandoTodos
+                  {processandoRecusarTodos
                     ? t("botoes.processando")
                     : t("botoes.recusarTodos")}
                 </Button>
@@ -900,10 +901,10 @@ export default function NotificacoesSino() {
                 {/* Lançamentos Compartilhados */}
                 {compartilhamentosPendentes.map((compartilhamento) => {
                   const aceitando = aceitandoCompartilhamentos.has(
-                    compartilhamento.id
+                    compartilhamento.id,
                   );
                   const recusando = recusandoCompartilhamentos.has(
-                    compartilhamento.id
+                    compartilhamento.id,
                   );
 
                   return (
@@ -974,7 +975,7 @@ export default function NotificacoesSino() {
                             onClick={(e) =>
                               handleAceitarCompartilhamento(
                                 compartilhamento.id,
-                                e
+                                e,
                               )
                             }
                             disabled={aceitando || recusando}
@@ -992,7 +993,7 @@ export default function NotificacoesSino() {
                             onClick={(e) =>
                               handleRecusarCompartilhamento(
                                 compartilhamento.id,
-                                e
+                                e,
                               )
                             }
                             disabled={aceitando || recusando}
