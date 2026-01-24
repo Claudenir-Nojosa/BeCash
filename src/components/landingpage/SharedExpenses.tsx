@@ -158,7 +158,7 @@ export const SharedExpenses = () => {
                   transition={{ duration: 1, delay: 0.5 }}
                 />
                 <motion.div
-                  className="absolute right-0 top-0 bottom-0 bg-gradient-to-r from-[#00cfec] to-[#007cca] rounded-full"
+                  className="absolute right-0 top-0 bottom-0 bg-gradient-to-r from-[#00d0ec9a] to-[#00d0ec62] rounded-full"
                   initial={{ width: 0 }}
                   whileInView={{ width: "45%" }}
                   viewport={{ once: true }}
@@ -177,7 +177,7 @@ export const SharedExpenses = () => {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-[#00cfec]" />
+                  <div className="w-3 h-3 rounded-full bg-[#00d0ec9a]" />
                   <span className="text-gray-600 dark:text-gray-400">
                     {t("card.partner")}:{" "}
                     <span className="font-semibold text-gray-900 dark:text-white">

@@ -6,24 +6,26 @@
       "buttonText": "Start Free",
       "features": [
         "Up to 50 entries per month",
+        "3 WhatsApp entries per month",
+        "Create up to 10 categories",
+        "Create up to 2 personal goals",
         "Basic spending analysis",
-        "Email support",
-        "WhatsApp AI access",
-        "Simple monthly reports"
+        "Email support"
       ],
       "period": "month"
     },
     "pro": {
       "name": "Pro",
       "description": "For those who take finances seriously",
-      "buttonText": "Try for Free",
+      "buttonText": "Go PRO",
       "features": [
         "Unlimited entries",
-        "Advanced AI analysis",
-        "Personalized goals",
-        "Shared expenses",
-        "Smart alerts",
-        "Data export",
+        "Unlimited WhatsApp AI",
+        "Unlimited categories",
+        "Unlimited goals",
+        "Category limits",
+        "Up to 3 shared expenses",
+        "Advanced reports",
         "Priority support"
       ],
       "period": "month"
@@ -34,12 +36,10 @@
       "buttonText": "Start Free Trial",
       "features": [
         "Everything from Pro plan",
-        "Up to 5 family members",
-        "Parental control",
-        "Family budget",
-        "Shared goals",
-        "24/7 support",
-        "Financial consultation"
+        "Ability to Have Full Control of Family Expenses",
+        "Unlimited shared expenses",
+        "Collaborative family goals",
+        "Unlimited Access to BiCla (Artificial Intelligence powered by your unique data)"
       ],
       "period": "month"
     }

@@ -181,12 +181,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
 
 
-      // Se a URL já contém locale (/pt ou /en), usar ela
-      if (url.startsWith(`${baseUrl}/pt`) || url.startsWith(`${baseUrl}/en`)) {
-        console.log("✅ [AUTH REDIRECT] URL já tem locale, retornando:", url);
-        return url;
-      }
-
       // Se é URL relativa com locale
       if (url.startsWith("/pt") || url.startsWith("/en")) {
         const finalUrl = `${baseUrl}${url}`;

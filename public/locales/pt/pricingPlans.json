@@ -6,24 +6,26 @@
       "buttonText": "Começar Grátis",
       "features": [
         "Até 50 lançamentos por mês",
+        "3 lançamentos no Whatsapp por mês",
+        "Criação de até 10 categorias",
+        "Criação de até 2 metas pessoais",
         "Análise básica de gastos",
-        "Suporte por email",
-        "Acesso ao WhatsApp AI",
-        "Relatórios mensais simples"
+        "Suporte por email"
       ],
       "period": "mês"
     },
     "pro": {
       "name": "Pro",
       "description": "Para quem leva finanças a sério",
-      "buttonText": "Experimentar Gratuitamente",
+      "buttonText": "Seja PRO",
       "features": [
         "Lançamentos ilimitados",
-        "Análise avançada de IA",
-        "Metas personalizadas",
-        "Despesas compartilhadas",
-        "Alertas inteligentes",
-        "Exportação de dados",
+        "WhatsApp AI ilimitado",
+        "Categorias ilimitadas",
+        "Metas ilimitadas",
+        "Limites por categoria",
+        "Até 3 despesas compartilhadas",
+        "Relatórios avançados",
         "Suporte prioritário"
       ],
       "period": "mês"
@@ -34,12 +36,10 @@
       "buttonText": "Começar Teste Grátis",
       "features": [
         "Tudo do plano Pro",
-        "Até 5 membros da família",
-        "Controle parental",
-        "Orçamento familiar",
-        "Metas compartilhadas",
-        "Suporte 24/7",
-        "Consultoria financeira"
+        "Possibilidade de Controle Total das Despesas Familiares",
+        "Despesas compartilhadas ilimitadas",
+        "Metas familiares colaborativas",
+        "Acesso Ilimitado a BiCla (Inteligência Artificial alimentada com seus dados únicos)"
       ],
       "period": "mês"
     }

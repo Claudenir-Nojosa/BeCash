@@ -54,78 +54,79 @@ const Index = () => {
   };
 
   // Defina seus planos de preços usando useMemo para performance
-  const plans = useMemo(() => [
-    {
-      name: t("pricingPlans:plans.basic.name", "Básico"),
-      price: "0",
-      yearlyPrice: "0",
-      priceReal: "0",
-      yearlyPriceReal: "0",
-      period: t("pricingPlans:plans.basic.period", "mês"),
-      features: getFeaturesArray(t("pricingPlans:plans.basic.features", { 
-        returnObjects: true, 
-        defaultValue: [
-          "Até 50 lançamentos por mês",
-          "Análise básica de gastos",
-          "Suporte por email",
-          "Acesso ao WhatsApp AI",
-          "Relatórios mensais simples"
-        ]
-      })),
-      description: t("pricingPlans:plans.basic.description", "Perfeito para começar a controlar suas finanças"),
-      buttonText: t("pricingPlans:plans.basic.buttonText", "Começar Grátis"),
-      href: `/${currentLang}/signup`, // Adicionado linguagem
-      isPopular: false
-    },
-    {
-      name: t("pricingPlans:plans.pro.name", "Pro"),
-      price: "12",
-      yearlyPrice: "9",
-      priceReal: "59",
-      yearlyPriceReal: "47",
-      period: t("pricingPlans:plans.pro.period", "mês"),
-      features: getFeaturesArray(t("pricingPlans:plans.pro.features", { 
-        returnObjects: true,
-        defaultValue: [
-          "Lançamentos ilimitados",
-          "Análise avançada de IA",
-          "Metas personalizadas",
-          "Despesas compartilhadas",
-          "Alertas inteligentes",
-          "Exportação de dados",
-          "Suporte prioritário"
-        ]
-      })),
-      description: t("pricingPlans:plans.pro.description", "Para quem leva finanças a sério"),
-      buttonText: t("pricingPlans:plans.pro.buttonText", "Experimentar Gratuitamente"),
-      href: `/${currentLang}/signup?plan=pro`, // Adicionado linguagem
-      isPopular: true
-    },
-    {
-      name: t("pricingPlans:plans.family.name", "Família"),
-      price: "25",
-      yearlyPrice: "20",
-      priceReal: "129",
-      yearlyPriceReal: "103",
-      period: t("pricingPlans:plans.family.period", "mês"),
-      features: getFeaturesArray(t("pricingPlans:plans.family.features", { 
-        returnObjects: true,
-        defaultValue: [
-          "Tudo do plano Pro",
-          "Até 5 membros da família",
-          "Controle parental",
-          "Orçamento familiar",
-          "Metas compartilhadas",
-          "Suporte 24/7",
-          "Consultoria financeira"
-        ]
-      })),
-      description: t("pricingPlans:plans.family.description", "Ideal para famílias que querem controlar tudo junto"),
-      buttonText: t("pricingPlans:plans.family.buttonText", "Começar Teste Grátis"),
-      href: `/${currentLang}/signup?plan=family`, // Adicionado linguagem
-      isPopular: false
-    }
-  ], [t, currentLang]); // Adicionado currentLang nas dependências
+const plans = useMemo(() => [
+  {
+    name: t("pricingPlans:plans.basic.name", "Básico"),
+    price: "0",
+    yearlyPrice: "0",
+    priceReal: "0",
+    yearlyPriceReal: "0",
+    period: t("pricingPlans:plans.basic.period", "mês"),
+    features: getFeaturesArray(t("pricingPlans:plans.basic.features", { 
+      returnObjects: true, 
+      defaultValue: [
+        "Até 50 lançamentos por mês",
+        "3 mensagens WhatsApp AI por mês",
+        "Criação de até 10 categorias",
+        "Criação de até 2 metas pessoais",
+        "Análise básica de gastos",
+        "Suporte por email"
+      ]
+    })),
+    description: t("pricingPlans:plans.basic.description", "Perfeito para começar a controlar suas finanças"),
+    buttonText: t("pricingPlans:plans.basic.buttonText", "Começar Grátis"),
+    href: `/${currentLang}/signup`,
+    isPopular: false
+  },
+  {
+    name: t("pricingPlans:plans.pro.name", "Pro"),
+    price: "5.00",
+    yearlyPrice: "4.00",
+    priceReal: "19.90",     
+    yearlyPriceReal: "16.58", 
+    period: t("pricingPlans:plans.pro.period", "mês"),
+    features: getFeaturesArray(t("pricingPlans:plans.pro.features", { 
+      returnObjects: true,
+      defaultValue: [
+        "Lançamentos ilimitados",
+        "WhatsApp AI ilimitado",
+        "Categorias ilimitadas",
+        "Metas ilimitadas",
+        "Limites por categoria",
+        "Até 3 despesas compartilhadas",
+        "Relatórios avançados",
+        "Suporte prioritário"
+      ]
+    })),
+    description: t("pricingPlans:plans.pro.description", "Para quem leva finanças a sério"),
+    buttonText: t("pricingPlans:plans.pro.buttonText", "Seja PRO"),
+    href: `/${currentLang}/signup?plan=pro`,
+    isPopular: true,
+    badge: "Mais Popular"
+  },
+  {
+    name: t("pricingPlans:plans.family.name", "Família"),
+    price: "13.00",
+    yearlyPrice: "11.00", 
+    priceReal: "49.90",     
+    yearlyPriceReal: "41.58",
+    period: t("pricingPlans:plans.family.period", "mês"),
+    features: getFeaturesArray(t("pricingPlans:plans.family.features", { 
+      returnObjects: true,
+      defaultValue: [
+        "Tudo do plano Pro",
+        "Até 5 membros da família",
+        "Despesas compartilhadas ilimitadas",
+        "Metas familiares colaborativas",
+        "Suporte 24/7 com BiCla (IA assistente financeiro)"
+      ]
+    })),
+    description: t("pricingPlans:plans.family.description", "Ideal para famílias que querem controlar tudo junto"),
+    buttonText: t("pricingPlans:plans.family.buttonText", "Começar Teste Grátis"),
+    href: `/${currentLang}/signup?plan=family`,
+    isPopular: false
+  }
+], [t, currentLang]);
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 overflow-x-hidden">

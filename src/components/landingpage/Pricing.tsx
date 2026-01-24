@@ -20,7 +20,7 @@ interface PricingPlan {
   priceReal: string;
   yearlyPriceReal: string;
   period: string;
-  features: string[] | any; // Permite tanto array quanto objeto especial do i18next
+  features: string[] | any;
   description: string;
   buttonText: string;
   href: string;
@@ -40,13 +40,12 @@ export function Pricing({ plans, title, description }: PricingProps) {
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const switchRef = useRef<HTMLButtonElement>(null);
 
-  // Use translations or fallback to props
   const titleText = title || t("title", "Simple, Transparent Pricing");
   const descriptionText =
     description ||
     t(
       "description",
-      "Choose the plan that works for you\nAll plans include access to our platform, lead generation tools, and dedicated support."
+      "Choose the plan that works for you\nAll plans include access to our platform, lead generation tools, and dedicated support.",
     );
 
   const handleToggle = (checked: boolean) => {
@@ -87,6 +86,23 @@ export function Pricing({ plans, title, description }: PricingProps) {
     } else {
       return `R$ ${value}`;
     }
+  };
+
+  const fractionDigits = currency === "BRL" ? 2 : 0;
+
+  // Função para verificar se a feature precisa do gradiente especial
+  const hasGradientFeature = (feature: string) => {
+    const gradientFeatures = [
+      "WhatsApp AI ilimitado",
+      "WhatsApp AI unlimited",
+      "Acesso Ilimitado a BiCla",
+      "Unlimited Access to BiCla",
+      "Suporte 24/7 com BiCla",
+      "24/7 Support with BiCla",
+    ];
+    return gradientFeatures.some(gf => 
+      feature.toLowerCase().includes(gf.toLowerCase().replace(/\(.*?\)/g, '').trim())
+    );
   };
 
   return (
@@ -134,7 +150,7 @@ export function Pricing({ plans, title, description }: PricingProps) {
                 "px-6 py-2 rounded-md font-semibold transition-all duration-200 text-sm",
                 currency === "USD"
                   ? "bg-white dark:bg-gray-900 shadow-sm text-gray-900 dark:text-white"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white",
               )}
             >
               USD ($)
@@ -145,7 +161,7 @@ export function Pricing({ plans, title, description }: PricingProps) {
                 "px-6 py-2 rounded-md font-semibold transition-all duration-200 text-sm",
                 currency === "BRL"
                   ? "bg-white dark:bg-gray-900 shadow-sm text-gray-900 dark:text-white"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white",
               )}
             >
               BRL (R$)
@@ -157,7 +173,7 @@ export function Pricing({ plans, title, description }: PricingProps) {
               className={cn(
                 "font-medium text-sm",
                 isMonthly && "text-gray-900 dark:text-white",
-                !isMonthly && "text-gray-600 dark:text-gray-400"
+                !isMonthly && "text-gray-600 dark:text-gray-400",
               )}
             >
               {t("monthly", "Mensal")}
@@ -174,13 +190,13 @@ export function Pricing({ plans, title, description }: PricingProps) {
               className={cn(
                 "font-medium text-sm",
                 !isMonthly && "text-gray-900 dark:text-white",
-                isMonthly && "text-gray-600 dark:text-gray-400"
+                isMonthly && "text-gray-600 dark:text-gray-400",
               )}
             >
               {t("yearly", "Anual")}
             </span>
             <span className="text-[#007cca] dark:text-[#00cfec] font-semibold text-sm">
-              ({t("savePercentage", "Economize 20%")})
+              ({t("savePercentage", "Economize 17%")})
             </span>
           </div>
         </div>
@@ -220,7 +236,7 @@ export function Pricing({ plans, title, description }: PricingProps) {
                   ? "z-0 transform translate-x-0 translate-y-0 -translate-z-[50px] rotate-y-[10deg]"
                   : "z-10",
                 index === 0 && "origin-right",
-                index === 2 && "origin-left"
+                index === 2 && "origin-left",
               )}
             >
               {plan.isPopular && (
@@ -242,8 +258,8 @@ export function Pricing({ plans, title, description }: PricingProps) {
                       format={{
                         style: "currency",
                         currency: currency,
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
+                        minimumFractionDigits: fractionDigits,
+                        maximumFractionDigits: fractionDigits,
                       }}
                       formatter={(value: any) => formatCurrency(value)}
                       transformTiming={{
@@ -268,14 +284,22 @@ export function Pricing({ plans, title, description }: PricingProps) {
                 </p>
 
                 <ul className="mt-5 gap-2 flex flex-col">
-                  {plan.features.map((feature: any, idx: any) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <Check className="h-4 w-4 text-[#007cca] dark:text-[#00cfec] mt-1 flex-shrink-0" />
-                      <span className="text-left text-sm text-gray-900 dark:text-white">
-                        {feature}
-                      </span>
-                    </li>
-                  ))}
+                  {plan.features.map((feature: any, idx: any) => {
+                    const hasGradient = hasGradientFeature(feature);
+                    return (
+                      <li key={idx} className="flex items-start gap-2">
+                        <Check className="h-4 w-4 text-[#007cca] dark:text-[#00cfec] mt-1 flex-shrink-0" />
+                        <span className={cn(
+                          "text-left text-sm",
+                          hasGradient 
+                            ? "bg-gradient-to-r from-[#00cfec] to-[#007cca] bg-clip-text text-transparent font-semibold"
+                            : "text-gray-900 dark:text-white"
+                        )}>
+                          {feature}
+                        </span>
+                      </li>
+                    );
+                  })}
                 </ul>
 
                 <hr className="w-full my-4 border-gray-200 dark:border-gray-800" />
@@ -290,7 +314,7 @@ export function Pricing({ plans, title, description }: PricingProps) {
                     "transform-gpu ring-offset-current transition-all duration-300 ease-out",
                     plan.isPopular
                       ? "bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90 border-0"
-                      : "bg-white dark:bg-gray-900 text-gray-900 dark:text-white border-gray-200 dark:border-gray-800 hover:border-[#00cfec] hover:text-[#007cca] dark:hover:text-[#00cfec]"
+                      : "bg-white dark:bg-gray-900 text-gray-900 dark:text-white border-gray-200 dark:border-gray-800 hover:border-[#00cfec] hover:text-[#007cca] dark:hover:text-[#00cfec]",
                   )}
                 >
                   {plan.buttonText}
