@@ -1,6 +1,9 @@
 // lib/types.ts
 
-export type RegimeTributacao = 'SIMPLES_NACIONAL' | 'LUCRO_PRESUMIDO' | 'LUCRO_REAL';
+export type RegimeTributacao =
+  | "SIMPLES_NACIONAL"
+  | "LUCRO_PRESUMIDO"
+  | "LUCRO_REAL";
 
 export interface Empresa {
   id: string;
@@ -66,4 +69,10 @@ export interface Cartao {
   };
   totalGasto?: number;
   utilizacaoLimite?: number;
+}
+
+export interface Stripe {
+  current_period_end: number;
+  current_period_start: number;
+  canceled_at: number | null;
 }

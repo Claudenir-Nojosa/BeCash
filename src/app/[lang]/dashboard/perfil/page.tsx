@@ -1,10 +1,7 @@
-// app/[lang]/dashboard/perfil/page.tsx
 "use client";
 
 import { useState, useRef, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { useTranslation } from "react-i18next";
-import { Pricing } from "@/components/landingpage/Pricing";
 import {
   Card,
   CardContent,
@@ -17,6 +14,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
   User,
   Camera,
   Save,
@@ -24,42 +28,41 @@ import {
   CreditCard,
   Upload,
   X,
-  Calendar,
   Shield,
   Users,
   CheckCircle,
   AlertCircle,
   ExternalLink,
   RotateCcw,
+  Calendar,
+  ArrowLeft,
 } from "lucide-react";
-import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useRouter } from "next/navigation";
-import { format } from "date-fns";
-import { ptBR, enUS } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PricingMenor } from "@/components/dashboard/PricingMenor";
+import { format } from "date-fns";
+import { ptBR, enUS } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
 
-// Tipos para o plano do usuário
+// Mock da função de tradução
+const t = (key: string, fallback: string) => fallback;
+
 interface UserSubscription {
   id: string;
-  plan: "basic" | "pro" | "family";
-  status: "active" | "canceled" | "past_due" | "trialing";
-  current_period_end: number | null;
-  cancel_at_period_end: boolean;
-  trial_end: number | null;
-  currency: "BRL" | "USD";
-  amount: number;
-  interval: "month" | "year";
-  customer_portal_url?: string;
+  userId: string;
+  plano: "basic" | "pro" | "family";
+  status: "active" | "canceled" | "expired";
+  stripeSubscriptionId: string | null;
+  stripePriceId: string | null;
+  stripeCustomerId: string | null;
+  inicioPlano: Date;
+  fimPlano: Date;
+  canceladoEm: Date | null;
 }
 
 export default function PerfilPage() {
   const { data: session, update } = useSession();
-  const { t, i18n } = useTranslation();
-  const router = useRouter();
-  const [showPlans, setShowPlans] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -68,11 +71,12 @@ export default function PerfilPage() {
     null,
   );
   const [isManaging, setIsManaging] = useState(false);
+  const [showManageDialog, setShowManageDialog] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
   const [isReactivating, setIsReactivating] = useState(false);
-
+  const [showPlans, setShowPlans] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const { i18n } = useTranslation("");
   // Carregar dados da assinatura
   useEffect(() => {
     loadUserSubscription();
@@ -93,11 +97,9 @@ export default function PerfilPage() {
     }
   };
 
-  // Funções auxiliares
   const getUsername = () => {
     if (!session?.user?.email) return "";
-    const email = session.user.email;
-    return email.split("@")[0];
+    return session.user.email.split("@")[0];
   };
 
   const username = getUsername();
@@ -115,23 +117,16 @@ export default function PerfilPage() {
     const file = event.target.files?.[0];
     if (file) {
       if (!file.type.startsWith("image/")) {
-        toast.error(
-          t("perfil:notificacoes.arquivoInvalido") ||
-            "Por favor, selecione uma imagem válida",
-        );
+        alert("Por favor, selecione uma imagem válida");
         return;
       }
 
       if (file.size > 5 * 1024 * 1024) {
-        toast.error(
-          t("perfil:notificacoes.tamanhoExcedido") ||
-            "A imagem deve ter no máximo 5MB",
-        );
+        alert("A imagem deve ter no máximo 5MB");
         return;
       }
 
       setSelectedFile(file);
-
       const reader = new FileReader();
       reader.onloadend = () => {
         setAvatarPreview(reader.result as string);
@@ -144,11 +139,7 @@ export default function PerfilPage() {
     setIsSaving(true);
     try {
       if (!selectedFile) {
-        toast.error(
-          t("perfil:notificacoes.erroAtualizar") ||
-            "Nenhuma imagem selecionada",
-        );
-        setIsSaving(false);
+        alert("Nenhuma imagem selecionada");
         return;
       }
 
@@ -160,21 +151,11 @@ export default function PerfilPage() {
         body: formData,
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(
-          data.error ||
-            t("perfil:notificacoes.erroAtualizar") ||
-            "Erro ao atualizar foto",
-        );
+        throw new Error("Erro ao atualizar foto");
       }
 
-      toast.success(
-        t("perfil:notificacoes.fotoAtualizada") ||
-          "Foto atualizada com sucesso!",
-      );
-
+      alert("Foto atualizada com sucesso!");
       await update();
       setSelectedFile(null);
       setAvatarPreview(null);
@@ -184,11 +165,7 @@ export default function PerfilPage() {
       }
     } catch (error: any) {
       console.error("Erro ao salvar foto:", error);
-      toast.error(
-        error.message ||
-          t("perfil:notificacoes.erroAtualizar") ||
-          "Erro ao atualizar foto",
-      );
+      alert(error.message || "Erro ao atualizar foto");
     } finally {
       setIsSaving(false);
     }
@@ -200,6 +177,10 @@ export default function PerfilPage() {
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
   };
   const getPlansData = () => {
     return [
@@ -308,43 +289,30 @@ export default function PerfilPage() {
       },
     ];
   };
-  const triggerFileInput = () => {
-    fileInputRef.current?.click();
-  };
-
-  // Funções para gerenciar plano
   const handleManageSubscription = async () => {
     try {
       setIsManaging(true);
-      const response = await fetch("/api/usuarios/portal-session", {
+      const response = await fetch("/api/create-portal-session", {
         method: "POST",
       });
 
       const data = await response.json();
 
       if (data.url) {
-        window.location.href = data.url;
+        window.open(data.url, "_blank");
       } else {
         throw new Error("URL do portal não disponível");
       }
     } catch (error) {
       console.error("Erro ao acessar portal:", error);
-      toast.error(
-        t("perfil:notificacoes.erroPortal") ||
-          "Erro ao acessar portal de gerenciamento",
-      );
+      alert("Erro ao acessar portal de gerenciamento");
     } finally {
       setIsManaging(false);
     }
   };
 
   const handleCancelSubscription = async () => {
-    if (
-      !confirm(
-        t("perfil:confirmacoes.cancelarAssinatura") ||
-          "Tem certeza que deseja cancelar sua assinatura?",
-      )
-    ) {
+    if (!confirm("Tem certeza que deseja cancelar sua assinatura?")) {
       return;
     }
 
@@ -354,24 +322,15 @@ export default function PerfilPage() {
         method: "POST",
       });
 
-      const data = await response.json();
-
       if (response.ok) {
-        toast.success(
-          t("perfil:notificacoes.assinaturaCancelada") ||
-            "Assinatura cancelada com sucesso",
-        );
-        await loadUserSubscription(); // Recarregar dados
+        alert("Assinatura cancelada com sucesso");
+        await loadUserSubscription();
       } else {
-        throw new Error(data.error || "Erro ao cancelar assinatura");
+        throw new Error("Erro ao cancelar assinatura");
       }
     } catch (error: any) {
       console.error("Erro ao cancelar assinatura:", error);
-      toast.error(
-        error.message ||
-          t("perfil:notificacoes.erroCancelar") ||
-          "Erro ao cancelar assinatura",
-      );
+      alert(error.message || "Erro ao cancelar assinatura");
     } finally {
       setIsCanceling(false);
     }
@@ -384,59 +343,34 @@ export default function PerfilPage() {
         method: "POST",
       });
 
-      const data = await response.json();
-
       if (response.ok) {
-        toast.success(
-          t("perfil:notificacoes.assinaturaReativada") ||
-            "Assinatura reativada com sucesso",
-        );
-        await loadUserSubscription(); // Recarregar dados
+        alert("Assinatura reativada com sucesso");
+        await loadUserSubscription();
       } else {
-        throw new Error(data.error || "Erro ao reativar assinatura");
+        throw new Error("Erro ao reativar assinatura");
       }
     } catch (error: any) {
       console.error("Erro ao reativar assinatura:", error);
-      toast.error(
-        error.message ||
-          t("perfil:notificacoes.erroReativar") ||
-          "Erro ao reativar assinatura",
-      );
+      alert(error.message || "Erro ao reativar assinatura");
     } finally {
       setIsReactivating(false);
     }
   };
 
-  const handleUpgradePlan = () => {
-    setShowPlans(true);
-    // Rola a página para a seção de planos
-    setTimeout(() => {
-      document
-        .getElementById("plans-section")
-        ?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
-  };
-  const handleBackToProfile = () => {
-    setShowPlans(false);
-    // Volta para a aba de perfil
-    setTimeout(() => {
-      document
-        .getElementById("profile-tab")
-        ?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
-  };
-  // Funções auxiliares para formatação
-  const formatDate = (timestamp: number | null) => {
-    if (!timestamp) return "-";
-    const locale = i18n.language === "pt" ? ptBR : enUS;
-    return format(new Date(timestamp * 1000), "PPP", { locale });
+  const formatDate = (date: Date | null) => {
+    if (!date) return "-";
+    return new Date(date).toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
   };
 
   const getPlanName = (plan: string) => {
     const planMap: Record<string, string> = {
-      basic: t("perfil:plano.basic", "Básico"),
-      pro: t("perfil:plano.pro", "Pro"),
-      family: t("perfil:plano.family", "Família"),
+      basic: "Básico",
+      pro: "Pro",
+      family: "Família",
     };
     return planMap[plan] || plan;
   };
@@ -457,7 +391,13 @@ export default function PerfilPage() {
     return User;
   };
 
-  const PlanIcon = subscription ? getPlanIcon(subscription.plan) : User;
+  const PlanIcon = subscription ? getPlanIcon(subscription.plano) : User;
+
+  // Verificar se a subscription está expirada
+  const isExpired = subscription
+    ? new Date(subscription.fimPlano) < new Date()
+    : false;
+  const effectiveStatus = isExpired ? "expired" : subscription?.status;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -473,24 +413,17 @@ export default function PerfilPage() {
           )}
 
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            {t("perfil:titulo", "Meu Perfil")}
+            Meu Perfil
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            {t(
-              "perfil:descricao",
-              "Gerencie suas informações pessoais e preferências",
-            )}
+            Gerencie suas informações pessoais e preferências
           </p>
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="profile" id="profile-tab">
-              {t("perfil:abas.perfil", "Perfil")}
-            </TabsTrigger>
-            <TabsTrigger value="subscription">
-              {t("perfil:abas.assinatura", "Assinatura")}
-            </TabsTrigger>
+            <TabsTrigger value="profile">Perfil</TabsTrigger>
+            <TabsTrigger value="subscription">Assinatura</TabsTrigger>
           </TabsList>
 
           <TabsContent value="profile" className="space-y-6">
@@ -501,18 +434,12 @@ export default function PerfilPage() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <User className="h-5 w-5" />
-                      {t("perfil:informacoesPessoais", "Informações Pessoais")}
+                      Informações Pessoais
                     </CardTitle>
                     <CardDescription>
                       {selectedFile
-                        ? t(
-                            "perfil:descricaoInformacoes.comFoto",
-                            "Clique em Salvar Alterações para atualizar sua foto",
-                          )
-                        : t(
-                            "perfil:descricaoInformacoes.semFoto",
-                            "Clique no ícone da câmera para alterar sua foto de perfil",
-                          )}
+                        ? "Clique em Salvar Alterações para atualizar sua foto"
+                        : "Clique no ícone da câmera para alterar sua foto de perfil"}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -588,15 +515,7 @@ export default function PerfilPage() {
                               </div>
                             </div>
                             <p className="text-xs text-gray-400 dark:text-gray-500">
-                              {t(
-                                "perfil:dicas.tamanhoMaximo",
-                                "Tamanho máximo: 5MB",
-                              )}{" "}
-                              •{" "}
-                              {t(
-                                "perfil:dicas.formatosSuportados",
-                                "Formatos: JPG, PNG, WebP",
-                              )}
+                              Tamanho máximo: 5MB • Formatos: JPG, PNG, WebP
                             </p>
                           </div>
                         )}
@@ -609,30 +528,22 @@ export default function PerfilPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <Label className="text-gray-500 dark:text-gray-400">
-                            {t("perfil:campos.nomeCompleto", "Nome Completo")}
+                            Nome Completo
                           </Label>
                           <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                             <p className="text-gray-900 dark:text-white">
-                              {session?.user?.name ||
-                                t(
-                                  "perfil:campos.naoInformado",
-                                  "Não informado",
-                                )}
+                              {session?.user?.name || "Não informado"}
                             </p>
                           </div>
                         </div>
 
                         <div className="space-y-2">
                           <Label className="text-gray-500 dark:text-gray-400">
-                            {t("perfil:campos.email", "E-mail")}
+                            E-mail
                           </Label>
                           <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                             <p className="text-gray-900 dark:text-white">
-                              {session?.user?.email ||
-                                t(
-                                  "perfil:campos.naoInformado",
-                                  "Não informado",
-                                )}
+                              {session?.user?.email || "Não informado"}
                             </p>
                           </div>
                         </div>
@@ -646,21 +557,18 @@ export default function PerfilPage() {
                           onClick={handleCancel}
                           disabled={isSaving}
                         >
-                          {t("perfil:cancelar", "Cancelar")}
+                          Cancelar
                         </Button>
                         <Button onClick={handleSave} disabled={isSaving}>
                           {isSaving ? (
                             <>
                               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              {t("perfil:salvando", "Salvando...")}
+                              Salvando...
                             </>
                           ) : (
                             <>
                               <Save className="h-4 w-4 mr-2" />
-                              {t(
-                                "perfil:salvarAlteracoes",
-                                "Salvar Alterações",
-                              )}
+                              Salvar Alterações
                             </>
                           )}
                         </Button>
@@ -674,78 +582,64 @@ export default function PerfilPage() {
               <div className="space-y-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">
-                      {t("perfil:statusConta", "Status da Conta")}
-                    </CardTitle>
+                    <CardTitle className="text-lg">Status da Conta</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-gray-600 dark:text-gray-400">
-                        {t("perfil:campos.planoAtual", "Plano Atual")}
+                        Plano Atual
                       </span>
                       {loadingSubscription ? (
                         <Skeleton className="h-6 w-20" />
                       ) : (
                         <Badge
                           className={getPlanColor(
-                            subscription?.plan || "basic",
+                            subscription?.plano || "basic",
                           )}
                         >
-                          {getPlanName(subscription?.plan || "basic")}
+                          {getPlanName(subscription?.plano || "basic")}
                         </Badge>
                       )}
                     </div>
 
                     <div className="flex items-center justify-between">
                       <span className="text-gray-600 dark:text-gray-400">
-                        {t("perfil:campos.status", "Status")}
+                        Status
                       </span>
                       {loadingSubscription ? (
                         <Skeleton className="h-6 w-24" />
-                      ) : subscription?.status === "active" ? (
+                      ) : effectiveStatus === "active" ? (
                         <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
                           <CheckCircle className="h-3 w-3 mr-1" />
-                          {t("perfil:status.ativo", "Ativo")}
+                          Ativo
                         </Badge>
-                      ) : subscription?.status === "canceled" ? (
+                      ) : effectiveStatus === "canceled" ? (
                         <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
                           <X className="h-3 w-3 mr-1" />
-                          {t("perfil:status.cancelado", "Cancelado")}
+                          Cancelado
                         </Badge>
-                      ) : subscription?.status === "past_due" ? (
-                        <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+                      ) : effectiveStatus === "expired" ? (
+                        <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300">
                           <AlertCircle className="h-3 w-3 mr-1" />
-                          {t("perfil:status.atrasado", "Atrasado")}
+                          Expirado
                         </Badge>
                       ) : (
                         <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                          {t("perfil:status.teste", "Teste Grátis")}
+                          Teste Grátis
                         </Badge>
                       )}
                     </div>
 
-                    {subscription?.current_period_end && (
+                    {subscription?.fimPlano && (
                       <div className="flex items-center justify-between">
                         <span className="text-gray-600 dark:text-gray-400">
-                          {t("perfil:campos.vencimento", "Próximo vencimento")}
+                          {isExpired ? "Expirou em" : "Próximo vencimento"}
                         </span>
-                        <span className="font-medium">
-                          {formatDate(subscription.current_period_end)}
+                        <span className="font-medium text-sm">
+                          {formatDate(subscription.fimPlano)}
                         </span>
                       </div>
                     )}
-
-                    <Button
-                      className="w-full"
-                      onClick={() =>
-                        router.push(
-                          `/${i18n.language}/dashboard/perfil#subscription`,
-                        )
-                      }
-                    >
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      {t("perfil:gerenciarPlano", "Gerenciar Plano")}
-                    </Button>
                   </CardContent>
                 </Card>
               </div>
@@ -755,12 +649,17 @@ export default function PerfilPage() {
           <TabsContent value="subscription" className="space-y-6">
             {showPlans ? (
               <div id="plans-section">
-                <Card>
-                  <CardContent>
-                    {/* Componente Pricing com os planos */}
-                    <PricingMenor plans={getPlansData()} />
-                  </CardContent>
-                </Card>
+                <div className="flex items-center justify-between mb-6">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setShowPlans(false)}
+                    className="gap-2"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    {t("perfil:voltarParaAssinatura", "Voltar para Assinatura")}
+                  </Button>
+                </div>
+                <PricingMenor plans={getPlansData()} />
               </div>
             ) : (
               <Card>
@@ -784,65 +683,45 @@ export default function PerfilPage() {
                     </div>
                   ) : subscription ? (
                     <>
-                      {/* Resumo da Assinatura */}
+                      {/* Card do Plano Atual */}
                       <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-lg p-6">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div>
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className="p-2 rounded-lg bg-white dark:bg-gray-700 shadow-sm">
-                                <PlanIcon className="h-6 w-6" />
-                              </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-4">
                               <div>
-                                <h3 className="text-xl font-semibold">
-                                  {getPlanName(subscription.plan)}
+                                <h3 className="text-2xl font-bold">
+                                  {t("perfil:plano", "Plano")}{" "}
+                                  {getPlanName(subscription.plano)}
                                 </h3>
                                 <p className="text-gray-600 dark:text-gray-400">
-                                  {subscription.interval === "year"
-                                    ? t(
-                                        "perfil:assinatura.cobrancaAnual",
-                                        "Cobrança anual",
-                                      )
-                                    : t(
-                                        "perfil:assinatura.cobrancaMensal",
-                                        "Cobrança mensal",
-                                      )}
+                                  {t(
+                                    "perfil:assinatura.cobrancaMensal",
+                                    "Cobrança mensal",
+                                  )}
                                 </p>
                               </div>
                             </div>
 
-                            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                               <div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                  {t("perfil:assinatura.valor", "Valor")}
-                                </p>
-                                <p className="text-2xl font-bold">
-                                  {subscription.currency === "BRL" ? "R$" : "$"}
-                                  {(subscription.amount / 100).toFixed(2)}
-                                  <span className="text-sm font-normal text-gray-600 dark:text-gray-400">
-                                    /
-                                    {subscription.interval === "year"
-                                      ? t("perfil:periodo.ano", "ano")
-                                      : t("perfil:periodo.mes", "mês")}
-                                  </span>
-                                </p>
-                              </div>
-
-                              <div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
                                   {t("perfil:assinatura.status", "Status")}
                                 </p>
                                 <div className="flex items-center gap-2">
-                                  {subscription.status === "active" ? (
+                                  {subscription.status === "active" &&
+                                  new Date(subscription.fimPlano) >
+                                    new Date() ? (
                                     <>
-                                      <CheckCircle className="h-4 w-4 text-green-500" />
-                                      <span className="font-medium text-green-600 dark:text-green-400">
+                                      <CheckCircle className="h-5 w-5 text-green-500" />
+                                      <span className="text-lg font-semibold text-green-600 dark:text-green-400">
                                         {t("perfil:status.ativo", "Ativo")}
                                       </span>
                                     </>
-                                  ) : subscription.status === "canceled" ? (
+                                  ) : subscription.status === "canceled" ||
+                                    subscription.canceladoEm ? (
                                     <>
-                                      <X className="h-4 w-4 text-red-500" />
-                                      <span className="font-medium text-red-600 dark:text-red-400">
+                                      <X className="h-5 w-5 text-red-500" />
+                                      <span className="text-lg font-semibold text-red-600 dark:text-red-400">
                                         {t(
                                           "perfil:status.cancelado",
                                           "Cancelado",
@@ -851,11 +730,11 @@ export default function PerfilPage() {
                                     </>
                                   ) : (
                                     <>
-                                      <AlertCircle className="h-4 w-4 text-yellow-500" />
-                                      <span className="font-medium text-yellow-600 dark:text-yellow-400">
+                                      <AlertCircle className="h-5 w-5 text-gray-500" />
+                                      <span className="text-lg font-semibold text-gray-600 dark:text-gray-400">
                                         {t(
-                                          "perfil:status.atrasado",
-                                          "Atrasado",
+                                          "perfil:status.expirado",
+                                          "Expirado",
                                         )}
                                       </span>
                                     </>
@@ -864,199 +743,379 @@ export default function PerfilPage() {
                               </div>
 
                               <div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                  {subscription.cancel_at_period_end
-                                    ? t(
-                                        "perfil:assinatura.expiraEm",
-                                        "Expira em",
-                                      )
-                                    : t(
-                                        "perfil:assinatura.renovaEm",
-                                        "Renova em",
-                                      )}
-                                </p>
-                                <p className="font-medium">
-                                  {subscription.current_period_end
-                                    ? formatDate(
-                                        subscription.current_period_end,
-                                      )
-                                    : "-"}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-
-                          {subscription.plan !== "family" && (
-                            <Button
-                              onClick={handleUpgradePlan}
-                              variant="outline"
-                              className="whitespace-nowrap"
-                            >
-                              <ExternalLink className="h-4 w-4 mr-2" />
-                              {t("perfil:upgradePlano", "Upgrade de Plano")}
-                            </Button>
-                          )}
-                        </div>
-
-                        {/* Avisos */}
-                        {subscription.cancel_at_period_end && (
-                          <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                            <div className="flex items-start gap-3">
-                              <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
-                              <div>
-                                <p className="text-yellow-800 dark:text-yellow-300 font-medium">
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
                                   {t(
-                                    "perfil:avisos.assinaturaCancelada",
-                                    "Sua assinatura foi cancelada",
+                                    "perfil:assinatura.inicio",
+                                    "Data de Início",
                                   )}
                                 </p>
-                                <p className="text-yellow-700 dark:text-yellow-400 text-sm mt-1">
-                                  {t(
-                                    "perfil:avisos.acessoAte",
-                                    "Você terá acesso ao plano até",
-                                  )}{" "}
-                                  {subscription.current_period_end
-                                    ? formatDate(
-                                        subscription.current_period_end,
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="h-4 w-4 text-gray-400" />
+                                  <p className="font-semibold">
+                                    {format(
+                                      new Date(subscription.inicioPlano),
+                                      "dd/MM/yyyy",
+                                    )}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                                  {new Date(subscription.fimPlano) < new Date()
+                                    ? t(
+                                        "perfil:assinatura.expirouEm",
+                                        "Expirou em",
                                       )
-                                    : "-"}
-                                  .
+                                    : subscription.canceladoEm
+                                      ? t(
+                                          "perfil:assinatura.expiraEm",
+                                          "Expira em",
+                                        )
+                                      : t(
+                                          "perfil:assinatura.renovaEm",
+                                          "Próxima Renovação",
+                                        )}
                                 </p>
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="h-4 w-4 text-gray-400" />
+                                  <p className="font-semibold">
+                                    {format(
+                                      new Date(subscription.fimPlano),
+                                      "dd/MM/yyyy",
+                                    )}
+                                  </p>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        )}
 
-                        {subscription.trial_end &&
-                          subscription.trial_end > Date.now() / 1000 && (
-                            <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                          {subscription.plano !== "family" &&
+                            subscription.status === "active" && (
+                              <div className="md:ml-4">
+                                <Button
+                                  onClick={() => setShowPlans(true)}
+                                  className="whitespace-nowrap bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90"
+                                >
+                                  <ExternalLink className="h-4 w-4 mr-2" />
+                                  {t("perfil:upgradePlano", "Fazer Upgrade")}
+                                </Button>
+                              </div>
+                            )}
+                        </div>
+
+                        {/* Avisos e Alertas */}
+                        {subscription.canceladoEm &&
+                          new Date(subscription.fimPlano) > new Date() && (
+                            <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                               <div className="flex items-start gap-3">
-                                <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
-                                <div>
-                                  <p className="text-blue-800 dark:text-blue-300 font-medium">
+                                <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+                                <div className="flex-1">
+                                  <p className="text-yellow-800 dark:text-yellow-300 font-semibold">
                                     {t(
-                                      "perfil:avisos.testeAtivo",
-                                      "Período de teste ativo",
+                                      "perfil:avisos.assinaturaCancelada",
+                                      "Assinatura Cancelada",
                                     )}
                                   </p>
-                                  <p className="text-blue-700 dark:text-blue-400 text-sm mt-1">
+                                  <p className="text-yellow-700 dark:text-yellow-400 text-sm mt-1">
                                     {t(
-                                      "perfil:avisos.testeTermina",
-                                      "Seu teste gratuito termina em",
+                                      "perfil:avisos.acessoAte",
+                                      "Você ainda terá acesso aos recursos premium até",
                                     )}{" "}
-                                    {formatDate(subscription.trial_end)}.
+                                    <span className="font-semibold">
+                                      {format(
+                                        new Date(subscription.fimPlano),
+                                        "dd/MM/yyyy",
+                                      )}
+                                    </span>
+                                    .
                                   </p>
                                 </div>
                               </div>
                             </div>
                           )}
+
+                        {new Date(subscription.fimPlano) < new Date() && (
+                          <div className="mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                            <div className="flex items-start gap-3">
+                              <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5" />
+                              <div className="flex-1">
+                                <p className="text-red-800 dark:text-red-300 font-semibold">
+                                  {t(
+                                    "perfil:avisos.assinaturaExpirada",
+                                    "Assinatura Expirada",
+                                  )}
+                                </p>
+                                <p className="text-red-700 dark:text-red-400 text-sm mt-1">
+                                  {t(
+                                    "perfil:avisos.renovePara",
+                                    "Sua assinatura expirou. Renove agora para continuar aproveitando todos os recursos premium.",
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
-                      {/* Ações da Assinatura */}
                       <Separator />
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Button
-                          onClick={handleManageSubscription}
-                          disabled={
-                            isManaging || subscription.status === "canceled"
-                          }
-                          className="w-full"
-                        >
-                          {isManaging ? (
+                      {/* Recursos do Plano */}
+                      <div>
+                        <h4 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                          <CheckCircle className="h-5 w-5 text-[#007cca]" />
+                          {t(
+                            "perfil:recursosIncluidos",
+                            "Recursos Incluídos no seu Plano",
+                          )}
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {subscription.plano === "basic" ? (
                             <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              {t("perfil:carregando", "Carregando...")}
+                              <div className="flex items-center gap-2 text-sm">
+                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                <span>
+                                  {t(
+                                    "recursos.lancamentosLimitados",
+                                    "Até 50 lançamentos por mês",
+                                  )}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                <span>
+                                  {t(
+                                    "recursos.whatsappLimitado",
+                                    "3 mensagens WhatsApp AI por mês",
+                                  )}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                <span>
+                                  {t(
+                                    "recursos.categorias",
+                                    "Até 10 categorias",
+                                  )}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                <span>
+                                  {t("recursos.metas", "Até 2 metas pessoais")}
+                                </span>
+                              </div>
+                            </>
+                          ) : subscription.plano === "pro" ? (
+                            <>
+                              <div className="flex items-center gap-2 text-sm">
+                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                <span className="font-semibold bg-gradient-to-r from-[#00cfec] to-[#007cca] bg-clip-text text-transparent">
+                                  {t(
+                                    "recursos.lancamentosIlimitados",
+                                    "Lançamentos ilimitados",
+                                  )}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                <span className="font-semibold bg-gradient-to-r from-[#00cfec] to-[#007cca] bg-clip-text text-transparent">
+                                  {t(
+                                    "recursos.whatsappIlimitado",
+                                    "WhatsApp AI ilimitado",
+                                  )}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                <span>
+                                  {t(
+                                    "recursos.categoriasIlimitadas",
+                                    "Categorias ilimitadas",
+                                  )}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                <span>
+                                  {t(
+                                    "recursos.metasIlimitadas",
+                                    "Metas ilimitadas",
+                                  )}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                <span>
+                                  {t(
+                                    "recursos.limitesCategorias",
+                                    "Limites por categoria",
+                                  )}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                <span>
+                                  {t(
+                                    "recursos.despesasCompartilhadas",
+                                    "Até 3 despesas compartilhadas",
+                                  )}
+                                </span>
+                              </div>
                             </>
                           ) : (
                             <>
-                              <ExternalLink className="h-4 w-4 mr-2" />
-                              {t(
-                                "perfil:portalGerenciamento",
-                                "Portal de Gerenciamento",
-                              )}
+                              <div className="flex items-center gap-2 text-sm">
+                                <CheckCircle className="h-4 w-4 text-purple-500" />
+                                <span className="font-semibold">
+                                  {t("recursos.tudoPro", "Tudo do plano Pro")}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <CheckCircle className="h-4 w-4 text-purple-500" />
+                                <span>
+                                  {t(
+                                    "recursos.membros",
+                                    "Até 5 membros da família",
+                                  )}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <CheckCircle className="h-4 w-4 text-purple-500" />
+                                <span>
+                                  {t(
+                                    "recursos.despesasIlimitadas",
+                                    "Despesas compartilhadas ilimitadas",
+                                  )}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <CheckCircle className="h-4 w-4 text-purple-500" />
+                                <span>
+                                  {t(
+                                    "recursos.metasFamiliares",
+                                    "Metas familiares colaborativas",
+                                  )}
+                                </span>
+                              </div>
                             </>
                           )}
-                        </Button>
+                        </div>
+                      </div>
 
-                        {subscription.status === "active" &&
-                        !subscription.cancel_at_period_end ? (
+                      <Separator />
+
+                      {/* Ações */}
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-lg">
+                          {t("perfil:acoes", "Ações")}
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <Button
-                            onClick={handleCancelSubscription}
-                            variant="destructive"
-                            disabled={isCanceling}
-                            className="w-full"
-                          >
-                            {isCanceling ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              t(
-                                "perfil:cancelarAssinatura",
-                                "Cancelar Assinatura",
-                              )
-                            )}
-                          </Button>
-                        ) : subscription.cancel_at_period_end ? (
-                          <Button
-                            onClick={handleReactivateSubscription}
+                            onClick={handleManageSubscription}
+                            disabled={isManaging}
                             variant="outline"
-                            disabled={isReactivating}
                             className="w-full"
                           >
-                            {isReactivating ? (
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            {isManaging ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                {t("perfil:carregando", "Carregando...")}
+                              </>
                             ) : (
                               <>
-                                <RotateCcw className="h-4 w-4 mr-2" />
+                                <ExternalLink className="h-4 w-4 mr-2" />
                                 {t(
-                                  "perfil:reativarAssinatura",
-                                  "Reativar Assinatura",
+                                  "perfil:portalGerenciamento",
+                                  "Abrir Portal do Stripe",
                                 )}
                               </>
                             )}
                           </Button>
-                        ) : (
-                          <Button
-                            onClick={handleUpgradePlan}
-                            className="w-full bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90"
-                          >
-                            <Shield className="h-4 w-4 mr-2" />
-                            {t("perfil:assinarAgora", "Assinar Agora")}
-                          </Button>
-                        )}
-                      </div>
 
-                      {/* Informações de suporte */}
-                      <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {t(
-                            "perfil:infoSuporte",
-                            "Precisa de ajuda? Entre em contato com nosso suporte.",
+                          {subscription.status === "active" &&
+                          !subscription.canceladoEm ? (
+                            <Button
+                              onClick={handleCancelSubscription}
+                              variant="destructive"
+                              disabled={isCanceling}
+                              className="w-full"
+                            >
+                              {isCanceling ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  {t("perfil:cancelando", "Cancelando...")}
+                                </>
+                              ) : (
+                                <>
+                                  <X className="h-4 w-4 mr-2" />
+                                  {t(
+                                    "perfil:cancelarAssinatura",
+                                    "Cancelar Assinatura",
+                                  )}
+                                </>
+                              )}
+                            </Button>
+                          ) : subscription.canceladoEm &&
+                            new Date(subscription.fimPlano) > new Date() ? (
+                            <Button
+                              onClick={handleReactivateSubscription}
+                              variant="default"
+                              disabled={isReactivating}
+                              className="w-full bg-green-600 hover:bg-green-700"
+                            >
+                              {isReactivating ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  {t("perfil:reativando", "Reativando...")}
+                                </>
+                              ) : (
+                                <>
+                                  <RotateCcw className="h-4 w-4 mr-2" />
+                                  {t(
+                                    "perfil:reativarAssinatura",
+                                    "Reativar Assinatura",
+                                  )}
+                                </>
+                              )}
+                            </Button>
+                          ) : (
+                            <Button
+                              onClick={() => setShowPlans(true)}
+                              className="w-full bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90"
+                            >
+                              <Shield className="h-4 w-4 mr-2" />
+                              {t("perfil:assinarAgora", "Assinar Agora")}
+                            </Button>
                           )}
-                        </p>
+                        </div>
                       </div>
                     </>
                   ) : (
-                    <div className="text-center py-8">
-                      <Shield className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">
+                    // Sem assinatura ativa
+                    <div className="text-center py-12">
+                      <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 mb-6">
+                        <Shield className="h-10 w-10 text-gray-400" />
+                      </div>
+                      <h3 className="text-xl font-semibold mb-2">
                         {t(
                           "perfil:semAssinatura.titulo",
                           "Nenhuma assinatura ativa",
                         )}
                       </h3>
-                      <p className="text-gray-600 dark:text-gray-400 mb-6">
+                      <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto">
                         {t(
                           "perfil:semAssinatura.descricao",
-                          "Você está usando o plano gratuito. Faça upgrade para desbloquear todos os recursos.",
+                          "Você está usando o plano gratuito. Faça upgrade para desbloquear recursos premium e aproveitar ao máximo nossa plataforma.",
                         )}
                       </p>
                       <Button
-                        onClick={handleUpgradePlan}
+                        onClick={() => setShowPlans(true)}
+                        size="lg"
                         className="bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90"
                       >
-                        <Shield className="h-4 w-4 mr-2" />
-                        {t("perfil:verPlanos", "Ver Planos")}
+                        <Shield className="h-5 w-5 mr-2" />
+                        {t("perfil:verPlanos", "Ver Planos Disponíveis")}
                       </Button>
                     </div>
                   )}
@@ -1066,6 +1125,214 @@ export default function PerfilPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Dialog de Gerenciamento */}
+      <Dialog open={showManageDialog} onOpenChange={setShowManageDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PlanIcon className="h-5 w-5" />
+              Gerenciar Assinatura
+            </DialogTitle>
+            <DialogDescription>
+              Visualize e gerencie sua assinatura atual
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {loadingSubscription ? (
+              <div className="space-y-4">
+                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : subscription ? (
+              <>
+                {/* Resumo da Assinatura */}
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-lg p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 rounded-lg bg-white dark:bg-gray-700 shadow-sm">
+                      <PlanIcon className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold">
+                        Plano {getPlanName(subscription.plano)}
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-400 text-sm">
+                        Cobrança mensal
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Status
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        {effectiveStatus === "active" ? (
+                          <>
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            <span className="font-medium text-green-600 dark:text-green-400">
+                              Ativo
+                            </span>
+                          </>
+                        ) : effectiveStatus === "canceled" ? (
+                          <>
+                            <X className="h-4 w-4 text-red-500" />
+                            <span className="font-medium text-red-600 dark:text-red-400">
+                              Cancelado
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <AlertCircle className="h-4 w-4 text-gray-500" />
+                            <span className="font-medium text-gray-600 dark:text-gray-400">
+                              Expirado
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Início
+                      </p>
+                      <p className="font-medium mt-1">
+                        {formatDate(subscription.inicioPlano)}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {isExpired ? "Expirou em" : "Renova em"}
+                      </p>
+                      <p className="font-medium mt-1">
+                        {formatDate(subscription.fimPlano)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Avisos */}
+                  {subscription.canceladoEm && (
+                    <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+                        <div>
+                          <p className="text-yellow-800 dark:text-yellow-300 font-medium">
+                            Sua assinatura foi cancelada
+                          </p>
+                          <p className="text-yellow-700 dark:text-yellow-400 text-sm mt-1">
+                            Você teve acesso ao plano até{" "}
+                            {formatDate(subscription.fimPlano)}.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {isExpired && !subscription.canceladoEm && (
+                    <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5" />
+                        <div>
+                          <p className="text-red-800 dark:text-red-300 font-medium">
+                            Sua assinatura expirou
+                          </p>
+                          <p className="text-red-700 dark:text-red-400 text-sm mt-1">
+                            Renove sua assinatura para continuar tendo acesso
+                            aos recursos premium.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Ações da Assinatura */}
+                <Separator />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Button
+                    onClick={handleManageSubscription}
+                    disabled={isManaging}
+                    className="w-full"
+                  >
+                    {isManaging ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Carregando...
+                      </>
+                    ) : (
+                      <>
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Portal do Stripe
+                      </>
+                    )}
+                  </Button>
+
+                  {effectiveStatus === "active" && !subscription.canceladoEm ? (
+                    <Button
+                      onClick={handleCancelSubscription}
+                      variant="destructive"
+                      disabled={isCanceling}
+                      className="w-full"
+                    >
+                      {isCanceling ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Cancelar Assinatura"
+                      )}
+                    </Button>
+                  ) : subscription.canceladoEm && !isExpired ? (
+                    <Button
+                      onClick={handleReactivateSubscription}
+                      variant="outline"
+                      disabled={isReactivating}
+                      className="w-full"
+                    >
+                      {isReactivating ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <>
+                          <RotateCcw className="h-4 w-4 mr-2" />
+                          Reativar Assinatura
+                        </>
+                      )}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => setShowManageDialog(false)}
+                      className="w-full bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90"
+                    >
+                      <Shield className="h-4 w-4 mr-2" />
+                      Ver Planos
+                    </Button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <Shield className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                <h3 className="text-lg font-semibold mb-2">
+                  Nenhuma assinatura ativa
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  Você está usando o plano gratuito. Faça upgrade para
+                  desbloquear todos os recursos.
+                </p>
+                <Button
+                  onClick={() => setShowManageDialog(false)}
+                  className="bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90"
+                >
+                  <Shield className="h-4 w-4 mr-2" />
+                  Ver Planos
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
