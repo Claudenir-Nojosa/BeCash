@@ -6,9 +6,10 @@ import { FaturaService } from "@/lib/faturaService";
 import { LimiteService } from "@/lib/limiteService";
 
 // ✅ MESMA função do resumo
-function calcularMesReferenciaLancamento(
-  lancamento: any
-): { ano: number; mes: number } {
+function calcularMesReferenciaLancamento(lancamento: any): {
+  ano: number;
+  mes: number;
+} {
   const data = new Date(lancamento.data);
   let ano = data.getFullYear();
   let mes = data.getMonth() + 1;
@@ -53,17 +54,17 @@ export async function GET(request: NextRequest) {
         LancamentoCompartilhado: true,
       },
       orderBy: {
-        createdAt: 'desc', // ✅ Mais recentes primeiro
+        createdAt: "desc", // ✅ Mais recentes primeiro
       },
     });
 
     // ✅ Filtrar pelo mês/ano se fornecido
     let lancamentosFiltrados = todosLancamentos;
-    
+
     if (mes && ano) {
       const mesNum = Number(mes);
       const anoNum = Number(ano);
-      
+
       lancamentosFiltrados = todosLancamentos.filter((lancamento) => {
         const { ano, mes } = calcularMesReferenciaLancamento(lancamento);
         return ano === anoNum && mes === mesNum;
@@ -75,11 +76,10 @@ export async function GET(request: NextRequest) {
     console.error("Erro ao buscar lançamentos:", error);
     return NextResponse.json(
       { error: "Erro interno do servidor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-
 
 // O resto do código POST permanece exatamente igual...
 export async function POST(request: NextRequest) {
@@ -87,6 +87,34 @@ export async function POST(request: NextRequest) {
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+    // 🔴 VERIFICAÇÃO DE LIMITE DO PLANO FREE
+    // Buscar assinatura do usuário
+    const subscription = await db.subscription.findUnique({
+      where: { userId: session.user.id },
+    });
+
+    // Se usuário não tem assinatura ativa (plano free) ou é free
+    if (!subscription || subscription.plano === "free") {
+      // Contar lançamentos do usuário
+      const lancamentosCount = await db.lancamento.count({
+        where: { userId: session.user.id },
+      });
+
+      // Limite para plano free: 50 lançamentos
+      const LIMITE_FREE = 1;
+
+      if (lancamentosCount >= LIMITE_FREE) {
+        return NextResponse.json(
+          {
+            error: "Limite de lançamentos atingido",
+            message: `Plano free permite apenas ${LIMITE_FREE} lançamentos. Faça upgrade para criar mais.`,
+            limite: LIMITE_FREE,
+            atual: lancamentosCount,
+          },
+          { status: 403 },
+        );
+      }
     }
 
     const body = await request.json();
@@ -111,14 +139,14 @@ export async function POST(request: NextRequest) {
     if (!descricao || !valor || !tipo || !metodoPagamento || !categoriaId) {
       return NextResponse.json(
         { error: "Campos obrigatórios faltando" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!["RECEITA", "DESPESA"].includes(tipo)) {
       return NextResponse.json(
         { error: "Tipo deve ser RECEITA ou DESPESA" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -126,7 +154,7 @@ export async function POST(request: NextRequest) {
     if (!metodosValidos.includes(metodoPagamento)) {
       return NextResponse.json(
         { error: "Método de pagamento inválido" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -137,7 +165,7 @@ export async function POST(request: NextRequest) {
           {
             error: "Usuário alvo é obrigatório para lançamentos compartilhados",
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -148,14 +176,14 @@ export async function POST(request: NextRequest) {
       if (!usuarioAlvo) {
         return NextResponse.json(
           { error: "Usuário alvo não encontrado" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       if (usuarioAlvo.id === session.user.id) {
         return NextResponse.json(
           { error: "Não é possível compartilhar um lançamento consigo mesmo" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -163,7 +191,7 @@ export async function POST(request: NextRequest) {
     if (metodoPagamento === "CREDITO" && !cartaoId) {
       return NextResponse.json(
         { error: "Cartão é obrigatório para pagamento com crédito" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -174,7 +202,7 @@ export async function POST(request: NextRequest) {
       ) {
         return NextResponse.json(
           { error: "Tipo de parcelamento é obrigatório para crédito" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -184,14 +212,14 @@ export async function POST(request: NextRequest) {
       ) {
         return NextResponse.json(
           { error: "Número de parcelas é obrigatório e deve ser maior que 1" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       if (tipoParcelamento === "RECORRENTE" && !dataFimRecorrencia) {
         return NextResponse.json(
           { error: "Data final é obrigatória para lançamentos recorrentes" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -282,7 +310,7 @@ export async function POST(request: NextRequest) {
           session.user.id,
           categoriaId,
           valorParcelaCriador,
-          tipo
+          tipo,
         );
       }
 
@@ -420,7 +448,7 @@ export async function POST(request: NextRequest) {
         session.user.id,
         categoriaId,
         valorParaAtualizar,
-        tipo
+        tipo,
       );
     }
 
@@ -469,7 +497,7 @@ export async function POST(request: NextRequest) {
     console.error("Erro ao criar lançamento:", error);
     return NextResponse.json(
       { error: "Erro interno do servidor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

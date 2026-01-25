@@ -22,15 +22,32 @@ import {
   Headphones,
   User,
   Settings,
-} from "lucide-react"; // Adicionado User e Settings
+  Crown, // Adicionado para indicar plano premium
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSession, signOut } from "next-auth/react";
 import Image from "next/image";
-import { usePathname, useParams } from "next/navigation";
+import { usePathname, useParams, useRouter } from "next/navigation";
 import { logoutAction } from "@/app/[lang]/(auth)/(logout)/logoutAction";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../ui/tooltip";
 
 interface SidebarProps {
   onClose?: () => void;
+}
+
+interface LimiteInfo {
+  plano: string;
+  limite: number;
+  usado: number;
+  disponivel: number;
+  atingido: boolean;
+  porcentagem: number;
+  proximoLimite: number | null;
 }
 
 export default function Sidebar({ onClose }: SidebarProps) {
@@ -42,6 +59,33 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const [isMobile, setIsMobile] = useState(false);
   const locale = pathname.split("/")[1];
   const currentLang = (params?.lang as string) || i18n.language || "pt";
+  const router = useRouter();
+  const [limiteInfo, setLimiteInfo] = useState<LimiteInfo | null>(null);
+  const [loadingLimite, setLoadingLimite] = useState(false);
+  // Função para buscar informações de limite
+  const fetchLimiteInfo = async () => {
+    try {
+      setLoadingLimite(true);
+      const response = await fetch("/api/usuarios/subscription/limite");
+      if (response.ok) {
+        const data = await response.json();
+        setLimiteInfo(data);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar limite:", error);
+    } finally {
+      setLoadingLimite(false);
+    }
+  };
+
+  // Buscar limite ao carregar componente
+  useEffect(() => {
+    fetchLimiteInfo();
+
+    // Atualizar a cada 30 segundos
+    const interval = setInterval(fetchLimiteInfo, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogout = async () => {
     await logoutAction(locale);
@@ -106,6 +150,232 @@ export default function Sidebar({ onClose }: SidebarProps) {
     const cleanPath = path.startsWith("/") ? path : `/${path}`;
     return `/${currentLang}${cleanPath}`;
   };
+  // Componente do círculo percentual
+  const CirculoPercentual = () => {
+    if (!limiteInfo || loadingLimite || limiteInfo.plano !== "free") {
+      // Não mostrar para planos premium ou enquanto carrega
+      return null;
+    }
+
+    const { porcentagem, atingido, usado, limite } = limiteInfo;
+
+    // Definir cores baseado na porcentagem
+    let corFundo = "bg-gray-200";
+    let corTexto = "text-gray-600";
+    let corBorda = "border-gray-300";
+
+    if (atingido) {
+      corFundo = "bg-red-100";
+      corTexto = "text-red-600";
+      corBorda = "border-red-300";
+    } else if (porcentagem >= 80) {
+      corFundo = "bg-yellow-100";
+      corTexto = "text-yellow-600";
+      corBorda = "border-yellow-300";
+    } else if (porcentagem >= 50) {
+      corFundo = "bg-blue-100";
+      corTexto = "text-blue-600";
+      corBorda = "border-blue-300";
+    }
+
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              className={`
+                relative flex items-center justify-center
+                ${isCollapsed ? "mx-auto my-3" : "ml-3 my-3"}
+                cursor-pointer
+                ${corFundo} ${corBorda} ${corTexto}
+                rounded-full border-2
+                transition-all duration-300 hover:scale-105
+                ${isCollapsed ? "h-12 w-12" : "h-14 w-14"}
+              `}
+              onClick={() => router.push(`/${currentLang}/dashboard/perfil`)}
+            >
+              {/* Círculo de fundo */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <svg className="h-full w-full" viewBox="0 0 100 100">
+                  {/* Círculo de fundo */}
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    fill="transparent"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    strokeOpacity="0.2"
+                  />
+
+                  {/* Círculo de progresso */}
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    fill="transparent"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                    strokeDasharray={`${porcentagem * 2.83} 283`}
+                    strokeDashoffset="0"
+                    transform="rotate(-90 50 50)"
+                  />
+                </svg>
+              </div>
+
+              {/* Texto no centro */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span
+                  className={`
+                  font-bold
+                  ${isCollapsed ? "text-xs" : "text-sm"}
+                  ${atingido ? "animate-pulse" : ""}
+                `}
+                >
+                  {porcentagem}%
+                </span>
+              </div>
+
+              {/* Indicador de atingido */}
+              {atingido && (
+                <div className="absolute -top-1 -right-1">
+                  <div className="h-3 w-3 rounded-full bg-red-500 animate-ping" />
+                </div>
+              )}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="max-w-xs">
+            <div className="space-y-2 p-1">
+              <div className="font-medium text-sm">
+                {atingido ? "Limite Atingido!" : "Limite de Lançamentos"}
+              </div>
+              <div className="text-xs space-y-1">
+                <div className="flex justify-between">
+                  <span>Usado:</span>
+                  <span className="font-semibold">
+                    {usado}/{limite}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Disponível:</span>
+                  <span className="font-semibold">{limite - usado}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Plano:</span>
+                  <span className="font-semibold capitalize">
+                    {limiteInfo.plano}
+                  </span>
+                </div>
+              </div>
+              {atingido && (
+                <Button
+                  size="sm"
+                  className="w-full mt-2 text-xs h-7 border"
+                  onClick={() =>
+                    router.push(`/${currentLang}/dashboard/perfil`)
+                  }
+                >
+                  <Crown className="h-3 w-3 mr-1" />
+                  Fazer Upgrade
+                </Button>
+              )}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  };
+  // Versão minimalista ultra-sutil
+const LimiteExpandido = () => {
+  if (!limiteInfo || loadingLimite || limiteInfo.plano !== "free") {
+    return null;
+  }
+
+  const { porcentagem, usado, limite, atingido } = limiteInfo;
+
+  return (
+    <div
+      className="mt-4 p-3 rounded-lg dark:bg-transparent cursor-pointer hover:bg-gray-50/80 dark:hover:bg-gray-800/50 transition-colors"
+      onClick={() => router.push(`/${currentLang}/dashboard/perfil`)}
+    >
+      <div className="flex items-center gap-3">
+       {/* Círculo minimalista */}
+<div className="relative h-12 w-12">
+  <svg className="h-full w-full" viewBox="0 0 100 100">
+    <circle
+      cx="50"
+      cy="50"
+      r="40"
+      fill="transparent"
+      stroke="#e5e7eb"
+      strokeWidth="4"
+      className="dark:stroke-gray-700"
+    />
+    <circle
+      cx="50"
+      cy="50"
+      r="40"
+      fill="transparent"
+      stroke={atingido ? "#ef4444" : "#3b82f6"}
+      strokeWidth="4"
+      strokeLinecap="round"
+      strokeDasharray={`${porcentagem * 2.51} 251`}
+      strokeDashoffset="0"
+      transform="rotate(-90 50 50)"
+    />
+  </svg>
+  <div className="absolute inset-0 flex items-center justify-center">
+    <span
+      className={`text-xs font-medium ${atingido ? "text-red-600 dark:text-red-400" : "text-blue-600 dark:text-blue-400"}`}
+    >
+      {porcentagem}%
+    </span>
+  </div>
+</div>
+
+        {/* Conteúdo */}
+        <div className="flex-1">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-sm text-gray-700 dark:text-gray-200 font-medium">
+              Limite Free
+            </span>
+            {atingido && (
+              <Button
+                size="sm"
+                className="
+                  bg-gradient-to-r from-[#00cfec] to-[#007cca] 
+                  text-white hover:opacity-90
+                  hover:text-white dark:hover:text-white
+                  px-3 py-1 h-auto min-h-0
+                  ml-2
+                "
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/${currentLang}/dashboard/perfil`);
+                }}
+              >
+                <Crown className="h-3 w-3 mr-1.5" />
+                <span className="text-xs font-medium">Upgrade</span>
+              </Button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 text-sm">
+            <span className="text-gray-600 dark:text-gray-300">
+              {usado}/{limite} usado
+            </span>
+            {!atingido && (
+              <span className="text-gray-500 dark:text-gray-400">
+                • {limite - usado} restante
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
   if (isCollapsed === null) {
     return <div className="w-20 lg:w-64"></div>;
@@ -412,7 +682,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
           </li>
         </ul>
       </nav>
-
+      {/* SEÇÃO DE LIMITE - Colocada ANTES do rodapé */}
+      <div className="px-4 pb-2">
+        {!isCollapsed && <LimiteExpandido />}
+        {isCollapsed && <CirculoPercentual />}
+      </div>
       {/* Rodapé da Sidebar */}
       <div className="p-4 border-t border-gray-200 dark:border-gray-800">
         <div className="space-y-3">

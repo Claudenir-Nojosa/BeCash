@@ -26,6 +26,7 @@ import {
   Eye,
   Tag,
   X,
+  AlertTriangle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -83,6 +84,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loading } from "@/components/ui/loading-barrinhas";
 import { useTranslation } from "react-i18next";
+import { useRouter } from "next/navigation";
 
 interface Categoria {
   id: string;
@@ -171,6 +173,7 @@ export default function LancamentosPage() {
   const [modoSelecao, setModoSelecao] = useState<"recentes" | "busca">(
     "recentes",
   );
+  const router = useRouter();
   // Filtros
   const [filtros, setFiltros] = useState({
     categoria: "all",
@@ -180,7 +183,11 @@ export default function LancamentosPage() {
     metodoPagamento: "all",
     cartao: "all",
   });
-
+  const [limiteFree, setLimiteFree] = useState<{
+    atingido: boolean;
+    total: number;
+    usado: number;
+  } | null>(null);
   const [anoSelecionado, setAnoSelecionado] = useState(
     new Date().getFullYear(),
   );
@@ -265,7 +272,10 @@ export default function LancamentosPage() {
       setLoading(false);
     }
   };
-
+  // Chamar na montagem do componente
+  useEffect(() => {
+    verificarLimiteFree();
+  }, []);
   const getStatusCompartilhamento = (lancamento: Lancamento) => {
     if (!lancamento.LancamentoCompartilhado?.length) return null;
     const compartilhamento = lancamento.LancamentoCompartilhado[0];
@@ -318,7 +328,11 @@ export default function LancamentosPage() {
 
     return { ano, mes };
   };
-
+  // Função para redirecionar para a página de perfil
+  const handleRedirectToProfile = () => {
+    const lang = i18n.language; // 'pt' ou 'en'
+    router.push(`/${lang}/dashboard/perfil`);
+  };
   const lancamentosFiltrados = lancamentos.filter((lancamento) => {
     const { ano, mes } = calcularMesReferenciaLancamento(lancamento);
 
@@ -616,67 +630,72 @@ export default function LancamentosPage() {
     }
   }, [mostrarDialogVisualizar]);
 
-const handleEditar = async (lancamento: Lancamento) => {
-  // Buscar dados completos do lançamento incluindo usuário compartilhado
-  try {
-    const response = await fetch(`/api/lancamentos/${lancamento.id}/visualizar`);
-    if (response.ok) {
-      const lancamentoCompleto = await response.json();
-      
-      // Mapear de volta do formato do banco para o formato do formulário
-      const mapearMetodoPagamentoParaFormulario = (valor: string) => {
-        const mapeamento: { [key: string]: string } = {
-          PIX: "PIX",
-          DEBITO: "CARTAO_DEBITO",
-          CREDITO: "CARTAO_CREDITO",
-          TRANSFERENCIA: "TRANSFERENCIA",
-          DINHEIRO: "DINHEIRO",
-        };
-        return mapeamento[valor] || valor;
-      };
+  const handleEditar = async (lancamento: Lancamento) => {
+    // Buscar dados completos do lançamento incluindo usuário compartilhado
+    try {
+      const response = await fetch(
+        `/api/lancamentos/${lancamento.id}/visualizar`,
+      );
+      if (response.ok) {
+        const lancamentoCompleto = await response.json();
 
-      setLancamentoSelecionado(lancamentoCompleto);
-      setFormData({
-        descricao: lancamentoCompleto.descricao,
-        valor: lancamentoCompleto.valor.toString(),
-        tipo: lancamentoCompleto.tipo.toLowerCase(),
-        categoria: lancamentoCompleto.categoria.id,
-        tipoLancamento: lancamentoCompleto.LancamentoCompartilhado?.length
-          ? "compartilhado"
-          : "individual",
-        tipoTransacao: mapearMetodoPagamentoParaFormulario(
-          lancamentoCompleto.metodoPagamento,
-        ),
-        cartaoId: lancamentoCompleto.cartao?.id || "",
-        responsavel: "Claudenir",
-        pago: lancamentoCompleto.pago,
-        recorrente: lancamentoCompleto.recorrente || false,
-        tipoRecorrencia:
-          lancamentoCompleto.tipoParcelamento === "RECORRENTE"
-            ? "RECORRENCIA"
-            : "PARCELAMENTO",
-        frequencia: "mensal",
-        parcelas: lancamentoCompleto.parcelasTotal?.toString() || "",
-        observacoes: lancamentoCompleto.observacoes || "",
-        usuarioAlvoId:
-          lancamentoCompleto.LancamentoCompartilhado?.[0]?.usuarioAlvo?.id || "",
-        valorCompartilhado:
-          lancamentoCompleto.LancamentoCompartilhado?.[0]?.valorCompartilhado?.toString() ||
-          "",
-        data: new Date(lancamentoCompleto.data).toISOString().split("T")[0],
-        dataFimRecorrencia: lancamentoCompleto.dataFimRecorrencia
-          ? new Date(lancamentoCompleto.dataFimRecorrencia).toISOString().split("T")[0]
-          : "",
-      });
-      setMostrarDialogEditar(true);
-    } else {
+        // Mapear de volta do formato do banco para o formato do formulário
+        const mapearMetodoPagamentoParaFormulario = (valor: string) => {
+          const mapeamento: { [key: string]: string } = {
+            PIX: "PIX",
+            DEBITO: "CARTAO_DEBITO",
+            CREDITO: "CARTAO_CREDITO",
+            TRANSFERENCIA: "TRANSFERENCIA",
+            DINHEIRO: "DINHEIRO",
+          };
+          return mapeamento[valor] || valor;
+        };
+
+        setLancamentoSelecionado(lancamentoCompleto);
+        setFormData({
+          descricao: lancamentoCompleto.descricao,
+          valor: lancamentoCompleto.valor.toString(),
+          tipo: lancamentoCompleto.tipo.toLowerCase(),
+          categoria: lancamentoCompleto.categoria.id,
+          tipoLancamento: lancamentoCompleto.LancamentoCompartilhado?.length
+            ? "compartilhado"
+            : "individual",
+          tipoTransacao: mapearMetodoPagamentoParaFormulario(
+            lancamentoCompleto.metodoPagamento,
+          ),
+          cartaoId: lancamentoCompleto.cartao?.id || "",
+          responsavel: "Claudenir",
+          pago: lancamentoCompleto.pago,
+          recorrente: lancamentoCompleto.recorrente || false,
+          tipoRecorrencia:
+            lancamentoCompleto.tipoParcelamento === "RECORRENTE"
+              ? "RECORRENCIA"
+              : "PARCELAMENTO",
+          frequencia: "mensal",
+          parcelas: lancamentoCompleto.parcelasTotal?.toString() || "",
+          observacoes: lancamentoCompleto.observacoes || "",
+          usuarioAlvoId:
+            lancamentoCompleto.LancamentoCompartilhado?.[0]?.usuarioAlvo?.id ||
+            "",
+          valorCompartilhado:
+            lancamentoCompleto.LancamentoCompartilhado?.[0]?.valorCompartilhado?.toString() ||
+            "",
+          data: new Date(lancamentoCompleto.data).toISOString().split("T")[0],
+          dataFimRecorrencia: lancamentoCompleto.dataFimRecorrencia
+            ? new Date(lancamentoCompleto.dataFimRecorrencia)
+                .toISOString()
+                .split("T")[0]
+            : "",
+        });
+        setMostrarDialogEditar(true);
+      } else {
+        toast.error(t("categorias.mensagens.erroCarregar"));
+      }
+    } catch (error) {
+      console.error("Erro ao carregar dados do lançamento:", error);
       toast.error(t("categorias.mensagens.erroCarregar"));
     }
-  } catch (error) {
-    console.error("Erro ao carregar dados do lançamento:", error);
-    toast.error(t("categorias.mensagens.erroCarregar"));
-  }
-};
+  };
 
   const handleAtualizar = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -798,7 +817,25 @@ const handleEditar = async (lancamento: Lancamento) => {
       carregarDados();
     }
   };
+  // Função para verificar limite
+  const verificarLimiteFree = async () => {
+    try {
+      const response = await fetch("/api/usuarios/subscription/limite");
+      if (response.ok) {
+        const data = await response.json();
+        setLimiteFree(data);
 
+        // Mostrar toast se limite atingido
+        if (data.atingido) {
+          toast.warning(
+            `Plano free atingiu limite de ${data.total} lançamentos. Faça upgrade para criar mais.`,
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao verificar limite:", error);
+    }
+  };
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -901,8 +938,12 @@ const handleEditar = async (lancamento: Lancamento) => {
               variant={"outline"}
               onClick={() => setIsSheetOpen(true)}
               className="flex-1 sm:flex-none border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-500 text-xs sm:text-sm"
+              disabled={limiteFree?.atingido}
             >
               <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              {limiteFree?.atingido && (
+                <Crown className="h-4 w-4 text-yellow-600" />
+              )}
               <span className="truncate">
                 {t("categorias.acoes.novoLancamento")}
               </span>
@@ -1298,7 +1339,24 @@ const handleEditar = async (lancamento: Lancamento) => {
             </CardContent>
           </Card>
         </motion.div>
-
+        {limiteFree?.atingido && (
+          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center">
+              <AlertTriangle className="h-5 w-5 text-yellow-600 mr-2" />
+              <p className="text-sm text-yellow-800">
+                Você atingiu o limite de {limiteFree.total} lançamentos do plano
+                free.
+                <Button
+                  variant="link"
+                  className="ml-2 p-0 h-auto text-yellow-800 font-semibold"
+                  onClick={handleRedirectToProfile}
+                >
+                  Faça upgrade para continuar criando lançamentos.
+                </Button>
+              </p>
+            </div>
+          </div>
+        )}
         {/* Tabela de Lançamentos */}
         <motion.div variants={itemVariants} initial="hidden" animate="visible">
           {" "}
