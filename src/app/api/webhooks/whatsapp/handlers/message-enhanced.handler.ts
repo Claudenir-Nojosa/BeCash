@@ -10,8 +10,120 @@ import { getUserSubscription } from "@/lib/subscription";
 import db from "@/lib/db";
 
 const LIMITE_WHATSAPP_FREE = 3;
+const LIMITE_COMPARTILHADOS_PRO = 3;
 
 export class EnhancedMessageHandler {
+  private static async verificarLimiteCompartilhados(
+    userId: string,
+    userPhone: string,
+    idioma: string,
+  ): Promise<{
+    permitido: boolean;
+    plano?: string;
+    mensagensUsadas?: number;
+    limite?: number;
+  }> {
+    try {
+      // Buscar subscription do usuário
+      const subscription = await getUserSubscription(userId);
+
+      // ❌ FREE não pode criar compartilhados
+      if (!subscription.isActive || subscription.plano === "free") {
+        const msgLimite =
+          idioma === "en-US"
+            ? `⚠️ *SHARED EXPENSES - PREMIUM FEATURE*\n\n❌ Shared expenses are available only for PRO and FAMILY plans.\n\n✨ Upgrade now:\n• *PRO*: 3 shared expenses/month\n• *FAMILY*: Unlimited shared expenses\n\n🔗 Access the app to upgrade.`
+            : `⚠️ *DESPESAS COMPARTILHADAS - RECURSO PREMIUM*\n\n❌ Despesas compartilhadas estão disponíveis apenas nos planos PRO e FAMÍLIA.\n\n✨ Faça upgrade agora:\n• *PRO*: 3 compartilhamentos/mês\n• *FAMÍLIA*: Compartilhamentos ilimitados\n\n🔗 Acesse o app para fazer upgrade.`;
+
+        await WhatsAppService.sendMessage(userPhone, msgLimite);
+        await ConversationRedisService.addMessage(
+          userPhone,
+          "assistant",
+          msgLimite,
+        );
+
+        return { permitido: false, plano: "free" };
+      }
+
+      // ✅ FAMILY tem ilimitado
+      if (subscription.plano === "family") {
+        console.log("✅ Plano FAMILY: compartilhamentos ilimitados");
+        return { permitido: true, plano: "family" };
+      }
+
+      // 📊 PRO tem limite de 3 por mês
+      if (subscription.plano === "pro") {
+        const inicioMes = new Date();
+        inicioMes.setDate(1);
+        inicioMes.setHours(0, 0, 0, 0);
+
+        // Contar compartilhamentos criados neste mês
+        const compartilhadosMes = await db.lancamentoCompartilhado.count({
+          where: {
+            usuarioCriadorId: userId,
+            createdAt: {
+              gte: inicioMes,
+            },
+          },
+        });
+
+        console.log(
+          `📊 Compartilhamentos PRO no mês: ${compartilhadosMes}/${LIMITE_COMPARTILHADOS_PRO}`,
+        );
+
+        // Se atingiu o limite
+        if (compartilhadosMes >= LIMITE_COMPARTILHADOS_PRO) {
+          const msgLimite =
+            idioma === "en-US"
+              ? `⚠️ *PRO PLAN LIMIT REACHED*\n\nYou've used ${compartilhadosMes}/${LIMITE_COMPARTILHADOS_PRO} shared expenses this month.\n\n✨ Upgrade to *FAMILY* for unlimited shared expenses!\n\n🔗 Access the app to upgrade.`
+              : `⚠️ *LIMITE DO PLANO PRO ATINGIDO*\n\nVocê já usou ${compartilhadosMes}/${LIMITE_COMPARTILHADOS_PRO} compartilhamentos este mês.\n\n✨ Faça upgrade para *FAMÍLIA* e tenha compartilhamentos ilimitados!\n\n🔗 Acesse o app para fazer upgrade.`;
+
+          await WhatsAppService.sendMessage(userPhone, msgLimite);
+          await ConversationRedisService.addMessage(
+            userPhone,
+            "assistant",
+            msgLimite,
+          );
+
+          return {
+            permitido: false,
+            plano: "pro",
+            mensagensUsadas: compartilhadosMes,
+            limite: LIMITE_COMPARTILHADOS_PRO,
+          };
+        }
+
+        const restantes = LIMITE_COMPARTILHADOS_PRO - compartilhadosMes;
+        console.log(
+          `✅ Limite PRO OK: ${restantes} compartilhamento(s) restante(s)`,
+        );
+
+        // Avisar quando estiver no último
+        if (compartilhadosMes === LIMITE_COMPARTILHADOS_PRO - 1) {
+          const msgAviso =
+            idioma === "en-US"
+              ? `⚠️ This is your last shared expense this month!\n\n✨ Upgrade to FAMILY for unlimited.`
+              : `⚠️ Este é seu último compartilhamento este mês!\n\n✨ Faça upgrade para FAMÍLIA e tenha ilimitado.`;
+
+          await WhatsAppService.sendMessage(userPhone, msgAviso);
+        }
+
+        return {
+          permitido: true,
+          plano: "pro",
+          mensagensUsadas: compartilhadosMes,
+          limite: LIMITE_COMPARTILHADOS_PRO,
+        };
+      }
+
+      // Fallback (não deveria chegar aqui)
+      return { permitido: false, plano: "unknown" };
+    } catch (error) {
+      console.error("❌ Erro ao verificar limite de compartilhados:", error);
+      // Em caso de erro, bloquear por segurança
+      return { permitido: false };
+    }
+  }
+
   private static async verificarLimiteWhatsApp(
     userId: string,
     userPhone: string,
@@ -404,6 +516,37 @@ export class EnhancedMessageHandler {
       return { status: "extraction_failed" };
     }
 
+    // ✅ VERIFICAR SE É COMPARTILHADO E VALIDAR LIMITE
+    if (
+      resultado.dados.ehCompartilhado &&
+      resultado.dados.usernameCompartilhado
+    ) {
+      console.log(
+        "🔍 Lançamento compartilhado detectado, verificando limites...",
+      );
+
+      const limiteCompartilhados = await this.verificarLimiteCompartilhados(
+        userId,
+        userPhone,
+        idioma,
+      );
+
+      if (!limiteCompartilhados.permitido) {
+        console.log(
+          `🚫 Limite de compartilhados atingido para usuário ${userId} (plano: ${limiteCompartilhados.plano})`,
+        );
+        return {
+          status: "shared_limit_reached",
+          plano: limiteCompartilhados.plano,
+          mensagensUsadas: limiteCompartilhados.mensagensUsadas,
+          limite: limiteCompartilhados.limite,
+        };
+      }
+
+      console.log(
+        `✅ Limite de compartilhados OK (plano: ${limiteCompartilhados.plano})`,
+      );
+    }
     // Encontrar categoria
     const categoria =
       categorias.find(
