@@ -15,7 +15,8 @@ import { Button } from "../ui/button";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import Link from "next/link";
-import { useParams } from "next/navigation"; // Adicione esta importação
+import { useParams } from "next/navigation";
+import { getFallback } from "@/lib/i18nFallback";
 
 const floatingIcons = [
   {
@@ -67,8 +68,89 @@ const animatedCoins = Array.from({ length: 12 }, (_, i) => ({
 
 export const Hero = () => {
   const { t } = useTranslation("hero");
-  const params = useParams(); // Obter parâmetros da URL
-  const currentLang = (params?.lang as string) || "pt"; // Extrair linguagem ou usar "pt" como padrão
+  const params = useParams();
+  const currentLang = (params?.lang as string) || "pt";
+
+  // Função para obter tradução com fallback
+  const getTranslation = (key: string) => {
+    const translation = t(key);
+    if (translation && translation !== key) {
+      return translation;
+    }
+
+    switch (key) {
+      case "offer":
+        return getFallback(
+          currentLang,
+          "2 meses gratuitos no plano anual",
+          "2 Months Free — Annually",
+        );
+      case "title.line1":
+        return getFallback(
+          currentLang,
+          "Controle suas finanças pelo",
+          "Control your finances through",
+        );
+      case "title.whatsapp":
+        return getFallback(currentLang, "WhatsApp", "WhatsApp");
+      case "title.line2":
+        return getFallback(
+          currentLang,
+          "com IA inteligente",
+          "with intelligent AI",
+        );
+      case "subtitle":
+        return getFallback(
+          currentLang,
+          "O BeCash é seu assistente financeiro que transforma mensagens do WhatsApp em controle financeiro completo. Lançamentos automáticos, limites por categoria, metas compartilhadas e análises de IA para você economizar de verdade.",
+          "BeCash is your financial assistant that transforms WhatsApp messages into complete financial control. Automatic entries, category limits, shared goals, and AI analysis so you can really save money.",
+        );
+      case "buttons.startFree":
+        return getFallback(
+          currentLang,
+          "Começar Gratuitamente",
+          "Start for Free",
+        );
+      case "buttons.howItWorks":
+        return getFallback(
+          currentLang,
+          "Ver como Funciona",
+          "See How It Works",
+        );
+      case "trust.dataProtected":
+        return getFallback(currentLang, "Dados Protegidos", "Data Protected");
+      case "trust.aiAdvanced":
+        return getFallback(currentLang, "IA Avançada", "Advanced AI");
+      case "trust.averageSavings":
+        return getFallback(
+          currentLang,
+          "+30% Economia Média",
+          "+30% Average Savings",
+        );
+      default:
+        return key;
+    }
+  };
+
+  // Criar objeto de traduções
+  const translations = {
+    offer: getTranslation("offer"),
+    title: {
+      line1: getTranslation("title.line1"),
+      whatsapp: getTranslation("title.whatsapp"),
+      line2: getTranslation("title.line2"),
+    },
+    subtitle: getTranslation("subtitle"),
+    buttons: {
+      startFree: getTranslation("buttons.startFree"),
+      howItWorks: getTranslation("buttons.howItWorks"),
+    },
+    trust: {
+      dataProtected: getTranslation("trust.dataProtected"),
+      aiAdvanced: getTranslation("trust.aiAdvanced"),
+      averageSavings: getTranslation("trust.averageSavings"),
+    },
+  };
 
   const [isHoveringOffer, setIsHoveringOffer] = useState(false);
   const [isHoveringCTA, setIsHoveringCTA] = useState(false);
@@ -167,7 +249,7 @@ export const Hero = () => {
           >
             <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
             <span className="text-sm font-medium text-sky-700 dark:text-sky-200">
-              {t("offer")}
+              {translations.offer}
             </span>
             <motion.div
               animate={{ x: isHoveringOffer ? 3 : 0 }}
@@ -187,11 +269,11 @@ export const Hero = () => {
             className="text-3xl md:text-5xl lg:text-5xl font-bold leading-tight mb-6 md:mb-8"
           >
             <span className="block text-gray-900 dark:text-white">
-              {t("title.line1")}
+              {translations.title.line1}
             </span>
             <span className="relative inline-block mt-3 md:mt-4">
               <span className="bg-gradient-to-r from-[#00cfec] to-[#007cca] bg-clip-text text-transparent">
-                {t("title.whatsapp")}
+                {translations.title.whatsapp}
               </span>
               <motion.div
                 className="absolute -bottom-2 left-0 w-full h-0.5 bg-gradient-to-r from-[#00cfec]/60 to-transparent"
@@ -201,7 +283,7 @@ export const Hero = () => {
               />
             </span>
             <span className="block text-2xl md:text-4xl lg:text-5xl font-semibold mt-6 md:mt-8 text-gray-900 dark:text-white">
-              {t("title.line2")}
+              {translations.title.line2}
             </span>
           </motion.h1>
 
@@ -212,7 +294,7 @@ export const Hero = () => {
             transition={{ delay: 0.4, duration: 0.5 }}
             className="text-base md:text-lg text-gray-800/90 dark:text-gray-300/90 mb-8 md:mb-12 max-w-2xl mx-auto leading-relaxed px-2"
           >
-            {t("subtitle")}
+            {translations.subtitle}
           </motion.p>
 
           {/* CTA Buttons - Ajustes finos */}
@@ -230,7 +312,9 @@ export const Hero = () => {
                 onMouseEnter={() => setIsHoveringCTA(true)}
                 onMouseLeave={() => setIsHoveringCTA(false)}
               >
-                <span className="relative z-10">{t("buttons.startFree")}</span>
+                <span className="relative z-10">
+                  {translations.buttons.startFree}
+                </span>
                 <motion.div
                   animate={{ x: isHoveringCTA ? 3 : 0 }}
                   transition={{ duration: 0.15 }}
@@ -260,7 +344,7 @@ export const Hero = () => {
               >
                 <ChevronRight className="w-4 h-4 rotate-90 text-gray-600 dark:text-gray-400 group-hover:text-[#007cca] dark:group-hover:text-[#00cfec] transition-colors duration-200" />
               </motion.div>
-              {t("buttons.howItWorks")}
+              {translations.buttons.howItWorks}
             </Button>
           </motion.div>
 
@@ -278,11 +362,10 @@ export const Hero = () => {
               viewport={{ once: true }}
               transition={{ delay: 0.1, duration: 0.3 }}
             >
-              {" "}
               <div className="w-8 h-8 rounded-full flex bg-gradient-to-br from-[#00cfec] to-[#007cca] items-center justify-center shadow-sm">
                 <Shield className="w-3.5 h-3.5 text-white" />
               </div>
-              {t("trust.dataProtected")}
+              {translations.trust.dataProtected}
             </motion.span>
 
             <motion.span
@@ -292,11 +375,10 @@ export const Hero = () => {
               viewport={{ once: true }}
               transition={{ delay: 0.1, duration: 0.3 }}
             >
-              {" "}
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#00cfec] to-[#007cca] flex items-center justify-center shadow-sm">
                 <Sparkles className="w-3.5 h-3.5 text-white" />
               </div>
-              {t("trust.aiAdvanced")}
+              {translations.trust.aiAdvanced}
             </motion.span>
 
             <motion.span
@@ -306,11 +388,10 @@ export const Hero = () => {
               viewport={{ once: true }}
               transition={{ delay: 0.1, duration: 0.3 }}
             >
-              {" "}
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#09acc1] to-[#007cca] flex items-center justify-center shadow-sm">
                 <TrendingUp className="w-3.5 h-3.5 text-white" />
               </div>
-              {t("trust.averageSavings")}
+              {translations.trust.averageSavings}
             </motion.span>
           </motion.div>
         </motion.div>

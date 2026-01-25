@@ -181,7 +181,7 @@ export default function RelatoriosPage() {
   }, [filtros]);
 
   // Se é plano free, mostrar mensagem educativa
-  if (planoUsuario === "free") {
+  if (!carregando && planoUsuario === "free") {
     return (
       <div className="h-full flex flex-col overflow-hidden p-4 sm:p-6">
         <div className="max-w-4xl mx-auto w-full h-full flex flex-col gap-4 sm:gap-6">

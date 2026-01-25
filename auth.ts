@@ -179,42 +179,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       console.log("🔍 [AUTH REDIRECT] url:", url);
       console.log("🔍 [AUTH REDIRECT] baseUrl:", baseUrl);
 
-
-
-      // Se é URL relativa com locale
-      if (url.startsWith("/pt") || url.startsWith("/en")) {
-        const finalUrl = `${baseUrl}${url}`;
-        console.log("✅ [AUTH REDIRECT] URL relativa com locale:", finalUrl);
-        return finalUrl;
+      // Para login com credentials, o redirect é feito pelo loginAction
+      // Então devemos retornar a URL original ou uma padrão
+      if (url === baseUrl || url === `${baseUrl}/`) {
+        return `${baseUrl}/pt/dashboard`;
       }
 
-      // Se a URL começa com baseUrl mas não tem locale, extrair o path e adicionar locale
-      if (url.startsWith(baseUrl)) {
-        const path = url.replace(baseUrl, "");
-
-        // Se o path já tem locale, retornar
-        if (path.startsWith("/pt") || path.startsWith("/en")) {
-          console.log("✅ [AUTH REDIRECT] Path já tem locale:", url);
-          return url;
-        }
-
-        // Adicionar locale padrão
-        const finalUrl = `${baseUrl}/pt${path || "/dashboard"}`;
-        console.log("⚠️ [AUTH REDIRECT] Adicionando locale padrão:", finalUrl);
-        return finalUrl;
+      // Se já é uma URL completa com locale, manter
+      if (url.includes("/pt/") || url.includes("/en/")) {
+        return url;
       }
 
-      // Para URLs relativas sem locale, adicionar locale padrão
+      // URLs relativas, adicionar locale padrão
       if (url.startsWith("/")) {
-        const finalUrl = `${baseUrl}/pt${url}`;
-        console.log("⚠️ [AUTH REDIRECT] URL relativa sem locale:", finalUrl);
-        return finalUrl;
+        return `${baseUrl}/pt${url}`;
       }
 
-      // Fallback: dashboard com locale padrão
-      const fallbackUrl = `${baseUrl}/pt/dashboard`;
-      console.log("⚠️ [AUTH REDIRECT] Fallback:", fallbackUrl);
-      return fallbackUrl;
+      // Fallback para dashboard
+      return `${baseUrl}/pt/dashboard`;
     },
   },
   pages: {

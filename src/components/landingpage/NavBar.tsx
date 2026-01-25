@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { LanguageSwitcher } from "../ui/language-switcher";
 import { useTranslation } from "react-i18next";
+import { getFallback } from "@/lib/i18nFallback";
 
 interface NavLink {
   label: string;
@@ -25,15 +26,80 @@ interface MobileMenuProps {
 
 const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
   const { t } = useTranslation("navbar");
-  const pathname = usePathname();
   const params = useParams();
   const currentLang = (params?.lang as string) || "pt";
 
+  // Função para obter tradução com fallback
+  const getTranslation = (key: string) => {
+    const translation = t(key);
+    if (translation && translation !== key) {
+      return translation;
+    }
+
+    switch (key) {
+      case "brand":
+        return getFallback(currentLang, "BeCash", "BeCash");
+      case "links.features":
+        return getFallback(currentLang, "Recursos", "Features");
+      case "links.howItWorks":
+        return getFallback(currentLang, "Como Funciona", "How it Works");
+      case "links.testimonials":
+        return getFallback(currentLang, "Depoimentos", "Testimonials");
+      case "links.pricing":
+        return getFallback(currentLang, "Preços", "Pricing");
+      case "buttons.login":
+        return getFallback(currentLang, "Entrar", "Login");
+      case "buttons.startFree":
+        return getFallback(currentLang, "Começar Grátis", "Start Free");
+      case "aria.goHome":
+        return getFallback(
+          currentLang,
+          "Voltar para página inicial",
+          "Go back to home page",
+        );
+      case "aria.navigateTo":
+        return getFallback(currentLang, "Navegar para", "Navigate to");
+      case "aria.openMenu":
+        return getFallback(currentLang, "Abrir menu", "Open menu");
+      case "aria.closeMenu":
+        return getFallback(currentLang, "Fechar menu", "Close menu");
+      default:
+        return key;
+    }
+  };
+
+  // Criar objeto de traduções
+  const translations = {
+    brand: getTranslation("brand"),
+    links: {
+      features: getTranslation("links.features"),
+      howItWorks: getTranslation("links.howItWorks"),
+      testimonials: getTranslation("links.testimonials"),
+      pricing: getTranslation("links.pricing"),
+    },
+    buttons: {
+      login: getTranslation("buttons.login"),
+      startFree: getTranslation("buttons.startFree"),
+    },
+    aria: {
+      goHome: getTranslation("aria.goHome"),
+      navigateTo: getTranslation("aria.navigateTo"),
+      openMenu: getTranslation("aria.openMenu"),
+      closeMenu: getTranslation("aria.closeMenu"),
+    },
+  };
+
   const NAV_LINKS: NavLink[] = [
-    { label: t("links.features"), href: `/${currentLang}/#features` },
-    { label: t("links.howItWorks"), href: `/${currentLang}/#how-it-works` },
-    { label: t("links.testimonials"), href: `/${currentLang}/#testimonials` },
-    { label: t("links.pricing"), href: `/${currentLang}/#pricing` },
+    { label: translations.links.features, href: `/${currentLang}/#features` },
+    {
+      label: translations.links.howItWorks,
+      href: `/${currentLang}/#how-it-works`,
+    },
+    {
+      label: translations.links.testimonials,
+      href: `/${currentLang}/#testimonials`,
+    },
+    { label: translations.links.pricing, href: `/${currentLang}/#pricing` },
   ];
 
   useEffect(() => {
@@ -76,7 +142,7 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
               "focus:outline-none focus:ring-2 focus:ring-[#007cca] focus:ring-offset-2 dark:focus:ring-offset-gray-900",
             )}
             onClick={handleLinkClick}
-            aria-label={`${t("aria.navigateTo")} ${link.label}`}
+            aria-label={`${translations.aria.navigateTo} ${link.label}`}
           >
             {link.label}
           </Link>
@@ -94,7 +160,7 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
               className="w-full border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"
               onClick={handleLinkClick}
             >
-              {t("buttons.login")}
+              {translations.buttons.login}
             </Button>
           </Link>
           <Link href={`/${currentLang}/signup`}>
@@ -102,7 +168,7 @@ const MobileMenu = ({ isOpen, onClose }: MobileMenuProps) => {
               className="w-full bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90 transition-opacity"
               onClick={handleLinkClick}
             >
-              {t("buttons.startFree")}
+              {translations.buttons.startFree}
             </Button>
           </Link>
         </div>
@@ -116,11 +182,46 @@ const DesktopNavLinks = () => {
   const params = useParams();
   const currentLang = (params?.lang as string) || "pt";
 
+  // Função para obter tradução com fallback
+  const getTranslation = (key: string) => {
+    const translation = t(key);
+    if (translation && translation !== key) {
+      return translation;
+    }
+
+    switch (key) {
+      case "links.features":
+        return getFallback(currentLang, "Recursos", "Features");
+      case "links.howItWorks":
+        return getFallback(currentLang, "Como Funciona", "How it Works");
+      case "links.testimonials":
+        return getFallback(currentLang, "Depoimentos", "Testimonials");
+      case "links.pricing":
+        return getFallback(currentLang, "Preços", "Pricing");
+      case "aria.navigateTo":
+        return getFallback(currentLang, "Navegar para", "Navigate to");
+      default:
+        return key;
+    }
+  };
+
   const NAV_LINKS: NavLink[] = [
-    { label: t("links.features"), href: `/${currentLang}/#features` },
-    { label: t("links.howItWorks"), href: `/${currentLang}/#how-it-works` },
-    { label: t("links.testimonials"), href: `/${currentLang}/#testimonials` },
-    { label: t("links.pricing"), href: `/${currentLang}/#pricing` },
+    {
+      label: getTranslation("links.features"),
+      href: `/${currentLang}/#features`,
+    },
+    {
+      label: getTranslation("links.howItWorks"),
+      href: `/${currentLang}/#how-it-works`,
+    },
+    {
+      label: getTranslation("links.testimonials"),
+      href: `/${currentLang}/#testimonials`,
+    },
+    {
+      label: getTranslation("links.pricing"),
+      href: `/${currentLang}/#pricing`,
+    },
   ];
 
   const pathname = usePathname();
@@ -141,7 +242,7 @@ const DesktopNavLinks = () => {
               "transition-colors duration-300 font-medium text-sm",
               "group py-2 px-1",
             )}
-            aria-label={`${t("aria.navigateTo")} ${link.label}`}
+            aria-label={`${getTranslation("aria.navigateTo")} ${link.label}`}
           >
             {link.label}
             <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-[#00cfec] to-[#007cca] group-hover:w-full transition-all duration-300" />
@@ -163,6 +264,49 @@ export const Navbar = () => {
   useMotionValueEvent(scrollY, "change", (latest) => {
     setIsScrolled(latest > 50);
   });
+
+  // Função para obter tradução com fallback
+  const getTranslation = (key: string) => {
+    const translation = t(key);
+    if (translation && translation !== key) {
+      return translation;
+    }
+
+    switch (key) {
+      case "brand":
+        return getFallback(currentLang, "BeCash", "BeCash");
+      case "buttons.login":
+        return getFallback(currentLang, "Entrar", "Login");
+      case "buttons.startFree":
+        return getFallback(currentLang, "Começar Grátis", "Start Free");
+      case "aria.goHome":
+        return getFallback(
+          currentLang,
+          "Voltar para página inicial",
+          "Go back to home page",
+        );
+      case "aria.openMenu":
+        return getFallback(currentLang, "Abrir menu", "Open menu");
+      case "aria.closeMenu":
+        return getFallback(currentLang, "Fechar menu", "Close menu");
+      default:
+        return key;
+    }
+  };
+
+  // Criar objeto de traduções
+  const translations = {
+    brand: getTranslation("brand"),
+    buttons: {
+      login: getTranslation("buttons.login"),
+      startFree: getTranslation("buttons.startFree"),
+    },
+    aria: {
+      goHome: getTranslation("aria.goHome"),
+      openMenu: getTranslation("aria.openMenu"),
+      closeMenu: getTranslation("aria.closeMenu"),
+    },
+  };
 
   const toggleMenu = useCallback(() => {
     setIsOpen((prev) => !prev);
@@ -203,9 +347,9 @@ export const Navbar = () => {
               className="flex items-center gap-2"
             >
               <Link
-                href={`/${currentLang}`}
+                href={`/`}
                 className="flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#007cca] focus:ring-offset-2 dark:focus:ring-offset-gray-900 rounded-lg p-1"
-                aria-label={t("aria.goHome")}
+                aria-label={translations.aria.goHome}
               >
                 <div className="w-8 h-8 flex items-center justify-center">
                   <Image
@@ -217,7 +361,7 @@ export const Navbar = () => {
                   />
                 </div>
                 <span className="text-lg font-bold bg-gradient-to-r from-[#007cca] to-[#14a0b3] bg-clip-text text-transparent">
-                  {t("brand")}
+                  {translations.brand}
                 </span>
               </Link>
             </motion.div>
@@ -235,7 +379,7 @@ export const Navbar = () => {
                   size="sm"
                   className="text-gray-800 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 text-sm font-medium"
                 >
-                  {t("buttons.login")}
+                  {translations.buttons.login}
                 </Button>
               </Link>
               <Link href={`/${currentLang}/signup`}>
@@ -243,7 +387,7 @@ export const Navbar = () => {
                   size="sm"
                   className="bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:shadow-lg hover:shadow-blue-500/25 dark:hover:shadow-blue-500/50 transition-all duration-300 text-sm font-medium"
                 >
-                  {t("buttons.startFree")}
+                  {translations.buttons.startFree}
                 </Button>
               </Link>
             </div>
@@ -256,7 +400,11 @@ export const Navbar = () => {
                 onClick={toggleMenu}
                 className="p-2 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-[#007cca] dark:focus:ring-offset-gray-900"
                 aria-expanded={isOpen}
-                aria-label={isOpen ? t("aria.closeMenu") : t("aria.openMenu")}
+                aria-label={
+                  isOpen
+                    ? translations.aria.closeMenu
+                    : translations.aria.openMenu
+                }
               >
                 {isOpen ? (
                   <X className="w-5 h-5" />

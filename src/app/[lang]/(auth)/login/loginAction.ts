@@ -36,20 +36,11 @@ export default async function loginAction(_prevState: any, formData: FormData) {
     const result = await signIn("credentials", {
       email,
       password,
-      redirect: false,
+      redirect: true, // Agora deixamos true para o NextAuth redirecionar
+      callbackUrl: `/${lang}/dashboard`, // Direcionar para o dashboard
     });
 
     console.log("✅ [LOGIN ACTION] SignIn result:", result);
-
-    // ✅ Verificar se o login foi bem-sucedido
-    if (!result || result.error) {
-      console.error("❌ [LOGIN ACTION] Falha no signIn:", result?.error);
-      return {
-        success: false,
-        message: t.credentials,
-        lang: lang,
-      };
-    }
 
     // Buscar usuário para verificar onboarding
     const user = await db.user.findUnique({

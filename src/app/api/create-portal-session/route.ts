@@ -27,11 +27,20 @@ export async function POST() {
       );
     }
 
-    // Use o ID da configuração que você já tem
+    // Verifica se a variável de ambiente existe
+    if (!process.env.STRIPE_PORTAL_CONFIGURATION_ID) {
+      console.error("STRIPE_PORTAL_CONFIGURATION_ID não configurada no .env");
+      return NextResponse.json(
+        { error: "Configuração do portal não encontrada" },
+        { status: 500 }
+      );
+    }
+
+    // Use o ID da configuração do .env
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: user.stripeCustomerId,
       return_url: `${process.env.NEXT_PUBLIC_APP_URL}/perfil?tab=subscription`,
-      configuration: "bpc_1StXMp4fNQAvMR7aban8OaLA", // ← SEU CONFIGURATION ID
+      configuration: process.env.STRIPE_PORTAL_CONFIGURATION_ID,
     });
 
     return NextResponse.json({ url: portalSession.url });
