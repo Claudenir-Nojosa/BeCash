@@ -15,7 +15,7 @@ import { formatCNPJ, formatRegime } from "@/lib/utils";
 
 import { EmpresaComObrigacao } from "../../../types/types";
 
-
+ // deploy
 interface EmpresasObrigacaoTableProps {
   empresas: EmpresaComObrigacao[];
   obrigacaoNome: string;
