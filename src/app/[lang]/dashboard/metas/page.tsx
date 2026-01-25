@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,6 +55,7 @@ import {
   Trash2,
   ArrowLeft,
   DollarSign,
+  Crown,
 } from "lucide-react";
 import { MetaPessoal } from "../../../../../types/dashboard";
 import { UploadImage } from "@/components/shared/upload-image";
@@ -63,10 +64,14 @@ import { ColaboradoresMeta } from "@/components/shared/ColaboradoresMeta";
 import { Loading } from "@/components/ui/loading-barrinhas";
 import { motion, AnimatePresence } from "framer-motion";
 
+type PlanoUsuario = "free" | "pro" | "family";
+
 export default function MetasPage() {
   const router = useRouter();
+  const params = useParams();
   const { data: session } = useSession();
   const { t, i18n } = useTranslation("metas");
+  const currentLang = (params?.lang as string) || "pt";
   const [colaboradoresCarregando, setColaboradoresCarregando] = useState<
     Set<string>
   >(new Set());
@@ -88,8 +93,17 @@ export default function MetasPage() {
   const [editandoMeta, setEditandoMeta] = useState<MetaPessoal | null>(null);
   const [valorAdicional, setValorAdicional] = useState("100");
   const [mostrarInputValor, setMostrarInputValor] = useState<string | null>(
-    null
+    null,
   );
+const [limiteInfo, setLimiteInfo] = useState<{
+  plano: PlanoUsuario; // ← Altere para o tipo específico
+  usadoMetas: number;
+  limiteMetas: number;
+  metasAtingido: boolean;
+  percentualMetas: number;
+} | null>(null);
+  
+  const [loadingLimite, setLoadingLimite] = useState(false);
   const [formData, setFormData] = useState({
     titulo: "",
     descricao: "",
@@ -130,8 +144,35 @@ export default function MetasPage() {
 
   useEffect(() => {
     carregarMetas();
+    fetchLimiteInfo(); // ← Adicione esta linha
   }, []);
 
+  const fetchLimiteInfo = async () => {
+    try {
+      setLoadingLimite(true);
+      const response = await fetch(
+        "/api/usuarios/subscription/limite-combinado",
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setLimiteInfo({
+         plano: data.plano as PlanoUsuario, 
+          usadoMetas: data.usadoMetas,
+          limiteMetas: data.limiteMetas,
+          metasAtingido: data.metasAtingido,
+          percentualMetas: data.percentualMetas,
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao buscar limite de metas:", error);
+    } finally {
+      setLoadingLimite(false);
+    }
+  };
+// Adicione esta função após as outras funções utilitárias
+const podeTerColaboradores = () => {
+  return limiteInfo?.plano === "family";
+};
   // Adicione esta função para carregar colaboradores de uma meta específica
   const carregarColaboradoresMeta = async (metaId: string) => {
     try {
@@ -150,8 +191,8 @@ export default function MetasPage() {
                   ColaboradorMeta: data.colaboradores,
                   ConviteMeta: data.convites,
                 }
-              : meta
-          )
+              : meta,
+          ),
         );
       }
     } catch (error) {
@@ -244,6 +285,21 @@ export default function MetasPage() {
 
       if (!res.ok) {
         const errorData = await res.json();
+
+        // Verifica se é erro de limite de metas
+        if (
+          res.status === 403 &&
+          errorData.error === "Limite de metas atingido"
+        ) {
+          toast.error(errorData.message, {
+            action: {
+              label: "Upgrade",
+              onClick: () => router.push(`/${currentLang}/dashboard/perfil`), 
+            },
+          });
+          return;
+        }
+
         throw new Error(errorData.error || t("erros.salvarMeta"));
       }
 
@@ -252,7 +308,7 @@ export default function MetasPage() {
       if (editandoMeta) {
         // Atualização otimista
         setMetas((prev) =>
-          prev.map((meta) => (meta.id === editandoMeta.id ? metaSalva : meta))
+          prev.map((meta) => (meta.id === editandoMeta.id ? metaSalva : meta)),
         );
         toast.success(t("mensagens.atualizada"));
       } else {
@@ -322,7 +378,7 @@ export default function MetasPage() {
       toast.success(
         t("mensagens.valorAdicionado", {
           valor: parseFloat(valorAdicional).toFixed(2),
-        })
+        }),
       );
       setMostrarInputValor(null);
       setValorAdicional("100");
@@ -333,14 +389,14 @@ export default function MetasPage() {
     }
   };
   const currencySymbol = i18n.language === "en" ? "$" : "R$";
- const formatarMoeda = (valor: number) => {
-  const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
-  const currency = i18n.language === "pt" ? "BRL" : "USD"; // ✅ Dinâmico
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: currency,
-  }).format(valor);
-};
+  const formatarMoeda = (valor: number) => {
+    const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
+    const currency = i18n.language === "pt" ? "BRL" : "USD"; // ✅ Dinâmico
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: currency,
+    }).format(valor);
+  };
 
   const formatarData = (data: Date) => {
     return new Date(data).toLocaleDateString("pt-BR");
@@ -402,7 +458,7 @@ export default function MetasPage() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify(payload),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -415,7 +471,7 @@ export default function MetasPage() {
       toast.success(
         t("mensagens.valorAdicionado", {
           valor: parseFloat(valorParaContribuir).toFixed(2),
-        })
+        }),
       );
 
       setDialogContribuicaoAberto(false);
@@ -425,7 +481,7 @@ export default function MetasPage() {
     } catch (error) {
       console.error(t("erros.contribuir"), error);
       toast.error(
-        error instanceof Error ? error.message : t("erros.contribuir")
+        error instanceof Error ? error.message : t("erros.contribuir"),
       );
     } finally {
       setCarregandoContribuicao(false);
@@ -435,8 +491,106 @@ export default function MetasPage() {
     return <Loading />;
   }
 
+  const AvisoLimiteMetas = () => {
+    if (!limiteInfo || loadingLimite || limiteInfo.plano !== "free") {
+      return null;
+    }
+
+    const { usadoMetas, limiteMetas, metasAtingido, percentualMetas } =
+      limiteInfo;
+
+    // Cores baseadas no percentual
+    let corProgresso = "#f59e0b"; // Amarelo padrão
+    let corTexto = "text-amber-700 dark:text-amber-300";
+    let corFundo = "bg-amber-50 dark:bg-amber-900/20";
+    let corBorda = "border-amber-200 dark:border-amber-800";
+
+    if (metasAtingido) {
+      corProgresso = "#ef4444"; // Vermelho
+      corTexto = "text-red-700 dark:text-red-300";
+      corFundo = "bg-red-50 dark:bg-red-900/20";
+      corBorda = "border-red-200 dark:border-red-800";
+    } else if (percentualMetas >= 80) {
+      corProgresso = "#f59e0b"; // Amarelo
+      corTexto = "text-amber-700 dark:text-amber-300";
+      corFundo = "bg-amber-50 dark:bg-amber-900/20";
+      corBorda = "border-amber-200 dark:border-amber-800";
+    }
+
+    return (
+      <div className={`mb-4 p-4 rounded-lg border ${corBorda} ${corFundo}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {/* Círculo de progresso */}
+            <div className="relative h-10 w-10">
+              <svg className="h-full w-full" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  fill="transparent"
+                  stroke={metasAtingido ? "#fecaca" : "#fde68a"}
+                  strokeWidth="4"
+                  strokeOpacity="0.3"
+                />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  fill="transparent"
+                  stroke={corProgresso}
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeDasharray={`${percentualMetas * 2.51} 251`}
+                  strokeDashoffset="0"
+                  transform="rotate(-90 50 50)"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className={`text-xs font-medium ${corTexto}`}>
+                  {Math.round(percentualMetas)}%
+                </span>
+              </div>
+            </div>
+
+            {/* Informações */}
+            <div>
+              <div className="flex items-center gap-2">
+                <span className={`text-sm font-medium ${corTexto}`}>
+                  Metas Free
+                </span>
+                {metasAtingido && (
+                  <Badge
+                    className={`${metasAtingido ? "bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100" : "bg-amber-100 text-amber-800 dark:bg-amber-800 dark:text-amber-100"} text-xs`}
+                  >
+                    Limite
+                  </Badge>
+                )}
+              </div>
+              <p className={`text-sm ${corTexto}`}>
+                {usadoMetas}/{limiteMetas} metas
+                {!metasAtingido && ` • ${limiteMetas - usadoMetas} restantes`}
+              </p>
+            </div>
+          </div>
+
+          {metasAtingido && (
+            <Button
+              size="sm"
+              className="bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90 text-xs"
+              onClick={() => router.push(`/${currentLang}/dashboard/perfil`)} // ← Atualize esta linha
+            >
+              <Crown className="h-3 w-3 mr-1" />
+              Upgrade
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
@@ -444,16 +598,14 @@ export default function MetasPage() {
     >
       <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
         {/* Cabeçalho */}
-        <motion.div 
+        <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5 }}
           className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4"
         >
           <div className="flex items-center gap-2 sm:gap-3">
-            <motion.div 
-            
-            >
+            <motion.div>
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
                 {t("titulo")}
               </h1>
@@ -471,7 +623,7 @@ export default function MetasPage() {
                   whileTap={{ scale: 0.98 }}
                 >
                   <Button
-                    variant={"outline"}
+                    variant="outline"
                     className="flex-1 sm:flex-none border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white text-xs sm:text-sm"
                     onClick={() => {
                       setEditandoMeta(null);
@@ -487,9 +639,15 @@ export default function MetasPage() {
                         imagemUrl: "",
                       });
                     }}
+                    disabled={limiteInfo?.metasAtingido && !editandoMeta}
                   >
                     <Plus className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                    <span>{t("botoes.novaMeta")}</span>
+                    <span>
+                      {t("botoes.novaMeta")}
+                      {limiteInfo?.metasAtingido &&
+                        !editandoMeta &&
+                        " (Limite)"}
+                    </span>
                   </Button>
                 </motion.div>
               </SheetTrigger>
@@ -810,7 +968,10 @@ export default function MetasPage() {
             </Sheet>
           </div>
         </motion.div>
-
+        <div>
+          {/* Seção de aviso de limite */}
+          <AvisoLimiteMetas />
+        </div>
         {/* Grid de Metas */}
         <AnimatePresence mode="wait">
           {metas.length === 0 ? (
@@ -823,14 +984,13 @@ export default function MetasPage() {
               className="col-span-full text-center py-8 sm:py-12"
             >
               <motion.div
-                animate={{ 
+                animate={{
                   y: [0, -5, 0],
-                  rotate: [0, 5, -5, 0]
                 }}
-                transition={{ 
+                transition={{
                   duration: 3,
                   repeat: Infinity,
-                  repeatType: "reverse"
+                  repeatType: "reverse",
                 }}
               >
                 <Trophy className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-3 sm:mb-4 text-gray-400 dark:text-gray-600" />
@@ -868,7 +1028,7 @@ export default function MetasPage() {
                   const status = obterStatusMeta(progresso, meta.dataAlvo);
                   const diasRestantes = Math.ceil(
                     (new Date(meta.dataAlvo).getTime() - new Date().getTime()) /
-                      (1000 * 60 * 60 * 24)
+                      (1000 * 60 * 60 * 24),
                   );
 
                   // 👇 ADICIONE ESTA LINHA para verificar se o usuário atual é o dono
@@ -880,11 +1040,11 @@ export default function MetasPage() {
                       initial={{ y: 20, opacity: 0, scale: 0.95 }}
                       animate={{ y: 0, opacity: 1, scale: 1 }}
                       exit={{ y: -20, opacity: 0, scale: 0.95 }}
-                      transition={{ 
+                      transition={{
                         duration: 0.3,
-                        delay: index * 0.05 
+                        delay: index * 0.05,
                       }}
-                      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                      whileHover={{ y: -1, transition: { duration: 0.2 } }}
                       layout
                     >
                       <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm group hover:border-gray-300 dark:hover:border-gray-700 transition-colors">
@@ -909,7 +1069,7 @@ export default function MetasPage() {
                         <CardHeader className="pb-3">
                           <div className="flex items-start justify-between">
                             <div className="flex items-center gap-2 min-w-0">
-                              <motion.span 
+                              <motion.span
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
                                 transition={{ delay: 0.1 }}
@@ -960,7 +1120,7 @@ export default function MetasPage() {
                               <span className="text-gray-600 dark:text-gray-400">
                                 {t("progresso.label")}
                               </span>
-                              <motion.span 
+                              <motion.span
                                 key={progresso}
                                 initial={{ scale: 1.2 }}
                                 animate={{ scale: 1 }}
@@ -976,7 +1136,9 @@ export default function MetasPage() {
                                   backgroundColor: meta.cor,
                                 }}
                                 initial={{ width: 0 }}
-                                animate={{ width: `${Math.min(progresso, 100)}%` }}
+                                animate={{
+                                  width: `${Math.min(progresso, 100)}%`,
+                                }}
                                 transition={{ duration: 0.8, ease: "easeOut" }}
                               />
                             </div>
@@ -992,10 +1154,7 @@ export default function MetasPage() {
 
                           {/* Informações */}
                           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center text-xs sm:text-sm text-gray-600 dark:text-gray-400 gap-1 sm:gap-0">
-                            <motion.div 
-                              className="flex items-center gap-1"
-                              whileHover={{ x: 2 }}
-                            >
+                            <motion.div className="flex items-center gap-1">
                               <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
                               <span>{formatarData(meta.dataAlvo)}</span>
                             </motion.div>
@@ -1005,7 +1164,9 @@ export default function MetasPage() {
                               animate={{ scale: 1 }}
                               transition={{ duration: 0.2 }}
                             >
-                              {t("mensagens.diasRestantes", { count: diasRestantes })}
+                              {t("mensagens.diasRestantes", {
+                                count: diasRestantes,
+                              })}
                             </motion.span>
                           </div>
 
@@ -1063,7 +1224,9 @@ export default function MetasPage() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() => adicionarValorCustomizado(meta.id)}
+                                      onClick={() =>
+                                        adicionarValorCustomizado(meta.id)
+                                      }
                                       className="h-7 w-7 p-0 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/50 rounded-md transition-all"
                                     >
                                       <svg
@@ -1170,7 +1333,9 @@ export default function MetasPage() {
                                             <Dialog
                                               open={dialogAberto === meta.id}
                                               onOpenChange={(open) =>
-                                                setDialogAberto(open ? meta.id : null)
+                                                setDialogAberto(
+                                                  open ? meta.id : null,
+                                                )
                                               }
                                             >
                                               <DialogTrigger asChild>
@@ -1193,9 +1358,12 @@ export default function MetasPage() {
                                                     {t("confirmacao.titulo")}
                                                   </DialogTitle>
                                                   <DialogDescription className="text-gray-600 dark:text-gray-400 text-sm">
-                                                    {t("confirmacao.descricao", {
-                                                      titulo: meta.titulo,
-                                                    })}
+                                                    {t(
+                                                      "confirmacao.descricao",
+                                                      {
+                                                        titulo: meta.titulo,
+                                                      },
+                                                    )}
                                                   </DialogDescription>
                                                 </DialogHeader>
                                                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
@@ -1213,7 +1381,9 @@ export default function MetasPage() {
                                                     onClick={() =>
                                                       excluirMeta(meta.id)
                                                     }
-                                                    disabled={excluindo === meta.id}
+                                                    disabled={
+                                                      excluindo === meta.id
+                                                    }
                                                     className="text-sm"
                                                   >
                                                     {excluindo === meta.id
@@ -1236,27 +1406,48 @@ export default function MetasPage() {
                             </div>
                           </div>
 
-                          {/* 👇 SEÇÃO DE COLABORADORES - CORRIGIDA ESTRUTURALMENTE */}
-                          {(usuarioAtualEhDono ||
-                            (meta.ColaboradorMeta &&
-                              meta.ColaboradorMeta.length > 0)) && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: "auto" }}
-                              transition={{ duration: 0.3 }}
-                              className="pt-2 sm:pt-3 border-t border-gray-200 dark:border-gray-800"
-                            >
-                              <ColaboradoresMeta
-                                metaId={meta.id}
-                                colaboradores={meta.ColaboradorMeta || []}
-                                convites={meta.ConviteMeta || []}
-                                usuarioAtualEhDono={usuarioAtualEhDono}
-                                onColaboradoresAtualizados={() =>
-                                  handleColaboradoresAtualizados(meta.id)
-                                }
-                              />
-                            </motion.div>
-                          )}
+                         {/* 👇 SEÇÃO DE COLABORADORES - COM MENSAGEM EDUCATIVA */}
+{(usuarioAtualEhDono ||
+  (meta.ColaboradorMeta &&
+    meta.ColaboradorMeta.length > 0)) && (
+  <motion.div
+    initial={{ opacity: 0, height: 0 }}
+    animate={{ opacity: 1, height: "auto" }}
+    transition={{ duration: 0.3 }}
+    className="pt-2 sm:pt-3 border-t border-gray-200 dark:border-gray-800"
+  >
+    {podeTerColaboradores() ? (
+      <ColaboradoresMeta
+        metaId={meta.id}
+        colaboradores={meta.ColaboradorMeta || []}
+        convites={meta.ConviteMeta || []}
+        usuarioAtualEhDono={usuarioAtualEhDono}
+        onColaboradoresAtualizados={() =>
+          handleColaboradoresAtualizados(meta.id)
+        }
+      />
+    ) : (
+      <div className="text-center py-2">
+        <div className="flex items-center justify-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+          <Crown className="h-3 w-3" />
+          <span className="font-medium">Recurso exclusivo do plano Família</span>
+        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          Faça upgrade para adicionar colaboradores às suas metas
+        </p>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="mt-2 h-6 text-xs"
+          onClick={() => router.push(`/${currentLang}/dashboard/perfil`)}
+        >
+          <Crown className="h-3 w-3 mr-1" />
+          Conhecer planos
+        </Button>
+      </div>
+    )}
+  </motion.div>
+)}
                         </CardContent>
                       </Card>
                     </motion.div>

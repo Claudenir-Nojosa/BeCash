@@ -17,6 +17,7 @@ import {
   ArrowLeft,
   Menu,
   X,
+  Crown,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -62,7 +63,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Loading } from "@/components/ui/loading-barrinhas";
 
 interface Categoria {
@@ -281,10 +282,12 @@ export default function CategoriasPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [tipoFiltro, setTipoFiltro] = useState<"all" | "DESPESA" | "RECEITA">(
-    "all"
+    "all",
   );
+  const params = useParams();
+  const currentLang = (params?.lang as string) || "pt";
   const [editingCategoria, setEditingCategoria] = useState<Categoria | null>(
-    null
+    null,
   );
   const [dialogAberto, setDialogAberto] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -294,11 +297,39 @@ export default function CategoriasPage() {
     icone: "Tag",
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
+  const [limiteInfo, setLimiteInfo] = useState<{
+    plano: string;
+    limiteCategorias: number;
+    categoriasUsadas: number;
+    atingido: boolean;
+  } | null>(null);
+  const [loadingLimite, setLoadingLimite] = useState(false);
   useEffect(() => {
     carregarCategorias();
   }, []);
+  // Função para buscar informações de limite
+  const fetchLimiteCategorias = async () => {
+    try {
+      setLoadingLimite(true);
+      const response = await fetch(
+        "/api/usuarios/subscription/limite-categorias",
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setLimiteInfo(data);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar limite de categorias:", error);
+    } finally {
+      setLoadingLimite(false);
+    }
+  };
 
+  // Chame a função no useEffect
+  useEffect(() => {
+    carregarCategorias();
+    fetchLimiteCategorias(); // ← Adicione esta linha
+  }, []);
   const carregarCategorias = async () => {
     try {
       setLoading(true);
@@ -332,20 +363,48 @@ export default function CategoriasPage() {
         body: JSON.stringify(formData),
       });
 
-      if (!res.ok) throw new Error(t("mensagens.erroSalvar"));
+      if (!res.ok) {
+        const errorData = await res.json();
+
+        // Verifica se é erro de limite
+        if (
+          res.status === 403 &&
+          errorData.error === "Limite de categorias atingido"
+        ) {
+          toast.error(errorData.message, {
+            action: {
+              label: "Upgrade",
+              onClick: () => router.push(`/${currentLang}/dashboard/perfil`),
+            },
+          });
+          return;
+        }
+
+        throw new Error(t("mensagens.erroSalvar"));
+      }
 
       const categoriaSalva = await res.json();
 
       if (editingCategoria) {
         setCategorias((prev) =>
           prev.map((cat) =>
-            cat.id === editingCategoria.id ? categoriaSalva : cat
-          )
+            cat.id === editingCategoria.id ? categoriaSalva : cat,
+          ),
         );
         toast.success(t("mensagens.atualizada"));
       } else {
         setCategorias((prev) => [...prev, categoriaSalva]);
         toast.success(t("mensagens.criada"));
+
+        // Atualizar contagem de categorias usadas
+        if (limiteInfo) {
+          setLimiteInfo({
+            ...limiteInfo,
+            categoriasUsadas: limiteInfo.categoriasUsadas + 1,
+            atingido:
+              limiteInfo.categoriasUsadas + 1 >= limiteInfo.limiteCategorias,
+          });
+        }
       }
 
       setFormData({
@@ -356,15 +415,96 @@ export default function CategoriasPage() {
       });
       setEditingCategoria(null);
       setIsSheetOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error(t("mensagens.erroSalvar"), error);
-      toast.error(t("mensagens.erroSalvar"));
+      if (error.message !== "Limite de categorias atingido") {
+        toast.error(t("mensagens.erroSalvar"));
+      }
       carregarCategorias();
     } finally {
       setEnviando(false);
     }
   };
+  // Adicione um componente de aviso de limite
+  const AvisoLimiteCategorias = () => {
+    if (!limiteInfo || loadingLimite || limiteInfo.plano !== "free") {
+      return null;
+    }
 
+    const { categoriasUsadas, limiteCategorias, atingido } = limiteInfo;
+    const porcentagem = Math.min(
+      (categoriasUsadas / limiteCategorias) * 100,
+      100,
+    );
+
+    return (
+      <div className="mb-4 p-4 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="relative h-10 w-10">
+              <svg className="h-full w-full" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  fill="transparent"
+                  stroke="#fbbf24"
+                  strokeWidth="4"
+                  strokeOpacity="0.2"
+                />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  fill="transparent"
+                  stroke="#f59e0b"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeDasharray={`${porcentagem * 2.51} 251`}
+                  strokeDashoffset="0"
+                  transform="rotate(-90 50 50)"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                  {porcentagem}%
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                  Categorias Free
+                </span>
+                {atingido && (
+                  <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-800 dark:text-amber-100 text-xs">
+                    Limite
+                  </Badge>
+                )}
+              </div>
+              <p className="text-sm text-amber-700 dark:text-amber-300">
+                {categoriasUsadas}/{limiteCategorias} categorias
+                {!atingido &&
+                  ` • ${limiteCategorias - categoriasUsadas} restantes`}
+              </p>
+            </div>
+          </div>
+
+          {atingido && (
+            <Button
+              size="sm"
+              className="bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90 text-xs"
+              onClick={() => router.push(`/${currentLang}/dashboard/perfil`)}
+            >
+              <Crown className="h-3 w-3 mr-1" />
+              Upgrade
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  };
   const handleDelete = async (id: string) => {
     setExcluindo(id);
 
@@ -457,10 +597,12 @@ export default function CategoriasPage() {
                       icone: "Tag",
                     });
                   }}
+                  disabled={limiteInfo?.atingido && !editingCategoria} // ← Desabilita se limite atingido E não está editando
                 >
                   <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span className="ml-1 sm:ml-2">
                     {t("botoes.novaCategoria")}
+                    {limiteInfo?.atingido && !editingCategoria && " (Limite)"}
                   </span>
                 </Button>
               </SheetTrigger>
@@ -592,7 +734,8 @@ export default function CategoriasPage() {
             </div>
           </CardContent>
         </Card>
-
+        {/* Aviso de Limite de Categorias */}
+        <AvisoLimiteCategorias />
         {/* Lista de Categorias */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           <AnimatePresence>

@@ -42,12 +42,28 @@ interface SidebarProps {
 
 interface LimiteInfo {
   plano: string;
-  limite: number;
-  usado: number;
-  disponivel: number;
+
+  // Limites individuais
+  limiteLancamentos: number;
+  usadoLancamentos: number;
+  percentualLancamentos: number;
+  lancamentosAtingido: boolean;
+
+  limiteCategorias: number;
+  usadoCategorias: number;
+  percentualCategorias: number;
+  categoriasAtingido: boolean;
+
+  limiteMetas: number; // ← NOVO
+  usadoMetas: number; // ← NOVO
+  percentualMetas: number; // ← NOVO
+  metasAtingido: boolean; // ← NOVO
+
+  // Dados combinados
+  percentualCombinado: number;
   atingido: boolean;
-  porcentagem: number;
-  proximoLimite: number | null;
+  limiteCritico: string;
+  maisProximoDoLimite: string;
 }
 
 export default function Sidebar({ onClose }: SidebarProps) {
@@ -66,7 +82,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const fetchLimiteInfo = async () => {
     try {
       setLoadingLimite(true);
-      const response = await fetch("/api/usuarios/subscription/limite");
+      const response = await fetch(
+        "/api/usuarios/subscription/limite-combinado",
+      );
       if (response.ok) {
         const data = await response.json();
         setLimiteInfo(data);
@@ -150,29 +168,32 @@ export default function Sidebar({ onClose }: SidebarProps) {
     const cleanPath = path.startsWith("/") ? path : `/${path}`;
     return `/${currentLang}${cleanPath}`;
   };
-  // Componente do círculo percentual
+  // Componente do círculo percentual - COM LIMITES COMBINADOS
   const CirculoPercentual = () => {
     if (!limiteInfo || loadingLimite || limiteInfo.plano !== "free") {
-      // Não mostrar para planos premium ou enquanto carrega
       return null;
     }
 
-    const { porcentagem, atingido, usado, limite } = limiteInfo;
+    const { percentualCombinado, atingido, limiteCritico } = limiteInfo;
 
-    // Definir cores baseado na porcentagem
+    // Definir cores baseado no percentual combinado
+    let corProgresso = "#3b82f6"; // Azul padrão
     let corFundo = "bg-gray-200";
     let corTexto = "text-gray-600";
     let corBorda = "border-gray-300";
 
     if (atingido) {
+      corProgresso = "#ef4444"; // Vermelho
       corFundo = "bg-red-100";
       corTexto = "text-red-600";
       corBorda = "border-red-300";
-    } else if (porcentagem >= 80) {
+    } else if (percentualCombinado >= 80) {
+      corProgresso = "#f59e0b"; // Amarelo
       corFundo = "bg-yellow-100";
       corTexto = "text-yellow-600";
       corBorda = "border-yellow-300";
-    } else if (porcentagem >= 50) {
+    } else if (percentualCombinado >= 50) {
+      corProgresso = "#3b82f6"; // Azul
       corFundo = "bg-blue-100";
       corTexto = "text-blue-600";
       corBorda = "border-blue-300";
@@ -184,14 +205,14 @@ export default function Sidebar({ onClose }: SidebarProps) {
           <TooltipTrigger asChild>
             <div
               className={`
-                relative flex items-center justify-center
-                ${isCollapsed ? "mx-auto my-3" : "ml-3 my-3"}
-                cursor-pointer
-                ${corFundo} ${corBorda} ${corTexto}
-                rounded-full border-2
-                transition-all duration-300 hover:scale-105
-                ${isCollapsed ? "h-12 w-12" : "h-14 w-14"}
-              `}
+              relative flex items-center justify-center
+              ${isCollapsed ? "mx-auto my-3" : "ml-3 my-3"}
+              cursor-pointer
+              ${corFundo} ${corBorda}
+              rounded-full border-2
+              transition-all duration-300 hover:scale-105
+              ${isCollapsed ? "h-12 w-12" : "h-14 w-14"}
+            `}
               onClick={() => router.push(`/${currentLang}/dashboard/perfil`)}
             >
               {/* Círculo de fundo */}
@@ -206,6 +227,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                     stroke="currentColor"
                     strokeWidth="4"
                     strokeOpacity="0.2"
+                    className={corTexto}
                   />
 
                   {/* Círculo de progresso */}
@@ -214,10 +236,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
                     cy="50"
                     r="45"
                     fill="transparent"
-                    stroke="currentColor"
+                    stroke={corProgresso}
                     strokeWidth="4"
                     strokeLinecap="round"
-                    strokeDasharray={`${porcentagem * 2.83} 283`}
+                    strokeDasharray={`${percentualCombinado * 2.83} 283`}
                     strokeDashoffset="0"
                     transform="rotate(-90 50 50)"
                   />
@@ -231,9 +253,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
                   font-bold
                   ${isCollapsed ? "text-xs" : "text-sm"}
                   ${atingido ? "animate-pulse" : ""}
+                  ${corTexto}
                 `}
                 >
-                  {porcentagem}%
+                  {Math.round(percentualCombinado)}%
                 </span>
               </div>
 
@@ -248,26 +271,87 @@ export default function Sidebar({ onClose }: SidebarProps) {
           <TooltipContent side="right" className="max-w-xs">
             <div className="space-y-2 p-1">
               <div className="font-medium text-sm">
-                {atingido ? "Limite Atingido!" : "Limite de Lançamentos"}
-              </div>
-              <div className="text-xs space-y-1">
-                <div className="flex justify-between">
-                  <span>Usado:</span>
-                  <span className="font-semibold">
-                    {usado}/{limite}
+                {atingido ? "Limite Atingido!" : "Limites Free"}
+                {limiteCritico && !atingido && (
+                  <span className="text-xs text-gray-500 ml-1">
+                    ({limiteCritico})
                   </span>
+                )}
+              </div>
+
+              {/* Lançamentos */}
+              <div className="text-xs space-y-1.5">
+                <div>
+                  <div className="flex justify-between items-center mb-0.5">
+                    <span className="font-medium">Lançamentos:</span>
+                    <span className="font-semibold">
+                      {limiteInfo.usadoLancamentos}/
+                      {limiteInfo.limiteLancamentos}
+                    </span>
+                  </div>
+                  <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${
+                        limiteInfo.lancamentosAtingido
+                          ? "bg-red-500"
+                          : "bg-blue-500"
+                      }`}
+                      style={{
+                        width: `${Math.min(limiteInfo.percentualLancamentos, 100)}%`,
+                      }}
+                    />
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span>Disponível:</span>
-                  <span className="font-semibold">{limite - usado}</span>
+
+                {/* Categorias */}
+                <div>
+                  <div className="flex justify-between items-center mb-0.5">
+                    <span className="font-medium">Categorias:</span>
+                    <span className="font-semibold">
+                      {limiteInfo.usadoCategorias}/{limiteInfo.limiteCategorias}
+                    </span>
+                  </div>
+                  <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${
+                        limiteInfo.categoriasAtingido
+                          ? "bg-red-500"
+                          : "bg-green-500"
+                      }`}
+                      style={{
+                        width: `${Math.min(limiteInfo.percentualCategorias, 100)}%`,
+                      }}
+                    />
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span>Plano:</span>
-                  <span className="font-semibold capitalize">
-                    {limiteInfo.plano}
-                  </span>
+
+                {/* Metas - NOVA SEÇÃO */}
+                <div>
+                  <div className="flex justify-between items-center mb-0.5">
+                    <span className="font-medium">Metas:</span>
+                    <span className="font-semibold">
+                      {limiteInfo.usadoMetas}/{limiteInfo.limiteMetas}
+                    </span>
+                  </div>
+                  <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${
+                        limiteInfo.metasAtingido
+                          ? "bg-red-500"
+                          : "bg-purple-500"
+                      }`}
+                      style={{
+                        width: `${Math.min(limiteInfo.percentualMetas, 100)}%`,
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
+
+              <div className="text-xs text-gray-500 pt-1">
+                {limiteInfo.maisProximoDoLimite}
+              </div>
+
               {atingido && (
                 <Button
                   size="sm"
@@ -286,96 +370,139 @@ export default function Sidebar({ onClose }: SidebarProps) {
       </TooltipProvider>
     );
   };
-  // Versão minimalista ultra-sutil
-const LimiteExpandido = () => {
-  if (!limiteInfo || loadingLimite || limiteInfo.plano !== "free") {
-    return null;
-  }
+  // Versão expandida com limites combinados
+  const LimiteExpandido = () => {
+    if (!limiteInfo || loadingLimite || limiteInfo.plano !== "free") {
+      return null;
+    }
 
-  const { porcentagem, usado, limite, atingido } = limiteInfo;
+    const {
+      percentualCombinado,
+      atingido,
+      limiteCritico,
+      usadoLancamentos,
+      limiteLancamentos,
+      usadoCategorias,
+      limiteCategorias,
+      usadoMetas,
+      limiteMetas,
+    } = limiteInfo;
 
-  return (
-    <div
-      className="mt-4 p-3 rounded-lg dark:bg-transparent cursor-pointer hover:bg-gray-50/80 dark:hover:bg-gray-800/50 transition-colors"
-      onClick={() => router.push(`/${currentLang}/dashboard/perfil`)}
-    >
-      <div className="flex items-center gap-3">
-       {/* Círculo minimalista */}
-<div className="relative h-12 w-12">
-  <svg className="h-full w-full" viewBox="0 0 100 100">
-    <circle
-      cx="50"
-      cy="50"
-      r="40"
-      fill="transparent"
-      stroke="#e5e7eb"
-      strokeWidth="4"
-      className="dark:stroke-gray-700"
-    />
-    <circle
-      cx="50"
-      cy="50"
-      r="40"
-      fill="transparent"
-      stroke={atingido ? "#ef4444" : "#3b82f6"}
-      strokeWidth="4"
-      strokeLinecap="round"
-      strokeDasharray={`${porcentagem * 2.51} 251`}
-      strokeDashoffset="0"
-      transform="rotate(-90 50 50)"
-    />
-  </svg>
-  <div className="absolute inset-0 flex items-center justify-center">
-    <span
-      className={`text-xs font-medium ${atingido ? "text-red-600 dark:text-red-400" : "text-blue-600 dark:text-blue-400"}`}
-    >
-      {porcentagem}%
-    </span>
-  </div>
-</div>
+    // Cores baseadas no percentual combinado
+    const corProgresso = atingido ? "#ef4444" : "#3b82f6";
+    const corTexto = atingido
+      ? "text-red-600 dark:text-red-400"
+      : "text-blue-600 dark:text-blue-400";
 
-        {/* Conteúdo */}
-        <div className="flex-1">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-sm text-gray-700 dark:text-gray-200 font-medium">
-              Limite Free
-            </span>
-            {atingido && (
-              <Button
-                size="sm"
-                className="
+    return (
+      <div
+        className="mt-4 p-3 rounded-lg dark:bg-transparent cursor-pointer hover:bg-gray-50/80 dark:hover:bg-gray-800/50 transition-colors"
+        onClick={() => router.push(`/${currentLang}/dashboard/perfil`)}
+      >
+        <div className="flex items-center gap-3">
+          {/* Círculo minimalista */}
+          <div className="relative h-12 w-12">
+            <svg className="h-full w-full" viewBox="0 0 100 100">
+              <circle
+                cx="50"
+                cy="50"
+                r="40"
+                fill="transparent"
+                stroke="#e5e7eb"
+                strokeWidth="4"
+                className="dark:stroke-gray-700"
+              />
+              <circle
+                cx="50"
+                cy="50"
+                r="40"
+                fill="transparent"
+                stroke={corProgresso}
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeDasharray={`${percentualCombinado * 2.51} 251`}
+                strokeDashoffset="0"
+                transform="rotate(-90 50 50)"
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className={`text-xs font-medium ${corTexto}`}>
+                {Math.round(percentualCombinado)}%
+              </span>
+            </div>
+          </div>
+
+          {/* Conteúdo */}
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-1">
+              <div>
+                <span className="text-sm text-gray-700 dark:text-gray-200 font-medium">
+                  Limite Free
+                </span>
+                {limiteCritico && !atingido && (
+                  <span className="text-xs text-gray-500 ml-1">
+                    ({limiteCritico})
+                  </span>
+                )}
+              </div>
+              {atingido && (
+                <Button
+                  size="sm"
+                  className="
                   bg-gradient-to-r from-[#00cfec] to-[#007cca] 
                   text-white hover:opacity-90
                   hover:text-white dark:hover:text-white
                   px-3 py-1 h-auto min-h-0
                   ml-2
                 "
-                onClick={(e) => {
-                  e.stopPropagation();
-                  router.push(`/${currentLang}/dashboard/perfil`);
-                }}
-              >
-                <Crown className="h-3 w-3 mr-1.5" />
-                <span className="text-xs font-medium">Upgrade</span>
-              </Button>
-            )}
-          </div>
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/${currentLang}/dashboard/perfil`);
+                  }}
+                >
+                  <Crown className="h-3 w-3 mr-1.5" />
+                  <span className="text-xs font-medium">Upgrade</span>
+                </Button>
+              )}
+            </div>
 
-          <div className="flex items-center gap-3 text-sm">
-            <span className="text-gray-600 dark:text-gray-300">
-              {usado}/{limite} usado
-            </span>
-            {!atingido && (
-              <span className="text-gray-500 dark:text-gray-400">
-                • {limite - usado} restante
-              </span>
-            )}
+            {/* Estatísticas detalhadas */}
+            <div className="space-y-1 text-xs">
+              <div className="flex justify-between">
+                <span className="text-gray-600 dark:text-gray-300">
+                  Lançamentos:
+                </span>
+                <span
+                  className={`font-medium ${usadoLancamentos >= limiteLancamentos ? "text-red-600 dark:text-red-400" : "text-gray-700 dark:text-gray-300"}`}
+                >
+                  {usadoLancamentos}/{limiteLancamentos}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600 dark:text-gray-300">
+                  Categorias:
+                </span>
+                <span
+                  className={`font-medium ${usadoCategorias >= limiteCategorias ? "text-red-600 dark:text-red-400" : "text-gray-700 dark:text-gray-300"}`}
+                >
+                  {usadoCategorias}/{limiteCategorias}
+                </span>
+              </div>
+              {/* Nova linha para metas */}
+              <div className="flex justify-between">
+                <span className="text-gray-600 dark:text-gray-300">Metas:</span>
+                <span
+                  className={`font-medium ${usadoMetas >= limiteMetas ? "text-red-600 dark:text-red-400" : "text-gray-700 dark:text-gray-300"}`}
+                >
+                  {usadoMetas}/{limiteMetas}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
   if (isCollapsed === null) {
     return <div className="w-20 lg:w-64"></div>;
@@ -692,7 +819,7 @@ const LimiteExpandido = () => {
         <div className="space-y-3">
           {/* Perfil do Usuário (Clique para ir para o perfil) */}
           <Link
-            href={createLink("/dashboard/perfil")}
+            href={createLink(`/${currentLang}/dashboard/perfil`)}
             className={`
     flex items-center rounded-lg p-3 hover:bg-gray-100 dark:hover:bg-gray-800 
     transition-all duration-200 cursor-pointer

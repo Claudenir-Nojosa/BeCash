@@ -1,4 +1,3 @@
-// app/dashboard/relatorios/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -26,6 +25,8 @@ import {
   PieChart,
   Plus,
   Home,
+  Crown,
+  Lock,
 } from "lucide-react";
 import {
   Select,
@@ -68,6 +69,8 @@ interface Cartao {
   bandeira: string;
 }
 
+type PlanoUsuario = "free" | "pro" | "family";
+
 export default function RelatoriosPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -77,6 +80,8 @@ export default function RelatoriosPage() {
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
   const [cartoes, setCartoes] = useState<Cartao[]>([]);
   const [carregando, setCarregando] = useState(true);
+  const [carregandoPlano, setCarregandoPlano] = useState(true);
+  const [planoUsuario, setPlanoUsuario] = useState<PlanoUsuario>("free");
   const [filtros, setFiltros] = useState({
     cartaoId: cartaoId || "todos",
     periodo: "30",
@@ -84,13 +89,42 @@ export default function RelatoriosPage() {
     categoriaId: "todas",
   });
 
+  // Carregar o plano do usuário
+  useEffect(() => {
+    const carregarPlanoUsuario = async () => {
+      try {
+        setCarregandoPlano(true);
+        const response = await fetch(
+          "/api/usuarios/subscription/limite-combinado",
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setPlanoUsuario(data.plano);
+        } else {
+          console.error("Erro ao carregar plano do usuário");
+          setPlanoUsuario("free");
+        }
+      } catch (error) {
+        console.error("Erro na requisição do plano:", error);
+        setPlanoUsuario("free");
+      } finally {
+        setCarregandoPlano(false);
+      }
+    };
+
+    carregarPlanoUsuario();
+  }, []);
+
   const getLocalizedPath = (path: string) => {
     return `/${i18n.language}${path}`;
   };
 
   useEffect(() => {
-    carregarDados();
-  }, []);
+    if (planoUsuario !== "free") {
+      carregarDados();
+    }
+  }, [planoUsuario]);
 
   const carregarDados = async () => {
     try {
@@ -141,10 +175,115 @@ export default function RelatoriosPage() {
 
   useEffect(() => {
     // Atualizar lançamentos quando os filtros mudarem
-    if (cartoes.length > 0) {
+    if (cartoes.length > 0 && planoUsuario !== "free") {
       carregarLancamentos(cartoes);
     }
   }, [filtros]);
+
+  // Se é plano free, mostrar mensagem educativa
+  if (planoUsuario === "free") {
+    return (
+      <div className="h-full flex flex-col overflow-hidden p-4 sm:p-6">
+        <div className="max-w-4xl mx-auto w-full h-full flex flex-col gap-4 sm:gap-6">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 flex-shrink-0"
+          >
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-500 to-blue-600 dark:from-gray-500 dark:to-gray-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                <BarChart3 className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white truncate">
+                  {t("titulos.relatoriosFinanceiros")}
+                </h1>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 truncate">
+                  {t("subtitulos.analiseCompleta")}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Mensagem de plano necessário */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            className="flex-1 min-h-0"
+          >
+            <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm flex flex-col h-full">
+              <CardContent className="p-0 flex flex-col h-full">
+                <div className="flex-1 overflow-y-auto p-6 sm:p-8 md:p-12 flex flex-col items-center justify-center text-center">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 flex items-center justify-center mb-4 sm:mb-6">
+                    <Crown className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+                  </div>
+
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2 sm:mb-3">
+                    Relatórios Financeiros Avançados
+                  </h2>
+
+                  <p className="text-gray-600 dark:text-gray-400 mb-4 sm:mb-6 max-w-md">
+                    Acesse análises detalhadas, gráficos interativos e
+                    relatórios personalizados para tomar decisões financeiras
+                    mais inteligentes. Exporte seus dados em diversos formatos.
+                  </p>
+
+                  <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/10 border border-blue-200 dark:border-blue-800 rounded-xl p-4 sm:p-6 mb-6 sm:mb-8 max-w-lg w-full">
+                    <div className="flex items-center justify-center gap-3 mb-3 sm:mb-4">
+                      <Lock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      <span className="font-medium text-blue-800 dark:text-blue-300">
+                        Seu plano atual: Grátis
+                      </span>
+                    </div>
+
+                    <ul className="space-y-2 text-left text-sm sm:text-base">
+                      <li className="flex items-start gap-2">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
+                        <span className="text-gray-700 dark:text-gray-300">
+                          Relatórios detalhados em PDF e JSON
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
+                        <span className="text-gray-700 dark:text-gray-300">
+                          Análises por categoria, cartão e período
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
+                        <span className="text-gray-700 dark:text-gray-300">
+                          Gráficos interativos e visualizações
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
+                        <span className="text-gray-700 dark:text-gray-300">
+                          Comparativos e tendências históricas
+                        </span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                    <Button
+                      onClick={() => router.push("/dashboard/perfil")}
+                      className="bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90"
+                    >
+                      <Crown className="mr-2 h-4 w-4" />
+                      Fazer Upgrade para Pro
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
 
   const exportarPDF = () => {
     const doc = new jsPDF();
@@ -415,7 +554,6 @@ export default function RelatoriosPage() {
       <div className="min-h-screen bg-white dark:bg-transparent p-3 sm:p-4 md:p-6">
         {/* Mantém o cabeçalho igual ao da página com dados */}
         <div className="max-w-7xl mx-auto">
-
           <div className="flex flex-col items-center justify-center py-16 sm:py-24 md:py-32">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
@@ -425,8 +563,7 @@ export default function RelatoriosPage() {
             >
               <div className="mb-6 sm:mb-8">
                 <motion.div
-                  animate={{
-                  }}
+                  animate={{}}
                   transition={{
                     duration: 3,
                     repeat: Infinity,

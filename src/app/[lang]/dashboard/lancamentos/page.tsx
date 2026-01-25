@@ -828,7 +828,7 @@ export default function LancamentosPage() {
         // Mostrar toast se limite atingido
         if (data.atingido) {
           toast.warning(
-            `Plano free atingiu limite de ${data.total} lançamentos. Faça upgrade para criar mais.`,
+            `Plano free atingiu limite de lançamentos. Faça upgrade para criar mais.`,
           );
         }
       }

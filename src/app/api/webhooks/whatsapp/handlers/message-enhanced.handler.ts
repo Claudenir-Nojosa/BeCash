@@ -6,8 +6,103 @@ import { LancamentoService } from "../services/lancamento.service";
 import { ConversationRedisService } from "../services/conversation.service";
 import { EnhancedAIService } from "../services/ai-enhanced.service";
 import { normalizarTelefone } from "../utils/validators";
+import { getUserSubscription } from "@/lib/subscription";
+import db from "@/lib/db";
+
+const LIMITE_WHATSAPP_FREE = 3;
 
 export class EnhancedMessageHandler {
+  private static async verificarLimiteWhatsApp(
+    userId: string,
+    userPhone: string,
+    idioma: string,
+  ): Promise<{
+    permitido: boolean;
+    mensagensUsadas?: number;
+    limite?: number;
+  }> {
+    try {
+      // Buscar subscription do usuário
+      const subscription = await getUserSubscription(userId);
+
+      // Se for plano pago (pro ou family), permitir ilimitado
+      if (subscription.isActive && subscription.plano !== "free") {
+        console.log("✅ Usuário premium, sem limite de WhatsApp");
+        return { permitido: true };
+      }
+
+      // Se for free, contar mensagens do mês atual via WhatsApp
+      const inicioMes = new Date();
+      inicioMes.setDate(1);
+      inicioMes.setHours(0, 0, 0, 0);
+
+      // ✅ Buscar lançamentos que têm "Criado via WhatsApp" nas observações
+      const mensagensWhatsAppMes = await db.lancamento.count({
+        where: {
+          userId,
+          observacoes: {
+            contains: "Criado via WhatsApp",
+          },
+          createdAt: {
+            gte: inicioMes,
+          },
+        },
+      });
+
+      console.log(
+        `📊 Mensagens WhatsApp no mês: ${mensagensWhatsAppMes}/${LIMITE_WHATSAPP_FREE}`,
+      );
+
+      // Se já atingiu o limite
+      if (mensagensWhatsAppMes >= LIMITE_WHATSAPP_FREE) {
+        const msgLimite =
+          idioma === "en-US"
+            ? `⚠️ *FREE PLAN LIMIT REACHED*\n\nYou've used ${mensagensWhatsAppMes}/${LIMITE_WHATSAPP_FREE} WhatsApp messages this month.\n\n✨ Upgrade to *PRO* or *FAMILY* for unlimited WhatsApp messages!\n\n🔗 Access the app to upgrade your plan.`
+            : `⚠️ *LIMITE DO PLANO GRATUITO ATINGIDO*\n\nVocê já usou ${mensagensWhatsAppMes}/${LIMITE_WHATSAPP_FREE} mensagens do WhatsApp este mês.\n\n✨ Faça upgrade para *PRO* ou *FAMÍLIA* e tenha mensagens ilimitadas no WhatsApp!\n\n🔗 Acesse o app para fazer upgrade do seu plano.`;
+
+        await WhatsAppService.sendMessage(userPhone, msgLimite);
+        await ConversationRedisService.addMessage(
+          userPhone,
+          "assistant",
+          msgLimite,
+        );
+
+        return {
+          permitido: false,
+          mensagensUsadas: mensagensWhatsAppMes,
+          limite: LIMITE_WHATSAPP_FREE,
+        };
+      }
+
+      // Se ainda tem mensagens disponíveis
+      const restantes = LIMITE_WHATSAPP_FREE - mensagensWhatsAppMes;
+      console.log(
+        `✅ Limite WhatsApp OK: ${restantes} mensagem(ns) restante(s)`,
+      );
+
+      // ✅ OPCIONAL: Avisar quando estiver perto do limite
+      if (mensagensWhatsAppMes === LIMITE_WHATSAPP_FREE - 1) {
+        const msgAviso =
+          idioma === "en-US"
+            ? `⚠️ This is your last free WhatsApp message this month!\n\n✨ Upgrade to PRO or FAMILY for unlimited messages.`
+            : `⚠️ Esta é sua última mensagem grátis do WhatsApp este mês!\n\n✨ Faça upgrade para PRO ou FAMÍLIA e tenha mensagens ilimitadas.`;
+
+        // Não bloqueia, apenas avisa
+        await WhatsAppService.sendMessage(userPhone, msgAviso);
+      }
+
+      return {
+        permitido: true,
+        mensagensUsadas: mensagensWhatsAppMes,
+        limite: LIMITE_WHATSAPP_FREE,
+      };
+    } catch (error) {
+      console.error("❌ Erro ao verificar limite WhatsApp:", error);
+      // Em caso de erro, permitir para não bloquear o usuário
+      return { permitido: true };
+    }
+  }
+
   /**
    * FLUXO PRINCIPAL - Processa qualquer mensagem de texto
    */
@@ -264,6 +359,22 @@ export class EnhancedMessageHandler {
     idioma: string,
   ) {
     console.log("✨ Criando novo lançamento...");
+
+    // ✅ VERIFICAR LIMITE DE WHATSAPP ANTES DE PROCESSAR
+    const limiteCheck = await this.verificarLimiteWhatsApp(
+      userId,
+      userPhone,
+      idioma,
+    );
+
+    if (!limiteCheck.permitido) {
+      console.log(`🚫 Limite WhatsApp atingido para usuário ${userId}`);
+      return {
+        status: "limit_reached",
+        mensagensUsadas: limiteCheck.mensagensUsadas,
+        limite: limiteCheck.limite,
+      };
+    }
 
     // Buscar categorias
     const categorias = await UserService.getCategoriasUsuario(userId);
