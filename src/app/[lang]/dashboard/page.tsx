@@ -39,6 +39,7 @@ import { useSession } from "next-auth/react";
 import NotificacoesSino from "@/components/dashboard/NotificacoesCompartilhamento";
 import AuthGuard from "@/components/shared/AuthGuard";
 import { motion } from "framer-motion";
+import { getFallback } from "@/lib/i18nFallback";
 
 // Array de meses para o seletor
 const MESES = [
@@ -55,38 +56,6 @@ const MESES = [
   { value: "11", label: "Novembro" },
   { value: "12", label: "Dezembro" },
 ];
-
-// Função para obter saudação baseada na hora - se quiser manter dinâmico
-const obterSaudacaoAtual = (userName: string, t: any, i18n: any) => {
-  if (typeof window === "undefined") {
-    return `${t("saudacoes.bomDia")}, ${userName || "..."}!`;
-  }
-
-  const hora = new Date().getHours();
-  const idiomaAtual = i18n.language;
-
-  // ✅ SEMPRE obter saudação baseada na hora atual
-  let saudacao = t("saudacoes.bomDia");
-  if (hora < 12) {
-    saudacao = t("saudacoes.bomDia");
-  } else if (hora < 18) {
-    saudacao = t("saudacoes.boaTarde");
-  } else {
-    saudacao = t("saudacoes.boaNoite");
-  }
-
-  // ✅ Pegar frases motivacionais
-  const frases = t("frasesMotivacionais", { returnObjects: true });
-  const frasesArray = Array.isArray(frases) ? frases : [];
-
-  // ✅ Escolher uma frase motivacional aleatória
-  const fraseEscolhida =
-    frasesArray.length > 0
-      ? frasesArray[Math.floor(Math.random() * frasesArray.length)]
-      : "";
-
-  return `${saudacao}, ${userName || "..."}! ${fraseEscolhida}`;
-};
 
 // Função para limpar frases antigas
 const limparFrasesAntigas = () => {
@@ -119,6 +88,293 @@ export default function DashboardPage() {
   const { t, i18n } = useTranslation("dashboard");
   const [username, setUsername] = useState<string>("");
   const currentLang = (params?.lang as string) || "pt";
+  // Função auxiliar para obter tradução com fallback
+  const getTranslation = (key: string) => {
+    // Primeiro tenta usar o i18n
+    const translation = t(key);
+    if (translation && translation !== key) {
+      return translation;
+    }
+
+    // Fallback manual baseado nas chaves que você tem nos arquivos JSON
+    switch (key) {
+      // Título
+      case "titulo":
+        return getFallback(
+          currentLang,
+          "Dashboard Financeiro",
+          "Financial Dashboard",
+        );
+
+      // Frases motivacionais (vamos usar a primeira como fallback)
+      case "frasesMotivacionais":
+        const frasesArray = t("frasesMotivacionais", { returnObjects: true });
+        if (Array.isArray(frasesArray) && frasesArray.length > 0) {
+          return frasesArray[0];
+        }
+        return getFallback(
+          currentLang,
+          "Toda jornada financeira começa com consciência.",
+          "Every financial journey begins with awareness.",
+        );
+
+      // Meses completos
+      case "Meses.jan":
+        return getFallback(currentLang, "Janeiro", "January");
+      case "Meses.fev":
+        return getFallback(currentLang, "Fevereiro", "February");
+      case "Meses.mar":
+        return getFallback(currentLang, "Março", "March");
+      case "Meses.abr":
+        return getFallback(currentLang, "Abril", "April");
+      case "Meses.mai":
+        return getFallback(currentLang, "Maio", "May");
+      case "Meses.jun":
+        return getFallback(currentLang, "Junho", "June");
+      case "Meses.jul":
+        return getFallback(currentLang, "Julho", "July");
+      case "Meses.ago":
+        return getFallback(currentLang, "Agosto", "August");
+      case "Meses.set":
+        return getFallback(currentLang, "Setembro", "September");
+      case "Meses.out":
+        return getFallback(currentLang, "Outubro", "October");
+      case "Meses.nov":
+        return getFallback(currentLang, "Novembro", "November");
+      case "Meses.dez":
+        return getFallback(currentLang, "Dezembro", "December");
+
+      // Meses abreviados
+      case "MesesAbreviados.jan":
+        return getFallback(currentLang, "Jan", "Jan");
+      case "MesesAbreviados.fev":
+        return getFallback(currentLang, "Fev", "Feb");
+      case "MesesAbreviados.mar":
+        return getFallback(currentLang, "Mar", "Mar");
+      case "MesesAbreviados.abr":
+        return getFallback(currentLang, "Abr", "Apr");
+      case "MesesAbreviados.mai":
+        return getFallback(currentLang, "Mai", "May");
+      case "MesesAbreviados.jun":
+        return getFallback(currentLang, "Jun", "Jun");
+      case "MesesAbreviados.jul":
+        return getFallback(currentLang, "Jul", "Jul");
+      case "MesesAbreviados.ago":
+        return getFallback(currentLang, "Ago", "Aug");
+      case "MesesAbreviados.set":
+        return getFallback(currentLang, "Set", "Sep");
+      case "MesesAbreviados.out":
+        return getFallback(currentLang, "Out", "Oct");
+      case "MesesAbreviados.nov":
+        return getFallback(currentLang, "Nov", "Nov");
+      case "MesesAbreviados.dez":
+        return getFallback(currentLang, "Dez", "Dec");
+
+      // Cards
+      case "cards.receita.titulo":
+        return getFallback(currentLang, "Receita", "Income");
+      case "cards.receita.subtitulo":
+        return getFallback(currentLang, "Total do mês", "Month total");
+      case "cards.despesa.titulo":
+        return getFallback(currentLang, "Despesa", "Expense");
+      case "cards.despesa.subtitulo":
+        return getFallback(currentLang, "Total do mês", "Month total");
+      case "cards.compartilhadas.titulo":
+        return getFallback(currentLang, "Compartilhadas", "Shared");
+      case "cards.compartilhadas.subtitulo":
+        return getFallback(
+          currentLang,
+          "Total após divisão",
+          "Total after split",
+        );
+      case "cards.saldo.titulo":
+        return getFallback(currentLang, "Saldo", "Balance");
+      case "cards.saldo.subtitulo":
+        return getFallback(currentLang, "Disponível", "Available");
+
+      // Limites
+      case "limites.titulo":
+        return getFallback(currentLang, "Limites do Mês", "Monthly Limits");
+      case "limites.subtitulo":
+        return getFallback(currentLang, "de", "of");
+      case "limites.nenhumLimite":
+        return getFallback(
+          currentLang,
+          "Nenhum limite definido",
+          "No limits defined",
+        );
+      case "limites.configurarLimites":
+        return getFallback(
+          currentLang,
+          "Configurar Limites",
+          "Configure Limits",
+        );
+      case "limites.verTodos":
+        return getFallback(
+          currentLang,
+          "Ver todos os limites",
+          "See all limits",
+        );
+      case "limites.status.estourado":
+        return getFallback(
+          currentLang,
+          "categoria(s) estourada(s)",
+          "category(s) exceeded",
+        );
+      case "limites.status.proximo":
+        return getFallback(
+          currentLang,
+          "categoria(s) próxima(s) do limite",
+          "category(s) near limit",
+        );
+      case "limites.status.controle":
+        return getFallback(
+          currentLang,
+          "Limites sob controle",
+          "Limits under control",
+        );
+
+      // Saudações
+      case "saudacoes.bomDia":
+        return getFallback(currentLang, "Bom dia", "Good morning");
+      case "saudacoes.boaTarde":
+        return getFallback(currentLang, "Boa tarde", "Good afternoon");
+      case "saudacoes.boaNoite":
+        return getFallback(currentLang, "Boa noite", "Good evening");
+
+      // Botões
+      case "botoes.refresh":
+        return getFallback(currentLang, "Atualizar dados", "Refresh data");
+      case "botoes.atualizando":
+        return getFallback(
+          currentLang,
+          "Atualizando dados...",
+          "Updating data...",
+        );
+      case "botoes.carregando":
+        return getFallback(
+          currentLang,
+          "Carregando dashboard...",
+          "Loading dashboard...",
+        );
+
+      // Status
+      case "status.verificando":
+        return getFallback(
+          currentLang,
+          "Verificando autenticação...",
+          "Checking authentication...",
+        );
+      case "status.dashboardCarregado":
+        return getFallback(
+          currentLang,
+          "Dashboard carregado",
+          "Dashboard loaded",
+        );
+      case "status.erroCarregar":
+        return getFallback(
+          currentLang,
+          "Erro ao carregar dados do dashboard",
+          "Error loading dashboard data",
+        );
+
+      default:
+        return key;
+    }
+  };
+
+  // Criar um objeto de traduções para fácil acesso
+  const translations = {
+    titulo: getTranslation("titulo"),
+    // Frases motivacionais serão tratadas separadamente
+
+    // Meses
+    meses: {
+      jan: getTranslation("Meses.jan"),
+      fev: getTranslation("Meses.fev"),
+      mar: getTranslation("Meses.mar"),
+      abr: getTranslation("Meses.abr"),
+      mai: getTranslation("Meses.mai"),
+      jun: getTranslation("Meses.jun"),
+      jul: getTranslation("Meses.jul"),
+      ago: getTranslation("Meses.ago"),
+      set: getTranslation("Meses.set"),
+      out: getTranslation("Meses.out"),
+      nov: getTranslation("Meses.nov"),
+      dez: getTranslation("Meses.dez"),
+    },
+
+    // Meses abreviados
+    mesesAbreviados: {
+      jan: getTranslation("MesesAbreviados.jan"),
+      fev: getTranslation("MesesAbreviados.fev"),
+      mar: getTranslation("MesesAbreviados.mar"),
+      abr: getTranslation("MesesAbreviados.abr"),
+      mai: getTranslation("MesesAbreviados.mai"),
+      jun: getTranslation("MesesAbreviados.jun"),
+      jul: getTranslation("MesesAbreviados.jul"),
+      ago: getTranslation("MesesAbreviados.ago"),
+      set: getTranslation("MesesAbreviados.set"),
+      out: getTranslation("MesesAbreviados.out"),
+      nov: getTranslation("MesesAbreviados.nov"),
+      dez: getTranslation("MesesAbreviados.dez"),
+    },
+
+    // Cards
+    cards: {
+      receita: {
+        titulo: getTranslation("cards.receita.titulo"),
+        subtitulo: getTranslation("cards.receita.subtitulo"),
+      },
+      despesa: {
+        titulo: getTranslation("cards.despesa.titulo"),
+        subtitulo: getTranslation("cards.despesa.subtitulo"),
+      },
+      compartilhadas: {
+        titulo: getTranslation("cards.compartilhadas.titulo"),
+        subtitulo: getTranslation("cards.compartilhadas.subtitulo"),
+      },
+      saldo: {
+        titulo: getTranslation("cards.saldo.titulo"),
+        subtitulo: getTranslation("cards.saldo.subtitulo"),
+      },
+    },
+
+    // Limites
+    limites: {
+      titulo: getTranslation("limites.titulo"),
+      subtitulo: getTranslation("limites.subtitulo"),
+      nenhumLimite: getTranslation("limites.nenhumLimite"),
+      configurarLimites: getTranslation("limites.configurarLimites"),
+      verTodos: getTranslation("limites.verTodos"),
+      status: {
+        estourado: getTranslation("limites.status.estourado"),
+        proximo: getTranslation("limites.status.proximo"),
+        controle: getTranslation("limites.status.controle"),
+      },
+    },
+
+    // Saudações
+    saudacoes: {
+      bomDia: getTranslation("saudacoes.bomDia"),
+      boaTarde: getTranslation("saudacoes.boaTarde"),
+      boaNoite: getTranslation("saudacoes.boaNoite"),
+    },
+
+    // Botões
+    botoes: {
+      refresh: getTranslation("botoes.refresh"),
+      atualizando: getTranslation("botoes.atualizando"),
+      carregando: getTranslation("botoes.carregando"),
+    },
+
+    // Status
+    status: {
+      verificando: getTranslation("status.verificando"),
+      dashboardCarregado: getTranslation("status.dashboardCarregado"),
+      erroCarregar: getTranslation("status.erroCarregar"),
+    },
+  };
 
   // ========== ESTADOS ==========
   const [resumo, setResumo] = useState<ResumoFinanceiro>({
@@ -165,15 +421,41 @@ export default function DashboardPage() {
       limparFrasesAntigas();
     }
   }, []);
+  // Função para obter saudação baseada na hora - se quiser manter dinâmico
+  const obterSaudacaoAtual = (userName: string) => {
+    if (typeof window === "undefined") {
+      return `${translations.saudacoes.bomDia}, ${userName || "..."}!`;
+    }
+
+    const hora = new Date().getHours();
+
+    let saudacao = translations.saudacoes.bomDia;
+    if (hora < 12) {
+      saudacao = translations.saudacoes.bomDia;
+    } else if (hora < 18) {
+      saudacao = translations.saudacoes.boaTarde;
+    } else {
+      saudacao = translations.saudacoes.boaNoite;
+    }
+
+    // Usar frases motivacionais do i18n
+    const frases = t("frasesMotivacionais", { returnObjects: true });
+    const frasesArray = Array.isArray(frases) ? frases : [];
+
+    const fraseEscolhida =
+      frasesArray.length > 0
+        ? frasesArray[Math.floor(Math.random() * frasesArray.length)]
+        : getTranslation("frasesMotivacionais");
+
+    return `${saudacao}, ${userName || "..."}! ${fraseEscolhida}`;
+  };
 
   useEffect(() => {
     if (userName && typeof window !== "undefined") {
-      // Use a nova função que SEMPRE verifica o horário atual
-      const frase = obterSaudacaoAtual(userName, t, i18n);
+      const frase = obterSaudacaoAtual(userName);
       setFraseMotivacional(frase);
     }
   }, [userName, i18n.language, t]);
-
 
   useEffect(() => {
     if (!session || hasLoadedUserRef.current) return;
@@ -306,7 +588,6 @@ export default function DashboardPage() {
       if (toastIdRef.current) {
         toast.dismiss(toastIdRef.current);
       }
-      toast.error(t("status.erroCarregar"));
     } finally {
       setCarregando(false);
       toastIdRef.current = undefined;
@@ -366,7 +647,7 @@ export default function DashboardPage() {
 
     if (limitesEstourados.length > 0) {
       return {
-        texto: `${limitesEstourados.length} ${t("limites.status.estourado")}`,
+        texto: `${limitesEstourados.length} ${translations.limites.status.estourado}`,
         cor: "text-red-600 dark:text-red-400",
         corClaro: "text-red-600",
         corEscuro: "dark:text-red-400",
@@ -376,7 +657,7 @@ export default function DashboardPage() {
 
     if (limitesProximos.length > 0) {
       return {
-        texto: `${limitesProximos.length} ${t("limites.status.proximo")}`,
+        texto: `${limitesProximos.length} ${translations.limites.status.proximo}`,
         cor: "text-amber-600 dark:text-yellow-400",
         corClaro: "text-amber-600",
         corEscuro: "dark:text-yellow-400",
@@ -385,7 +666,7 @@ export default function DashboardPage() {
     }
 
     return {
-      texto: t("limites.status.controle"),
+      texto: translations.limites.status.controle,
       cor: "text-emerald-600 dark:text-green-400",
       corClaro: "text-emerald-600",
       corEscuro: "dark:text-green-400",
@@ -397,39 +678,39 @@ export default function DashboardPage() {
 
   // ✅ Função para pegar nome do mês traduzido
   const obterNomeMes = (mes: string) => {
-    const mesesTraduzidos = {
-      "1": t("Meses.jan"),
-      "2": t("Meses.fev"),
-      "3": t("Meses.mar"),
-      "4": t("Meses.abr"),
-      "5": t("Meses.mai"),
-      "6": t("Meses.jun"),
-      "7": t("Meses.jul"),
-      "8": t("Meses.ago"),
-      "9": t("Meses.set"),
-      "10": t("Meses.out"),
-      "11": t("Meses.nov"),
-      "12": t("Meses.dez"),
+    const mesesMap = {
+      "1": translations.meses.jan,
+      "2": translations.meses.fev,
+      "3": translations.meses.mar,
+      "4": translations.meses.abr,
+      "5": translations.meses.mai,
+      "6": translations.meses.jun,
+      "7": translations.meses.jul,
+      "8": translations.meses.ago,
+      "9": translations.meses.set,
+      "10": translations.meses.out,
+      "11": translations.meses.nov,
+      "12": translations.meses.dez,
     };
-    return mesesTraduzidos[mes as keyof typeof mesesTraduzidos] || "Mês";
+    return mesesMap[mes as keyof typeof mesesMap] || "Mês";
   };
 
   const obterNomeMesAbreviado = (mes: string) => {
-    const mesesAbreviados = {
-      "1": t("MesesAbreviados.jan"),
-      "2": t("MesesAbreviados.fev"),
-      "3": t("MesesAbreviados.mar"),
-      "4": t("MesesAbreviados.abr"),
-      "5": t("MesesAbreviados.mai"),
-      "6": t("MesesAbreviados.jun"),
-      "7": t("MesesAbreviados.jul"),
-      "8": t("MesesAbreviados.ago"),
-      "9": t("MesesAbreviados.set"),
-      "10": t("MesesAbreviados.out"),
-      "11": t("MesesAbreviados.nov"),
-      "12": t("MesesAbreviados.dez"),
+    const mesesMap = {
+      "1": translations.mesesAbreviados.jan,
+      "2": translations.mesesAbreviados.fev,
+      "3": translations.mesesAbreviados.mar,
+      "4": translations.mesesAbreviados.abr,
+      "5": translations.mesesAbreviados.mai,
+      "6": translations.mesesAbreviados.jun,
+      "7": translations.mesesAbreviados.jul,
+      "8": translations.mesesAbreviados.ago,
+      "9": translations.mesesAbreviados.set,
+      "10": translations.mesesAbreviados.out,
+      "11": translations.mesesAbreviados.nov,
+      "12": translations.mesesAbreviados.dez,
     };
-    return mesesAbreviados[mes as keyof typeof mesesAbreviados] || "Mês";
+    return mesesMap[mes as keyof typeof mesesMap] || "Mês";
   };
 
   // Gerar array de anos (últimos 5 anos + próximo ano)
@@ -456,18 +737,25 @@ export default function DashboardPage() {
           >
             <div className="flex flex-col">
               {/* Tag de usuário acima do título */}
-              {username && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 0.7 }}
-                  transition={{ delay: 0.25 }}
-                  className="flex justify-start"
-                >
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.7 }}
+                transition={{ delay: 0.25 }}
+                className="flex justify-start"
+              >
+                {username ? (
                   <span className="text-sm text-gray-500 dark:text-gray-400 font-normal tracking-tight mb-1">
                     @{username}
                   </span>
-                </motion.div>
-              )}
+                ) : (
+                  <div className="flex items-center mb-1">
+                    <span className="text-sm text-gray-500 dark:text-gray-400 font-normal tracking-tight mr-1">
+                      @
+                    </span>
+                    <Skeleton className="h-4 w-16 bg-gray-200 dark:bg-gray-800 rounded" />
+                  </div>
+                )}
+              </motion.div>
 
               <motion.h1
                 initial={{ x: -10, opacity: 0 }}
@@ -475,7 +763,7 @@ export default function DashboardPage() {
                 transition={{ delay: 0.1 }}
                 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight"
               >
-                {t("titulo")}
+                {translations.titulo}
               </motion.h1>
 
               <motion.p
@@ -602,7 +890,7 @@ export default function DashboardPage() {
                     >
                       <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600 dark:text-emerald-400" />
                     </motion.div>
-                    {t("cards.receita.titulo")}
+                    {translations.cards.receita.titulo}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -617,7 +905,7 @@ export default function DashboardPage() {
                         {formatarMoeda(resumo.receita)}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {t("cards.receita.subtitulo")}
+                        {translations.cards.receita.subtitulo}
                       </p>
                     </>
                   )}
@@ -640,7 +928,7 @@ export default function DashboardPage() {
                     >
                       <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5 text-red-600 dark:text-red-400" />
                     </motion.div>
-                    {t("cards.despesa.titulo")}
+                    {translations.cards.despesa.titulo}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -655,7 +943,7 @@ export default function DashboardPage() {
                         {formatarMoeda(resumo.despesa)}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {t("cards.despesa.subtitulo")}
+                        {translations.cards.despesa.subtitulo}
                       </p>
                     </>
                   )}
@@ -678,7 +966,7 @@ export default function DashboardPage() {
                     >
                       <Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
                     </motion.div>
-                    {t("cards.compartilhadas.titulo")}
+                    {translations.cards.compartilhadas.titulo}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -693,7 +981,7 @@ export default function DashboardPage() {
                         {formatarMoeda(resumo.despesasCompartilhadas)}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {t("cards.compartilhadas.subtitulo")}
+                        {translations.cards.compartilhadas.subtitulo}
                       </p>
                     </>
                   )}
@@ -716,7 +1004,7 @@ export default function DashboardPage() {
                     >
                       <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400" />
                     </motion.div>
-                    {t("cards.saldo.titulo")}
+                    {translations.cards.saldo.titulo}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -737,7 +1025,7 @@ export default function DashboardPage() {
                         {formatarMoeda(resumo.saldo)}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {t("cards.saldo.subtitulo")}
+                        {translations.cards.saldo.subtitulo}
                       </p>
                     </>
                   )}
@@ -790,11 +1078,11 @@ export default function DashboardPage() {
                       >
                         <Target className="h-4 w-4 text-gray-700 dark:text-gray-300" />
                       </motion.div>
-                      {t("limites.titulo")}
+                      {translations.limites.titulo}
                     </CardTitle>
                     <CardDescription className="text-gray-600 dark:text-gray-400 text-sm">
-                      {obterNomeMes(mesSelecionado)} {t("limites.subtitulo")}{" "}
-                      {anoSelecionado}
+                      {obterNomeMes(mesSelecionado)}{" "}
+                      {translations.limites.subtitulo} {anoSelecionado}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -817,12 +1105,11 @@ export default function DashboardPage() {
                         animate={{ opacity: 1 }}
                         className="text-center py-6"
                       >
-                        <motion.div
-                        >
+                        <motion.div>
                           <Target className="h-12 w-12 mx-auto mb-3 text-gray-300 dark:text-gray-700" />
                         </motion.div>
                         <p className="mb-3 text-gray-600 dark:text-gray-400">
-                          {t("limites.nenhumLimite")}
+                          {translations.limites.nenhumLimite}
                         </p>
                         <motion.div
                           whileHover={{ scale: 1.05 }}
@@ -836,7 +1123,7 @@ export default function DashboardPage() {
                             }
                             className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                           >
-                            {t("limites.configurarLimites")}
+                            {translations.limites.configurarLimites}
                           </Button>
                         </motion.div>
                       </motion.div>

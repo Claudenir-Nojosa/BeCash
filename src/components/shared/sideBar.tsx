@@ -22,7 +22,7 @@ import {
   Headphones,
   User,
   Settings,
-  Crown, // Adicionado para indicar plano premium
+  Crown,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSession, signOut } from "next-auth/react";
@@ -35,6 +35,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
+import { getFallback } from "@/lib/i18nFallback";
 
 interface SidebarProps {
   onClose?: () => void;
@@ -42,24 +43,18 @@ interface SidebarProps {
 
 interface LimiteInfo {
   plano: string;
-
-  // Limites individuais
   limiteLancamentos: number;
   usadoLancamentos: number;
   percentualLancamentos: number;
   lancamentosAtingido: boolean;
-
   limiteCategorias: number;
   usadoCategorias: number;
   percentualCategorias: number;
   categoriasAtingido: boolean;
-
-  limiteMetas: number; // ← NOVO
-  usadoMetas: number; // ← NOVO
-  percentualMetas: number; // ← NOVO
-  metasAtingido: boolean; // ← NOVO
-
-  // Dados combinados
+  limiteMetas: number;
+  usadoMetas: number;
+  percentualMetas: number;
+  metasAtingido: boolean;
   percentualCombinado: number;
   atingido: boolean;
   limiteCritico: string;
@@ -78,7 +73,89 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const router = useRouter();
   const [limiteInfo, setLimiteInfo] = useState<LimiteInfo | null>(null);
   const [loadingLimite, setLoadingLimite] = useState(false);
-  // Função para buscar informações de limite
+
+  // Funções de tradução com fallback
+  const getTranslation = (key: string) => {
+    // Primeiro tenta usar o i18n
+    const translation = t(key);
+    if (translation && translation !== key) {
+      return translation;
+    }
+
+    // Fallback manual baseado nas chaves que você tem nos arquivos JSON
+    switch (key) {
+      // Menu
+      case "menu.paginaInicial":
+        return getFallback(currentLang, "Início", "Home");
+      case "menu.lancamentos":
+        return getFallback(currentLang, "Lançamentos", "Transactions");
+      case "menu.limites":
+        return getFallback(currentLang, "Limites", "Limits");
+      case "menu.relatorios":
+        return getFallback(currentLang, "Relatórios", "Reports");
+      case "menu.cartoes":
+        return getFallback(currentLang, "Cartões", "Cards");
+      case "menu.categorias":
+        return getFallback(currentLang, "Categorias", "Categories");
+      case "menu.metas":
+        return getFallback(currentLang, "Metas", "Goals");
+      case "menu.vincularTelefone":
+        return getFallback(currentLang, "Vincular Telefone", "Link Phone");
+      case "menu.bicla":
+        return getFallback(currentLang, "Bicla", "Bicla");
+      case "menu.suporte":
+        return getFallback(currentLang, "Suporte", "Support");
+
+      // Usuário
+      case "usuario.sair":
+        return getFallback(currentLang, "Sair", "Sign Out");
+      case "usuario.usuarioPadrao":
+        return getFallback(currentLang, "Usuário", "User");
+
+      // Tooltips de limites
+      case "limites.limiteFree":
+        return getFallback(currentLang, "Limites Free", "Free Limits");
+      case "limites.limiteAtingido":
+        return getFallback(currentLang, "Limite Atingido!", "Limit Reached!");
+      case "limites.lancamentosLabel":
+        return getFallback(currentLang, "Lançamentos:", "Transactions:");
+      case "limites.categoriasLabel":
+        return getFallback(currentLang, "Categorias:", "Categories:");
+      case "limites.metasLabel":
+        return getFallback(currentLang, "Metas:", "Goals:");
+      case "limites.fazerUpgrade":
+        return getFallback(currentLang, "Fazer Upgrade", "Upgrade");
+      case "limites.upgrade":
+        return getFallback(currentLang, "Upgrade", "Upgrade");
+
+      default:
+        return key;
+    }
+  };
+
+  // Traduções específicas
+  const translations = {
+    paginaInicial: getTranslation("menu.paginaInicial"),
+    lancamentos: getTranslation("menu.lancamentos"),
+    limites: getTranslation("menu.limites"),
+    relatorios: getTranslation("menu.relatorios"),
+    cartoes: getTranslation("menu.cartoes"),
+    categorias: getTranslation("menu.categorias"),
+    metas: getTranslation("menu.metas"),
+    vincularTelefone: getTranslation("menu.vincularTelefone"),
+    bicla: getTranslation("menu.bicla"),
+    suporte: getTranslation("menu.suporte"),
+    sair: getTranslation("usuario.sair"),
+    usuarioPadrao: getTranslation("usuario.usuarioPadrao"),
+    limiteFree: getTranslation("limites.limiteFree"),
+    limiteAtingido: getTranslation("limites.limiteAtingido"),
+    lancamentosLabel: getTranslation("limites.lancamentosLabel"),
+    categoriasLabel: getTranslation("limites.categoriasLabel"),
+    metasLabel: getTranslation("limites.metasLabel"),
+    fazerUpgrade: getTranslation("limites.fazerUpgrade"),
+    upgrade: getTranslation("limites.upgrade"),
+  };
+
   const fetchLimiteInfo = async () => {
     try {
       setLoadingLimite(true);
@@ -96,11 +173,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
     }
   };
 
-  // Buscar limite ao carregar componente
   useEffect(() => {
     fetchLimiteInfo();
-
-    // Atualizar a cada 30 segundos
     const interval = setInterval(fetchLimiteInfo, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -147,7 +221,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   };
 
   const getInitials = (name: string | undefined | null) => {
-    if (!name) return t("usuario.usuarioPadrao").charAt(0);
+    if (!name) return translations.usuarioPadrao.charAt(0);
     const nameParts = name.split(" ");
     return nameParts
       .map((part) => part[0])
@@ -168,32 +242,87 @@ export default function Sidebar({ onClose }: SidebarProps) {
     const cleanPath = path.startsWith("/") ? path : `/${path}`;
     return `/${currentLang}${cleanPath}`;
   };
-  // Componente do círculo percentual - COM LIMITES COMBINADOS
+  // Skeleton para o círculo percentual
+  const SkeletonCirculoPercentual = ({
+    isCollapsed,
+  }: {
+    isCollapsed: boolean;
+  }) => (
+    <div
+      className={`
+      relative flex items-center justify-center
+      ${isCollapsed ? "mx-auto my-3" : "ml-3 my-3"}
+      ${isCollapsed ? "h-12 w-12" : "h-14 w-14"}
+    `}
+    >
+      <div className="h-full w-full rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse" />
+    </div>
+  );
+
+  // Skeleton para a versão expandida
+  const SkeletonLimiteExpandido = () => (
+    <div className="mt-4 p-3 rounded-lg dark:bg-transparent">
+      <div className="flex items-center gap-3">
+        {/* Skeleton do círculo */}
+        <div className="relative h-12 w-12">
+          <div className="h-full w-full rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse" />
+        </div>
+
+        {/* Skeleton do conteúdo */}
+        <div className="flex-1">
+          <div className="flex items-center justify-between mb-1">
+            <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-3/4 animate-pulse" />
+            <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded w-16 animate-pulse ml-2" />
+          </div>
+
+          {/* Skeleton das estatísticas */}
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-20 animate-pulse" />
+              <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-10 animate-pulse" />
+            </div>
+            <div className="flex justify-between">
+              <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-20 animate-pulse" />
+              <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-10 animate-pulse" />
+            </div>
+            <div className="flex justify-between">
+              <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-20 animate-pulse" />
+              <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-10 animate-pulse" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+  // Componente do círculo percentual
   const CirculoPercentual = () => {
+    if (loadingLimite) {
+      return <SkeletonCirculoPercentual isCollapsed={true} />;
+    }
+
     if (!limiteInfo || loadingLimite || limiteInfo.plano !== "free") {
       return null;
     }
 
     const { percentualCombinado, atingido, limiteCritico } = limiteInfo;
 
-    // Definir cores baseado no percentual combinado
-    let corProgresso = "#3b82f6"; // Azul padrão
+    let corProgresso = "#3b82f6";
     let corFundo = "bg-gray-200";
     let corTexto = "text-gray-600";
     let corBorda = "border-gray-300";
 
     if (atingido) {
-      corProgresso = "#ef4444"; // Vermelho
+      corProgresso = "#ef4444";
       corFundo = "bg-red-100";
       corTexto = "text-red-600";
       corBorda = "border-red-300";
     } else if (percentualCombinado >= 80) {
-      corProgresso = "#f59e0b"; // Amarelo
+      corProgresso = "#f59e0b";
       corFundo = "bg-yellow-100";
       corTexto = "text-yellow-600";
       corBorda = "border-yellow-300";
     } else if (percentualCombinado >= 50) {
-      corProgresso = "#3b82f6"; // Azul
+      corProgresso = "#3b82f6";
       corFundo = "bg-blue-100";
       corTexto = "text-blue-600";
       corBorda = "border-blue-300";
@@ -215,10 +344,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
             `}
               onClick={() => router.push(`/${currentLang}/dashboard/perfil`)}
             >
-              {/* Círculo de fundo */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <svg className="h-full w-full" viewBox="0 0 100 100">
-                  {/* Círculo de fundo */}
                   <circle
                     cx="50"
                     cy="50"
@@ -229,8 +356,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
                     strokeOpacity="0.2"
                     className={corTexto}
                   />
-
-                  {/* Círculo de progresso */}
                   <circle
                     cx="50"
                     cy="50"
@@ -246,7 +371,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 </svg>
               </div>
 
-              {/* Texto no centro */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <span
                   className={`
@@ -260,7 +384,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 </span>
               </div>
 
-              {/* Indicador de atingido */}
               {atingido && (
                 <div className="absolute -top-1 -right-1">
                   <div className="h-3 w-3 rounded-full bg-red-500 animate-ping" />
@@ -271,7 +394,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
           <TooltipContent side="right" className="max-w-xs">
             <div className="space-y-2 p-1">
               <div className="font-medium text-sm">
-                {atingido ? "Limite Atingido!" : "Limites Free"}
+                {atingido
+                  ? translations.limiteAtingido
+                  : translations.limiteFree}
                 {limiteCritico && !atingido && (
                   <span className="text-xs text-gray-500 ml-1">
                     ({limiteCritico})
@@ -279,11 +404,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 )}
               </div>
 
-              {/* Lançamentos */}
               <div className="text-xs space-y-1.5">
                 <div>
                   <div className="flex justify-between items-center mb-0.5">
-                    <span className="font-medium">Lançamentos:</span>
+                    <span className="font-medium">
+                      {translations.lancamentosLabel}
+                    </span>
                     <span className="font-semibold">
                       {limiteInfo.usadoLancamentos}/
                       {limiteInfo.limiteLancamentos}
@@ -303,10 +429,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
                   </div>
                 </div>
 
-                {/* Categorias */}
                 <div>
                   <div className="flex justify-between items-center mb-0.5">
-                    <span className="font-medium">Categorias:</span>
+                    <span className="font-medium">
+                      {translations.categoriasLabel}
+                    </span>
                     <span className="font-semibold">
                       {limiteInfo.usadoCategorias}/{limiteInfo.limiteCategorias}
                     </span>
@@ -325,10 +452,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
                   </div>
                 </div>
 
-                {/* Metas - NOVA SEÇÃO */}
                 <div>
                   <div className="flex justify-between items-center mb-0.5">
-                    <span className="font-medium">Metas:</span>
+                    <span className="font-medium">
+                      {translations.metasLabel}
+                    </span>
                     <span className="font-semibold">
                       {limiteInfo.usadoMetas}/{limiteInfo.limiteMetas}
                     </span>
@@ -361,7 +489,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                   }
                 >
                   <Crown className="h-3 w-3 mr-1" />
-                  Fazer Upgrade
+                  {translations.fazerUpgrade}
                 </Button>
               )}
             </div>
@@ -370,8 +498,13 @@ export default function Sidebar({ onClose }: SidebarProps) {
       </TooltipProvider>
     );
   };
+
   // Versão expandida com limites combinados
   const LimiteExpandido = () => {
+    if (loadingLimite) {
+      return <SkeletonLimiteExpandido />;
+    }
+
     if (!limiteInfo || loadingLimite || limiteInfo.plano !== "free") {
       return null;
     }
@@ -388,7 +521,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
       limiteMetas,
     } = limiteInfo;
 
-    // Cores baseadas no percentual combinado
     const corProgresso = atingido ? "#ef4444" : "#3b82f6";
     const corTexto = atingido
       ? "text-red-600 dark:text-red-400"
@@ -400,7 +532,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
         onClick={() => router.push(`/${currentLang}/dashboard/perfil`)}
       >
         <div className="flex items-center gap-3">
-          {/* Círculo minimalista */}
           <div className="relative h-12 w-12">
             <svg className="h-full w-full" viewBox="0 0 100 100">
               <circle
@@ -432,12 +563,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
             </div>
           </div>
 
-          {/* Conteúdo */}
           <div className="flex-1">
             <div className="flex items-center justify-between mb-1">
               <div>
                 <span className="text-sm text-gray-700 dark:text-gray-200 font-medium">
-                  Limite Free
+                  {translations.limiteFree}
                 </span>
                 {limiteCritico && !atingido && (
                   <span className="text-xs text-gray-500 ml-1">
@@ -461,16 +591,17 @@ export default function Sidebar({ onClose }: SidebarProps) {
                   }}
                 >
                   <Crown className="h-3 w-3 mr-1.5" />
-                  <span className="text-xs font-medium">Upgrade</span>
+                  <span className="text-xs font-medium">
+                    {translations.upgrade}
+                  </span>
                 </Button>
               )}
             </div>
 
-            {/* Estatísticas detalhadas */}
             <div className="space-y-1 text-xs">
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-300">
-                  Lançamentos:
+                  {translations.lancamentosLabel}
                 </span>
                 <span
                   className={`font-medium ${usadoLancamentos >= limiteLancamentos ? "text-red-600 dark:text-red-400" : "text-gray-700 dark:text-gray-300"}`}
@@ -480,7 +611,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-300">
-                  Categorias:
+                  {translations.categoriasLabel}
                 </span>
                 <span
                   className={`font-medium ${usadoCategorias >= limiteCategorias ? "text-red-600 dark:text-red-400" : "text-gray-700 dark:text-gray-300"}`}
@@ -488,9 +619,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
                   {usadoCategorias}/{limiteCategorias}
                 </span>
               </div>
-              {/* Nova linha para metas */}
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-300">Metas:</span>
+                <span className="text-gray-600 dark:text-gray-300">
+                  {translations.metasLabel}
+                </span>
                 <span
                   className={`font-medium ${usadoMetas >= limiteMetas ? "text-red-600 dark:text-red-400" : "text-gray-700 dark:text-gray-300"}`}
                 >
@@ -517,7 +649,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
         transition-all duration-300
       `}
     >
-      {/* Topo da Sidebar */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
         {!isCollapsed && (
           <div className="flex items-center space-x-3">
@@ -555,10 +686,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
         </div>
       </div>
 
-      {/* Navegação */}
       <nav className="flex-1 p-4 overflow-y-auto">
         <ul className="space-y-1">
-          {/* Página Inicial */}
           <li>
             <Link
               href={createLink("/dashboard")}
@@ -577,13 +706,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
               <Home className="h-5 w-5" />
               {!isCollapsed && (
                 <span className="ml-4 text-sm font-medium">
-                  {t("menu.paginaInicial")}
+                  {translations.paginaInicial}
                 </span>
               )}
             </Link>
           </li>
 
-          {/* Lançamentos */}
           <li>
             <Link
               href={createLink("/dashboard/lancamentos")}
@@ -602,13 +730,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
               <HandCoins className="h-5 w-5" />
               {!isCollapsed && (
                 <span className="ml-4 text-sm font-medium">
-                  {t("menu.lancamentos")}
+                  {translations.lancamentos}
                 </span>
               )}
             </Link>
           </li>
 
-          {/* Limites */}
           <li>
             <Link
               href={createLink("/dashboard/limites")}
@@ -627,13 +754,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
               <Target className="h-5 w-5" />
               {!isCollapsed && (
                 <span className="ml-4 text-sm font-medium">
-                  {t("menu.limites")}
+                  {translations.limites}
                 </span>
               )}
             </Link>
           </li>
 
-          {/* Relatórios */}
           <li>
             <Link
               href={createLink("/dashboard/relatorios")}
@@ -652,13 +778,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
               <ChartNoAxesColumnIncreasing className="h-5 w-5" />
               {!isCollapsed && (
                 <span className="ml-4 text-sm font-medium">
-                  {t("menu.relatorios")}
+                  {translations.relatorios}
                 </span>
               )}
             </Link>
           </li>
 
-          {/* Cartões */}
           <li>
             <Link
               href={createLink("/dashboard/cartoes")}
@@ -677,13 +802,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
               <CreditCard className="h-5 w-5" />
               {!isCollapsed && (
                 <span className="ml-4 text-sm font-medium">
-                  {t("menu.cartoes")}
+                  {translations.cartoes}
                 </span>
               )}
             </Link>
           </li>
 
-          {/* Categorias */}
           <li>
             <Link
               href={createLink("/dashboard/categorias")}
@@ -702,13 +826,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
               <ReceiptCent className="h-5 w-5" />
               {!isCollapsed && (
                 <span className="ml-4 text-sm font-medium">
-                  {t("menu.categorias")}
+                  {translations.categorias}
                 </span>
               )}
             </Link>
           </li>
 
-          {/* Metas */}
           <li>
             <Link
               href={createLink("/dashboard/metas")}
@@ -727,13 +850,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
               <Goal className="h-5 w-5" />
               {!isCollapsed && (
                 <span className="ml-4 text-sm font-medium">
-                  {t("menu.metas")}
+                  {translations.metas}
                 </span>
               )}
             </Link>
           </li>
 
-          {/* Telefone */}
           <li>
             <Link
               href={createLink("/dashboard/vincular-telefone")}
@@ -752,13 +874,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
               <PhoneIncoming className="h-5 w-5" />
               {!isCollapsed && (
                 <span className="ml-4 text-sm font-medium">
-                  {t("menu.vincularTelefone")}
+                  {translations.vincularTelefone}
                 </span>
               )}
             </Link>
           </li>
 
-          {/* Bicla */}
           <li>
             <Link
               href={createLink("/dashboard/bicla")}
@@ -777,13 +898,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
               <WandSparkles className="h-5 w-5" />
               {!isCollapsed && (
                 <span className="ml-4 text-sm font-medium">
-                  {t("menu.bicla")}
+                  {translations.bicla}
                 </span>
               )}
             </Link>
           </li>
 
-          {/* Suporte */}
           <li>
             <Link
               href={createLink("/dashboard/suporte")}
@@ -802,22 +922,21 @@ export default function Sidebar({ onClose }: SidebarProps) {
               <Headphones className="h-5 w-5" />
               {!isCollapsed && (
                 <span className="ml-4 text-sm font-medium">
-                  {t("menu.suporte") || "Suporte"}
+                  {translations.suporte}
                 </span>
               )}
             </Link>
           </li>
         </ul>
       </nav>
-      {/* SEÇÃO DE LIMITE - Colocada ANTES do rodapé */}
+
       <div className="px-4 pb-2">
         {!isCollapsed && <LimiteExpandido />}
         {isCollapsed && <CirculoPercentual />}
       </div>
-      {/* Rodapé da Sidebar */}
+
       <div className="p-4 border-t border-gray-200 dark:border-gray-800">
         <div className="space-y-3">
-          {/* Perfil do Usuário (Clique para ir para o perfil) */}
           <Link
             href={createLink(`/${currentLang}/dashboard/perfil`)}
             className={`
@@ -831,7 +950,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               <Avatar className="h-full w-full">
                 <AvatarImage
                   src={session?.user?.image || ""}
-                  alt={session?.user?.name || t("usuario.usuarioPadrao")}
+                  alt={session?.user?.name || translations.usuarioPadrao}
                   className="object-cover"
                 />
                 <AvatarFallback className="bg-gradient-to-br from-blue-500 to-cyan-500 text-white text-sm">
@@ -851,7 +970,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
             )}
           </Link>
 
-          {/* Botão Sair */}
           <Button
             variant="ghost"
             className={`
@@ -864,7 +982,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           >
             <LogOut className="h-4 w-4" />
             {!isCollapsed && (
-              <span className="ml-3 text-sm">{t("usuario.sair")}</span>
+              <span className="ml-3 text-sm">{translations.sair}</span>
             )}
           </Button>
         </div>
