@@ -6,8 +6,7 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { findUserByCredentials } from "@/lib/user";
 import { AuthError } from "next-auth";
-
-const prisma = new PrismaClient();
+import db from "@/lib/db";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   // @ts-ignore - Ignorar erro de tipos temporariamente
@@ -80,7 +79,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         try {
-          const existingUser = await prisma.user.findUnique({
+          const existingUser = await db.user.findUnique({
             where: { email },
           });
 
@@ -93,7 +92,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             (user as any).onboardingCompleto =
               existingUser.onboardingCompleto || false;
 
-            const existingAccount = await prisma.account.findFirst({
+            const existingAccount = await db.account.findFirst({
               where: {
                 userId: existingUser.id,
                 provider: account.provider,
@@ -103,7 +102,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
             if (!existingAccount) {
               console.log("Vinculando conta Google ao usuário existente");
-              await prisma.account.create({
+              await db.account.create({
                 data: {
                   userId: existingUser.id,
                   type: account.type,
@@ -147,7 +146,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           token.onboardingCompleto || false;
 
         try {
-          const user = await prisma.user.findUnique({
+          const user = await db.user.findUnique({
             where: { id: userId as string },
             select: {
               id: true,
