@@ -10,7 +10,7 @@ import db from "@/lib/db";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   // @ts-ignore - Ignorar erro de tipos temporariamente
-  adapter: PrismaAdapter(prisma),
+  adapter: PrismaAdapter(db),
   providers: [
     Google({
       clientId: process.env.AUTH_GOOGLE_ID!,
