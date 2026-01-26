@@ -1,9 +1,8 @@
 "use server";
 
-import db from "@/lib/db";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
-import { signIn } from "../../../../../auth";
+import { signIn, auth } from "../../../../../auth";
 
 export default async function loginAction(_prevState: any, formData: FormData) {
   const email = formData.get("email") as string;
@@ -32,25 +31,19 @@ export default async function loginAction(_prevState: any, formData: FormData) {
     errorMessages[lang as keyof typeof errorMessages] || errorMessages.pt;
 
   try {
-    // ✅ Fazer o login e capturar o resultado
-    const result = await signIn("credentials", {
+    // ✅ Fazer o login (isso já autentica e cria a sessão)
+    await signIn("credentials", {
       email,
       password,
-      redirect: true,
+      redirect: false, // ✅ NÃO redirecionar automaticamente
     });
 
-    console.log("✅ [LOGIN ACTION] SignIn result:", result);
+    console.log("✅ [LOGIN ACTION] SignIn successful");
 
-    // Buscar usuário para verificar onboarding
-    const user = await db.user.findUnique({
-      where: { email },
-      select: {
-        id: true,
-        onboardingCompleto: true,
-      },
-    });
+    // ✅ Agora pegar a sessão que acabou de ser criada
+    const session = await auth();
 
-    if (!user) {
+    if (!session?.user) {
       return {
         success: false,
         message: t.credentials,
@@ -58,8 +51,12 @@ export default async function loginAction(_prevState: any, formData: FormData) {
       };
     }
 
+    // ✅ A sessão já tem o onboardingCompleto (vem do callback jwt/session)
+    const onboardingCompleto =
+      (session.user as any).onboardingCompleto || false;
+
     // Decidir para onde redirecionar
-    const redirectTo = user.onboardingCompleto
+    const redirectTo = onboardingCompleto
       ? `/${lang}/dashboard`
       : `/${lang}/login/onboarding`;
 
