@@ -51,7 +51,7 @@ const t = (key: string, fallback: string) => fallback;
 interface UserSubscription {
   id: string;
   userId: string;
-  plano: "basic" | "pro" | "family";
+  plano: "free" | "pro" | "family";
   status: "active" | "canceled" | "expired";
   stripeSubscriptionId: string | null;
   stripePriceId: string | null;
@@ -382,7 +382,7 @@ const handleReactivateSubscription = async () => {
 
   const getPlanName = (plan: string) => {
     const planMap: Record<string, string> = {
-      basic: "Básico",
+      free: "Básico",
       pro: "Pro",
       family: "Família",
     };
@@ -609,10 +609,10 @@ const handleReactivateSubscription = async () => {
                         ) : (
                           <Badge
                             className={getPlanColor(
-                              subscription?.plano || "basic",
+                              subscription?.plano || "free"
                             )}
                           >
-                            {getPlanName(subscription?.plano || "basic")}
+                            {getPlanName(subscription?.plano || "free")}
                           </Badge>
                         )}
                       </div>
@@ -885,7 +885,7 @@ const handleReactivateSubscription = async () => {
                             )}
                           </h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {subscription.plano === "basic" ? (
+                            {subscription.plano === "free" ? (
                               <>
                                 <div className="flex items-center gap-2 text-sm">
                                   <CheckCircle className="h-4 w-4 text-green-500" />

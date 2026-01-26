@@ -101,7 +101,7 @@ export function PricingMenor({ plans, title, description }: PricingProps) {
     const isMonthlyPeriod = isMonthly;
     
     // 1. Se for plano free
-    if (planName.includes("basic") || planName.includes("free") || 
+    if (planName.includes("free") || planName.includes("free") || 
         planName.includes("grátis") || planName.includes("gratis")) {
       return process.env.NEXT_PUBLIC_STRIPE_BASIC_CHECKOUT_URL || "/dashboard";
     }
@@ -166,7 +166,7 @@ export function PricingMenor({ plans, title, description }: PricingProps) {
     const planName = plan.name.toLowerCase();
     
     // Se for plano free, redirecionar normalmente
-    if (planName.includes("basic") || planName.includes("free") || 
+    if (planName.includes("free") || planName.includes("free") || 
         planName.includes("grátis") || planName.includes("gratis")) {
       router.push(plan.href || "/dashboard");
       return;
@@ -300,7 +300,6 @@ export function PricingMenor({ plans, title, description }: PricingProps) {
           {plans.map((plan, index) => {
             const planName = plan.name.toLowerCase();
             const isFreePlan =
-              planName.includes("basic") ||
               planName.includes("free") ||
               planName.includes("grátis") ||
               planName.includes("gratis");

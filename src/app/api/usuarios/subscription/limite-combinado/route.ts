@@ -8,7 +8,7 @@ const LIMITE_LANCAMENTOS_FREE = 50;
 const LIMITE_CATEGORIAS_FREE = 10;
 const LIMITE_METAS_FREE = 2;
 
-// Limites para planos premium (apenas para referência)
+// Limites para planos premium
 const LIMITE_LANCAMENTOS_PRO = 50000000000;
 const LIMITE_CATEGORIAS_PRO = 10000000000;
 const LIMITE_METAS_PRO = 10000000000000;
@@ -18,41 +18,29 @@ const LIMITE_METAS_FAMILY = 10000000000000000000;
 
 export async function GET() {
   try {
-    console.log("🔍 Iniciando verificação de limite combinado...");
-
     const session = await auth();
-    console.log("📊 Sessão:", session?.user?.id);
 
     if (!session?.user?.id) {
-      console.log("❌ Usuário não autorizado");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Buscar assinatura
     const subscription = await db.subscription.findUnique({
       where: { userId: session.user.id },
     });
-    console.log("📋 Assinatura encontrada:", subscription?.plano);
 
     try {
       // Contar lançamentos, categorias e metas
-      console.log("🔢 Contando lançamentos...");
       const lancamentosCount = await db.lancamento.count({
         where: { userId: session.user.id },
       });
-      console.log("✅ Lançamentos:", lancamentosCount);
 
-      console.log("🔢 Contando categorias...");
       const categoriasCount = await db.categoria.count({
         where: { userId: session.user.id },
       });
-      console.log("✅ Categorias:", categoriasCount);
 
-      console.log("🔢 Contando metas...");
       const metasCount = await db.metaPessoal.count({
         where: { userId: session.user.id },
       });
-      console.log("✅ Metas:", metasCount);
 
       // Determinar plano e limites
       let plano = "free";
@@ -73,14 +61,7 @@ export async function GET() {
         }
       }
 
-      console.log("🎯 Plano detectado:", plano);
-      console.log("📊 Limites:", {
-        lancamentos: limiteLancamentos,
-        categorias: limiteCategorias,
-        metas: limiteMetas,
-      });
-
-      // Calcular percentuais individuais (evitar divisão por zero)
+      // Calcular percentuais individuais
       const percentualLancamentos =
         limiteLancamentos > 0
           ? Math.min((lancamentosCount / limiteLancamentos) * 100, 100)
@@ -94,12 +75,15 @@ export async function GET() {
       const percentualMetas =
         limiteMetas > 0 ? Math.min((metasCount / limiteMetas) * 100, 100) : 0;
 
-      // Calcular percentual combinado (usamos o MAIOR percentual)
-      const percentualCombinado = Math.max(
-        percentualLancamentos,
-        percentualCategorias,
-        percentualMetas,
-      );
+      // NOVA LÓGICA: Somar todos os usos e todos os limites
+      const totalUsado = lancamentosCount + categoriasCount + metasCount;
+      const totalLimite = limiteLancamentos + limiteCategorias + limiteMetas;
+      
+      // Calcular percentual combinado baseado no total
+      const percentualCombinado = 
+        totalLimite > 0 
+          ? Math.min((totalUsado / totalLimite) * 100, 100)
+          : 0;
 
       // Verificar se algum dos limites foi atingido
       const lancamentosAtingido = lancamentosCount >= limiteLancamentos;
@@ -128,10 +112,8 @@ export async function GET() {
         },
       ];
 
-      // Ordenar por percentual mais alto
       percentuais.sort((a, b) => b.valor - a.valor);
 
-      // Se algum atingido, mostrar primeiro
       const atingidos = percentuais.filter((p) => p.atingido);
       if (atingidos.length > 0) {
         limiteCritico = atingidos[0].tipo;
@@ -164,11 +146,11 @@ export async function GET() {
         limiteCritico,
 
         // Estatísticas gerais
-        usadoTotal: lancamentosCount + categoriasCount + metasCount,
+        totalUsado,
+        totalLimite,
+        usadoTotal: totalUsado,
         maisProximoDoLimite: percentuais[0].tipo,
       };
-
-      console.log("📈 Dados retornados:", responseData);
 
       return NextResponse.json(responseData);
     } catch (dbError) {

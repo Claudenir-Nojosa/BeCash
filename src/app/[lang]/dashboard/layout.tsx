@@ -12,7 +12,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <>
+    <AuthGuard>
       {" "}
       <div className="flex h-screen bg-white dark:bg-gray-950 overflow-hidden">
         {/* Overlay para mobile */}
@@ -73,7 +73,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           </div>
         </div>
       </div>
-    </>
+    </AuthGuard>
   );
 };
 

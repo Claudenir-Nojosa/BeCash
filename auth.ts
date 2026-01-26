@@ -22,37 +22,29 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       authorize: async (credentials) => {
-        console.log("🔍 [AUTHORIZE] Iniciando...");
-        console.log("🔍 [AUTHORIZE] Credentials recebidas:", {
-          email: credentials?.email,
-          hasPassword: !!credentials?.password,
-        });
+
 
         if (!credentials?.email || !credentials?.password) {
-          console.log("❌ [AUTHORIZE] Credenciais faltando");
+       
           return null;
         }
 
         try {
-          console.log("🔍 [AUTHORIZE] Buscando usuário...");
+        
 
           const user = await findUserByCredentials(
             credentials.email as string,
             credentials.password as string,
           );
 
-          console.log("🔍 [AUTHORIZE] Usuário encontrado:", !!user);
+        
 
           if (!user) {
-            console.log("❌ [AUTHORIZE] Usuário não encontrado");
+           
             return null;
           }
 
-          console.log("✅ [AUTHORIZE] Usuário autenticado:", {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-          });
+          
 
           // ✅ Retornar objeto compatível com NextAuth
           return {
@@ -69,7 +61,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
-      console.log("SignIn callback - email:", profile?.email || user.email);
+     
 
       if (account?.provider === "google") {
         const email = profile?.email || user.email;
@@ -83,7 +75,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             where: { email },
           });
 
-          console.log("Usuário existente encontrado:", existingUser);
+         
 
           if (existingUser) {
             user.id = existingUser.id;
@@ -118,7 +110,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             }
           }
 
-          console.log("User ID final:", user.id);
           return true;
         } catch (error) {
           console.error("Erro no signIn callback:", error);
@@ -175,8 +166,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
 
     async redirect({ url, baseUrl }) {
-      console.log("🔍 [AUTH REDIRECT] url:", url);
-      console.log("🔍 [AUTH REDIRECT] baseUrl:", baseUrl);
+    
 
       // Para login com credentials, o redirect é feito pelo loginAction
       // Então devemos retornar a URL original ou uma padrão

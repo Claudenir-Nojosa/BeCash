@@ -38,15 +38,19 @@ export default function LoginForm({ lang }: LoginFormProps) {
   useEffect(() => {
     if (state) {
       console.log("🔍 [LOGIN FORM] State recebido:", state);
-    }
-
-    if (state && !hasShownToast) {
-      if (state.success === false) {
+      
+      // Mostrar toast apenas para erros
+      if (state.success === false && !hasShownToast) {
         toast.error(state.message);
         setHasShownToast(true);
       }
-      // ✅ REMOVIDO: Não mostramos toast de sucesso nem redirecionamos
-      // O redirect server-side vai acontecer automaticamente
+      
+      // Se foi bem sucedido, não fazer nada - o redirect server-side vai acontecer
+      if (state.success === true) {
+        console.log("✅ [LOGIN FORM] Login bem sucedido, aguardando redirect...");
+        // Não mostrar toast de sucesso nem redirecionar aqui
+        // O redirect server-side no loginAction já cuidará disso
+      }
     }
   }, [state, hasShownToast]);
 

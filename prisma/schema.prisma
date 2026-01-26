@@ -83,7 +83,7 @@ model Subscription {
   userId    String   @unique
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  plano              String   // "basic", "pro", "family"
+  plano              String   // "free", "pro", "family"
   status             String   // "active", "canceled", "expired"
   stripeSubscriptionId String? @unique
   stripePriceId      String?

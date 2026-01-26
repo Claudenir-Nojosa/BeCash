@@ -62,7 +62,7 @@ export async function middleware(request: NextRequest) {
   try {
     const { pathname } = request.nextUrl;
 
-    console.log("🔍 Middleware chamado para:", pathname);
+   
 
     // Ignorar arquivos estáticos e APIs
     if (
@@ -81,7 +81,7 @@ export async function middleware(request: NextRequest) {
     // 1. CASO ESPECIAL: Rota raiz sem locale
     if (pathname === "/") {
       const preferredLocale = getPreferredLocale(request);
-      console.log("✅ Redirecionando / para:", `/${preferredLocale}`);
+     
       const redirectUrl = new URL(`/${preferredLocale}`, request.url);
       return NextResponse.redirect(redirectUrl);
     }

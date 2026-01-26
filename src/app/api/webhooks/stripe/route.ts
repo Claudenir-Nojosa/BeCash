@@ -52,9 +52,17 @@ export async function POST(req: Request) {
           return NextResponse.json({ error: "No userId" }, { status: 400 });
         }
 
-        // ✅ CORREÇÃO: Pegar current_period_end de dentro de items.data[0]
-        const currentPeriodEnd = subscriptionData.items?.data?.[0]?.current_period_end;
+        // ✅ CORREÇÃO: Pegar informações do item da subscription
+        const subscriptionItem = subscriptionData.items?.data?.[0];
+        if (!subscriptionItem) {
+          console.error("❌ No subscription item found");
+          return NextResponse.json({ error: "Invalid subscription" }, { status: 400 });
+        }
+
+        const priceId = subscriptionItem.price.id;
+        const currentPeriodEnd = subscriptionItem.current_period_end;
         
+        console.log("📝 Price ID:", priceId);
         console.log("📝 Current period end:", currentPeriodEnd);
 
         if (!currentPeriodEnd) {
@@ -62,7 +70,6 @@ export async function POST(req: Request) {
           return NextResponse.json({ error: "Invalid subscription" }, { status: 400 });
         }
 
-        const priceId = subscriptionData.items.data[0].price.id;
         const fimPlano = new Date(currentPeriodEnd * 1000);
 
         if (isNaN(fimPlano.getTime())) {
@@ -70,9 +77,44 @@ export async function POST(req: Request) {
           return NextResponse.json({ error: "Invalid date" }, { status: 400 });
         }
 
-        let nomePlano = "basic";
-        if (priceId.includes("pro")) nomePlano = "pro";
-        else if (priceId.includes("family") || priceId.includes("familia")) nomePlano = "family";
+        // ✅ CORREÇÃO: Buscar informações do preço para determinar o plano
+        let nomePlano = "free";
+        
+        try {
+          // Buscar o preço do Stripe para verificar os metadados
+          const price = await stripe.prices.retrieve(priceId, {
+            expand: ['product']
+          });
+          
+          console.log("🔍 Price metadata:", price.metadata);
+          console.log("🔍 Product metadata:", (price.product as Stripe.Product)?.metadata);
+          
+          // Tentar obter o plano dos metadados
+          const planType = price.metadata?.plan_type || 
+                          price.metadata?.plan_name || 
+                          (price.product as Stripe.Product)?.metadata?.plan_type;
+          
+          if (planType) {
+            nomePlano = planType;
+          } else {
+            // Fallback: verificar o nome do produto
+            const productName = (price.product as Stripe.Product)?.name?.toLowerCase() || '';
+            if (productName.includes('pro')) {
+              nomePlano = 'pro';
+            } else if (productName.includes('family') || productName.includes('família')) {
+              nomePlano = 'family';
+            }
+          }
+          
+          console.log(`✅ Plano identificado: ${nomePlano}`);
+          
+        } catch (priceError) {
+          console.error("❌ Erro ao buscar informações do preço:", priceError);
+          // Fallback: verificar pelo amount
+          if (subscriptionItem.price.unit_amount > 0) {
+            nomePlano = subscriptionItem.price.unit_amount >= 4990 ? 'family' : 'pro';
+          }
+        }
 
         console.log(`💾 Salvando subscription: userId=${userId}, plano=${nomePlano}, fimPlano=${fimPlano.toISOString()}`);
 
@@ -99,7 +141,7 @@ export async function POST(req: Request) {
           },
         });
 
-        // ✅ Atualizar também na tabela User (opcional)
+        // ✅ Atualizar também na tabela User
         await db.user.update({
           where: { id: userId },
           data: {
