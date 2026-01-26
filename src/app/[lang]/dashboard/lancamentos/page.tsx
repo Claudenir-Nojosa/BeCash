@@ -144,6 +144,9 @@ interface Lancamento {
 
 export default function LancamentosPage() {
   const { t, i18n } = useTranslation("lancamentos");
+  type PlanoUsuario = "free" | "pro" | "family";
+  const [planoUsuario, setPlanoUsuario] = useState<PlanoUsuario | null>(null);
+  const [carregandoPlano, setCarregandoPlano] = useState(true);
   const currencySymbol = i18n.language === "en" ? "$" : "R$";
   const [carregandoVisualizacao, setCarregandoVisualizacao] = useState<
     string | null
@@ -242,6 +245,42 @@ export default function LancamentosPage() {
     carregarDados();
   }, []);
 
+  // Carregar o plano e os limites
+  useEffect(() => {
+    const carregarPlanoUsuario = async () => {
+      try {
+        setCarregandoPlano(true);
+        const response = await fetch(
+          "/api/usuarios/subscription/limite-combinado",
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log("Dados do plano carregados:", data); // Para depuração
+          setPlanoUsuario(data.plano);
+          // Também defina o limiteFree com os dados da API combinada
+          setLimiteFree({
+            atingido: data.atingido || data.lancamentosAtingido,
+            total: data.limiteLancamentos || 0,
+            usado: data.usadoLancamentos || 0,
+          });
+        } else {
+          console.error("Erro ao carregar plano do usuário");
+          setPlanoUsuario("free");
+          setLimiteFree(null);
+        }
+      } catch (error) {
+        console.error("Erro na requisição do plano:", error);
+        setPlanoUsuario("free");
+        setLimiteFree(null);
+      } finally {
+        setCarregandoPlano(false);
+      }
+    };
+
+    carregarPlanoUsuario();
+  }, []);
+
   const carregarDados = async () => {
     try {
       setLoading(true);
@@ -272,10 +311,7 @@ export default function LancamentosPage() {
       setLoading(false);
     }
   };
-  // Chamar na montagem do componente
-  useEffect(() => {
-    verificarLimiteFree();
-  }, []);
+
   const getStatusCompartilhamento = (lancamento: Lancamento) => {
     if (!lancamento.LancamentoCompartilhado?.length) return null;
     const compartilhamento = lancamento.LancamentoCompartilhado[0];
@@ -938,11 +974,13 @@ export default function LancamentosPage() {
               variant={"outline"}
               onClick={() => setIsSheetOpen(true)}
               className="flex-1 sm:flex-none border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-500 text-xs sm:text-sm"
-              disabled={limiteFree?.atingido}
+              disabled={
+                planoUsuario === "free" && limiteFree?.atingido
+              }
             >
               <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-              {limiteFree?.atingido && (
-                <Crown className="h-4 w-4 text-yellow-600" />
+              {planoUsuario === "free" && limiteFree?.atingido && (
+                <Crown className="h-4 w-4 text-yellow-600 mr-1" />
               )}
               <span className="truncate">
                 {t("categorias.acoes.novoLancamento")}
@@ -1339,24 +1377,84 @@ export default function LancamentosPage() {
             </CardContent>
           </Card>
         </motion.div>
-        {limiteFree?.atingido && (
-          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <div className="flex items-center">
-              <AlertTriangle className="h-5 w-5 text-yellow-600 mr-2" />
-              <p className="text-sm text-yellow-800">
-                Você atingiu o limite de {limiteFree.total} lançamentos do plano
-                free.
-                <Button
-                  variant="link"
-                  className="ml-2 p-0 h-auto text-yellow-800 font-semibold"
-                  onClick={handleRedirectToProfile}
-                >
-                  Faça upgrade para continuar criando lançamentos.
-                </Button>
-              </p>
+    {/* Aviso de Limite para plano Free */}
+{planoUsuario === "free" && limiteFree?.atingido && (
+  <motion.div
+    initial={{ opacity: 0, y: -10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.3 }}
+  >
+    <div className="mb-4 p-4 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800">
+      <div className="flex items-center justify-between">
+        {/* Lado esquerdo: Círculo e Informações */}
+        <div className="flex items-center gap-3">
+          <div className="relative h-10 w-10">
+            <svg className="h-full w-full" viewBox="0 0 100 100">
+              <circle
+                cx="50"
+                cy="50"
+                r="40"
+                fill="transparent"
+                stroke="#fbbf24"
+                strokeWidth="4"
+                strokeOpacity="0.2"
+              />
+              <circle
+                cx="50"
+                cy="50"
+                r="40"
+                fill="transparent"
+                stroke="#f59e0b"
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeDasharray={`${Math.min(
+                  (limiteFree.usado / limiteFree.total) * 100,
+                  100,
+                ) * 2.51} 251`}
+                strokeDashoffset="0"
+                transform="rotate(-90 50 50)"
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                {Math.min(
+                  (limiteFree.usado / limiteFree.total) * 100,
+                  100,
+                ).toFixed(0)}
+                %
+              </span>
             </div>
           </div>
-        )}
+
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                Lançamentos Free
+              </span>
+            </div>
+            <p className="text-sm text-amber-700 dark:text-amber-300">
+              {limiteFree.usado}/{limiteFree.total} lançamentos
+            </p>
+          </div>
+        </div>
+
+        {/* Botão de Upgrade no lado direito */}
+        <Button
+          size="sm"
+          className="bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90 text-xs"
+          onClick={() => {
+            const lang = i18n.language;
+            router.push(`/${lang}/dashboard/perfil`);
+          }}
+        >
+          <Crown className="h-3 w-3 mr-1" />
+          Fazer Upgrade
+        </Button>
+      </div>
+    </div>
+  </motion.div>
+)}
+
         {/* Tabela de Lançamentos */}
         <motion.div variants={itemVariants} initial="hidden" animate="visible">
           {" "}

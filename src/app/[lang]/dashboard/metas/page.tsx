@@ -95,14 +95,14 @@ export default function MetasPage() {
   const [mostrarInputValor, setMostrarInputValor] = useState<string | null>(
     null,
   );
-const [limiteInfo, setLimiteInfo] = useState<{
-  plano: PlanoUsuario; // ← Altere para o tipo específico
-  usadoMetas: number;
-  limiteMetas: number;
-  metasAtingido: boolean;
-  percentualMetas: number;
-} | null>(null);
-  
+  const [limiteInfo, setLimiteInfo] = useState<{
+    plano: PlanoUsuario; // ← Altere para o tipo específico
+    usadoMetas: number;
+    limiteMetas: number;
+    metasAtingido: boolean;
+    percentualMetas: number;
+  } | null>(null);
+
   const [loadingLimite, setLoadingLimite] = useState(false);
   const [formData, setFormData] = useState({
     titulo: "",
@@ -156,7 +156,7 @@ const [limiteInfo, setLimiteInfo] = useState<{
       if (response.ok) {
         const data = await response.json();
         setLimiteInfo({
-         plano: data.plano as PlanoUsuario, 
+          plano: data.plano as PlanoUsuario,
           usadoMetas: data.usadoMetas,
           limiteMetas: data.limiteMetas,
           metasAtingido: data.metasAtingido,
@@ -169,10 +169,10 @@ const [limiteInfo, setLimiteInfo] = useState<{
       setLoadingLimite(false);
     }
   };
-// Adicione esta função após as outras funções utilitárias
-const podeTerColaboradores = () => {
-  return limiteInfo?.plano === "family";
-};
+  // Adicione esta função após as outras funções utilitárias
+  const podeTerColaboradores = () => {
+    return limiteInfo?.plano === "family";
+  };
   // Adicione esta função para carregar colaboradores de uma meta específica
   const carregarColaboradoresMeta = async (metaId: string) => {
     try {
@@ -294,7 +294,7 @@ const podeTerColaboradores = () => {
           toast.error(errorData.message, {
             action: {
               label: "Upgrade",
-              onClick: () => router.push(`/${currentLang}/dashboard/perfil`), 
+              onClick: () => router.push(`/${currentLang}/dashboard/perfil`),
             },
           });
           return;
@@ -559,13 +559,6 @@ const podeTerColaboradores = () => {
                 <span className={`text-sm font-medium ${corTexto}`}>
                   Metas Free
                 </span>
-                {metasAtingido && (
-                  <Badge
-                    className={`${metasAtingido ? "bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100" : "bg-amber-100 text-amber-800 dark:bg-amber-800 dark:text-amber-100"} text-xs`}
-                  >
-                    Limite
-                  </Badge>
-                )}
               </div>
               <p className={`text-sm ${corTexto}`}>
                 {usadoMetas}/{limiteMetas} metas
@@ -1406,48 +1399,55 @@ const podeTerColaboradores = () => {
                             </div>
                           </div>
 
-                         {/* 👇 SEÇÃO DE COLABORADORES - COM MENSAGEM EDUCATIVA */}
-{(usuarioAtualEhDono ||
-  (meta.ColaboradorMeta &&
-    meta.ColaboradorMeta.length > 0)) && (
-  <motion.div
-    initial={{ opacity: 0, height: 0 }}
-    animate={{ opacity: 1, height: "auto" }}
-    transition={{ duration: 0.3 }}
-    className="pt-2 sm:pt-3 border-t border-gray-200 dark:border-gray-800"
-  >
-    {podeTerColaboradores() ? (
-      <ColaboradoresMeta
-        metaId={meta.id}
-        colaboradores={meta.ColaboradorMeta || []}
-        convites={meta.ConviteMeta || []}
-        usuarioAtualEhDono={usuarioAtualEhDono}
-        onColaboradoresAtualizados={() =>
-          handleColaboradoresAtualizados(meta.id)
-        }
-      />
-    ) : (
-      <div className="text-center py-2">
-        <div className="flex items-center justify-center gap-2 text-sm text-amber-600 dark:text-amber-400">
-          <Crown className="h-3 w-3" />
-          <span className="font-medium">Recurso exclusivo do plano Família</span>
-        </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          Faça upgrade para adicionar colaboradores às suas metas
-        </p>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="mt-2 h-6 text-xs"
-          onClick={() => router.push(`/${currentLang}/dashboard/perfil`)}
-        >
-          <Crown className="h-3 w-3 mr-1" />
-          Conhecer planos
-        </Button>
-      </div>
-    )}
-  </motion.div>
-)}
+                          {/* 👇 SEÇÃO DE COLABORADORES - COM MENSAGEM EDUCATIVA */}
+                          {(usuarioAtualEhDono ||
+                            (meta.ColaboradorMeta &&
+                              meta.ColaboradorMeta.length > 0)) && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              transition={{ duration: 0.3 }}
+                              className="pt-2 sm:pt-3 border-t border-gray-200 dark:border-gray-800"
+                            >
+                              {podeTerColaboradores() ? (
+                                <ColaboradoresMeta
+                                  metaId={meta.id}
+                                  colaboradores={meta.ColaboradorMeta || []}
+                                  convites={meta.ConviteMeta || []}
+                                  usuarioAtualEhDono={usuarioAtualEhDono}
+                                  onColaboradoresAtualizados={() =>
+                                    handleColaboradoresAtualizados(meta.id)
+                                  }
+                                />
+                              ) : (
+                                <div className="text-center py-2">
+                                  <div className="flex items-center justify-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+                                    <Crown className="h-3 w-3" />
+                                    <span className="font-medium">
+                                      Recurso exclusivo do plano Família
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    Faça upgrade para adicionar colaboradores às
+                                    suas metas
+                                  </p>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="mt-2 h-6 text-xs"
+                                    onClick={() =>
+                                      router.push(
+                                        `/${currentLang}/dashboard/perfil`,
+                                      )
+                                    }
+                                  >
+                                    <Crown className="h-3 w-3 mr-1" />
+                                    Conhecer planos
+                                  </Button>
+                                </div>
+                              )}
+                            </motion.div>
+                          )}
                         </CardContent>
                       </Card>
                     </motion.div>

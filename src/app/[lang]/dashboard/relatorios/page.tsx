@@ -81,7 +81,7 @@ export default function RelatoriosPage() {
   const [cartoes, setCartoes] = useState<Cartao[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [carregandoPlano, setCarregandoPlano] = useState(true);
-  const [planoUsuario, setPlanoUsuario] = useState<PlanoUsuario>("free");
+  const [planoUsuario, setPlanoUsuario] = useState<PlanoUsuario | null>(null);
   const [filtros, setFiltros] = useState({
     cartaoId: cartaoId || "todos",
     periodo: "30",
@@ -121,8 +121,11 @@ export default function RelatoriosPage() {
   };
 
   useEffect(() => {
-    if (planoUsuario !== "free") {
+    if (planoUsuario && planoUsuario !== "free") {
       carregarDados();
+    } else if (planoUsuario === "free") {
+      // Se for free, não precisa carregar dados
+      setCarregando(false);
     }
   }, [planoUsuario]);
 
@@ -181,7 +184,7 @@ export default function RelatoriosPage() {
   }, [filtros]);
 
   // Se é plano free, mostrar mensagem educativa
-  if (!carregando && planoUsuario === "free") {
+  if (planoUsuario === "free") {
     return (
       <div className="h-full flex flex-col overflow-hidden p-4 sm:p-6">
         <div className="max-w-4xl mx-auto w-full h-full flex flex-col gap-4 sm:gap-6">
@@ -540,7 +543,7 @@ export default function RelatoriosPage() {
     URL.revokeObjectURL(url);
   };
 
-  if (carregando) {
+  if (carregandoPlano || planoUsuario === null) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loading />

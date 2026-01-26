@@ -4,7 +4,7 @@ import db from "@/lib/db";
 import { auth } from "../../../../../../auth";
 
 // Limites para plano free
-const LIMITE_LANCAMENTOS_FREE = 50;
+const LIMITE_LANCAMENTOS_FREE = 1;
 const LIMITE_CATEGORIAS_FREE = 10;
 const LIMITE_METAS_FREE = 2;
 

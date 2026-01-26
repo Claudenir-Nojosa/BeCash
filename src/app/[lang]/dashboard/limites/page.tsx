@@ -73,7 +73,7 @@ export default function LimitesPage() {
   const [limites, setLimites] = useState<LimiteCategoria[]>([]);
   const [dropdownAberto, setDropdownAberto] = useState<string | null>(null);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [carregando, setCarregando] = useState(true);
+  const [carregandoDados, setCarregandoDados] = useState(true); // Renomeado para carregandoDados
   const [editando, setEditando] = useState<string | null>(null);
   const [novoLimite, setNovoLimite] = useState("");
   const [salvando, setSalvando] = useState<string | null>(null);
@@ -87,7 +87,7 @@ export default function LimitesPage() {
   const [anoSelecionado, setAnoSelecionado] = useState<string>(
     new Date().getFullYear().toString(),
   );
-  const [planoUsuario, setPlanoUsuario] = useState<PlanoUsuario>("free");
+  const [planoUsuario, setPlanoUsuario] = useState<PlanoUsuario | null>(null); // Iniciar como null
   const [carregandoPlano, setCarregandoPlano] = useState(true);
 
   // Carregar o plano do usuário
@@ -116,6 +116,16 @@ export default function LimitesPage() {
 
     carregarPlanoUsuario();
   }, []);
+
+  // Carregar dados quando o plano for carregado e for diferente de free
+  useEffect(() => {
+    if (planoUsuario && planoUsuario !== "free") {
+      carregarDados();
+    } else if (planoUsuario === "free") {
+      // Se for free, não precisa carregar dados, apenas mostrar mensagem educativa
+      setCarregandoDados(false);
+    }
+  }, [planoUsuario]);
 
   // MESES localizados
   const MESES =
@@ -149,15 +159,9 @@ export default function LimitesPage() {
           { value: "11", label: t("meses.dezembro") },
         ];
 
-  useEffect(() => {
-    if (planoUsuario !== "free") {
-      carregarDados();
-    }
-  }, [planoUsuario]);
-
   const carregarDados = async () => {
     try {
-      setCarregando(true);
+      setCarregandoDados(true);
       const [limitesRes, categoriasRes] = await Promise.all([
         fetch("/api/dashboard/limites"),
         fetch("/api/categorias?tipo=DESPESA"),
@@ -178,10 +182,11 @@ export default function LimitesPage() {
       console.error(t("mensagens.erroCarregarDados"), error);
       toast.error(t("mensagens.erroCarregarLimites"));
     } finally {
-      setCarregando(false);
+      setCarregandoDados(false);
     }
   };
 
+  // Funções restantes permanecem as mesmas...
   const salvarLimite = async (categoriaId: string) => {
     if (!novoLimite || parseFloat(novoLimite) <= 0) {
       toast.error(t("validacao.valorInvalido"));
@@ -377,8 +382,17 @@ export default function LimitesPage() {
     return mesesAbreviados[Number(mes)] || t("mesesAbreviados.mes");
   };
 
+  // Mostrar loading enquanto carrega o plano
+  if (carregandoPlano || planoUsuario === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loading />
+      </div>
+    );
+  }
+
   // Se é plano free, mostrar mensagem educativa
-  if (!carregando && planoUsuario === "free") {
+  if (planoUsuario === "free") {
     return (
       <div className="h-full flex flex-col overflow-hidden p-4 sm:p-6">
         <div className="max-w-4xl mx-auto w-full h-full flex flex-col gap-4 sm:gap-6">
@@ -482,8 +496,8 @@ export default function LimitesPage() {
     );
   }
 
-  // Loading em tela cheia para carregamento dos dados
-  if (carregando) {
+  // Se é plano pro ou family, mostrar loading enquanto carrega os dados
+  if (carregandoDados) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loading />

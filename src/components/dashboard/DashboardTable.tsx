@@ -310,7 +310,6 @@ export default function DashboardTable({
                                 className="text-xs font-semibold"
                                 style={{ color: lancamento.categoria.cor }}
                               >
-                                {lancamento.categoria.icone}{" "}
                                 {lancamento.categoria.nome}
                               </span>
                               {temCompartilhamento(lancamento) && (

@@ -477,11 +477,6 @@ export default function CategoriasPage() {
                 <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
                   Categorias Free
                 </span>
-                {atingido && (
-                  <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-800 dark:text-amber-100 text-xs">
-                    Limite
-                  </Badge>
-                )}
               </div>
               <p className="text-sm text-amber-700 dark:text-amber-300">
                 {categoriasUsadas}/{limiteCategorias} categorias
