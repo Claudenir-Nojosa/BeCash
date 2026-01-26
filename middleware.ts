@@ -6,14 +6,10 @@ const locales = ["pt", "en"];
 const defaultLocale = "pt";
 
 // Rotas públicas (não precisam de autenticação)
-const publicRoutes = [
-  "/login",
-  "/signup",
-  "/forgot-password",
-];
+const publicRoutes = ["/login", "/signup", "/forgot-password"];
 
 // Rotas de onboarding
-const onboardingRoutes = ["/onboarding"];
+const onboardingRoutes = ["/login/onboarding"];
 
 // Rotas que precisam de onboarding completo
 const protectedAfterOnboarding = [
@@ -23,7 +19,7 @@ const protectedAfterOnboarding = [
   "/cartoes",
   "/faturas",
   "/relatorios",
-  "/configuracoes"
+  "/configuracoes",
 ];
 
 // Helper para extrair locale da URL
@@ -50,7 +46,7 @@ function removeLocaleFromPath(pathname: string): string {
 
 // Helper para verificar se a rota corresponde a uma lista
 function isRouteInList(pathname: string, routeList: string[]): boolean {
-  return routeList.some(route => {
+  return routeList.some((route) => {
     if (route === "/") return pathname === "/";
     return pathname === route || pathname.startsWith(`${route}/`);
   });
@@ -65,9 +61,9 @@ function getPreferredLocale(request: NextRequest): string {
 export async function middleware(request: NextRequest) {
   try {
     const { pathname } = request.nextUrl;
-    
+
     console.log("🔍 Middleware chamado para:", pathname);
-    
+
     // Ignorar arquivos estáticos e APIs
     if (
       pathname.startsWith("/_next") ||
@@ -81,7 +77,7 @@ export async function middleware(request: NextRequest) {
     // Extrair locale atual (se houver)
     const currentLocale = getLocaleFromPath(pathname);
     const pathWithoutLocale = removeLocaleFromPath(pathname);
-    
+
     // 1. CASO ESPECIAL: Rota raiz sem locale
     if (pathname === "/") {
       const preferredLocale = getPreferredLocale(request);
@@ -93,7 +89,10 @@ export async function middleware(request: NextRequest) {
     // 2. Se não tem locale em rotas não-raiz, adicionar locale
     if (!currentLocale && pathname !== "/") {
       const preferredLocale = getPreferredLocale(request);
-      const redirectUrl = new URL(`/${preferredLocale}${pathname}`, request.url);
+      const redirectUrl = new URL(
+        `/${preferredLocale}${pathname}`,
+        request.url,
+      );
       return NextResponse.redirect(redirectUrl);
     }
 
@@ -105,12 +104,13 @@ export async function middleware(request: NextRequest) {
       let session = null;
       let isAuthenticated = false;
       let onboardingCompleto = false;
-      
+
       try {
         session = await auth();
         isAuthenticated = !!session?.user;
-        onboardingCompleto = (session?.user as any)?.onboardingCompleto || false;
-        
+        onboardingCompleto =
+          (session?.user as any)?.onboardingCompleto || false;
+
         console.log("🔍 [MIDDLEWARE] Rota raiz com locale:", pathname);
         console.log("🔍 [MIDDLEWARE] isAuthenticated:", isAuthenticated);
         console.log("🔍 [MIDDLEWARE] User email:", session?.user?.email);
@@ -120,23 +120,27 @@ export async function middleware(request: NextRequest) {
 
       if (!onboardingCompleto) {
         console.log("➡️ [MIDDLEWARE] Redirecionando para onboarding");
-        return NextResponse.redirect(new URL(`/${locale}/onboarding`, request.url));
+        return NextResponse.redirect(
+          new URL(`/${locale}/login/onboarding`, request.url),
+        );
       }
 
       console.log("➡️ [MIDDLEWARE] Redirecionando para dashboard");
-      return NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url));
+      return NextResponse.redirect(
+        new URL(`/${locale}/dashboard`, request.url),
+      );
     }
 
     // 4. Para outras rotas com locale, verificar autenticação/onboarding
     let session = null;
     let isAuthenticated = false;
     let onboardingCompleto = false;
-    
+
     try {
       session = await auth();
       isAuthenticated = !!session?.user;
       onboardingCompleto = (session?.user as any)?.onboardingCompleto || false;
-      
+
       console.log("🔍 [MIDDLEWARE] Session check para:", pathname);
       console.log("🔍 [MIDDLEWARE] isAuthenticated:", isAuthenticated);
       console.log("🔍 [MIDDLEWARE] onboardingCompleto:", onboardingCompleto);
@@ -145,8 +149,14 @@ export async function middleware(request: NextRequest) {
     }
 
     const isPublicRoute = isRouteInList(pathWithoutLocale, publicRoutes);
-    const isOnboardingRoute = isRouteInList(pathWithoutLocale, onboardingRoutes);
-    const isProtectedRoute = isRouteInList(pathWithoutLocale, protectedAfterOnboarding);
+    const isOnboardingRoute = isRouteInList(
+      pathWithoutLocale,
+      onboardingRoutes,
+    );
+    const isProtectedRoute = isRouteInList(
+      pathWithoutLocale,
+      protectedAfterOnboarding,
+    );
 
     console.log("🔍 [MIDDLEWARE] Verificando rota:", pathname);
     console.log("🔍 [MIDDLEWARE] pathWithoutLocale:", pathWithoutLocale);
@@ -154,13 +164,15 @@ export async function middleware(request: NextRequest) {
     console.log("🔍 [MIDDLEWARE] isAuthenticated:", isAuthenticated);
     console.log("🔍 [MIDDLEWARE] User email:", session?.user?.email);
 
-    
     // Se é rota pública e usuário está autenticado, redirecionar
     if (isPublicRoute && isAuthenticated) {
-      const redirectPath = onboardingCompleto 
+      const redirectPath = onboardingCompleto
         ? `/${locale}/dashboard`
-        : `/${locale}/onboarding`;
-      console.log("➡️ [MIDDLEWARE] Usuário autenticado em rota pública, redirecionando para:", redirectPath);
+        : `/${locale}/login/onboarding`;
+      console.log(
+        "➡️ [MIDDLEWARE] Usuário autenticado em rota pública, redirecionando para:",
+        redirectPath,
+      );
       return NextResponse.redirect(new URL(redirectPath, request.url));
     }
 
@@ -168,7 +180,10 @@ export async function middleware(request: NextRequest) {
     if (!isPublicRoute && !isAuthenticated) {
       const loginUrl = new URL(`/${locale}/login`, request.url);
       loginUrl.searchParams.set("callbackUrl", pathname);
-      console.log("➡️ [MIDDLEWARE] Usuário não autenticado em rota protegida, redirecionando para:", loginUrl.toString());
+      console.log(
+        "➡️ [MIDDLEWARE] Usuário não autenticado em rota protegida, redirecionando para:",
+        loginUrl.toString(),
+      );
       return NextResponse.redirect(loginUrl);
     }
 
@@ -176,22 +191,26 @@ export async function middleware(request: NextRequest) {
     if (isAuthenticated) {
       // Se está em onboarding mas já completou, redirecionar para dashboard
       if (isOnboardingRoute && onboardingCompleto) {
-        return NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url));
+        return NextResponse.redirect(
+          new URL(`/${locale}/dashboard`, request.url),
+        );
       }
 
       // Se não completou onboarding e tenta acessar rota protegida
       if (!onboardingCompleto && isProtectedRoute && !isOnboardingRoute) {
-        return NextResponse.redirect(new URL(`/${locale}/onboarding`, request.url));
+        return NextResponse.redirect(
+          new URL(`/${locale}/login/onboarding`, request.url),
+        );
       }
-      
     }
 
     return NextResponse.next();
-    
   } catch (error) {
     console.error("Erro no middleware:", error);
     // Em caso de erro, tentar redirecionar para login com locale padrão
-    return NextResponse.redirect(new URL(`/${defaultLocale}/login`, request.url));
+    return NextResponse.redirect(
+      new URL(`/${defaultLocale}/login`, request.url),
+    );
   }
 }
 

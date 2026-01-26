@@ -36,8 +36,7 @@ export default async function loginAction(_prevState: any, formData: FormData) {
     const result = await signIn("credentials", {
       email,
       password,
-      redirect: true, // Agora deixamos true para o NextAuth redirecionar
-      callbackUrl: `/${lang}/dashboard`, // Direcionar para o dashboard
+      redirect: true,
     });
 
     console.log("✅ [LOGIN ACTION] SignIn result:", result);
@@ -62,7 +61,7 @@ export default async function loginAction(_prevState: any, formData: FormData) {
     // Decidir para onde redirecionar
     const redirectTo = user.onboardingCompleto
       ? `/${lang}/dashboard`
-      : `/${lang}/onboarding`;
+      : `/${lang}/login/onboarding`;
 
     console.log("✅ [LOGIN ACTION] Redirecionando para:", redirectTo);
 

@@ -53,7 +53,7 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
         }, 2000);
       } else {
         setTimeout(() => {
-          router.push(`/${currentLang}/onboarding`);
+          router.push(`/${currentLang}/login/onboarding`);
         }, 1500);
       }
     } catch (error) {

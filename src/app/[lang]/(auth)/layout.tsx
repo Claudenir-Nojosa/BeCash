@@ -12,7 +12,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isOnboardingPage = pathname?.includes("/onboarding");
+  const isOnboardingPage = pathname?.includes("/login/onboarding");
 
   return (
     <section className={`flex flex-col items-center ${isOnboardingPage ? 'py-0' : 'py-40'}`}>

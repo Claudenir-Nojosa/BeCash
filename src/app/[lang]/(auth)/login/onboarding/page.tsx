@@ -1329,9 +1329,17 @@ export default function OnboardingPage() {
                 </Button>
                 <Button
                   onClick={finalizarOnboarding}
+                  disabled={carregando}
                   className="flex-1 bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-700 hover:to-green-600 text-white transition-all hover:shadow-lg hover:shadow-emerald-500/20"
                 >
-                  {t("confirmation.letsGo")}
+                  {carregando ? (
+                    <div className="flex items-center justify-center">
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      {t("buttons.processing")}
+                    </div>
+                  ) : (
+                    t("confirmation.letsGo")
+                  )}
                 </Button>
               </div>
             </div>

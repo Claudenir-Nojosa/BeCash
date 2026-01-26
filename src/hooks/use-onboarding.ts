@@ -14,8 +14,8 @@ export function useOnboardingRedirect() {
       const onboardingCompleto = (session.user as any)?.onboardingCompleto;
       
       // Se onboarding não está completo e não está na página de onboarding
-      if (!onboardingCompleto && !window.location.pathname.startsWith('/onboarding')) {
-        router.push('/onboarding');
+      if (!onboardingCompleto && !window.location.pathname.startsWith('/login/onboarding')) {
+        router.push('/login/onboarding');
       }
       
       // Se onboarding está completo e está na página de onboarding
