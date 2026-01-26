@@ -11,7 +11,7 @@ datasource db {
 // MODELOS DO NEXT AUTH (OBRIGATÓRIOS)
 model User {
   id                   String    @id @default(cuid())
-  name                 String
+  name                 String    @unique
   email                String    @unique
   emailVerified        DateTime?
   password             String?
@@ -44,8 +44,8 @@ model User {
   lancamentos      Lancamento[]
   pagamentosFatura PagamentoFatura[]
 
-  username        String?   @unique
-  
+  username String? @unique
+
   onboardingCompleto  Boolean   @default(false)
   onboardingData      DateTime?
   onboardingRespostas Json? // Para armazenar as respostas
@@ -79,25 +79,26 @@ model User {
 }
 
 model Subscription {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  plano              String   // "basic", "pro", "family"
-  status             String   // "active", "canceled", "expired"
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  plano                String // "basic", "pro", "family"
+  status               String // "active", "canceled", "expired"
   stripeSubscriptionId String? @unique
-  stripePriceId      String?
-  stripeCustomerId   String?
-  
-  inicioPlano        DateTime @default(now())
-  fimPlano           DateTime
-  canceladoEm        DateTime?
-  
+  stripePriceId        String?
+  stripeCustomerId     String?
+
+  inicioPlano DateTime  @default(now())
+  fimPlano    DateTime
+  canceladoEm DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@map("subscriptions")
 }
+
 model ConfiguracoesUsuario {
   id     String @id @default(cuid())
   userId String @unique
