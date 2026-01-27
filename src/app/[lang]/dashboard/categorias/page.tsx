@@ -715,81 +715,81 @@ export default function CategoriasPage() {
     }
   };
 
-  const AvisoLimiteCategorias = () => {
-    if (!limiteInfo || loadingLimite || limiteInfo.plano !== "free") {
-      return null;
-    }
+ const AvisoLimiteCategorias = () => {
+  if (!limiteInfo || loadingLimite || limiteInfo.plano !== "free") {
+    return null;
+  }
 
-    const { categoriasUsadas, limiteCategorias, atingido } = limiteInfo;
-    const porcentagem = Math.min(
-      (categoriasUsadas / limiteCategorias) * 100,
-      100,
-    );
+  const { categoriasUsadas, limiteCategorias, atingido } = limiteInfo;
+  const porcentagem = Math.min(
+    (categoriasUsadas / limiteCategorias) * 100,
+    100,
+  );
 
-    return (
-      <div className="mb-4 p-4 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="relative h-10 w-10">
-              <svg className="h-full w-full" viewBox="0 0 100 100">
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="40"
-                  fill="transparent"
-                  stroke="#fbbf24"
-                  strokeWidth="4"
-                  strokeOpacity="0.2"
-                />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="40"
-                  fill="transparent"
-                  stroke="#f59e0b"
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                  strokeDasharray={`${porcentagem * 2.51} 251`}
-                  strokeDashoffset="0"
-                  transform="rotate(-90 50 50)"
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
-                  {porcentagem}%
-                </span>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                  {translations.avisos.categoriasFree.titulo}
-                </span>
-              </div>
-              <p className="text-sm text-amber-700 dark:text-amber-300">
-                {categoriasUsadas}/{limiteCategorias}{" "}
-                {currentLang === "pt" ? "categorias" : "categories"}
-                {!atingido &&
-                  ` • ${limiteCategorias - categoriasUsadas} ${currentLang === "pt" ? "restantes" : "remaining"}`}
-              </p>
+  return (
+    <div className="mb-4 p-4 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="relative h-12 w-12 flex-shrink-0">
+            <svg className="h-full w-full" viewBox="0 0 100 100">
+              <circle
+                cx="50"
+                cy="50"
+                r="42"
+                fill="transparent"
+                stroke="#fbbf24"
+                strokeWidth="3"
+                strokeOpacity="0.2"
+              />
+              <circle
+                cx="50"
+                cy="50"
+                r="42"
+                fill="transparent"
+                stroke="#f59e0b"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeDasharray={`${porcentagem * 2.64} 264`}
+                strokeDashoffset="0"
+                transform="rotate(-90 50 50)"
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-300">
+                {Math.round(porcentagem)}%
+              </span>
             </div>
           </div>
 
-          {atingido && (
-            <Button
-              size="sm"
-              className="bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90 text-xs"
-              onClick={() => router.push(`/${currentLang}/dashboard/perfil`)}
-            >
-              <Crown className="h-3 w-3 mr-1" />
-              {translations.botoes.upgrade}
-            </Button>
-          )}
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                {translations.avisos.categoriasFree.titulo}
+              </span>
+            </div>
+            <p className="text-sm text-amber-700 dark:text-amber-300">
+              {categoriasUsadas}/{limiteCategorias}{" "}
+              {currentLang === "pt" ? "categorias" : "categories"}
+              {!atingido &&
+                ` • ${limiteCategorias - categoriasUsadas} ${currentLang === "pt" ? "restantes" : "remaining"}`}
+            </p>
+          </div>
         </div>
+
+        {atingido && (
+          <Button
+            size="sm"
+            className="bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90 text-xs"
+            onClick={() => router.push(`/${currentLang}/dashboard/perfil`)}
+          >
+            <Crown className="h-3 w-3 mr-1" />
+            {translations.botoes.upgrade}
+          </Button>
+        )}
       </div>
-    );
-  };
+    </div>
+  );
+};
 
   const handleDelete = async (id: string) => {
     setExcluindo(id);

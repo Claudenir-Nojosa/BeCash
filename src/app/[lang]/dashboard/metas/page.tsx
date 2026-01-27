@@ -896,32 +896,32 @@ export default function MetasPage() {
       <div className={`mb-4 p-4 rounded-lg border ${corBorda} ${corFundo}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="relative h-10 w-10">
+            <div className="relative h-12 w-12 flex-shrink-0">
               <svg className="h-full w-full" viewBox="0 0 100 100">
                 <circle
                   cx="50"
                   cy="50"
-                  r="40"
+                  r="42"
                   fill="transparent"
                   stroke={metasAtingido ? "#fecaca" : "#fde68a"}
-                  strokeWidth="4"
+                  strokeWidth="3"
                   strokeOpacity="0.3"
                 />
                 <circle
                   cx="50"
                   cy="50"
-                  r="40"
+                  r="42"
                   fill="transparent"
                   stroke={corProgresso}
-                  strokeWidth="4"
+                  strokeWidth="3"
                   strokeLinecap="round"
-                  strokeDasharray={`${percentualMetas * 2.51} 251`}
+                  strokeDasharray={`${percentualMetas * 2.64} 264`}
                   strokeDashoffset="0"
                   transform="rotate(-90 50 50)"
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className={`text-xs font-medium ${corTexto}`}>
+                <span className={`text-[11px] font-semibold ${corTexto}`}>
                   {Math.round(percentualMetas)}%
                 </span>
               </div>

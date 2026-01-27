@@ -2135,87 +2135,87 @@ export default function LancamentosPage() {
             </CardContent>
           </Card>
         </motion.div>
-        {/* Aviso de Limite para plano Free */}
-        {planoUsuario === "free" && limiteFree?.atingido && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <div className="mb-4 p-4 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800">
-              <div className="flex items-center justify-between">
-                {/* Lado esquerdo: Círculo e Informações */}
-                <div className="flex items-center gap-3">
-                  <div className="relative h-10 w-10">
-                    <svg className="h-full w-full" viewBox="0 0 100 100">
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="40"
-                        fill="transparent"
-                        stroke="#fbbf24"
-                        strokeWidth="4"
-                        strokeOpacity="0.2"
-                      />
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="40"
-                        fill="transparent"
-                        stroke="#f59e0b"
-                        strokeWidth="4"
-                        strokeLinecap="round"
-                        strokeDasharray={`${
-                          Math.min(
-                            (limiteFree.usado / limiteFree.total) * 100,
-                            100,
-                          ) * 2.51
-                        } 251`}
-                        strokeDashoffset="0"
-                        transform="rotate(-90 50 50)"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
-                        {Math.min(
-                          (limiteFree.usado / limiteFree.total) * 100,
-                          100,
-                        ).toFixed(0)}
-                        %
-                      </span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                        {currentLang === "pt"
-                          ? "Lançamentos Free"
-                          : "Free Transactions"}
-                      </span>
-                    </div>
-                    <p className="text-sm text-amber-700 dark:text-amber-300">
-                      {limiteFree.usado}/{limiteFree.total}{" "}
-                      {currentLang === "pt" ? "lançamentos" : "transactions"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Botão de Upgrade no lado direito */}
-                <Button
-                  size="sm"
-                  className="bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90 text-xs"
-                  onClick={() => {
-                    router.push(`/${currentLang}/dashboard/perfil`);
-                  }}
-                >
-                  <Crown className="h-3 w-3 mr-1" />
-                  {currentLang === "pt" ? "Fazer Upgrade" : "Upgrade"}
-                </Button>
-              </div>
+ {/* Aviso de Limite para plano Free */}
+{planoUsuario === "free" && limiteFree?.atingido && (
+  <motion.div
+    initial={{ opacity: 0, y: -10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.3 }}
+  >
+    <div className="mb-4 p-4 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800">
+      <div className="flex items-center justify-between">
+        {/* Lado esquerdo: Círculo e Informações */}
+        <div className="flex items-center gap-3">
+          <div className="relative h-12 w-12 flex-shrink-0">
+            <svg className="h-full w-full" viewBox="0 0 100 100">
+              <circle
+                cx="50"
+                cy="50"
+                r="42"
+                fill="transparent"
+                stroke="#fbbf24"
+                strokeWidth="3"
+                strokeOpacity="0.2"
+              />
+              <circle
+                cx="50"
+                cy="50"
+                r="42"
+                fill="transparent"
+                stroke="#f59e0b"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeDasharray={`${
+                  Math.min(
+                    (limiteFree.usado / limiteFree.total) * 100,
+                    100,
+                  ) * 2.64
+                } 264`}
+                strokeDashoffset="0"
+                transform="rotate(-90 50 50)"
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-300">
+                {Math.min(
+                  (limiteFree.usado / limiteFree.total) * 100,
+                  100,
+                ).toFixed(0)}
+                %
+              </span>
             </div>
-          </motion.div>
-        )}
+          </div>
+
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                {currentLang === "pt"
+                  ? "Lançamentos Free"
+                  : "Free Transactions"}
+              </span>
+            </div>
+            <p className="text-sm text-amber-700 dark:text-amber-300">
+              {limiteFree.usado}/{limiteFree.total}{" "}
+              {currentLang === "pt" ? "lançamentos" : "transactions"}
+            </p>
+          </div>
+        </div>
+
+        {/* Botão de Upgrade no lado direito */}
+        <Button
+          size="sm"
+          className="bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90 text-xs"
+          onClick={() => {
+            router.push(`/${currentLang}/dashboard/perfil`);
+          }}
+        >
+          <Crown className="h-3 w-3 mr-1" />
+          {currentLang === "pt" ? "Fazer Upgrade" : "Upgrade"}
+        </Button>
+      </div>
+    </div>
+  </motion.div>
+)}
 
         {/* Tabela de Lançamentos */}
         <motion.div variants={itemVariants} initial="hidden" animate="visible">

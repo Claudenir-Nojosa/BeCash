@@ -353,7 +353,10 @@ export default function BiclaPage() {
       const response = await fetch("/api/bicla/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: inputMessage }),
+        body: JSON.stringify({
+          message: inputMessage,
+          language: currentLang === "pt" ? "pt" : "en",
+        }),
       });
 
       if (!response.ok) throw new Error(translations.erros.resposta);
@@ -461,11 +464,13 @@ export default function BiclaPage() {
                   </div>
 
                   <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2 sm:mb-3">
-                    {currentLang === "pt" ? "Recursos Exclusivos do Plano Família" : "Exclusive Family Plan Features"}
+                    {currentLang === "pt"
+                      ? "Recursos Exclusivos do Plano Família"
+                      : "Exclusive Family Plan Features"}
                   </h2>
 
                   <p className="text-gray-600 dark:text-gray-400 mb-4 sm:mb-6 max-w-md">
-                    {currentLang === "pt" 
+                    {currentLang === "pt"
                       ? "O Bicla, seu assistente de IA financeira, está disponível apenas para assinantes do plano Família. Desbloqueie recursos avançados de análise financeira com inteligência artificial."
                       : "Bicla, your financial AI assistant, is available only for Family plan subscribers. Unlock advanced financial analysis features with artificial intelligence."}
                   </p>
@@ -474,12 +479,20 @@ export default function BiclaPage() {
                     <div className="flex items-center justify-center gap-3 mb-3 sm:mb-4">
                       <Lock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                       <span className="font-medium text-blue-800 dark:text-blue-300">
-                        {currentLang === "pt" ? "Seu plano atual: " : "Your current plan: "}
+                        {currentLang === "pt"
+                          ? "Seu plano atual: "
+                          : "Your current plan: "}
                         {(planoUsuario as string) === "family"
-                          ? currentLang === "pt" ? "Família" : "Family"
+                          ? currentLang === "pt"
+                            ? "Família"
+                            : "Family"
                           : (planoUsuario as string) === "free"
-                            ? currentLang === "pt" ? "Grátis" : "Free"
-                            : currentLang === "pt" ? "Pro" : "Pro"}
+                            ? currentLang === "pt"
+                              ? "Grátis"
+                              : "Free"
+                            : currentLang === "pt"
+                              ? "Pro"
+                              : "Pro"}
                       </span>
                     </div>
 
@@ -487,7 +500,7 @@ export default function BiclaPage() {
                       <li className="flex items-start gap-2">
                         <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
                         <span className="text-gray-700 dark:text-gray-300">
-                          {currentLang === "pt" 
+                          {currentLang === "pt"
                             ? "Análise financeira personalizada com IA"
                             : "Personalized financial analysis with AI"}
                         </span>
@@ -495,7 +508,7 @@ export default function BiclaPage() {
                       <li className="flex items-start gap-2">
                         <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
                         <span className="text-gray-700 dark:text-gray-300">
-                          {currentLang === "pt" 
+                          {currentLang === "pt"
                             ? "Recomendações de investimentos inteligentes"
                             : "Smart investment recommendations"}
                         </span>
@@ -503,7 +516,7 @@ export default function BiclaPage() {
                       <li className="flex items-start gap-2">
                         <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
                         <span className="text-gray-700 dark:text-gray-300">
-                          {currentLang === "pt" 
+                          {currentLang === "pt"
                             ? "Planejamento financeiro avançado"
                             : "Advanced financial planning"}
                         </span>
@@ -511,7 +524,7 @@ export default function BiclaPage() {
                       <li className="flex items-start gap-2">
                         <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
                         <span className="text-gray-700 dark:text-gray-300">
-                          {currentLang === "pt" 
+                          {currentLang === "pt"
                             ? "Suporte a metas compartilhadas em família"
                             : "Support for shared family goals"}
                         </span>
@@ -526,7 +539,7 @@ export default function BiclaPage() {
                       className="bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90"
                     >
                       <Crown className="mr-2 h-4 w-4" />
-                      {currentLang === "pt" 
+                      {currentLang === "pt"
                         ? "Fazer Upgrade para Família"
                         : "Upgrade to Family Plan"}
                     </Button>

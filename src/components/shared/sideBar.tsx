@@ -364,7 +364,13 @@ export default function Sidebar({ onClose }: SidebarProps) {
               ${corFundo} ${corBorda} ${corTexto}
               ${corFundoDark} ${corBordaDark} ${corTextoDark}
             `}
-              onClick={() => router.push(`/${currentLang}/dashboard/perfil`)}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isMobile && onClose) {
+                  onClose();
+                }
+                router.push(`/${currentLang}/dashboard/perfil`);
+              }}
             >
               {/* Círculo de progresso */}
               <div className="absolute inset-0 flex items-center justify-center">
@@ -450,6 +456,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
                     "
                       onClick={(e) => {
                         e.stopPropagation();
+                        if (isMobile && onClose) {
+                          onClose();
+                        }
                         router.push(`/${currentLang}/dashboard/perfil`);
                       }}
                     >
@@ -620,6 +629,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
                     "
                       onClick={(e) => {
                         e.stopPropagation();
+                        if (isMobile && onClose) {
+                          onClose();
+                        }
                         router.push(`/${currentLang}/dashboard/perfil`);
                       }}
                     >
@@ -867,6 +879,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 `}
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (isMobile && onClose) {
+                      onClose();
+                    }
                     router.push(`/${currentLang}/dashboard/perfil`);
                   }}
                 >
