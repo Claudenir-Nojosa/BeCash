@@ -54,6 +54,6 @@ export default async function LoginPage({
   const t = translations[lang as keyof typeof translations] || translations.pt;
 
   return (
-    <ClientLoginPage lang={lang} translations={t} />
+    <ClientLoginPage lang={lang} />
   );
 }
