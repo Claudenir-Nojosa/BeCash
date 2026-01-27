@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -56,6 +56,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Loading } from "@/components/ui/loading-barrinhas";
+import { getFallback } from "@/lib/i18nFallback";
 
 interface Categoria {
   id: string;
@@ -69,11 +70,323 @@ type PlanoUsuario = "free" | "pro" | "family";
 
 export default function LimitesPage() {
   const router = useRouter();
+  const params = useParams();
   const { t, i18n } = useTranslation("limites");
+  const currentLang = (params?.lang as string) || "pt";
+
+  // Função auxiliar para obter tradução com fallback
+  const getTranslation = (key: string) => {
+    // Primeiro tenta usar o i18n
+    const translation = t(key);
+    if (translation && translation !== key) {
+      return translation;
+    }
+
+    // Fallback manual baseado nas chaves que você tem nos arquivos JSON
+    switch (key) {
+      // Títulos
+      case "titulos.limites":
+        return getFallback(currentLang, "Limites", "Limits");
+      case "titulos.adicionarNovoLimite":
+        return getFallback(
+          currentLang,
+          "Adicionar Novo Limite",
+          "Add New Limit",
+        );
+
+      // Subtítulos
+      case "subtitulos.controleGastos":
+        return getFallback(
+          currentLang,
+          "Controle seus gastos por categoria",
+          "Control your spending by category",
+        );
+      case "subtitulos.selecioneCategoria":
+        return getFallback(
+          currentLang,
+          "Selecione uma categoria para definir um limite mensal",
+          "Select a category to set a monthly limit",
+        );
+
+      // Mensagens
+      case "mensagens.erroCarregarDados":
+        return getFallback(
+          currentLang,
+          "Erro ao carregar dados",
+          "Error loading data",
+        );
+      case "mensagens.erroCarregarLimites":
+        return getFallback(
+          currentLang,
+          "Erro ao carregar limites e categorias",
+          "Error loading limits and categories",
+        );
+      case "mensagens.erroSalvarLimite":
+        return getFallback(
+          currentLang,
+          "Erro ao salvar limite",
+          "Error saving limit",
+        );
+      case "mensagens.erroAjustarLimite":
+        return getFallback(
+          currentLang,
+          "Erro ao ajustar limite",
+          "Error adjusting limit",
+        );
+      case "mensagens.erroExcluirLimite":
+        return getFallback(
+          currentLang,
+          "Erro ao excluir limite",
+          "Error deleting limit",
+        );
+      case "mensagens.limiteDefinidoSucesso":
+        return getFallback(
+          currentLang,
+          "Limite definido com sucesso",
+          "Limit set successfully",
+        );
+      case "mensagens.limiteAjustadoSucesso":
+        return getFallback(
+          currentLang,
+          "Limite ajustado com sucesso",
+          "Limit adjusted successfully",
+        );
+      case "mensagens.limiteExcluidoSucesso":
+        return getFallback(
+          currentLang,
+          "Limite excluído com sucesso",
+          "Limit deleted successfully",
+        );
+      case "mensagens.nenhumLimiteDefinido":
+        return getFallback(
+          currentLang,
+          "Nenhum limite definido",
+          "No limits defined",
+        );
+      case "mensagens.iniciarLimites":
+        return getFallback(
+          currentLang,
+          "Comece definindo limites para suas categorias de despesas",
+          "Start by setting limits for your expense categories",
+        );
+
+      // Validação
+      case "validacao.valorInvalido":
+        return getFallback(
+          currentLang,
+          "Digite um valor válido",
+          "Enter a valid value",
+        );
+
+      // Status
+      case "status.estourado":
+        return getFallback(currentLang, "Estourado", "Exceeded");
+      case "status.proximoLimite":
+        return getFallback(currentLang, "Próximo do limite", "Near limit");
+      case "status.dentroLimite":
+        return getFallback(currentLang, "Dentro do limite", "Within limit");
+
+      // Limites
+      case "limites.gasto":
+        return getFallback(currentLang, "Gasto", "Spent");
+      case "limites.limite":
+        return getFallback(currentLang, "Limite", "Limit");
+      case "limites.restante":
+        return getFallback(currentLang, "Restante", "Remaining");
+
+      // Botões
+      case "botoes.criarPrimeiroLimite":
+        return getFallback(
+          currentLang,
+          "Criar Primeiro Limite",
+          "Create First Limit",
+        );
+      case "botoes.salvar":
+        return getFallback(currentLang, "Salvar", "Save");
+      case "botoes.salvando":
+        return getFallback(currentLang, "Salvando...", "Saving...");
+      case "botoes.cancelar":
+        return getFallback(currentLang, "Cancelar", "Cancel");
+      case "botoes.excluindo":
+        return getFallback(currentLang, "Excluindo...", "Deleting...");
+      case "botoes.confirmar":
+        return getFallback(currentLang, "Confirmar", "Confirm");
+      case "botoes.definirLimite":
+        return getFallback(currentLang, "Definir Limite", "Set Limit");
+
+      // Menu
+      case "menu.ajustarLimite":
+        return getFallback(currentLang, "Ajustar Limite", "Adjust Limit");
+      case "menu.excluirLimite":
+        return getFallback(currentLang, "Excluir Limite", "Delete Limit");
+
+      // Formulários
+      case "formularios.novoValorLimite":
+        return getFallback(
+          currentLang,
+          "Novo valor do limite",
+          "New limit value",
+        );
+
+      // Dialogs
+      case "dialogs.excluirLimiteTitulo":
+        return getFallback(currentLang, "Excluir Limite", "Delete Limit");
+      case "dialogs.excluirLimiteDescricao":
+        return getFallback(
+          currentLang,
+          "Tem certeza que deseja excluir o limite desta categoria? Esta ação não pode ser desfeita.",
+          "Are you sure you want to delete the limit for this category? This action cannot be undone.",
+        );
+
+      // Meses completos
+      case "meses.janeiro":
+        return getFallback(currentLang, "Janeiro", "January");
+      case "meses.fevereiro":
+        return getFallback(currentLang, "Fevereiro", "February");
+      case "meses.marco":
+        return getFallback(currentLang, "Março", "March");
+      case "meses.abril":
+        return getFallback(currentLang, "Abril", "April");
+      case "meses.maio":
+        return getFallback(currentLang, "Maio", "May");
+      case "meses.junho":
+        return getFallback(currentLang, "Junho", "June");
+      case "meses.julho":
+        return getFallback(currentLang, "Julho", "July");
+      case "meses.agosto":
+        return getFallback(currentLang, "Agosto", "August");
+      case "meses.setembro":
+        return getFallback(currentLang, "Setembro", "September");
+      case "meses.outubro":
+        return getFallback(currentLang, "Outubro", "October");
+      case "meses.novembro":
+        return getFallback(currentLang, "Novembro", "November");
+      case "meses.dezembro":
+        return getFallback(currentLang, "Dezembro", "December");
+
+      // Meses abreviados
+      case "mesesAbreviados.jan":
+        return getFallback(currentLang, "Jan", "Jan");
+      case "mesesAbreviados.fev":
+        return getFallback(currentLang, "Fev", "Feb");
+      case "mesesAbreviados.mar":
+        return getFallback(currentLang, "Mar", "Mar");
+      case "mesesAbreviados.abr":
+        return getFallback(currentLang, "Abr", "Apr");
+      case "mesesAbreviados.mai":
+        return getFallback(currentLang, "Mai", "May");
+      case "mesesAbreviados.jun":
+        return getFallback(currentLang, "Jun", "Jun");
+      case "mesesAbreviados.jul":
+        return getFallback(currentLang, "Jul", "Jul");
+      case "mesesAbreviados.ago":
+        return getFallback(currentLang, "Ago", "Aug");
+      case "mesesAbreviados.set":
+        return getFallback(currentLang, "Set", "Sep");
+      case "mesesAbreviados.out":
+        return getFallback(currentLang, "Out", "Oct");
+      case "mesesAbreviados.nov":
+        return getFallback(currentLang, "Nov", "Nov");
+      case "mesesAbreviados.dez":
+        return getFallback(currentLang, "Dez", "Dec");
+      case "mesesAbreviados.mes":
+        return getFallback(currentLang, "Mês", "Month");
+
+      default:
+        return key;
+    }
+  };
+
+  // Criar um objeto de traduções para fácil acesso
+  const translations = {
+    titulos: {
+      limites: getTranslation("titulos.limites"),
+      adicionarNovoLimite: getTranslation("titulos.adicionarNovoLimite"),
+    },
+    subtitulos: {
+      controleGastos: getTranslation("subtitulos.controleGastos"),
+      selecioneCategoria: getTranslation("subtitulos.selecioneCategoria"),
+    },
+    mensagens: {
+      erroCarregarDados: getTranslation("mensagens.erroCarregarDados"),
+      erroCarregarLimites: getTranslation("mensagens.erroCarregarLimites"),
+      erroSalvarLimite: getTranslation("mensagens.erroSalvarLimite"),
+      erroAjustarLimite: getTranslation("mensagens.erroAjustarLimite"),
+      erroExcluirLimite: getTranslation("mensagens.erroExcluirLimite"),
+      limiteDefinidoSucesso: getTranslation("mensagens.limiteDefinidoSucesso"),
+      limiteAjustadoSucesso: getTranslation("mensagens.limiteAjustadoSucesso"),
+      limiteExcluidoSucesso: getTranslation("mensagens.limiteExcluidoSucesso"),
+      nenhumLimiteDefinido: getTranslation("mensagens.nenhumLimiteDefinido"),
+      iniciarLimites: getTranslation("mensagens.iniciarLimites"),
+    },
+    validacao: {
+      valorInvalido: getTranslation("validacao.valorInvalido"),
+    },
+    status: {
+      estourado: getTranslation("status.estourado"),
+      proximoLimite: getTranslation("status.proximoLimite"),
+      dentroLimite: getTranslation("status.dentroLimite"),
+    },
+    limites: {
+      gasto: getTranslation("limites.gasto"),
+      limite: getTranslation("limites.limite"),
+      restante: getTranslation("limites.restante"),
+    },
+    botoes: {
+      criarPrimeiroLimite: getTranslation("botoes.criarPrimeiroLimite"),
+      salvar: getTranslation("botoes.salvar"),
+      salvando: getTranslation("botoes.salvando"),
+      cancelar: getTranslation("botoes.cancelar"),
+      excluindo: getTranslation("botoes.excluindo"),
+      confirmar: getTranslation("botoes.confirmar"),
+      definirLimite: getTranslation("botoes.definirLimite"),
+    },
+    menu: {
+      ajustarLimite: getTranslation("menu.ajustarLimite"),
+      excluirLimite: getTranslation("menu.excluirLimite"),
+    },
+    formularios: {
+      novoValorLimite: getTranslation("formularios.novoValorLimite"),
+    },
+    dialogs: {
+      excluirLimiteTitulo: getTranslation("dialogs.excluirLimiteTitulo"),
+      excluirLimiteDescricao: getTranslation("dialogs.excluirLimiteDescricao"),
+    },
+    meses: {
+      janeiro: getTranslation("meses.janeiro"),
+      fevereiro: getTranslation("meses.fevereiro"),
+      marco: getTranslation("meses.marco"),
+      abril: getTranslation("meses.abril"),
+      maio: getTranslation("meses.maio"),
+      junho: getTranslation("meses.junho"),
+      julho: getTranslation("meses.julho"),
+      agosto: getTranslation("meses.agosto"),
+      setembro: getTranslation("meses.setembro"),
+      outubro: getTranslation("meses.outubro"),
+      novembro: getTranslation("meses.novembro"),
+      dezembro: getTranslation("meses.dezembro"),
+    },
+    mesesAbreviados: {
+      jan: getTranslation("mesesAbreviados.jan"),
+      fev: getTranslation("mesesAbreviados.fev"),
+      mar: getTranslation("mesesAbreviados.mar"),
+      abr: getTranslation("mesesAbreviados.abr"),
+      mai: getTranslation("mesesAbreviados.mai"),
+      jun: getTranslation("mesesAbreviados.jun"),
+      jul: getTranslation("mesesAbreviados.jul"),
+      ago: getTranslation("mesesAbreviados.ago"),
+      set: getTranslation("mesesAbreviados.set"),
+      out: getTranslation("mesesAbreviados.out"),
+      nov: getTranslation("mesesAbreviados.nov"),
+      dez: getTranslation("mesesAbreviados.dez"),
+      mes: getTranslation("mesesAbreviados.mes"),
+    },
+  };
+
   const [limites, setLimites] = useState<LimiteCategoria[]>([]);
   const [dropdownAberto, setDropdownAberto] = useState<string | null>(null);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [carregandoDados, setCarregandoDados] = useState(true); // Renomeado para carregandoDados
+  const [carregandoDados, setCarregandoDados] = useState(true);
   const [editando, setEditando] = useState<string | null>(null);
   const [novoLimite, setNovoLimite] = useState("");
   const [salvando, setSalvando] = useState<string | null>(null);
@@ -87,8 +400,24 @@ export default function LimitesPage() {
   const [anoSelecionado, setAnoSelecionado] = useState<string>(
     new Date().getFullYear().toString(),
   );
-  const [planoUsuario, setPlanoUsuario] = useState<PlanoUsuario | null>(null); // Iniciar como null
+  const [planoUsuario, setPlanoUsuario] = useState<PlanoUsuario | null>(null);
   const [carregandoPlano, setCarregandoPlano] = useState(true);
+
+  // MESES localizados usando as traduções
+  const MESES = [
+    { value: "0", label: translations.meses.janeiro },
+    { value: "1", label: translations.meses.fevereiro },
+    { value: "2", label: translations.meses.marco },
+    { value: "3", label: translations.meses.abril },
+    { value: "4", label: translations.meses.maio },
+    { value: "5", label: translations.meses.junho },
+    { value: "6", label: translations.meses.julho },
+    { value: "7", label: translations.meses.agosto },
+    { value: "8", label: translations.meses.setembro },
+    { value: "9", label: translations.meses.outubro },
+    { value: "10", label: translations.meses.novembro },
+    { value: "11", label: translations.meses.dezembro },
+  ];
 
   // Carregar o plano do usuário
   useEffect(() => {
@@ -122,42 +451,9 @@ export default function LimitesPage() {
     if (planoUsuario && planoUsuario !== "free") {
       carregarDados();
     } else if (planoUsuario === "free") {
-      // Se for free, não precisa carregar dados, apenas mostrar mensagem educativa
       setCarregandoDados(false);
     }
   }, [planoUsuario]);
-
-  // MESES localizados
-  const MESES =
-    i18n.language === "pt"
-      ? [
-          { value: "0", label: t("meses.janeiro") },
-          { value: "1", label: t("meses.fevereiro") },
-          { value: "2", label: t("meses.marco") },
-          { value: "3", label: t("meses.abril") },
-          { value: "4", label: t("meses.maio") },
-          { value: "5", label: t("meses.junho") },
-          { value: "6", label: t("meses.julho") },
-          { value: "7", label: t("meses.agosto") },
-          { value: "8", label: t("meses.setembro") },
-          { value: "9", label: t("meses.outubro") },
-          { value: "10", label: t("meses.novembro") },
-          { value: "11", label: t("meses.dezembro") },
-        ]
-      : [
-          { value: "0", label: t("meses.janeiro") },
-          { value: "1", label: t("meses.fevereiro") },
-          { value: "2", label: t("meses.marco") },
-          { value: "3", label: t("meses.abril") },
-          { value: "4", label: t("meses.maio") },
-          { value: "5", label: t("meses.junho") },
-          { value: "6", label: t("meses.julho") },
-          { value: "7", label: t("meses.agosto") },
-          { value: "8", label: t("meses.setembro") },
-          { value: "9", label: t("meses.outubro") },
-          { value: "10", label: t("meses.novembro") },
-          { value: "11", label: t("meses.dezembro") },
-        ];
 
   const carregarDados = async () => {
     try {
@@ -168,7 +464,7 @@ export default function LimitesPage() {
       ]);
 
       if (!limitesRes.ok || !categoriasRes.ok) {
-        throw new Error(t("mensagens.erroCarregarDados"));
+        throw new Error(translations.mensagens.erroCarregarDados);
       }
 
       const [limitesData, categoriasData] = await Promise.all([
@@ -179,17 +475,16 @@ export default function LimitesPage() {
       setLimites(limitesData);
       setCategorias(categoriasData);
     } catch (error) {
-      console.error(t("mensagens.erroCarregarDados"), error);
-      toast.error(t("mensagens.erroCarregarLimites"));
+      console.error(translations.mensagens.erroCarregarDados, error);
+      toast.error(translations.mensagens.erroCarregarLimites);
     } finally {
       setCarregandoDados(false);
     }
   };
 
-  // Funções restantes permanecem as mesmas...
   const salvarLimite = async (categoriaId: string) => {
     if (!novoLimite || parseFloat(novoLimite) <= 0) {
-      toast.error(t("validacao.valorInvalido"));
+      toast.error(translations.validacao.valorInvalido);
       return;
     }
 
@@ -209,19 +504,19 @@ export default function LimitesPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || t("mensagens.erroSalvarLimite"));
+        throw new Error(error.error || translations.mensagens.erroSalvarLimite);
       }
 
       const limiteSalvo = await response.json();
 
       setLimites((prev) => [...prev, limiteSalvo]);
 
-      toast.success(t("mensagens.limiteDefinidoSucesso"));
+      toast.success(translations.mensagens.limiteDefinidoSucesso);
       setEditando(null);
       setNovoLimite("");
     } catch (error) {
-      console.error(t("mensagens.erroSalvarLimite"), error);
-      toast.error(t("mensagens.erroSalvarLimite"));
+      console.error(translations.mensagens.erroSalvarLimite, error);
+      toast.error(translations.mensagens.erroSalvarLimite);
       carregarDados();
     } finally {
       setSalvando(null);
@@ -230,7 +525,7 @@ export default function LimitesPage() {
 
   const ajustarLimite = async (limiteId: string, novoValor: number) => {
     if (!novoValor || novoValor <= 0) {
-      toast.error(t("validacao.valorInvalido"));
+      toast.error(translations.validacao.valorInvalido);
       return;
     }
 
@@ -249,7 +544,9 @@ export default function LimitesPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || t("mensagens.erroAjustarLimite"));
+        throw new Error(
+          error.error || translations.mensagens.erroAjustarLimite,
+        );
       }
 
       const limiteAtualizado = await response.json();
@@ -260,12 +557,12 @@ export default function LimitesPage() {
         ),
       );
 
-      toast.success(t("mensagens.limiteAjustadoSucesso"));
+      toast.success(translations.mensagens.limiteAjustadoSucesso);
       setEditando(null);
       setNovoLimite("");
     } catch (error) {
-      console.error(t("mensagens.erroAjustarLimite"), error);
-      toast.error(t("mensagens.erroAjustarLimite"));
+      console.error(translations.mensagens.erroAjustarLimite, error);
+      toast.error(translations.mensagens.erroAjustarLimite);
       carregarDados();
     } finally {
       setSalvando(null);
@@ -287,13 +584,15 @@ export default function LimitesPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || t("mensagens.erroExcluirLimite"));
+        throw new Error(
+          error.error || translations.mensagens.erroExcluirLimite,
+        );
       }
 
-      toast.success(t("mensagens.limiteExcluidoSucesso"));
+      toast.success(translations.mensagens.limiteExcluidoSucesso);
     } catch (error) {
-      console.error(t("mensagens.erroExcluirLimite"), error);
-      toast.error(t("mensagens.erroExcluirLimite"));
+      console.error(translations.mensagens.erroExcluirLimite, error);
+      toast.error(translations.mensagens.erroExcluirLimite);
 
       if (limiteParaExcluir) {
         setLimites((prev) => [...prev, limiteParaExcluir]);
@@ -304,8 +603,8 @@ export default function LimitesPage() {
   };
 
   const formatarMoeda = (valor: number) => {
-    const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
-    const currency = i18n.language === "pt" ? "BRL" : "USD";
+    const locale = currentLang === "pt" ? "pt-BR" : "en-US";
+    const currency = currentLang === "pt" ? "BRL" : "USD";
     return new Intl.NumberFormat(locale, {
       style: "currency",
       currency: currency,
@@ -317,7 +616,7 @@ export default function LimitesPage() {
 
     if (percentual > 100) {
       return {
-        texto: t("status.estourado"),
+        texto: translations.status.estourado,
         cor: "text-red-600 dark:text-red-400",
         bgCor: "bg-red-50 dark:bg-red-900/50",
         borderCor: "border-red-300 dark:border-red-700",
@@ -327,7 +626,7 @@ export default function LimitesPage() {
 
     if (percentual > 80) {
       return {
-        texto: t("status.proximoLimite"),
+        texto: translations.status.proximoLimite,
         cor: "text-amber-600 dark:text-yellow-400",
         bgCor: "bg-amber-50 dark:bg-yellow-900/50",
         borderCor: "border-amber-300 dark:border-yellow-700",
@@ -336,7 +635,7 @@ export default function LimitesPage() {
     }
 
     return {
-      texto: t("status.dentroLimite"),
+      texto: translations.status.dentroLimite,
       cor: "text-emerald-600 dark:text-green-400",
       bgCor: "bg-emerald-50 dark:bg-green-900/50",
       borderCor: "border-emerald-300 dark:border-green-700",
@@ -349,37 +648,21 @@ export default function LimitesPage() {
   );
 
   const obterNomeMesAbreviado = (mes: string) => {
-    const mesesAbreviados =
-      i18n.language === "pt"
-        ? [
-            t("mesesAbreviados.jan"),
-            t("mesesAbreviados.fev"),
-            t("mesesAbreviados.mar"),
-            t("mesesAbreviados.abr"),
-            t("mesesAbreviados.mai"),
-            t("mesesAbreviados.jun"),
-            t("mesesAbreviados.jul"),
-            t("mesesAbreviados.ago"),
-            t("mesesAbreviados.set"),
-            t("mesesAbreviados.out"),
-            t("mesesAbreviados.nov"),
-            t("mesesAbreviados.dez"),
-          ]
-        : [
-            t("mesesAbreviados.jan"),
-            t("mesesAbreviados.fev"),
-            t("mesesAbreviados.mar"),
-            t("mesesAbreviados.abr"),
-            t("mesesAbreviados.mai"),
-            t("mesesAbreviados.jun"),
-            t("mesesAbreviados.jul"),
-            t("mesesAbreviados.ago"),
-            t("mesesAbreviados.set"),
-            t("mesesAbreviados.out"),
-            t("mesesAbreviados.nov"),
-            t("mesesAbreviados.dez"),
-          ];
-    return mesesAbreviados[Number(mes)] || t("mesesAbreviados.mes");
+    const mesesAbreviados = [
+      translations.mesesAbreviados.jan,
+      translations.mesesAbreviados.fev,
+      translations.mesesAbreviados.mar,
+      translations.mesesAbreviados.abr,
+      translations.mesesAbreviados.mai,
+      translations.mesesAbreviados.jun,
+      translations.mesesAbreviados.jul,
+      translations.mesesAbreviados.ago,
+      translations.mesesAbreviados.set,
+      translations.mesesAbreviados.out,
+      translations.mesesAbreviados.nov,
+      translations.mesesAbreviados.dez,
+    ];
+    return mesesAbreviados[Number(mes)] || translations.mesesAbreviados.mes;
   };
 
   // Mostrar loading enquanto carrega o plano
@@ -409,10 +692,10 @@ export default function LimitesPage() {
               </div>
               <div className="min-w-0 flex-1">
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white truncate">
-                  {t("titulos.limites")}
+                  {translations.titulos.limites}
                 </h1>
                 <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 truncate">
-                  {t("subtitulos.controleGastos")}
+                  {translations.subtitulos.controleGastos}
                 </p>
               </div>
             </div>
@@ -433,20 +716,24 @@ export default function LimitesPage() {
                   </div>
 
                   <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2 sm:mb-3">
-                    Controle de Limites de Gastos
+                    {currentLang === "pt"
+                      ? "Controle de Limites de Gastos"
+                      : "Spending Limits Control"}
                   </h2>
 
                   <p className="text-gray-600 dark:text-gray-400 mb-4 sm:mb-6 max-w-md">
-                    Defina limites mensais para suas categorias de despesas e
-                    mantenha suas finanças sob controle. Receba alertas quando
-                    estiver próximo de exceder seus orçamentos.
+                    {currentLang === "pt"
+                      ? "Defina limites mensais para suas categorias de despesas e mantenha suas finanças sob controle. Receba alertas quando estiver próximo de exceder seus orçamentos."
+                      : "Set monthly limits for your expense categories and keep your finances under control. Receive alerts when you're close to exceeding your budgets."}
                   </p>
 
                   <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/10 border border-blue-200 dark:border-blue-800 rounded-xl p-4 sm:p-6 mb-6 sm:mb-8 max-w-lg w-full">
                     <div className="flex items-center justify-center gap-3 mb-3 sm:mb-4">
                       <Lock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                       <span className="font-medium text-blue-800 dark:text-blue-300">
-                        Seu plano atual: Grátis
+                        {currentLang === "pt"
+                          ? "Seu plano atual: Grátis"
+                          : "Your current plan: Free"}
                       </span>
                     </div>
 
@@ -454,25 +741,33 @@ export default function LimitesPage() {
                       <li className="flex items-start gap-2">
                         <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
                         <span className="text-gray-700 dark:text-gray-300">
-                          Defina limites mensais por categoria
+                          {currentLang === "pt"
+                            ? "Defina limites mensais por categoria"
+                            : "Set monthly limits by category"}
                         </span>
                       </li>
                       <li className="flex items-start gap-2">
                         <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
                         <span className="text-gray-700 dark:text-gray-300">
-                          Acompanhamento visual em tempo real
+                          {currentLang === "pt"
+                            ? "Acompanhamento visual em tempo real"
+                            : "Real-time visual tracking"}
                         </span>
                       </li>
                       <li className="flex items-start gap-2">
                         <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
                         <span className="text-gray-700 dark:text-gray-300">
-                          Alertas quando estiver próximo do limite
+                          {currentLang === "pt"
+                            ? "Alertas quando estiver próximo do limite"
+                            : "Alerts when close to the limit"}
                         </span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
+                        <div className="w-2 h-2 rounded-full bg-blue-500 mt=1.5"></div>
                         <span className="text-gray-700 dark:text-gray-300">
-                          Histórico de gastos e limites
+                          {currentLang === "pt"
+                            ? "Histórico de gastos e limites"
+                            : "Spending and limits history"}
                         </span>
                       </li>
                     </ul>
@@ -484,7 +779,9 @@ export default function LimitesPage() {
                       className="bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90"
                     >
                       <Crown className="mr-2 h-4 w-4" />
-                      Fazer Upgrade para Pro
+                      {currentLang === "pt"
+                        ? "Fazer Upgrade para Pro"
+                        : "Upgrade to Pro"}
                     </Button>
                   </div>
                 </div>
@@ -519,10 +816,10 @@ export default function LimitesPage() {
           <div className="flex items-center gap-2 sm:gap-3 w-full lg:w-auto">
             <div className="min-w-0 flex-1">
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white truncate">
-                {t("titulos.limites")}
+                {translations.titulos.limites}
               </h1>
               <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base truncate">
-                {t("subtitulos.controleGastos")}
+                {translations.subtitulos.controleGastos}
               </p>
             </div>
           </div>
@@ -615,7 +912,7 @@ export default function LimitesPage() {
                       transition={{ delay: 0.3 }}
                       className="text-lg font-semibold text-gray-900 dark:text-white mb-2"
                     >
-                      {t("mensagens.nenhumLimiteDefinido")}
+                      {translations.mensagens.nenhumLimiteDefinido}
                     </motion.h3>
                     <motion.p
                       initial={{ opacity: 0, y: 10 }}
@@ -623,7 +920,7 @@ export default function LimitesPage() {
                       transition={{ delay: 0.4 }}
                       className="text-gray-600 dark:text-gray-400 text-sm mb-6 max-w-xs sm:max-w-md"
                     >
-                      {t("mensagens.iniciarLimites")}
+                      {translations.mensagens.iniciarLimites}
                     </motion.p>
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
@@ -641,7 +938,7 @@ export default function LimitesPage() {
                         className="w-full sm:w-auto bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white px-5 py-2.5 text-sm"
                       >
                         <Plus className="mr-2 h-4 w-4" />
-                        {t("botoes.criarPrimeiroLimite")}
+                        {translations.botoes.criarPrimeiroLimite}
                       </Button>
                     </motion.div>
                   </CardContent>
@@ -741,7 +1038,7 @@ export default function LimitesPage() {
                                   className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm px-3 py-2"
                                 >
                                   <Edit className="h-4 w-4" />
-                                  {t("menu.ajustarLimite")}
+                                  {translations.menu.ajustarLimite}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => {
@@ -751,7 +1048,7 @@ export default function LimitesPage() {
                                   className="flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 cursor-pointer text-sm px-3 py-2"
                                 >
                                   <Trash2 className="h-4 w-4" />
-                                  {t("menu.excluirLimite")}
+                                  {translations.menu.excluirLimite}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -835,7 +1132,7 @@ export default function LimitesPage() {
                         >
                           <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
                             <div className="text-gray-600 dark:text-gray-400 text-xs mb-1">
-                              {t("limites.gasto")}
+                              {translations.limites.gasto}
                             </div>
                             <div className="font-semibold text-gray-900 dark:text-white truncate">
                               {formatarMoeda(limite.gastoAtual)}
@@ -844,7 +1141,7 @@ export default function LimitesPage() {
 
                           <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
                             <div className="text-gray-600 dark:text-gray-400 text-xs mb-1">
-                              {t("limites.restante")}
+                              {translations.limites.restante}
                             </div>
                             <div className="font-semibold text-gray-900 dark:text-white truncate">
                               {formatarMoeda(
@@ -870,11 +1167,11 @@ export default function LimitesPage() {
                                     htmlFor="ajuste-limite"
                                     className="text-gray-700 dark:text-white text-sm mb-2 block"
                                   >
-                                    {t("formularios.novoValorLimite")}
+                                    {translations.formularios.novoValorLimite}
                                   </Label>
                                   <div className="relative">
                                     <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                                      {i18n.language === "pt" ? "R$" : "$"}
+                                      {currentLang === "pt" ? "R$" : "$"}
                                     </span>
                                     <Input
                                       id="ajuste-limite"
@@ -898,7 +1195,7 @@ export default function LimitesPage() {
                                     onClick={() => setEditando(null)}
                                     className="flex-1 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300"
                                   >
-                                    {t("botoes.cancelar")}
+                                    {translations.botoes.cancelar}
                                   </Button>
                                   <Button
                                     onClick={() =>
@@ -913,8 +1210,8 @@ export default function LimitesPage() {
                                     className="flex-1 bg-emerald-600 hover:bg-emerald-700 dark:bg-green-600 dark:hover:bg-green-700 text-white"
                                   >
                                     {salvando === limite.id
-                                      ? t("botoes.salvando")
-                                      : t("botoes.salvar")}
+                                      ? translations.botoes.salvando
+                                      : translations.botoes.salvar}
                                   </Button>
                                 </div>
                               </div>
@@ -942,10 +1239,10 @@ export default function LimitesPage() {
               <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
                 <CardHeader className="px-4 sm:px-6">
                   <CardTitle className="text-gray-900 dark:text-white text-lg sm:text-xl">
-                    {t("titulos.adicionarNovoLimite")}
+                    {translations.titulos.adicionarNovoLimite}
                   </CardTitle>
                   <CardDescription className="text-gray-600 dark:text-gray-400 text-sm">
-                    {t("subtitulos.selecioneCategoria")}
+                    {translations.subtitulos.selecioneCategoria}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="px-3 sm:px-6">
@@ -986,7 +1283,7 @@ export default function LimitesPage() {
                             >
                               <div className="relative w-full sm:w-32">
                                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">
-                                  {i18n.language === "pt" ? "R$" : "$"}
+                                  {currentLang === "pt" ? "R$" : "$"}
                                 </span>
                                 <Input
                                   type="number"
@@ -1009,8 +1306,8 @@ export default function LimitesPage() {
                                   className="bg-emerald-600 hover:bg-emerald-700 dark:bg-green-600 dark:hover:bg-green-700 text-white border-emerald-600 dark:border-green-600 flex-1 sm:flex-none"
                                 >
                                   {salvando === categoria.id
-                                    ? t("botoes.salvando")
-                                    : t("botoes.salvar")}
+                                    ? translations.botoes.salvando
+                                    : translations.botoes.salvar}
                                 </Button>
                                 <Button
                                   variant="outline"
@@ -1018,7 +1315,7 @@ export default function LimitesPage() {
                                   onClick={() => setEditando(null)}
                                   className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex-1 sm:flex-none"
                                 >
-                                  {t("botoes.cancelar")}
+                                  {translations.botoes.cancelar}
                                 </Button>
                               </div>
                             </motion.div>
@@ -1040,7 +1337,7 @@ export default function LimitesPage() {
                                 className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white w-full sm:w-auto"
                               >
                                 <Plus className="mr-2 h-3 w-3" />
-                                {t("botoes.definirLimite")}
+                                {translations.botoes.definirLimite}
                               </Button>
                             </motion.div>
                           )}
@@ -1075,10 +1372,10 @@ export default function LimitesPage() {
               >
                 <DialogHeader>
                   <DialogTitle className="text-gray-900 dark:text-white text-lg sm:text-xl">
-                    {t("dialogs.excluirLimiteTitulo")}
+                    {translations.dialogs.excluirLimiteTitulo}
                   </DialogTitle>
                   <DialogDescription className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">
-                    {t("dialogs.excluirLimiteDescricao")}
+                    {translations.dialogs.excluirLimiteDescricao}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
@@ -1087,7 +1384,7 @@ export default function LimitesPage() {
                     onClick={() => setDialogExclusaoAberto(null)}
                     className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 order-2 sm:order-1"
                   >
-                    {t("botoes.cancelar")}
+                    {translations.botoes.cancelar}
                   </Button>
                   <Button
                     variant="destructive"
@@ -1096,8 +1393,8 @@ export default function LimitesPage() {
                     className="order-1 sm:order-2"
                   >
                     {excluindoLimite
-                      ? t("botoes.excluindo")
-                      : t("botoes.confirmar")}
+                      ? translations.botoes.excluindo
+                      : translations.botoes.confirmar}
                   </Button>
                 </div>
               </motion.div>

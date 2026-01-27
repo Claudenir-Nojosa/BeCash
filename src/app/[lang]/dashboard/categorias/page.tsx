@@ -65,6 +65,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useParams, useRouter } from "next/navigation";
 import { Loading } from "@/components/ui/loading-barrinhas";
+import { getFallback } from "@/lib/i18nFallback";
 
 interface Categoria {
   id: string;
@@ -93,7 +94,7 @@ function FormularioCategoria({
   handleSubmit,
   enviando,
   editingCategoria,
-  t,
+  translations,
   setIsSheetOpen,
   setEditingCategoria,
 }: any) {
@@ -107,13 +108,13 @@ function FormularioCategoria({
           htmlFor="nome"
           className="text-gray-900 dark:text-white text-sm sm:text-base"
         >
-          {t("formulario.nomeLabel")}
+          {translations.formulario.nomeLabel}
         </Label>
         <Input
           id="nome"
           value={formData.nome}
           onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-          placeholder={t("formulario.nomePlaceholder")}
+          placeholder={translations.formulario.nomePlaceholder}
           className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm sm:text-base"
           required
         />
@@ -124,7 +125,7 @@ function FormularioCategoria({
           htmlFor="tipo"
           className="text-gray-900 dark:text-white text-sm sm:text-base"
         >
-          {t("formulario.tipoLabel")}
+          {translations.formulario.tipoLabel}
         </Label>
         <Select
           value={formData.tipo}
@@ -140,7 +141,7 @@ function FormularioCategoria({
               <div className="flex items-center gap-2">
                 <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400" />
                 <span className="text-sm sm:text-base">
-                  {t("formulario.despesa")}
+                  {translations.formulario.despesa}
                 </span>
               </div>
             </SelectItem>
@@ -148,7 +149,7 @@ function FormularioCategoria({
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400" />
                 <span className="text-sm sm:text-base">
-                  {t("formulario.receita")}
+                  {translations.formulario.receita}
                 </span>
               </div>
             </SelectItem>
@@ -158,7 +159,7 @@ function FormularioCategoria({
 
       <div className="space-y-2 sm:space-y-3">
         <Label className="text-gray-900 dark:text-white text-sm sm:text-base">
-          {t("formulario.corLabel")}
+          {translations.formulario.corLabel}
         </Label>
 
         <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
@@ -196,7 +197,7 @@ function FormularioCategoria({
           htmlFor="icone"
           className="text-gray-900 dark:text-white text-sm sm:text-base"
         >
-          {t("formulario.iconeLabel")}
+          {translations.formulario.iconeLabel}
         </Label>
         <div className="grid grid-cols-4 sm:grid-cols-6 gap-1 sm:gap-2">
           {[
@@ -240,11 +241,11 @@ function FormularioCategoria({
         >
           {enviando
             ? editingCategoria
-              ? t("estados.atualizando")
-              : t("estados.criando")
+              ? translations.estados.atualizando
+              : translations.estados.criando
             : editingCategoria
-              ? t("botoes.atualizar")
-              : t("botoes.criar")}
+              ? translations.botoes.atualizar
+              : translations.botoes.criar}
         </Button>
 
         {editingCategoria && (
@@ -263,7 +264,7 @@ function FormularioCategoria({
             }}
             className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 text-sm sm:text-base"
           >
-            {t("botoes.cancelar")}
+            {translations.botoes.cancelar}
           </Button>
         )}
       </div>
@@ -274,6 +275,301 @@ function FormularioCategoria({
 export default function CategoriasPage() {
   const router = useRouter();
   const { t } = useTranslation("categorias");
+  const params = useParams();
+  const currentLang = (params?.lang as string) || "pt";
+
+  // Função auxiliar para obter tradução com fallback
+  const getTranslation = (key: string) => {
+    // Primeiro tenta usar o i18n
+    const translation = t(key);
+    if (translation && translation !== key) {
+      return translation;
+    }
+
+    // Fallback manual baseado nas chaves que você tem nos arquivos JSON
+    switch (key) {
+      // Títulos
+      case "titulo":
+        return getFallback(currentLang, "Categorias", "Categories");
+      case "subtitulo":
+        return getFallback(
+          currentLang,
+          "Organize suas receitas e despesas por categorias",
+          "Organize your income and expenses by categories",
+        );
+
+      // Botões
+      case "botoes.novaCategoria":
+        return getFallback(currentLang, "Nova Categoria", "New Category");
+      case "botoes.criarPrimeira":
+        return getFallback(
+          currentLang,
+          "Criar Primeira Categoria",
+          "Create First Category",
+        );
+      case "botoes.atualizar":
+        return getFallback(currentLang, "Atualizar", "Update");
+      case "botoes.criar":
+        return getFallback(currentLang, "Criar Categoria", "Create Category");
+      case "botoes.cancelar":
+        return getFallback(currentLang, "Cancelar", "Cancel");
+      case "botoes.confirmar":
+        return getFallback(currentLang, "Confirmar", "Confirm");
+      case "botoes.upgrade":
+        return getFallback(currentLang, "Upgrade", "Upgrade");
+
+      // Estados
+      case "estados.carregando":
+        return getFallback(
+          currentLang,
+          "Carregando categorias...",
+          "Loading categories...",
+        );
+      case "estados.atualizando":
+        return getFallback(currentLang, "Atualizando...", "Updating...");
+      case "estados.criando":
+        return getFallback(currentLang, "Criando...", "Creating...");
+      case "estados.excluindo":
+        return getFallback(currentLang, "Excluindo...", "Deleting...");
+      case "estados.limite":
+        return getFallback(currentLang, "Limite", "Limit");
+
+      // Stats
+      case "stats.total":
+        return getFallback(currentLang, "Total", "Total");
+      case "stats.despesas":
+        return getFallback(currentLang, "Despesas", "Expenses");
+      case "stats.receitas":
+        return getFallback(currentLang, "Receitas", "Income");
+
+      // Filtros
+      case "filtros.buscar":
+        return getFallback(
+          currentLang,
+          "Buscar categorias...",
+          "Search categories...",
+        );
+      case "filtros.todas":
+        return getFallback(currentLang, "Todas", "All");
+      case "filtros.despesas":
+        return getFallback(currentLang, "Despesas", "Expenses");
+      case "filtros.receitas":
+        return getFallback(currentLang, "Receitas", "Income");
+
+      // Formulário
+      case "formulario.tituloNovo":
+        return getFallback(currentLang, "Nova Categoria", "New Category");
+      case "formulario.tituloEditar":
+        return getFallback(currentLang, "Editar Categoria", "Edit Category");
+      case "formulario.descricaoNovo":
+        return getFallback(
+          currentLang,
+          "Crie uma nova categoria para organizar seus lançamentos",
+          "Create a new category to organize your entries",
+        );
+      case "formulario.descricaoEditar":
+        return getFallback(
+          currentLang,
+          "Atualize os dados da categoria",
+          "Update category data",
+        );
+      case "formulario.nomeLabel":
+        return getFallback(currentLang, "Nome da Categoria", "Category Name");
+      case "formulario.nomePlaceholder":
+        return getFallback(
+          currentLang,
+          "Ex: Alimentação, Transporte, Salário...",
+          "Ex: Food, Transportation, Salary...",
+        );
+      case "formulario.tipoLabel":
+        return getFallback(currentLang, "Tipo", "Type");
+      case "formulario.despesa":
+        return getFallback(currentLang, "Despesa", "Expense");
+      case "formulario.receita":
+        return getFallback(currentLang, "Receita", "Income");
+      case "formulario.corLabel":
+        return getFallback(
+          currentLang,
+          "Cor de Identificação",
+          "Identification Color",
+        );
+      case "formulario.iconeLabel":
+        return getFallback(currentLang, "Ícone", "Icon");
+
+      // Confirmação
+      case "confirmacao.titulo":
+        return getFallback(currentLang, "Excluir Categoria", "Delete Category");
+      case "confirmacao.descricao":
+        return getFallback(
+          currentLang,
+          'Tem certeza que deseja excluir a categoria "{{nome}}"? Esta ação não pode ser desfeita.',
+          'Are you sure you want to delete the category "{{nome}}"? This action cannot be undone.',
+        );
+
+      // Tooltips
+      case "tooltips.editar":
+        return getFallback(currentLang, "Editar categoria", "Edit category");
+      case "tooltips.excluir":
+        return getFallback(currentLang, "Excluir categoria", "Delete category");
+
+      // Mensagens
+      case "mensagens.nenhumaEncontrada":
+        return getFallback(
+          currentLang,
+          "Nenhuma categoria encontrada",
+          "No categories found",
+        );
+      case "mensagens.ajustarFiltros":
+        return getFallback(
+          currentLang,
+          "Tente ajustar os filtros ou termos de busca",
+          "Try adjusting the filters or search terms",
+        );
+      case "mensagens.criarPrimeira":
+        return getFallback(
+          currentLang,
+          "Comece criando sua primeira categoria",
+          "Start by creating your first category",
+        );
+      case "mensagens.criada":
+        return getFallback(
+          currentLang,
+          "Categoria criada com sucesso!",
+          "Category created successfully!",
+        );
+      case "mensagens.atualizada":
+        return getFallback(
+          currentLang,
+          "Categoria atualizada com sucesso!",
+          "Category updated successfully!",
+        );
+      case "mensagens.excluida":
+        return getFallback(
+          currentLang,
+          "Categoria deletada com sucesso!",
+          "Category deleted successfully!",
+        );
+      case "mensagens.erroCarregar":
+        return getFallback(
+          currentLang,
+          "Erro ao carregar categorias",
+          "Error loading categories",
+        );
+      case "mensagens.erroSalvar":
+        return getFallback(
+          currentLang,
+          "Erro ao salvar categoria.",
+          "Error saving category.",
+        );
+      case "mensagens.erroExcluir":
+        return getFallback(
+          currentLang,
+          "Erro ao deletar categoria.",
+          "Error deleting category.",
+        );
+
+      // Avisos de Limite (novas traduções)
+      case "avisos.categoriasFree.titulo":
+        return getFallback(currentLang, "Categorias Free", "Free Categories");
+      case "avisos.categoriasFree.descricao":
+        return getFallback(
+          currentLang,
+          "categorias • restantes",
+          "categories • remaining",
+        );
+      case "avisos.categoriasFree.atingido":
+        return getFallback(
+          currentLang,
+          "Você atingiu o limite de categorias do plano Free",
+          "You have reached the Free plan categories limit",
+        );
+
+      default:
+        return key;
+    }
+  };
+
+  // Criar um objeto de traduções para fácil acesso
+  const translations = {
+    titulo: getTranslation("titulo"),
+    subtitulo: getTranslation("subtitulo"),
+
+    botoes: {
+      novaCategoria: getTranslation("botoes.novaCategoria"),
+      criarPrimeira: getTranslation("botoes.criarPrimeira"),
+      atualizar: getTranslation("botoes.atualizar"),
+      criar: getTranslation("botoes.criar"),
+      cancelar: getTranslation("botoes.cancelar"),
+      confirmar: getTranslation("botoes.confirmar"),
+      upgrade: getTranslation("botoes.upgrade"),
+    },
+
+    estados: {
+      carregando: getTranslation("estados.carregando"),
+      atualizando: getTranslation("estados.atualizando"),
+      criando: getTranslation("estados.criando"),
+      excluindo: getTranslation("estados.excluindo"),
+      limite: getTranslation("estados.limite"),
+    },
+
+    stats: {
+      total: getTranslation("stats.total"),
+      despesas: getTranslation("stats.despesas"),
+      receitas: getTranslation("stats.receitas"),
+    },
+
+    filtros: {
+      buscar: getTranslation("filtros.buscar"),
+      todas: getTranslation("filtros.todas"),
+      despesas: getTranslation("filtros.despesas"),
+      receitas: getTranslation("filtros.receitas"),
+    },
+
+    formulario: {
+      tituloNovo: getTranslation("formulario.tituloNovo"),
+      tituloEditar: getTranslation("formulario.tituloEditar"),
+      descricaoNovo: getTranslation("formulario.descricaoNovo"),
+      descricaoEditar: getTranslation("formulario.descricaoEditar"),
+      nomeLabel: getTranslation("formulario.nomeLabel"),
+      nomePlaceholder: getTranslation("formulario.nomePlaceholder"),
+      tipoLabel: getTranslation("formulario.tipoLabel"),
+      despesa: getTranslation("formulario.despesa"),
+      receita: getTranslation("formulario.receita"),
+      corLabel: getTranslation("formulario.corLabel"),
+      iconeLabel: getTranslation("formulario.iconeLabel"),
+    },
+
+    confirmacao: {
+      titulo: getTranslation("confirmacao.titulo"),
+      descricao: getTranslation("confirmacao.descricao"),
+    },
+
+    tooltips: {
+      editar: getTranslation("tooltips.editar"),
+      excluir: getTranslation("tooltips.excluir"),
+    },
+
+    mensagens: {
+      nenhumaEncontrada: getTranslation("mensagens.nenhumaEncontrada"),
+      ajustarFiltros: getTranslation("mensagens.ajustarFiltros"),
+      criarPrimeira: getTranslation("mensagens.criarPrimeira"),
+      criada: getTranslation("mensagens.criada"),
+      atualizada: getTranslation("mensagens.atualizada"),
+      excluida: getTranslation("mensagens.excluida"),
+      erroCarregar: getTranslation("mensagens.erroCarregar"),
+      erroSalvar: getTranslation("mensagens.erroSalvar"),
+      erroExcluir: getTranslation("mensagens.erroExcluir"),
+    },
+
+    avisos: {
+      categoriasFree: {
+        titulo: getTranslation("avisos.categoriasFree.titulo"),
+        descricao: getTranslation("avisos.categoriasFree.descricao"),
+        atingido: getTranslation("avisos.categoriasFree.atingido"),
+      },
+    },
+  };
+
   const [excluindo, setExcluindo] = useState<string | null>(null);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [enviando, setEnviando] = useState(false);
@@ -284,8 +580,6 @@ export default function CategoriasPage() {
   const [tipoFiltro, setTipoFiltro] = useState<"all" | "DESPESA" | "RECEITA">(
     "all",
   );
-  const params = useParams();
-  const currentLang = (params?.lang as string) || "pt";
   const [editingCategoria, setEditingCategoria] = useState<Categoria | null>(
     null,
   );
@@ -304,10 +598,12 @@ export default function CategoriasPage() {
     atingido: boolean;
   } | null>(null);
   const [loadingLimite, setLoadingLimite] = useState(false);
+
   useEffect(() => {
     carregarCategorias();
+    fetchLimiteCategorias();
   }, []);
-  // Função para buscar informações de limite
+
   const fetchLimiteCategorias = async () => {
     try {
       setLoadingLimite(true);
@@ -325,11 +621,6 @@ export default function CategoriasPage() {
     }
   };
 
-  // Chame a função no useEffect
-  useEffect(() => {
-    carregarCategorias();
-    fetchLimiteCategorias(); // ← Adicione esta linha
-  }, []);
   const carregarCategorias = async () => {
     try {
       setLoading(true);
@@ -339,8 +630,8 @@ export default function CategoriasPage() {
         setCategorias(Array.isArray(data) ? data : []);
       }
     } catch (error) {
-      console.error(t("mensagens.erroCarregar"), error);
-      toast.error(t("mensagens.erroCarregar"));
+      console.error(translations.mensagens.erroCarregar, error);
+      toast.error(translations.mensagens.erroCarregar);
     } finally {
       setLoading(false);
     }
@@ -366,7 +657,6 @@ export default function CategoriasPage() {
       if (!res.ok) {
         const errorData = await res.json();
 
-        // Verifica se é erro de limite
         if (
           res.status === 403 &&
           errorData.error === "Limite de categorias atingido"
@@ -380,7 +670,7 @@ export default function CategoriasPage() {
           return;
         }
 
-        throw new Error(t("mensagens.erroSalvar"));
+        throw new Error(translations.mensagens.erroSalvar);
       }
 
       const categoriaSalva = await res.json();
@@ -391,12 +681,11 @@ export default function CategoriasPage() {
             cat.id === editingCategoria.id ? categoriaSalva : cat,
           ),
         );
-        toast.success(t("mensagens.atualizada"));
+        toast.success(translations.mensagens.atualizada);
       } else {
         setCategorias((prev) => [...prev, categoriaSalva]);
-        toast.success(t("mensagens.criada"));
+        toast.success(translations.mensagens.criada);
 
-        // Atualizar contagem de categorias usadas
         if (limiteInfo) {
           setLimiteInfo({
             ...limiteInfo,
@@ -416,16 +705,16 @@ export default function CategoriasPage() {
       setEditingCategoria(null);
       setIsSheetOpen(false);
     } catch (error: any) {
-      console.error(t("mensagens.erroSalvar"), error);
+      console.error(translations.mensagens.erroSalvar, error);
       if (error.message !== "Limite de categorias atingido") {
-        toast.error(t("mensagens.erroSalvar"));
+        toast.error(translations.mensagens.erroSalvar);
       }
       carregarCategorias();
     } finally {
       setEnviando(false);
     }
   };
-  // Adicione um componente de aviso de limite
+
   const AvisoLimiteCategorias = () => {
     if (!limiteInfo || loadingLimite || limiteInfo.plano !== "free") {
       return null;
@@ -475,13 +764,14 @@ export default function CategoriasPage() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                  Categorias Free
+                  {translations.avisos.categoriasFree.titulo}
                 </span>
               </div>
               <p className="text-sm text-amber-700 dark:text-amber-300">
-                {categoriasUsadas}/{limiteCategorias} categorias
+                {categoriasUsadas}/{limiteCategorias}{" "}
+                {currentLang === "pt" ? "categorias" : "categories"}
                 {!atingido &&
-                  ` • ${limiteCategorias - categoriasUsadas} restantes`}
+                  ` • ${limiteCategorias - categoriasUsadas} ${currentLang === "pt" ? "restantes" : "remaining"}`}
               </p>
             </div>
           </div>
@@ -493,13 +783,14 @@ export default function CategoriasPage() {
               onClick={() => router.push(`/${currentLang}/dashboard/perfil`)}
             >
               <Crown className="h-3 w-3 mr-1" />
-              Upgrade
+              {translations.botoes.upgrade}
             </Button>
           )}
         </div>
       </div>
     );
   };
+
   const handleDelete = async (id: string) => {
     setExcluindo(id);
 
@@ -512,18 +803,18 @@ export default function CategoriasPage() {
       const res = await fetch(`/api/categorias/${id}`, { method: "DELETE" });
 
       if (!res.ok) {
-        throw new Error(t("mensagens.erroExcluir"));
+        throw new Error(translations.mensagens.erroExcluir);
       }
 
-      toast.success(t("mensagens.excluida"));
+      toast.success(translations.mensagens.excluida);
     } catch (error) {
-      console.error(t("mensagens.erroExcluir"), error);
+      console.error(translations.mensagens.erroExcluir, error);
 
       if (categoriaParaExcluir) {
         setCategorias((prev) => [...prev, categoriaParaExcluir]);
       }
 
-      toast.error(t("mensagens.erroExcluir"));
+      toast.error(translations.mensagens.erroExcluir);
     } finally {
       setExcluindo(null);
     }
@@ -569,10 +860,10 @@ export default function CategoriasPage() {
           <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
             <div className="flex-1 sm:flex-none">
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">
-                {t("titulo")}
+                {translations.titulo}
               </h1>
               <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                {t("subtitulo")}
+                {translations.subtitulo}
               </p>
             </div>
           </div>
@@ -592,12 +883,14 @@ export default function CategoriasPage() {
                       icone: "Tag",
                     });
                   }}
-                  disabled={limiteInfo?.atingido && !editingCategoria} // ← Desabilita se limite atingido E não está editando
+                  disabled={limiteInfo?.atingido && !editingCategoria}
                 >
                   <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span className="ml-1 sm:ml-2">
-                    {t("botoes.novaCategoria")}
-                    {limiteInfo?.atingido && !editingCategoria && " (Limite)"}
+                    {translations.botoes.novaCategoria}
+                    {limiteInfo?.atingido &&
+                      !editingCategoria &&
+                      ` (${translations.estados.limite})`}
                   </span>
                 </Button>
               </SheetTrigger>
@@ -605,13 +898,13 @@ export default function CategoriasPage() {
                 <SheetHeader>
                   <SheetTitle className="text-gray-900 dark:text-white text-lg sm:text-xl">
                     {editingCategoria
-                      ? t("formulario.tituloEditar")
-                      : t("formulario.tituloNovo")}
+                      ? translations.formulario.tituloEditar
+                      : translations.formulario.tituloNovo}
                   </SheetTitle>
                   <SheetDescription className="text-gray-600 dark:text-gray-400 text-sm">
                     {editingCategoria
-                      ? t("formulario.descricaoEditar")
-                      : t("formulario.descricaoNovo")}
+                      ? translations.formulario.descricaoEditar
+                      : translations.formulario.descricaoNovo}
                   </SheetDescription>
                 </SheetHeader>
                 <FormularioCategoria
@@ -620,7 +913,7 @@ export default function CategoriasPage() {
                   handleSubmit={handleSubmit}
                   enviando={enviando}
                   editingCategoria={editingCategoria}
-                  t={t}
+                  translations={translations}
                   setIsSheetOpen={setIsSheetOpen}
                   setEditingCategoria={setEditingCategoria}
                 />
@@ -636,7 +929,7 @@ export default function CategoriasPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
-                    {t("stats.total")}
+                    {translations.stats.total}
                   </p>
                   <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                     {categorias.length}
@@ -654,7 +947,7 @@ export default function CategoriasPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
-                    {t("stats.despesas")}
+                    {translations.stats.despesas}
                   </p>
                   <p className="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400">
                     {categoriasPorTipo.DESPESA.length}
@@ -672,7 +965,7 @@ export default function CategoriasPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
-                    {t("stats.receitas")}
+                    {translations.stats.receitas}
                   </p>
                   <p className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">
                     {categoriasPorTipo.RECEITA.length}
@@ -693,7 +986,7 @@ export default function CategoriasPage() {
               <div className="flex-1 relative">
                 <Search className="absolute left-2.5 sm:left-3 top-2.5 sm:top-3 h-3 w-3 sm:h-4 sm:w-4 text-gray-400 dark:text-gray-500" />
                 <Input
-                  placeholder={t("filtros.buscar")}
+                  placeholder={translations.filtros.buscar}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-7 sm:pl-9 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm"
@@ -710,19 +1003,19 @@ export default function CategoriasPage() {
                     value="all"
                     className="flex-1 sm:flex-none text-xs sm:text-sm text-gray-700 dark:text-gray-300 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-gray-300 dark:data-[state=active]:border-gray-600"
                   >
-                    {t("filtros.todas")}
+                    {translations.filtros.todas}
                   </TabsTrigger>
                   <TabsTrigger
                     value="DESPESA"
                     className="flex-1 sm:flex-none text-xs sm:text-sm text-gray-700 dark:text-gray-300 data-[state=active]:bg-red-100 dark:data-[state=active]:bg-red-600 data-[state=active]:text-red-700 dark:data-[state=active]:text-white"
                   >
-                    {t("filtros.despesas")}
+                    {translations.filtros.despesas}
                   </TabsTrigger>
                   <TabsTrigger
                     value="RECEITA"
                     className="flex-1 sm:flex-none text-xs sm:text-sm text-gray-700 dark:text-gray-300 data-[state=active]:bg-green-100 dark:data-[state=active]:bg-green-600 data-[state=active]:text-green-700 dark:data-[state=active]:text-white"
                   >
-                    {t("filtros.receitas")}
+                    {translations.filtros.receitas}
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -780,8 +1073,8 @@ export default function CategoriasPage() {
                             }`}
                           >
                             {categoria.tipo === "RECEITA"
-                              ? t("formulario.receita")
-                              : t("formulario.despesa")}
+                              ? translations.formulario.receita
+                              : translations.formulario.despesa}
                           </Badge>
                         </div>
                       </div>
@@ -803,7 +1096,7 @@ export default function CategoriasPage() {
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent className="bg-gray-900 dark:bg-gray-800 text-white dark:text-white border-gray-700 text-xs">
-                              <p>{t("tooltips.editar")}</p>
+                              <p>{translations.tooltips.editar}</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -829,12 +1122,13 @@ export default function CategoriasPage() {
                                 <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white w-[90vw] sm:max-w-md">
                                   <DialogHeader>
                                     <DialogTitle className="text-gray-900 dark:text-white text-lg">
-                                      {t("confirmacao.titulo")}
+                                      {translations.confirmacao.titulo}
                                     </DialogTitle>
                                     <DialogDescription className="text-gray-600 dark:text-gray-400 text-sm">
-                                      {t("confirmacao.descricao", {
-                                        nome: categoria.nome,
-                                      })}
+                                      {translations.confirmacao.descricao.replace(
+                                        "{{nome}}",
+                                        categoria.nome,
+                                      )}
                                     </DialogDescription>
                                   </DialogHeader>
                                   <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
@@ -843,7 +1137,7 @@ export default function CategoriasPage() {
                                       onClick={() => setDialogAberto(null)}
                                       className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 text-sm"
                                     >
-                                      {t("botoes.cancelar")}
+                                      {translations.botoes.cancelar}
                                     </Button>
                                     <Button
                                       variant="destructive"
@@ -852,15 +1146,15 @@ export default function CategoriasPage() {
                                       className="text-sm"
                                     >
                                       {excluindo === categoria.id
-                                        ? t("estados.excluindo")
-                                        : t("botoes.confirmar")}
+                                        ? translations.estados.excluindo
+                                        : translations.botoes.confirmar}
                                     </Button>
                                   </div>
                                 </DialogContent>
                               </Dialog>
                             </TooltipTrigger>
                             <TooltipContent className="bg-gray-900 dark:bg-gray-800 text-white dark:text-white border-gray-700 text-xs">
-                              <p>{t("tooltips.excluir")}</p>
+                              <p>{translations.tooltips.excluir}</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -884,28 +1178,28 @@ export default function CategoriasPage() {
               <Tag className="w-6 h-6 sm:w-10 sm:h-10 text-gray-400 dark:text-gray-600" />
             </div>
             <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1 sm:mb-2">
-              {t("mensagens.nenhumaEncontrada")}
+              {translations.mensagens.nenhumaEncontrada}
             </h3>
             <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4 sm:mb-6 px-4">
               {searchTerm || tipoFiltro !== "all"
-                ? t("mensagens.ajustarFiltros")
-                : t("mensagens.criarPrimeira")}
+                ? translations.mensagens.ajustarFiltros
+                : translations.mensagens.criarPrimeira}
             </p>
             {!searchTerm && tipoFiltro === "all" && (
               <Sheet>
                 <SheetTrigger asChild>
                   <Button className="bg-gray-900 hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 text-white gap-2 text-sm">
                     <Plus className="w-4 h-4" />
-                    {t("botoes.criarPrimeira")}
+                    {translations.botoes.criarPrimeira}
                   </Button>
                 </SheetTrigger>
                 <SheetContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white w-full sm:max-w-md">
                   <SheetHeader>
                     <SheetTitle className="text-gray-900 dark:text-white">
-                      {t("formulario.tituloNovo")}
+                      {translations.formulario.tituloNovo}
                     </SheetTitle>
                     <SheetDescription className="text-gray-600 dark:text-gray-400">
-                      {t("formulario.descricaoNovo")}
+                      {translations.formulario.descricaoNovo}
                     </SheetDescription>
                   </SheetHeader>
                   <FormularioCategoria
@@ -914,7 +1208,7 @@ export default function CategoriasPage() {
                     handleSubmit={handleSubmit}
                     enviando={enviando}
                     editingCategoria={editingCategoria}
-                    t={t}
+                    translations={translations}
                     setIsSheetOpen={setIsSheetOpen}
                     setEditingCategoria={setEditingCategoria}
                   />

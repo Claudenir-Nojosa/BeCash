@@ -14,19 +14,58 @@ import BotaoGoogleServer from "@/components/shared/botaoGoogleServer";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { getFallback } from "@/lib/i18nFallback";
 
 interface ClientLoginPageProps {
   lang: string;
-  translations: {
-    title: string;
-    description: string;
-    orDivider: string;
-    noAccount: string;
-    signUpLink: string;
-  };
 }
 
-export default function ClientLoginPage({ lang, translations }: ClientLoginPageProps) {
+export default function ClientLoginPage({ lang }: ClientLoginPageProps) {
+  const { t } = useTranslation("auth");
+  const currentLang = lang || "pt";
+  
+  // Função auxiliar para obter tradução com fallback
+  const getTranslation = (key: string) => {
+    // Primeiro tenta usar o i18n
+    const translation = t(key);
+    if (translation && translation !== key) {
+      return translation;
+    }
+
+    // Fallback manual baseado nas chaves
+    switch (key) {
+      // Títulos e descrições
+      case "paginaLogin.titulo":
+        return getFallback(currentLang, "Acesse sua conta", "Access your account");
+      case "paginaLogin.descricao":
+        return getFallback(currentLang, "Entre para gerenciar suas finanças", "Sign in to manage your finances");
+      case "paginaLogin.ou":
+        return getFallback(currentLang, "Ou continue com", "Or continue with");
+      case "paginaLogin.semConta":
+        return getFallback(currentLang, "Não tem uma conta?", "Don't have an account?");
+      case "paginaLogin.cadastrar":
+        return getFallback(currentLang, "Cadastre-se", "Sign up");
+
+      // Loading states
+      case "status.verificando":
+        return getFallback(currentLang, "Verificando...", "Checking...");
+
+      default:
+        return key;
+    }
+  };
+
+  // Criar objeto de traduções
+  const translations = {
+    titulo: getTranslation("paginaLogin.titulo"),
+    descricao: getTranslation("paginaLogin.descricao"),
+    ou: getTranslation("paginaLogin.ou"),
+    semConta: getTranslation("paginaLogin.semConta"),
+    cadastrar: getTranslation("paginaLogin.cadastrar"),
+    verificando: getTranslation("status.verificando"),
+  };
+
   const { data: session, status } = useSession();
   const router = useRouter();
 
@@ -37,13 +76,13 @@ export default function ClientLoginPage({ lang, translations }: ClientLoginPageP
     if (session?.user) {
       const onboardingCompleto = (session.user as any).onboardingCompleto || false;
       const redirectTo = onboardingCompleto 
-        ? `/${lang}/dashboard`
-        : `/${lang}/login/onboarding`;
+        ? `/${currentLang}/dashboard`
+        : `/${currentLang}/login/onboarding`;
       
       console.log("🔄 [LOGIN PAGE CLIENT] Usuário já autenticado, redirecionando para:", redirectTo);
       router.push(redirectTo);
     }
-  }, [session, status, router, lang]);
+  }, [session, status, router, currentLang]);
 
   // Mostrar loading enquanto verifica a sessão
   if (status === "loading" || session?.user) {
@@ -54,7 +93,7 @@ export default function ClientLoginPage({ lang, translations }: ClientLoginPageP
             <div className="animate-spin rounded-full h-12 w-12 border-[3px] border-blue-100 border-t-blue-600 dark:border-gray-800 dark:border-t-blue-500"></div>
           </div>
           <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">
-            Verificando...
+            {translations.verificando}
           </p>
         </div>
       </div>
@@ -83,24 +122,24 @@ export default function ClientLoginPage({ lang, translations }: ClientLoginPageP
       <Card className="max-w-sm w-full rounded-2xl mt-12 border-gray-200 dark:border-gray-800 shadow-xl">
         <CardHeader className="space-y-3">
           <CardTitle className="text-2xl font-bold text-center text-gray-900 dark:text-white">
-            {translations.title}
+            {translations.titulo}
           </CardTitle>
           <CardDescription className="text-center text-gray-600 dark:text-gray-400">
-            {translations.description}
+            {translations.descricao}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <LoginForm lang={lang} />
+          <LoginForm lang={currentLang} />
           
           <div className="flex flex-col w-full justify-center items-center">
             <div className="mx-auto my-4 flex w-full items-center justify-evenly before:mr-4 before:block before:h-px before:flex-grow before:bg-gray-300 dark:before:bg-gray-700 after:ml-4 after:block after:h-px after:flex-grow after:bg-gray-300 dark:after:bg-gray-700">
               <span className="text-sm text-gray-500 dark:text-gray-400 px-2">
-                {translations.orDivider}
+                {translations.ou}
               </span>
             </div>
             
             <div className="gap-3 flex flex-col mt-2 w-full">
-              <BotaoGoogleServer lang={lang} />
+              <BotaoGoogleServer lang={currentLang} />
               <div className="flex gap-5 w-full items-center"></div>
             </div>
           </div>
@@ -108,12 +147,12 @@ export default function ClientLoginPage({ lang, translations }: ClientLoginPageP
       </Card>
 
       <p className="text-sm text-gray-600 dark:text-gray-400 mt-6 text-center">
-        {translations.noAccount}{" "}
+        {translations.semConta}{" "}
         <Link 
           className="text-[#007cca] dark:text-[#00cfec] font-medium hover:underline transition-all" 
-          href={`/${lang}/signup`}
+          href={`/${currentLang}/signup`}
         >
-          {translations.signUpLink}
+          {translations.cadastrar}
         </Link>
       </p>
     </>

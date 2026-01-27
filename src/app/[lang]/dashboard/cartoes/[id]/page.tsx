@@ -60,6 +60,7 @@ import { useSession } from "next-auth/react";
 import { ConviteColaboradorDialog } from "@/components/shared/ConviteColaboradorDialog";
 import { Loading } from "@/components/ui/loading-barrinhas";
 import { motion, AnimatePresence } from "framer-motion";
+import { getFallback } from "@/lib/i18nFallback";
 
 interface Cartao {
   id: string;
@@ -146,14 +147,271 @@ export default function DetalhesCartaoPage() {
   const params = useParams();
   const router = useRouter();
   const { t, i18n } = useTranslation("cartaoDetalhes");
+  const session = useSession();
+  const cartaoId = params.id as string;
+  const currentLang = i18n.language || "pt";
+
+  // Função auxiliar para obter tradução com fallback
+  const getTranslation = (key: string) => {
+    // Primeiro tenta usar o i18n
+    const translation = t(key);
+    if (translation && translation !== key) {
+      return translation;
+    }
+
+    // Fallback manual baseado nas chaves que você tem nos arquivos JSON
+    switch (key) {
+      // Títulos
+      case "titulos.informacoes":
+        return getFallback(currentLang, "Informações do Cartão", "Card Information");
+      case "titulos.statusLimite":
+        return getFallback(currentLang, "Status do Limite", "Limit Status");
+      case "titulos.despesasCategoria":
+        return getFallback(currentLang, "Despesas por Categoria", "Expenses by Category");
+      case "titulos.lancamentosRecentes":
+        return getFallback(currentLang, "Lançamentos Recentes", "Recent Transactions");
+      case "titulos.colaboradores":
+        return getFallback(currentLang, "Colaboradores", "Collaborators");
+      case "titulos.editarCartao":
+        return getFallback(currentLang, "Editar Cartão", "Edit Card");
+
+      // Subtítulos
+      case "subtitulos.distribuicaoGastos":
+        return getFallback(currentLang, "Distribuição dos gastos por categoria", "Expense distribution by category");
+      case "subtitulos.totalLancamentos":
+        return getFallback(currentLang, "{{count}} lançamentos realizados", "{{count}} transactions made");
+      case "subtitulos.atualizarInformacoes":
+        return getFallback(currentLang, "Atualize as informações do seu cartão", "Update your card information");
+
+      // Labels
+      case "labels.bandeira":
+        return getFallback(currentLang, "Bandeira", "Brand");
+      case "labels.limiteTotal":
+        return getFallback(currentLang, "Limite Total", "Total Limit");
+      case "labels.fechamento":
+        return getFallback(currentLang, "Fechamento", "Closing");
+      case "labels.vencimento":
+        return getFallback(currentLang, "Vencimento", "Due Date");
+      case "labels.observacoes":
+        return getFallback(currentLang, "Observações", "Notes");
+      case "labels.utilizado":
+        return getFallback(currentLang, "Utilizado", "Used");
+      case "labels.disponivel":
+        return getFallback(currentLang, "Disponível", "Available");
+      case "labels.utilizacaoLimite":
+        return getFallback(currentLang, "Utilização do limite", "Limit usage");
+      case "labels.proximaFatura":
+        return getFallback(currentLang, "Próxima fatura:", "Next invoice:");
+      case "labels.status":
+        return getFallback(currentLang, "Status:", "Status:");
+      case "labels.descricao":
+        return getFallback(currentLang, "Descrição", "Description");
+      case "labels.data":
+        return getFallback(currentLang, "Data", "Date");
+      case "labels.valor":
+        return getFallback(currentLang, "Valor", "Amount");
+      case "labels.fatura":
+        return getFallback(currentLang, "Fatura", "Invoice");
+      case "labels.emailColaborador":
+        return getFallback(currentLang, "Email do Colaborador", "Collaborator's Email");
+      case "labels.dia":
+        return getFallback(currentLang, "Dia {{dia}}", "Day {{dia}}");
+      case "labels.compartilhadoPor":
+        return getFallback(currentLang, "Compartilhado por {{nome}}", "Shared by {{nome}}");
+
+      // Botões
+      case "botoes.voltar":
+        return getFallback(currentLang, "Voltar para Cartões", "Back to Cards");
+      case "botoes.verFaturas":
+        return getFallback(currentLang, "Ver Faturas", "View Invoices");
+      case "botoes.editarCartao":
+        return getFallback(currentLang, "Editar Cartão", "Edit Card");
+      case "botoes.novoLancamento":
+        return getFallback(currentLang, "Novo Lançamento", "New Transaction");
+      case "botoes.convidar":
+        return getFallback(currentLang, "Convidar", "Invite");
+      case "botoes.cancelar":
+        return getFallback(currentLang, "Cancelar", "Cancel");
+      case "botoes.enviarConvite":
+        return getFallback(currentLang, "Enviar Convite", "Send Invite");
+      case "botoes.enviando":
+        return getFallback(currentLang, "Enviando...", "Sending...");
+      case "botoes.verRelatorioCompleto":
+        return getFallback(currentLang, "Ver Relatório Completo", "View Full Report");
+      case "botoes.verTodosLancamentos":
+        return getFallback(currentLang, "Ver todos os lançamentos", "View all transactions");
+      case "botoes.adicionarPrimeiro":
+        return getFallback(currentLang, "Adicionar Primeiro Lançamento", "Add First Transaction");
+
+      // Status
+      case "status.pago":
+        return getFallback(currentLang, "Pago", "Paid");
+      case "status.pendente":
+        return getFallback(currentLang, "Pendente", "Pending");
+      case "status.aberta":
+        return getFallback(currentLang, "Em aberto", "Open");
+      case "status.fechada":
+        return getFallback(currentLang, "Fechada", "Closed");
+      case "status.paga":
+        return getFallback(currentLang, "Paga", "Paid");
+      case "status.vencida":
+        return getFallback(currentLang, "Vencida", "Overdue");
+      case "status.pendenteBadge":
+        return getFallback(currentLang, "Pendente", "Pending");
+
+      // Badges
+      case "badges.dono":
+        return getFallback(currentLang, "Dono", "Owner");
+      case "badges.voce":
+        return getFallback(currentLang, " (Você)", " (You)");
+      case "badges.colaborador":
+        return getFallback(currentLang, "Colaborador", "Collaborator");
+      case "badges.escrita":
+        return getFallback(currentLang, "Escrita", "Write");
+
+      // Alertas
+      case "alertas.limiteCritico":
+        return getFallback(currentLang, "Limite quase esgotado - considere reduzir gastos", "Limit almost exhausted - consider reducing spending");
+      case "alertas.limiteElevado":
+        return getFallback(currentLang, "Limite elevado - atenção aos próximos gastos", "High limit - watch next expenses");
+
+      // Mensagens
+      case "mensagens.cartaoNaoEncontrado":
+        return getFallback(currentLang, "Cartão não encontrado", "Card not found");
+      case "mensagens.nenhumLancamento":
+        return getFallback(currentLang, "Nenhum lançamento encontrado", "No transactions found");
+      case "mensagens.nenhumaDespesa":
+        return getFallback(currentLang, "Nenhuma despesa encontrada", "No expenses found");
+      case "mensagens.nenhumColaborador":
+        return getFallback(currentLang, "Nenhum colaborador", "No collaborators");
+      case "mensagens.convideAlguem":
+        return getFallback(currentLang, "Convide alguém para colaborar", "Invite someone to collaborate");
+      case "mensagens.convitePendente":
+        return getFallback(currentLang, "Convite pendente - Expira {{data}}", "Pending invite - Expires {{data}}");
+      case "mensagens.conviteEnviado":
+        return getFallback(currentLang, "Convite enviado com sucesso!", "Invite sent successfully!");
+      case "mensagens.colaboradorRemovido":
+        return getFallback(currentLang, "Colaborador removido com sucesso!", "Collaborator removed successfully!");
+      case "mensagens.emailInvalido":
+        return getFallback(currentLang, "Digite um email válido", "Enter a valid email");
+      case "mensagens.erroCarregar":
+        return getFallback(currentLang, "Erro ao carregar cartão", "Error loading card");
+      case "mensagens.erroEnviarConvite":
+        return getFallback(currentLang, "Erro ao enviar convite", "Error sending invite");
+      case "mensagens.erroRemoverColaborador":
+        return getFallback(currentLang, "Erro ao remover colaborador", "Error removing collaborator");
+
+      // Dialogs
+      case "dialogs.convidarTitulo":
+        return getFallback(currentLang, "Convidar Colaborador", "Invite Collaborator");
+      case "dialogs.convidarDescricao":
+        return getFallback(currentLang, "Envie um convite para alguém acessar este cartão", "Send an invite for someone to access this card");
+
+      default:
+        return key;
+    }
+  };
+
+  // Criar um objeto de traduções para fácil acesso
+  const translations = {
+    titulos: {
+      informacoes: getTranslation("titulos.informacoes"),
+      statusLimite: getTranslation("titulos.statusLimite"),
+      despesasCategoria: getTranslation("titulos.despesasCategoria"),
+      lancamentosRecentes: getTranslation("titulos.lancamentosRecentes"),
+      colaboradores: getTranslation("titulos.colaboradores"),
+      editarCartao: getTranslation("titulos.editarCartao"),
+    },
+
+    subtitulos: {
+      distribuicaoGastos: getTranslation("subtitulos.distribuicaoGastos"),
+      totalLancamentos: getTranslation("subtitulos.totalLancamentos"),
+      atualizarInformacoes: getTranslation("subtitulos.atualizarInformacoes"),
+    },
+
+    labels: {
+      bandeira: getTranslation("labels.bandeira"),
+      limiteTotal: getTranslation("labels.limiteTotal"),
+      fechamento: getTranslation("labels.fechamento"),
+      vencimento: getTranslation("labels.vencimento"),
+      observacoes: getTranslation("labels.observacoes"),
+      utilizado: getTranslation("labels.utilizado"),
+      disponivel: getTranslation("labels.disponivel"),
+      utilizacaoLimite: getTranslation("labels.utilizacaoLimite"),
+      proximaFatura: getTranslation("labels.proximaFatura"),
+      status: getTranslation("labels.status"),
+      descricao: getTranslation("labels.descricao"),
+      data: getTranslation("labels.data"),
+      valor: getTranslation("labels.valor"),
+      fatura: getTranslation("labels.fatura"),
+      emailColaborador: getTranslation("labels.emailColaborador"),
+      dia: getTranslation("labels.dia"),
+      compartilhadoPor: getTranslation("labels.compartilhadoPor"),
+    },
+
+    botoes: {
+      voltar: getTranslation("botoes.voltar"),
+      verFaturas: getTranslation("botoes.verFaturas"),
+      editarCartao: getTranslation("botoes.editarCartao"),
+      novoLancamento: getTranslation("botoes.novoLancamento"),
+      convidar: getTranslation("botoes.convidar"),
+      cancelar: getTranslation("botoes.cancelar"),
+      enviarConvite: getTranslation("botoes.enviarConvite"),
+      enviando: getTranslation("botoes.enviando"),
+      verRelatorioCompleto: getTranslation("botoes.verRelatorioCompleto"),
+      verTodosLancamentos: getTranslation("botoes.verTodosLancamentos"),
+      adicionarPrimeiro: getTranslation("botoes.adicionarPrimeiro"),
+    },
+
+    status: {
+      pago: getTranslation("status.pago"),
+      pendente: getTranslation("status.pendente"),
+      aberta: getTranslation("status.aberta"),
+      fechada: getTranslation("status.fechada"),
+      paga: getTranslation("status.paga"),
+      vencida: getTranslation("status.vencida"),
+      pendenteBadge: getTranslation("status.pendenteBadge"),
+    },
+
+    badges: {
+      dono: getTranslation("badges.dono"),
+      voce: getTranslation("badges.voce"),
+      colaborador: getTranslation("badges.colaborador"),
+      escrita: getTranslation("badges.escrita"),
+    },
+
+    alertas: {
+      limiteCritico: getTranslation("alertas.limiteCritico"),
+      limiteElevado: getTranslation("alertas.limiteElevado"),
+    },
+
+    mensagens: {
+      cartaoNaoEncontrado: getTranslation("mensagens.cartaoNaoEncontrado"),
+      nenhumLancamento: getTranslation("mensagens.nenhumLancamento"),
+      nenhumaDespesa: getTranslation("mensagens.nenhumaDespesa"),
+      nenhumColaborador: getTranslation("mensagens.nenhumColaborador"),
+      convideAlguem: getTranslation("mensagens.convideAlguem"),
+      convitePendente: getTranslation("mensagens.convitePendente"),
+      conviteEnviado: getTranslation("mensagens.conviteEnviado"),
+      colaboradorRemovido: getTranslation("mensagens.colaboradorRemovido"),
+      emailInvalido: getTranslation("mensagens.emailInvalido"),
+      erroCarregar: getTranslation("mensagens.erroCarregar"),
+      erroEnviarConvite: getTranslation("mensagens.erroEnviarConvite"),
+      erroRemoverColaborador: getTranslation("mensagens.erroRemoverColaborador"),
+    },
+
+    dialogs: {
+      convidarTitulo: getTranslation("dialogs.convidarTitulo"),
+      convidarDescricao: getTranslation("dialogs.convidarDescricao"),
+    },
+  };
+
   const [cartao, setCartao] = useState<Cartao | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [sheetEditarAberto, setSheetEditarAberto] = useState(false);
   const [enviandoConvite, setEnviandoConvite] = useState(false);
   const [emailConvidado, setEmailConvidado] = useState("");
   const [dialogConvidarAberto, setDialogConvidarAberto] = useState(false);
-  const cartaoId = params.id as string;
-  const session = useSession();
 
   const getLocalizedPath = (path: string) => {
     return `/${i18n.language}${path}`;
@@ -176,11 +434,11 @@ export default function DetalhesCartaoPage() {
         const data = await response.json();
         setCartao(data);
       } else {
-        throw new Error(t("mensagens.erroCarregar"));
+        throw new Error(translations.mensagens.erroCarregar);
       }
     } catch (error) {
-      console.error(t("mensagens.erroCarregar"), error);
-      toast.error(t("mensagens.erroCarregar"));
+      console.error(translations.mensagens.erroCarregar, error);
+      toast.error(translations.mensagens.erroCarregar);
     } finally {
       setCarregando(false);
     }
@@ -190,13 +448,13 @@ export default function DetalhesCartaoPage() {
     e.preventDefault();
 
     if (!emailConvidado.trim()) {
-      toast.error(t("mensagens.emailInvalido"));
+      toast.error(translations.mensagens.emailInvalido);
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(emailConvidado)) {
-      toast.error(t("mensagens.emailInvalido"));
+      toast.error(translations.mensagens.emailInvalido);
       return;
     }
 
@@ -209,17 +467,17 @@ export default function DetalhesCartaoPage() {
       });
 
       if (response.ok) {
-        toast.success(t("mensagens.conviteEnviado"));
+        toast.success(translations.mensagens.conviteEnviado);
         setEmailConvidado("");
         setDialogConvidarAberto(false);
         carregarCartao();
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.error || t("mensagens.erroEnviarConvite"));
+        throw new Error(errorData.error || translations.mensagens.erroEnviarConvite);
       }
     } catch (error: any) {
-      console.error(t("mensagens.erroEnviarConvite"), error);
-      toast.error(error.message || t("mensagens.erroEnviarConvite"));
+      console.error(translations.mensagens.erroEnviarConvite, error);
+      toast.error(error.message || translations.mensagens.erroEnviarConvite);
     } finally {
       setEnviandoConvite(false);
     }
@@ -242,14 +500,14 @@ export default function DetalhesCartaoPage() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || t("mensagens.erroRemoverColaborador"));
+        throw new Error(result.error || translations.mensagens.erroRemoverColaborador);
       }
 
-      toast.success(t("mensagens.colaboradorRemovido"));
+      toast.success(translations.mensagens.colaboradorRemovido);
       carregarCartao();
     } catch (error: any) {
-      console.error(t("mensagens.erroRemoverColaborador"), error);
-      toast.error(error.message || t("mensagens.erroRemoverColaborador"));
+      console.error(translations.mensagens.erroRemoverColaborador, error);
+      toast.error(error.message || translations.mensagens.erroRemoverColaborador);
     }
   };
 
@@ -286,14 +544,14 @@ export default function DetalhesCartaoPage() {
     return lancamentosAtivos.reduce((sum, l) => sum + l.valor, 0);
   };
 
-const formatarMoeda = (valor: number) => {
-  const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
-  const currency = i18n.language === "pt" ? "BRL" : "USD"; // ✅ Dinâmico
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: currency,
-  }).format(valor);
-};
+  const formatarMoeda = (valor: number) => {
+    const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
+    const currency = i18n.language === "pt" ? "BRL" : "USD";
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: currency,
+    }).format(valor);
+  };
 
   const formatarData = (dataString: string) => {
     if (!dataString || dataString === "Invalid Date") return "Data inválida";
@@ -312,7 +570,7 @@ const formatarMoeda = (valor: number) => {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-700 dark:text-gray-400">
-            {t("titulos.colaboradores")}
+            {translations.titulos.colaboradores}
           </p>
           {usuarioAtualEhDono && (
             <Dialog
@@ -330,7 +588,7 @@ const formatarMoeda = (valor: number) => {
                     className="h-8 px-2 text-xs border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
                   >
                     <UserPlus className="h-3 w-3 mr-1" />
-                    {t("botoes.convidar")}
+                    {translations.botoes.convidar}
                   </Button>
                 </motion.div>
               </DialogTrigger>
@@ -342,10 +600,10 @@ const formatarMoeda = (valor: number) => {
                     transition={{ duration: 0.3 }}
                   >
                     <DialogTitle className="text-gray-900 dark:text-white">
-                      {t("dialogs.convidarTitulo")}
+                      {translations.dialogs.convidarTitulo}
                     </DialogTitle>
                     <DialogDescription className="text-gray-600 dark:text-gray-400">
-                      {t("dialogs.convidarDescricao")}
+                      {translations.dialogs.convidarDescricao}
                     </DialogDescription>
                   </motion.div>
                 </DialogHeader>
@@ -363,7 +621,7 @@ const formatarMoeda = (valor: number) => {
                       htmlFor="email"
                       className="text-gray-900 dark:text-white"
                     >
-                      {t("labels.emailColaborador")}
+                      {translations.labels.emailColaborador}
                     </Label>
                     <Input
                       id="email"
@@ -387,7 +645,7 @@ const formatarMoeda = (valor: number) => {
                       onClick={() => setDialogConvidarAberto(false)}
                       className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                     >
-                      {t("botoes.cancelar")}
+                      {translations.botoes.cancelar}
                     </Button>
                     <Button
                       type="submit"
@@ -395,8 +653,8 @@ const formatarMoeda = (valor: number) => {
                       className="bg-gray-900 hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-gray-900"
                     >
                       {enviandoConvite
-                        ? t("botoes.enviando")
-                        : t("botoes.enviarConvite")}
+                        ? translations.botoes.enviando
+                        : translations.botoes.enviarConvite}
                     </Button>
                   </motion.div>
                 </form>
@@ -432,7 +690,7 @@ const formatarMoeda = (valor: number) => {
               <div>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
                   {cartao.user?.name || "Usuário"}
-                  {usuarioAtualEhDono && t("badges.voce")}
+                  {usuarioAtualEhDono && translations.badges.voce}
                 </p>
                 <p className="text-xs text-gray-600 dark:text-gray-400">
                   {cartao.user?.email}
@@ -440,7 +698,7 @@ const formatarMoeda = (valor: number) => {
               </div>
             </div>
             <Badge className="bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700">
-              {t("badges.dono")}
+              {translations.badges.dono}
             </Badge>
           </motion.div>
 
@@ -475,7 +733,7 @@ const formatarMoeda = (valor: number) => {
                   <div>
                     <p className="text-sm font-medium text-gray-900 dark:text-white">
                       {colaborador.user.name}
-                      {ehUsuarioAtual && t("badges.voce")}
+                      {ehUsuarioAtual && translations.badges.voce}
                     </p>
                     <p className="text-xs text-gray-600 dark:text-gray-400">
                       {colaborador.user.email}
@@ -485,8 +743,8 @@ const formatarMoeda = (valor: number) => {
                 <div className="flex items-center gap-2">
                   <Badge className="bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700">
                     {colaborador.permissao === "LEITURA"
-                      ? t("badges.colaborador")
-                      : t("badges.escrita")}
+                      ? translations.badges.colaborador
+                      : translations.badges.escrita}
                   </Badge>
                   {usuarioAtualEhDono && (
                     <motion.div
@@ -538,7 +796,7 @@ const formatarMoeda = (valor: number) => {
                   </div>
                 </div>
                 <Badge className="bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700">
-                  {t("status.pendenteBadge")}
+                  {translations.status.pendenteBadge}
                 </Badge>
               </motion.div>
             ))}
@@ -564,9 +822,9 @@ const formatarMoeda = (valor: number) => {
                 >
                   <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 </motion.div>
-                <p className="text-sm">{t("mensagens.nenhumColaborador")}</p>
+                <p className="text-sm">{translations.mensagens.nenhumColaborador}</p>
                 {usuarioAtualEhDono && (
-                  <p className="text-xs">{t("mensagens.convideAlguem")}</p>
+                  <p className="text-xs">{translations.mensagens.convideAlguem}</p>
                 )}
               </motion.div>
             )}
@@ -589,7 +847,7 @@ const formatarMoeda = (valor: number) => {
       >
         <div className="max-w-7xl mx-auto text-center">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-            {t("mensagens.cartaoNaoEncontrado")}
+            {translations.mensagens.cartaoNaoEncontrado}
           </h1>
           <motion.div
             whileHover={{ scale: 1.05 }}
@@ -599,7 +857,7 @@ const formatarMoeda = (valor: number) => {
               onClick={() => router.push(getLocalizedPath("/dashboard/cartoes"))}
               className="bg-gray-900 hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-gray-900"
             >
-              {t("botoes.voltar")}
+              {translations.botoes.voltar}
             </Button>
           </motion.div>
         </div>
@@ -688,7 +946,7 @@ const formatarMoeda = (valor: number) => {
                 className="w-full border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white text-xs sm:text-sm"
               >
                 <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="truncate">{t("botoes.verFaturas")}</span>
+                <span className="truncate">{translations.botoes.verFaturas}</span>
               </Button>
             </motion.div>
             <motion.div
@@ -702,7 +960,7 @@ const formatarMoeda = (valor: number) => {
                 className="w-full border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white text-xs sm:text-sm"
               >
                 <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="truncate">{t("botoes.editarCartao")}</span>
+                <span className="truncate">{translations.botoes.editarCartao}</span>
               </Button>
             </motion.div>
           </div>
@@ -729,7 +987,7 @@ const formatarMoeda = (valor: number) => {
                       <CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-700 dark:text-gray-300" />
                     </div>
                   </motion.div>
-                  <span className="truncate">{t("titulos.informacoes")}</span>
+                  <span className="truncate">{translations.titulos.informacoes}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 sm:space-y-4">
@@ -741,7 +999,7 @@ const formatarMoeda = (valor: number) => {
                   >
                     <div>
                       <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                        {t("labels.bandeira")}
+                        {translations.labels.bandeira}
                       </p>
                       <p className="text-gray-900 dark:text-white capitalize text-sm sm:text-base">
                         {cartao.bandeira.toLowerCase()}
@@ -756,7 +1014,7 @@ const formatarMoeda = (valor: number) => {
                   >
                     <div>
                       <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                        {t("labels.limiteTotal")}
+                        {translations.labels.limiteTotal}
                       </p>
                       <motion.p
                         key={cartao.limite}
@@ -777,7 +1035,7 @@ const formatarMoeda = (valor: number) => {
                   >
                     <div>
                       <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                        {t("labels.fechamento")}
+                        {translations.labels.fechamento}
                       </p>
                       <p className="text-gray-900 dark:text-white flex items-center gap-1 text-sm sm:text-base">
                         <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
@@ -786,7 +1044,7 @@ const formatarMoeda = (valor: number) => {
                     </div>
                     <div>
                       <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                        {t("labels.vencimento")}
+                        {translations.labels.vencimento}
                       </p>
                       <p className="text-gray-900 dark:text-white flex items-center gap-1 text-sm sm:text-base">
                         <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
@@ -812,7 +1070,7 @@ const formatarMoeda = (valor: number) => {
                     >
                       <div>
                         <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                          {t("labels.observacoes")}
+                          {translations.labels.observacoes}
                         </p>
                         <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
                           {cartao.observacoes}
@@ -835,7 +1093,7 @@ const formatarMoeda = (valor: number) => {
                     }
                   >
                     <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                    <span className="truncate">{t("botoes.novoLancamento")}</span>
+                    <span className="truncate">{translations.botoes.novoLancamento}</span>
                   </Button>
                 </motion.div>
               </CardContent>
@@ -861,7 +1119,7 @@ const formatarMoeda = (valor: number) => {
                       <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
                     </div>
                   </motion.div>
-                  <span className="truncate">{t("titulos.statusLimite")}</span>
+                  <span className="truncate">{translations.titulos.statusLimite}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 sm:space-y-4">
@@ -873,7 +1131,7 @@ const formatarMoeda = (valor: number) => {
                 >
                   <div className="space-y-1">
                     <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                      {t("labels.utilizado")}
+                      {translations.labels.utilizado}
                     </p>
                     <motion.p
                       key={totalFaturaAtual}
@@ -886,7 +1144,7 @@ const formatarMoeda = (valor: number) => {
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                      {t("labels.disponivel")}
+                      {translations.labels.disponivel}
                     </p>
                     <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                       {formatarMoeda(cartao.limite - totalFaturaAtual)}
@@ -902,7 +1160,7 @@ const formatarMoeda = (valor: number) => {
                 >
                   <div className="flex justify-between text-xs sm:text-sm">
                     <span className="text-gray-600 dark:text-gray-400">
-                      {t("labels.utilizacaoLimite")}
+                      {translations.labels.utilizacaoLimite}
                     </span>
                     <motion.span
                       key={utilizacao}
@@ -949,8 +1207,8 @@ const formatarMoeda = (valor: number) => {
                     <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                     <span className="text-xs sm:text-sm font-medium truncate">
                       {utilizacao >= 90
-                        ? t("alertas.limiteCritico")
-                        : t("alertas.limiteElevado")}
+                        ? translations.alertas.limiteCritico
+                        : translations.alertas.limiteElevado}
                     </span>
                   </motion.div>
                 )}
@@ -965,7 +1223,7 @@ const formatarMoeda = (valor: number) => {
                   >
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-                        {t("labels.proximaFatura")}
+                        {translations.labels.proximaFatura}
                       </span>
                       <motion.span
                         key={proximaFatura.valorTotal}
@@ -978,7 +1236,7 @@ const formatarMoeda = (valor: number) => {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-                        {t("labels.vencimento")}
+                        {translations.labels.vencimento}
                       </span>
                       <span className="text-gray-900 dark:text-white text-xs sm:text-sm">
                         {formatarData(proximaFatura.dataVencimento)}
@@ -986,18 +1244,18 @@ const formatarMoeda = (valor: number) => {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-                        {t("labels.status")}
+                        {translations.labels.status}
                       </span>
                       <Badge
                         className={`text-xs ${getStatusColor(proximaFatura.status)}`}
                       >
                         {proximaFatura.status === "ABERTA"
-                          ? t("status.aberta")
+                          ? translations.status.aberta
                           : proximaFatura.status === "FECHADA"
-                            ? t("status.fechada")
+                            ? translations.status.fechada
                             : proximaFatura.status === "PAGA"
-                              ? t("status.paga")
-                              : t("status.vencida")}
+                              ? translations.status.paga
+                              : translations.status.vencida}
                       </Badge>
                     </div>
                   </motion.div>
@@ -1017,11 +1275,11 @@ const formatarMoeda = (valor: number) => {
               <CardHeader className="pb-3">
                 <CardTitle className="text-gray-900 dark:text-white text-base sm:text-lg">
                   <span className="truncate">
-                    {t("titulos.despesasCategoria")}
+                    {translations.titulos.despesasCategoria}
                   </span>
                 </CardTitle>
                 <CardDescription className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-                  {t("subtitulos.distribuicaoGastos")}
+                  {translations.subtitulos.distribuicaoGastos}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3 sm:space-y-4">
@@ -1063,7 +1321,7 @@ const formatarMoeda = (valor: number) => {
                     return (
                       <div className="text-center py-3 sm:py-4">
                         <p className="text-gray-700 dark:text-gray-400 text-xs sm:text-sm">
-                          {t("mensagens.nenhumaDespesa")}
+                          {translations.mensagens.nenhumaDespesa}
                         </p>
                       </div>
                     );
@@ -1178,7 +1436,7 @@ const formatarMoeda = (valor: number) => {
                     }
                   >
                     <span className="truncate">
-                      {t("botoes.verRelatorioCompleto")}
+                      {translations.botoes.verRelatorioCompleto}
                     </span>
                   </Button>
                 </motion.div>
@@ -1196,7 +1454,7 @@ const formatarMoeda = (valor: number) => {
           <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-gray-900 dark:text-white text-base sm:text-lg">
-                {t("titulos.lancamentosRecentes")}
+                {translations.titulos.lancamentosRecentes}
               </CardTitle>
               <CardDescription className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
                 {t("subtitulos.totalLancamentos", {
@@ -1226,7 +1484,7 @@ const formatarMoeda = (valor: number) => {
                     <CreditCard className="h-8 w-8 sm:h-12 sm:w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3 sm:mb-4" />
                   </motion.div>
                   <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4">
-                    {t("mensagens.nenhumLancamento")}
+                    {translations.mensagens.nenhumLancamento}
                   </p>
                   <motion.div
                     whileHover={{ scale: 1.05 }}
@@ -1244,7 +1502,7 @@ const formatarMoeda = (valor: number) => {
                     >
                       <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                       <span className="truncate">
-                        {t("botoes.adicionarPrimeiro")}
+                        {translations.botoes.adicionarPrimeiro}
                       </span>
                     </Button>
                   </motion.div>
@@ -1257,19 +1515,19 @@ const formatarMoeda = (valor: number) => {
                       <TableHeader>
                         <TableRow className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-800">
                           <TableHead className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
-                            {t("labels.descricao")}
+                            {translations.labels.descricao}
                           </TableHead>
                           <TableHead className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
-                            {t("labels.data")}
+                            {translations.labels.data}
                           </TableHead>
                           <TableHead className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
-                            {t("labels.valor")}
+                            {translations.labels.valor}
                           </TableHead>
                           <TableHead className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
-                            {t("labels.status")}
+                            {translations.labels.status}
                           </TableHead>
                           <TableHead className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
-                            {t("labels.fatura")}
+                            {translations.labels.fatura}
                           </TableHead>
                         </TableRow>
                       </TableHeader>
@@ -1305,8 +1563,8 @@ const formatarMoeda = (valor: number) => {
                                 }`}
                               >
                                 {lancamento.pago
-                                  ? t("status.pago")
-                                  : t("status.pendenteBadge")}
+                                  ? translations.status.pago
+                                  : translations.status.pendenteBadge}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm">
@@ -1366,8 +1624,8 @@ const formatarMoeda = (valor: number) => {
                             }`}
                           >
                             {lancamento.pago
-                              ? t("status.pago")
-                              : t("status.pendenteBadge")}
+                              ? translations.status.pago
+                              : translations.status.pendenteBadge}
                           </Badge>
                           <span className="text-gray-600 dark:text-gray-300 text-xs">
                             {lancamento.Fatura ? (
@@ -1404,7 +1662,7 @@ const formatarMoeda = (valor: number) => {
                     }
                   >
                     <span className="truncate">
-                      {t("botoes.verTodosLancamentos")}
+                      {translations.botoes.verTodosLancamentos}
                     </span>
                   </Button>
                 </motion.div>
@@ -1423,10 +1681,10 @@ const formatarMoeda = (valor: number) => {
               transition={{ duration: 0.3 }}
             >
               <SheetTitle className="text-gray-900 dark:text-white text-lg sm:text-xl">
-                {t("titulos.editarCartao")}
+                {translations.titulos.editarCartao}
               </SheetTitle>
               <SheetDescription className="text-gray-600 dark:text-gray-400 text-sm">
-                {t("subtitulos.atualizarInformacoes")}
+                {translations.subtitulos.atualizarInformacoes}
               </SheetDescription>
             </motion.div>
           </SheetHeader>
@@ -1435,7 +1693,7 @@ const formatarMoeda = (valor: number) => {
             cartao={cartao}
             onSalvo={() => {
               setSheetEditarAberto(false);
-              carregarCartao(); // Recarrega os dados
+              carregarCartao();
             }}
             onCancelar={() => setSheetEditarAberto(false)}
           />

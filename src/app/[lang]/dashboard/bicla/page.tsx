@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Loading } from "@/components/ui/loading-barrinhas";
+import { getFallback } from "@/lib/i18nFallback";
 
 interface Message {
   id: string;
@@ -35,10 +36,180 @@ export default function BiclaPage() {
   const { t } = useTranslation("bicla");
   const currentLang = (params?.lang as string) || "pt";
 
+  // Função auxiliar para obter tradução com fallback
+  const getTranslation = (key: string) => {
+    // Primeiro tenta usar o i18n
+    const translation = t(key);
+    if (translation && translation !== key) {
+      return translation;
+    }
+
+    // Fallback manual baseado nas chaves que você tem nos arquivos JSON
+    switch (key) {
+      // Títulos
+      case "titulo":
+        return getFallback(currentLang, "Bicla", "Bicla");
+      case "subtitulo":
+        return getFallback(
+          currentLang,
+          "Sua assistente financeira inteligente",
+          "Your smart financial assistant",
+        );
+
+      // Mensagens
+      case "mensagens.saudacao":
+        return getFallback(
+          currentLang,
+          "Olá! Sou a Bicla, sua IA financeira. Posso analisar seus dados e responder perguntas sobre suas finanças. 💡",
+          "Hello! I'm Bicla, your financial AI. I can analyze your data and answer questions about your finances. 💡",
+        );
+      case "mensagens.erroTecnico":
+        return getFallback(
+          currentLang,
+          "Desculpe, estou com problemas técnicos no momento. Tente novamente em alguns instantes.",
+          "Sorry, I'm experiencing technical issues at the moment. Please try again in a few moments.",
+        );
+
+      // Botões
+      case "botoes.limparChat":
+        return getFallback(currentLang, "Limpar Chat", "Clear Chat");
+      case "botoes.upgrade":
+        return getFallback(currentLang, "Fazer Upgrade", "Upgrade");
+
+      // Prompts rápidos
+      case "prompts.rapidos.analise":
+        return getFallback(
+          currentLang,
+          "Analise minha saúde financeira",
+          "Analyze my financial health",
+        );
+      case "prompts.rapidos.economia":
+        return getFallback(
+          currentLang,
+          "Quais áreas posso economizar?",
+          "Where can I save money?",
+        );
+      case "prompts.rapidos.investimento":
+        return getFallback(
+          currentLang,
+          "Me dê dicas de investimento",
+          "Give me investment tips",
+        );
+      case "prompts.rapidos.gastos":
+        return getFallback(
+          currentLang,
+          "Como melhorar meus gastos?",
+          "How to improve my spending?",
+        );
+
+      // Input
+      case "input.placeholder":
+        return getFallback(
+          currentLang,
+          "Pergunte sobre suas finanças...",
+          "Ask about your finances...",
+        );
+
+      // Dicas
+      case "dicas.recomendacao":
+        return getFallback(
+          currentLang,
+          "💡 Dica: Pergunte sobre gastos, investimentos, economia ou análise geral",
+          "💡 Tip: Ask about expenses, investments, savings or general analysis",
+        );
+
+      // Estados
+      case "estados.pensando":
+        return getFallback(
+          currentLang,
+          "Bicla está pensando...",
+          "Bicla is thinking...",
+        );
+
+      // Erros
+      case "erros.resposta":
+        return getFallback(
+          currentLang,
+          "Erro na resposta da Bicla",
+          "Error in Bicla's response",
+        );
+      case "erros.conexao":
+        return getFallback(
+          currentLang,
+          "Erro de conexão com a Bicla",
+          "Connection error with Bicla",
+        );
+      case "erros.planoNecessario":
+        return getFallback(
+          currentLang,
+          "O Bicla está disponível apenas para assinantes do plano Família",
+          "Bicla is only available for Family plan subscribers",
+        );
+
+      // Toasts
+      case "toasts.erroConversa":
+        return getFallback(
+          currentLang,
+          "Erro ao conversar com a Bicla",
+          "Error talking to Bicla",
+        );
+
+      default:
+        return key;
+    }
+  };
+
+  // Criar um objeto de traduções para fácil acesso
+  const translations = {
+    titulo: getTranslation("titulo"),
+    subtitulo: getTranslation("subtitulo"),
+
+    mensagens: {
+      saudacao: getTranslation("mensagens.saudacao"),
+      erroTecnico: getTranslation("mensagens.erroTecnico"),
+    },
+
+    botoes: {
+      limparChat: getTranslation("botoes.limparChat"),
+      upgrade: getTranslation("botoes.upgrade"),
+    },
+
+    prompts: {
+      rapidos: {
+        analise: getTranslation("prompts.rapidos.analise"),
+        economia: getTranslation("prompts.rapidos.economia"),
+        investimento: getTranslation("prompts.rapidos.investimento"),
+        gastos: getTranslation("prompts.rapidos.gastos"),
+      },
+    },
+
+    input: {
+      placeholder: getTranslation("input.placeholder"),
+    },
+
+    dicas: {
+      recomendacao: getTranslation("dicas.recomendacao"),
+    },
+
+    estados: {
+      pensando: getTranslation("estados.pensando"),
+    },
+
+    erros: {
+      resposta: getTranslation("erros.resposta"),
+      conexao: getTranslation("erros.conexao"),
+      planoNecessario: getTranslation("erros.planoNecessario"),
+    },
+
+    toasts: {
+      erroConversa: getTranslation("toasts.erroConversa"),
+    },
+  };
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
-      content: t("mensagens.saudacao"),
+      content: translations.mensagens.saudacao,
       sender: "bicla",
       timestamp: new Date(),
     },
@@ -158,9 +329,9 @@ export default function BiclaPage() {
 
     // Verificar se o usuário tem plano family
     if (planoUsuario && planoUsuario !== "family") {
-      toast.error(t("erros.planoNecessario"), {
+      toast.error(translations.erros.planoNecessario, {
         action: {
-          label: t("botoes.upgrade"),
+          label: translations.botoes.upgrade,
           onClick: () => router.push(`/${currentLang}/dashboard/perfil`),
         },
       });
@@ -185,7 +356,7 @@ export default function BiclaPage() {
         body: JSON.stringify({ message: inputMessage }),
       });
 
-      if (!response.ok) throw new Error(t("erros.resposta"));
+      if (!response.ok) throw new Error(translations.erros.resposta);
 
       const data = await response.json();
 
@@ -198,17 +369,17 @@ export default function BiclaPage() {
 
       setMessages((prev) => [...prev, biclaMessage]);
     } catch (error) {
-      console.error(t("erros.conexao"), error);
+      console.error(translations.erros.conexao, error);
 
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: t("mensagens.erroTecnico"),
+        content: translations.mensagens.erroTecnico,
         sender: "bicla",
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, errorMessage]);
-      toast.error(t("toasts.erroConversa"));
+      toast.error(translations.toasts.erroConversa);
     } finally {
       setIsTyping(false);
     }
@@ -225,7 +396,7 @@ export default function BiclaPage() {
     setMessages([
       {
         id: "1",
-        content: t("mensagens.saudacao"),
+        content: translations.mensagens.saudacao,
         sender: "bicla",
         timestamp: new Date(),
       },
@@ -233,10 +404,10 @@ export default function BiclaPage() {
   };
 
   const quickPrompts = [
-    t("prompts.rapidos.analise"),
-    t("prompts.rapidos.economia"),
-    t("prompts.rapidos.investimento"),
-    t("prompts.rapidos.gastos"),
+    translations.prompts.rapidos.analise,
+    translations.prompts.rapidos.economia,
+    translations.prompts.rapidos.investimento,
+    translations.prompts.rapidos.gastos,
   ];
 
   // Loading em tela cheia para carregamento dos dados
@@ -266,10 +437,10 @@ export default function BiclaPage() {
               </div>
               <div className="min-w-0 flex-1">
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white truncate">
-                  {t("titulo")}
+                  {translations.titulo}
                 </h1>
                 <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 truncate">
-                  {t("subtitulo")}
+                  {translations.subtitulo}
                 </p>
               </div>
             </div>
@@ -290,26 +461,25 @@ export default function BiclaPage() {
                   </div>
 
                   <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2 sm:mb-3">
-                    Recursos Exclusivos do Plano Família
+                    {currentLang === "pt" ? "Recursos Exclusivos do Plano Família" : "Exclusive Family Plan Features"}
                   </h2>
 
                   <p className="text-gray-600 dark:text-gray-400 mb-4 sm:mb-6 max-w-md">
-                    O Bicla, seu assistente de IA financeira, está disponível
-                    apenas para assinantes do plano Família. Desbloqueie
-                    recursos avançados de análise financeira com inteligência
-                    artificial.
+                    {currentLang === "pt" 
+                      ? "O Bicla, seu assistente de IA financeira, está disponível apenas para assinantes do plano Família. Desbloqueie recursos avançados de análise financeira com inteligência artificial."
+                      : "Bicla, your financial AI assistant, is available only for Family plan subscribers. Unlock advanced financial analysis features with artificial intelligence."}
                   </p>
 
                   <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/10 border border-blue-200 dark:border-blue-800 rounded-xl p-4 sm:p-6 mb-6 sm:mb-8 max-w-lg w-full">
                     <div className="flex items-center justify-center gap-3 mb-3 sm:mb-4">
                       <Lock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                       <span className="font-medium text-blue-800 dark:text-blue-300">
-                        Seu plano atual:{" "}
+                        {currentLang === "pt" ? "Seu plano atual: " : "Your current plan: "}
                         {(planoUsuario as string) === "family"
-                          ? "Família"
+                          ? currentLang === "pt" ? "Família" : "Family"
                           : (planoUsuario as string) === "free"
-                            ? "Grátis"
-                            : "Pro"}
+                            ? currentLang === "pt" ? "Grátis" : "Free"
+                            : currentLang === "pt" ? "Pro" : "Pro"}
                       </span>
                     </div>
 
@@ -317,25 +487,33 @@ export default function BiclaPage() {
                       <li className="flex items-start gap-2">
                         <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
                         <span className="text-gray-700 dark:text-gray-300">
-                          Análise financeira personalizada com IA
+                          {currentLang === "pt" 
+                            ? "Análise financeira personalizada com IA"
+                            : "Personalized financial analysis with AI"}
                         </span>
                       </li>
                       <li className="flex items-start gap-2">
                         <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
                         <span className="text-gray-700 dark:text-gray-300">
-                          Recomendações de investimentos inteligentes
+                          {currentLang === "pt" 
+                            ? "Recomendações de investimentos inteligentes"
+                            : "Smart investment recommendations"}
                         </span>
                       </li>
                       <li className="flex items-start gap-2">
                         <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
                         <span className="text-gray-700 dark:text-gray-300">
-                          Planejamento financeiro avançado
+                          {currentLang === "pt" 
+                            ? "Planejamento financeiro avançado"
+                            : "Advanced financial planning"}
                         </span>
                       </li>
                       <li className="flex items-start gap-2">
                         <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
                         <span className="text-gray-700 dark:text-gray-300">
-                          Suporte a metas compartilhadas em família
+                          {currentLang === "pt" 
+                            ? "Suporte a metas compartilhadas em família"
+                            : "Support for shared family goals"}
                         </span>
                       </li>
                     </ul>
@@ -348,7 +526,9 @@ export default function BiclaPage() {
                       className="bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90"
                     >
                       <Crown className="mr-2 h-4 w-4" />
-                      Fazer Upgrade para Família
+                      {currentLang === "pt" 
+                        ? "Fazer Upgrade para Família"
+                        : "Upgrade to Family Plan"}
                     </Button>
                   </div>
                 </div>
@@ -377,10 +557,10 @@ export default function BiclaPage() {
             </div>
             <div className="min-w-0 flex-1">
               <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white truncate">
-                {t("titulo")}
+                {translations.titulo}
               </h1>
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 truncate">
-                {t("subtitulo")}
+                {translations.subtitulo}
               </p>
             </div>
           </div>
@@ -392,7 +572,7 @@ export default function BiclaPage() {
               className="border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white text-xs sm:text-sm flex-1 sm:flex-none"
             >
               <RotateCcw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="truncate">{t("botoes.limparChat")}</span>
+              <span className="truncate">{translations.botoes.limparChat}</span>
             </Button>
           </div>
         </motion.div>
@@ -473,7 +653,7 @@ export default function BiclaPage() {
                             ></div>
                           </div>
                           <span className="truncate">
-                            {t("estados.pensando")}
+                            {translations.estados.pensando}
                           </span>
                         </div>
                       </div>
@@ -526,7 +706,7 @@ export default function BiclaPage() {
               <div className="border-t border-gray-200 dark:border-gray-800 p-3 sm:p-4 bg-gray-50 dark:bg-gray-800/30 flex-shrink-0">
                 <div className="flex gap-2 sm:gap-3">
                   <Input
-                    placeholder={t("input.placeholder")}
+                    placeholder={translations.input.placeholder}
                     value={inputMessage}
                     onChange={(e) => setInputMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
@@ -546,7 +726,7 @@ export default function BiclaPage() {
                 {/* Footer */}
                 <div className="text-center mt-2 sm:mt-3">
                   <p className="text-xs text-gray-500 dark:text-gray-400 px-2">
-                    {t("dicas.recomendacao")}
+                    {translations.dicas.recomendacao}
                   </p>
                 </div>
               </div>

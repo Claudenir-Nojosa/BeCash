@@ -1,3 +1,4 @@
+// app/[lang]/(auth)/signup/page.tsx
 import BotaoGoogle from "@/components/shared/botaoGoogleClient";
 import RegisterForm from "@/components/ui/registerForm";
 import {
@@ -10,7 +11,7 @@ import {
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "../../../../../auth";
-import { useTranslation } from "react-i18next";
+import { getFallback } from "@/lib/i18nFallback";
 
 // Adicione a prop params
 export default async function RegisterPage({
@@ -19,32 +20,42 @@ export default async function RegisterPage({
   params: Promise<{ lang: string }>;
 }) {
   const { lang } = await params;
+  const currentLang = lang || "pt";
 
   const session = await auth();
 
   if (session) {
-    redirect(`/${lang}/dashboard`);
+    redirect(`/${currentLang}/dashboard`);
   }
   
-  // Mensagens traduzidas por idioma (não podemos usar hook em server component)
-  const translations = {
-    pt: {
-      title: "Cadastre-se",
-      description: "Faça seu cadastro gratuitamente.",
-      orDivider: "ou",
-      loginPrompt: "Já possui cadastro?",
-      loginLink: "Faça o login",
-    },
-    en: {
-      title: "Sign Up",
-      description: "Create your account for free.",
-      orDivider: "or",
-      loginPrompt: "Already have an account?",
-      loginLink: "Sign in",
-    },
+  // Função auxiliar para obter tradução com fallback
+  const getTranslation = (key: string) => {
+    switch (key) {
+      // Títulos e descrições
+      case "paginaCadastro.titulo":
+        return getFallback(currentLang, "Cadastre-se", "Sign Up");
+      case "paginaCadastro.descricao":
+        return getFallback(currentLang, "Faça seu cadastro gratuitamente.", "Create your account for free.");
+      case "paginaCadastro.ou":
+        return getFallback(currentLang, "ou", "or");
+      case "paginaCadastro.possuiConta":
+        return getFallback(currentLang, "Já possui cadastro?", "Already have an account?");
+      case "paginaCadastro.fazerLogin":
+        return getFallback(currentLang, "Faça o login", "Sign in");
+
+      default:
+        return key;
+    }
   };
 
-  const t = translations[lang as keyof typeof translations] || translations.pt;
+  // Criar objeto de traduções
+  const translations = {
+    titulo: getTranslation("paginaCadastro.titulo"),
+    descricao: getTranslation("paginaCadastro.descricao"),
+    ou: getTranslation("paginaCadastro.ou"),
+    possuiConta: getTranslation("paginaCadastro.possuiConta"),
+    fazerLogin: getTranslation("paginaCadastro.fazerLogin"),
+  };
   
   return (
     <>
@@ -67,26 +78,26 @@ export default async function RegisterPage({
       <Card className="max-w-sm w-full rounded-2xl mt-12 border-gray-200 dark:border-gray-800 shadow-xl">
         <CardHeader className="space-y-3">
           <CardTitle className="text-2xl font-bold text-center text-gray-900 dark:text-white">
-            {t.title}
+            {translations.titulo}
           </CardTitle>
           <CardDescription className="text-center text-gray-600 dark:text-gray-400">
-            {t.description}
+            {translations.descricao}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Passar linguagem para o RegisterForm */}
-          <RegisterForm lang={lang} />
+          <RegisterForm lang={currentLang} />
           
           <div className="flex flex-col w-full justify-center items-center">
             <div className="mx-auto my-4 flex w-full items-center justify-evenly before:mr-4 before:block before:h-px before:flex-grow before:bg-gray-300 dark:before:bg-gray-700 after:ml-4 after:block after:h-px after:flex-grow after:bg-gray-300 dark:after:bg-gray-700">
               <span className="text-sm text-gray-500 dark:text-gray-400 px-2">
-                {t.orDivider}
+                {translations.ou}
               </span>
             </div>
             
             <div className="gap-3 flex flex-col mt-2 w-full">
               {/* Passar linguagem para o BotaoGoogle */}
-              <BotaoGoogle lang={lang} />
+              <BotaoGoogle lang={currentLang} />
               <div className="flex gap-5 w-full items-center"></div>
             </div>
           </div>
@@ -94,12 +105,12 @@ export default async function RegisterPage({
       </Card>
       
       <p className="text-sm text-gray-600 dark:text-gray-400 mt-6 text-center">
-        {t.loginPrompt}{" "}
+        {translations.possuiConta}{" "}
         <Link 
           className="text-[#007cca] dark:text-[#00cfec] font-medium hover:underline transition-all" 
-          href={`/${lang}/login`}
+          href={`/${currentLang}/login`}
         >
-          {t.loginLink}
+          {translations.fazerLogin}
         </Link>
       </p>
     </>

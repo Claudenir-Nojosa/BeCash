@@ -37,7 +37,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         {/* Conteúdo principal */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Header mobile */}
-          <header className="lg:hidden flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 sticky top-1 z-30">
+          <header className="lg:hidden flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 sticky top-0 z-30">
             <Button
               variant="ghost"
               size="icon"
@@ -58,7 +58,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           </header>
 
           {/* Header desktop */}
-          <header className="hidden lg:flex items-center justify-end p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 sticky top-1 z-30">
+        <header className="hidden lg:flex items-center justify-end px-6 py-[18px] border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 sticky top-0 z-30 ml-[-1px]">
             <div className="flex items-center gap-4">
               <LanguageSwitcher />
               <ThemeToggle />

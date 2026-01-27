@@ -498,22 +498,24 @@ export default function DashboardPage() {
   }, [session]);
 
   // ✅ useEffect OTIMIZADO para evitar carregamentos duplicados
-  useEffect(() => {
-    if (!session) return;
-    if (carregando) return;
+useEffect(() => {
+  if (!session) return;
+  if (carregando) return;
 
-    const mesChanged = prevMesRef.current !== mesSelecionado;
-    const anoChanged = prevAnoRef.current !== anoSelecionado;
-    const refreshChanged = prevRefreshRef.current !== refreshTrigger;
+  const mesChanged = prevMesRef.current !== mesSelecionado;
+  const anoChanged = prevAnoRef.current !== anoSelecionado;
+  const refreshChanged = prevRefreshRef.current !== refreshTrigger;
 
-    if (!hasLoadedRef.current || mesChanged || anoChanged || refreshChanged) {
-      prevMesRef.current = mesSelecionado;
-      prevAnoRef.current = anoSelecionado;
-      prevRefreshRef.current = refreshTrigger;
+  // ✅ CORREÇÃO: Só executa se algo realmente mudou OU se é a primeira vez
+  if (!hasLoadedRef.current || mesChanged || anoChanged || refreshChanged) {
+    // ✅ Atualiza as refs ANTES de chamar a função
+    prevMesRef.current = mesSelecionado;
+    prevAnoRef.current = anoSelecionado;
+    prevRefreshRef.current = refreshTrigger;
 
-      carregarDashboard();
-    }
-  }, [mesSelecionado, anoSelecionado, refreshTrigger, session]);
+    carregarDashboard();
+  }
+}, [mesSelecionado, anoSelecionado, refreshTrigger, session]); // ✅ REMOVA 'carregando' das dependências
 
   const carregarDashboard = async () => {
     if (carregando) return;

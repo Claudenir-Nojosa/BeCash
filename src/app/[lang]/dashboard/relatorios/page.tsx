@@ -39,6 +39,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loading } from "@/components/ui/loading-barrinhas";
 import { motion } from "framer-motion";
+import { getFallback } from "@/lib/i18nFallback";
 
 interface Categoria {
   id: string;
@@ -76,6 +77,445 @@ export default function RelatoriosPage() {
   const searchParams = useSearchParams();
   const { t, i18n } = useTranslation("relatorios");
   const cartaoId = searchParams.get("cartaoId");
+  const currentLang = i18n.language || "pt";
+
+  // Função auxiliar para obter tradução com fallback
+  const getTranslation = (key: string) => {
+    // Primeiro tenta usar o i18n
+    const translation = t(key);
+    if (translation && translation !== key) {
+      return translation;
+    }
+
+    // Fallback manual baseado nas chaves que você tem nos arquivos JSON
+    switch (key) {
+      // Títulos
+      case "titulos.relatoriosFinanceiros":
+        return getFallback(
+          currentLang,
+          "Relatórios Financeiros",
+          "Financial Reports",
+        );
+      // Planos
+case "planos.relatoriosAvancados":
+  return getFallback(
+    currentLang,
+    "Relatórios Financeiros Avançados",
+    "Advanced Financial Reports"
+  );
+case "planos.descricaoRelatorios":
+  return getFallback(
+    currentLang,
+    "Acesse análises detalhadas, gráficos interativos e relatórios personalizados para tomar decisões financeiras mais inteligentes. Exporte seus dados em diversos formatos.",
+    "Access detailed analysis, interactive charts, and personalized reports to make smarter financial decisions. Export your data in various formats."
+  );
+case "planos.seuPlanoAtual":
+  return getFallback(currentLang, "Seu plano atual", "Your current plan");
+case "planos.gratis":
+  return getFallback(currentLang, "Grátis", "Free");
+case "planos.beneficioRelatoriosPDF":
+  return getFallback(
+    currentLang,
+    "Relatórios detalhados em PDF e JSON",
+    "Detailed reports in PDF and JSON"
+  );
+case "planos.beneficioAnalises":
+  return getFallback(
+    currentLang,
+    "Análises por categoria, cartão e período",
+    "Analysis by category, card and period"
+  );
+case "planos.beneficioGraficos":
+  return getFallback(
+    currentLang,
+    "Gráficos interativos e visualizações",
+    "Interactive charts and visualizations"
+  );
+case "planos.beneficioComparativos":
+  return getFallback(
+    currentLang,
+    "Comparativos e tendências históricas",
+    "Comparatives and historical trends"
+  );
+case "planos.fazerUpgradePro":
+  return getFallback(
+    currentLang,
+    "Fazer Upgrade para Pro",
+    "Upgrade to Pro"
+  );
+      case "titulos.filtros":
+        return getFallback(currentLang, "Filtros", "Filters");
+
+      // Subtítulos
+      case "subtitulos.analiseCompleta":
+        return getFallback(
+          currentLang,
+          "Análise completa dos seus gastos e receitas",
+          "Complete analysis of your expenses and income",
+        );
+
+      // Filtros
+      case "filtros.cartao":
+        return getFallback(currentLang, "Cartão", "Card");
+      case "filtros.selecioneCartao":
+        return getFallback(currentLang, "Selecione o cartão", "Select card");
+      case "filtros.todosCartoes":
+        return getFallback(currentLang, "Todos os cartões", "All cards");
+      case "filtros.periodo":
+        return getFallback(currentLang, "Período", "Period");
+      case "filtros.selecionePeriodo":
+        return getFallback(currentLang, "Selecione o período", "Select period");
+      case "filtros.tipo":
+        return getFallback(currentLang, "Tipo", "Type");
+      case "filtros.selecioneTipo":
+        return getFallback(currentLang, "Selecione o tipo", "Select type");
+      case "filtros.todos":
+        return getFallback(currentLang, "Todos", "All");
+      case "filtros.dataCustomizada":
+        return getFallback(currentLang, "Data Customizada", "Custom Date");
+
+      // Períodos
+      case "periodos.ultimos7Dias":
+        return getFallback(currentLang, "Últimos 7 dias", "Last 7 days");
+      case "periodos.ultimos30Dias":
+        return getFallback(currentLang, "Últimos 30 dias", "Last 30 days");
+      case "periodos.ultimos90Dias":
+        return getFallback(currentLang, "Últimos 90 dias", "Last 90 days");
+      case "periodos.ultimos12Meses":
+        return getFallback(currentLang, "Últimos 12 meses", "Last 12 months");
+      case "periodos.todos":
+        return getFallback(currentLang, "Todo o período", "All period");
+      case "periodos.ultimosNDias":
+        return getFallback(
+          currentLang,
+          "Últimos {{dias}} dias",
+          "Last {{dias}} days",
+        );
+
+      // Tipos
+      case "tipos.despesa":
+        return getFallback(currentLang, "Despesa", "Expense");
+      case "tipos.receita":
+        return getFallback(currentLang, "Receita", "Income");
+
+      // Estatísticas
+      case "estatisticas.totalDespesas":
+        return getFallback(currentLang, "Total de Despesas", "Total Expenses");
+      case "estatisticas.totalReceitas":
+        return getFallback(currentLang, "Total de Receitas", "Total Income");
+      case "estatisticas.saldo":
+        return getFallback(currentLang, "Saldo", "Balance");
+      case "estatisticas.superavit":
+        return getFallback(currentLang, "Superávit", "Surplus");
+      case "estatisticas.deficit":
+        return getFallback(currentLang, "Déficit", "Deficit");
+      case "estatisticas.lancamentosDespesa":
+        return getFallback(
+          currentLang,
+          "{{count}} lançamentos",
+          "{{count}} transactions",
+        );
+      case "estatisticas.lancamentosReceita":
+        return getFallback(
+          currentLang,
+          "{{count}} lançamentos",
+          "{{count}} transactions",
+        );
+      case "estatisticas.lancamentosCategoria":
+        return getFallback(
+          currentLang,
+          "{{count}} lançamentos",
+          "{{count}} transactions",
+        );
+      case "estatisticas.lancamentosCartao":
+        return getFallback(
+          currentLang,
+          "{{count}} lançamentos",
+          "{{count}} transactions",
+        );
+
+      // Seções
+      case "secoes.despesasPorCategoria":
+        return getFallback(
+          currentLang,
+          "Despesas por Categoria",
+          "Expenses by Category",
+        );
+      case "secoes.distribuicaoGastos":
+        return getFallback(
+          currentLang,
+          "Distribuição dos gastos por categoria",
+          "Expense distribution by category",
+        );
+      case "secoes.despesasPorCartao":
+        return getFallback(
+          currentLang,
+          "Despesas por Cartão",
+          "Expenses by Card",
+        );
+      case "secoes.distribuicaoGastosCartao":
+        return getFallback(
+          currentLang,
+          "Distribuição dos gastos por cartão",
+          "Expense distribution by card",
+        );
+      case "secoes.ultimosLancamentos":
+        return getFallback(
+          currentLang,
+          "Últimos Lançamentos",
+          "Latest Transactions",
+        );
+      case "secoes.lancamentosEncontrados":
+        return getFallback(
+          currentLang,
+          "{{count}} lançamentos encontrados",
+          "{{count}} transactions found",
+        );
+
+      // Botões
+      case "botoes.exportarPDF":
+        return getFallback(currentLang, "Exportar PDF", "Export PDF");
+      case "botoes.verTodosLancamentos":
+        return getFallback(
+          currentLang,
+          "Ver todos os lançamentos",
+          "View all transactions",
+        );
+
+      // Mensagens
+      case "mensagens.erroCarregarDados":
+        return getFallback(
+          currentLang,
+          "Erro ao carregar dados",
+          "Error loading data",
+        );
+      case "mensagens.erroCarregarLancamentos":
+        return getFallback(
+          currentLang,
+          "Erro ao carregar lançamentos",
+          "Error loading transactions",
+        );
+      case "mensagens.semDadosCategorias":
+        return getFallback(
+          currentLang,
+          "Sem dados de categorias",
+          "No category data",
+        );
+      case "mensagens.adicionarDespesasCategorizadas":
+        return getFallback(
+          currentLang,
+          "Adicione despesas categorizadas para ver a distribuição",
+          "Add categorized expenses to see distribution",
+        );
+      case "mensagens.nenhumaDespesaEncontrada":
+        return getFallback(
+          currentLang,
+          "Nenhuma despesa encontrada",
+          "No expenses found",
+        );
+      case "mensagens.nenhumLancamentoEncontrado":
+        return getFallback(
+          currentLang,
+          "Nenhum lançamento encontrado",
+          "No transactions found",
+        );
+      case "mensagens.semDadosTitulo":
+        return getFallback(
+          currentLang,
+          "Nenhum lançamento encontrado",
+          "No transactions found",
+        );
+      case "mensagens.semDadosDescricao":
+        return getFallback(
+          currentLang,
+          "Adicione lançamentos para visualizar os relatórios",
+          "Add transactions to view reports",
+        );
+
+      // Categorias
+      case "categorias.semCategoria":
+        return getFallback(currentLang, "Sem Categoria", "No Category");
+
+      // Cartões
+      case "cartoes.semCartao":
+        return getFallback(currentLang, "Sem Cartão", "No Card");
+
+      // PDF
+      case "pdf.titulo":
+        return getFallback(
+          currentLang,
+          "Relatório Financeiro",
+          "Financial Report",
+        );
+      case "pdf.geradoEm":
+        return getFallback(currentLang, "Gerado em", "Generated on");
+      case "pdf.filtrosAplicados":
+        return getFallback(currentLang, "Filtros Aplicados", "Applied Filters");
+      case "pdf.periodo":
+        return getFallback(currentLang, "Período", "Period");
+      case "pdf.cartao":
+        return getFallback(currentLang, "Cartão", "Card");
+      case "pdf.estatisticasGerais":
+        return getFallback(
+          currentLang,
+          "ESTATÍSTICAS GERAIS",
+          "GENERAL STATISTICS",
+        );
+      case "pdf.descricao":
+        return getFallback(currentLang, "Descrição", "Description");
+      case "pdf.valor":
+        return getFallback(currentLang, "Valor", "Amount");
+      case "pdf.topCategorias":
+        return getFallback(currentLang, "TOP CATEGORIAS", "TOP CATEGORIES");
+      case "pdf.categoria":
+        return getFallback(currentLang, "Categoria", "Category");
+      case "pdf.valorGasto":
+        return getFallback(currentLang, "Valor Gasto", "Amount Spent");
+      case "pdf.ultimosLancamentos":
+        return getFallback(
+          currentLang,
+          "ÚLTIMOS LANÇAMENTOS",
+          "LATEST TRANSACTIONS",
+        );
+      case "pdf.data":
+        return getFallback(currentLang, "Data", "Date");
+      case "pdf.tipo":
+        return getFallback(currentLang, "Tipo", "Type");
+      case "pdf.pagina":
+        return getFallback(currentLang, "Página", "Page");
+      case "pdf.de":
+        return getFallback(currentLang, "de", "of");
+      case "pdf.geradoPor":
+        return getFallback(
+          currentLang,
+          "Gerado pelo Finanças Pessoais",
+          "Generated by Personal Finance",
+        );
+      case "pdf.nomeArquivo":
+        return getFallback(
+          currentLang,
+          "relatorio-financeiro",
+          "financial-report",
+        );
+
+      default:
+        return key;
+    }
+  };
+
+  // Criar um objeto de traduções para fácil acesso
+  const translations = {
+    titulos: {
+      relatoriosFinanceiros: getTranslation("titulos.relatoriosFinanceiros"),
+      filtros: getTranslation("titulos.filtros"),
+    },
+
+    subtitulos: {
+      analiseCompleta: getTranslation("subtitulos.analiseCompleta"),
+    },
+
+    filtros: {
+      cartao: getTranslation("filtros.cartao"),
+      selecioneCartao: getTranslation("filtros.selecioneCartao"),
+      todosCartoes: getTranslation("filtros.todosCartoes"),
+      periodo: getTranslation("filtros.periodo"),
+      selecionePeriodo: getTranslation("filtros.selecionePeriodo"),
+      tipo: getTranslation("filtros.tipo"),
+      selecioneTipo: getTranslation("filtros.selecioneTipo"),
+      todos: getTranslation("filtros.todos"),
+      dataCustomizada: getTranslation("filtros.dataCustomizada"),
+    },
+
+    periodos: {
+      ultimos7Dias: getTranslation("periodos.ultimos7Dias"),
+      ultimos30Dias: getTranslation("periodos.ultimos30Dias"),
+      ultimos90Dias: getTranslation("periodos.ultimos90Dias"),
+      ultimos12Meses: getTranslation("periodos.ultimos12Meses"),
+      todos: getTranslation("periodos.todos"),
+      ultimosNDias: getTranslation("periodos.ultimosNDias"),
+    },
+
+    tipos: {
+      despesa: getTranslation("tipos.despesa"),
+      receita: getTranslation("tipos.receita"),
+    },
+
+    estatisticas: {
+      totalDespesas: getTranslation("estatisticas.totalDespesas"),
+      totalReceitas: getTranslation("estatisticas.totalReceitas"),
+      saldo: getTranslation("estatisticas.saldo"),
+      superavit: getTranslation("estatisticas.superavit"),
+      deficit: getTranslation("estatisticas.deficit"),
+      lancamentosDespesa: getTranslation("estatisticas.lancamentosDespesa"),
+      lancamentosReceita: getTranslation("estatisticas.lancamentosReceita"),
+      lancamentosCategoria: getTranslation("estatisticas.lancamentosCategoria"),
+      lancamentosCartao: getTranslation("estatisticas.lancamentosCartao"),
+    },
+
+    secoes: {
+      despesasPorCategoria: getTranslation("secoes.despesasPorCategoria"),
+      distribuicaoGastos: getTranslation("secoes.distribuicaoGastos"),
+      despesasPorCartao: getTranslation("secoes.despesasPorCartao"),
+      distribuicaoGastosCartao: getTranslation(
+        "secoes.distribuicaoGastosCartao",
+      ),
+      ultimosLancamentos: getTranslation("secoes.ultimosLancamentos"),
+      lancamentosEncontrados: getTranslation("secoes.lancamentosEncontrados"),
+    },
+
+    botoes: {
+      exportarPDF: getTranslation("botoes.exportarPDF"),
+      verTodosLancamentos: getTranslation("botoes.verTodosLancamentos"),
+    },
+
+    mensagens: {
+      erroCarregarDados: getTranslation("mensagens.erroCarregarDados"),
+      erroCarregarLancamentos: getTranslation(
+        "mensagens.erroCarregarLancamentos",
+      ),
+      semDadosCategorias: getTranslation("mensagens.semDadosCategorias"),
+      adicionarDespesasCategorizadas: getTranslation(
+        "mensagens.adicionarDespesasCategorizadas",
+      ),
+      nenhumaDespesaEncontrada: getTranslation(
+        "mensagens.nenhumaDespesaEncontrada",
+      ),
+      nenhumLancamentoEncontrado: getTranslation(
+        "mensagens.nenhumLancamentoEncontrado",
+      ),
+      semDadosTitulo: getTranslation("mensagens.semDadosTitulo"),
+      semDadosDescricao: getTranslation("mensagens.semDadosDescricao"),
+    },
+
+    categorias: {
+      semCategoria: getTranslation("categorias.semCategoria"),
+    },
+
+    cartoes: {
+      semCartao: getTranslation("cartoes.semCartao"),
+    },
+
+    pdf: {
+      titulo: getTranslation("pdf.titulo"),
+      geradoEm: getTranslation("pdf.geradoEm"),
+      filtrosAplicados: getTranslation("pdf.filtrosAplicados"),
+      periodo: getTranslation("pdf.periodo"),
+      cartao: getTranslation("pdf.cartao"),
+      estatisticasGerais: getTranslation("pdf.estatisticasGerais"),
+      descricao: getTranslation("pdf.descricao"),
+      valor: getTranslation("pdf.valor"),
+      topCategorias: getTranslation("pdf.topCategorias"),
+      categoria: getTranslation("pdf.categoria"),
+      valorGasto: getTranslation("pdf.valorGasto"),
+      ultimosLancamentos: getTranslation("pdf.ultimosLancamentos"),
+      data: getTranslation("pdf.data"),
+      tipo: getTranslation("pdf.tipo"),
+      pagina: getTranslation("pdf.pagina"),
+      de: getTranslation("pdf.de"),
+      geradoPor: getTranslation("pdf.geradoPor"),
+      nomeArquivo: getTranslation("pdf.nomeArquivo"),
+    },
+  };
 
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
   const [cartoes, setCartoes] = useState<Cartao[]>([]);
@@ -88,6 +528,10 @@ export default function RelatoriosPage() {
     tipo: "todos",
     categoriaId: "todas",
   });
+
+  const getLocalizedPath = (path: string) => {
+    return `/${i18n.language}${path}`;
+  };
 
   // Carregar o plano do usuário
   useEffect(() => {
@@ -116,10 +560,6 @@ export default function RelatoriosPage() {
     carregarPlanoUsuario();
   }, []);
 
-  const getLocalizedPath = (path: string) => {
-    return `/${i18n.language}${path}`;
-  };
-
   useEffect(() => {
     if (planoUsuario && planoUsuario !== "free") {
       carregarDados();
@@ -143,7 +583,7 @@ export default function RelatoriosPage() {
         await carregarLancamentos(cartoesData);
       }
     } catch (error) {
-      console.error(t("mensagens.erroCarregarDados"), error);
+      console.error(translations.mensagens.erroCarregarDados, error);
     } finally {
       setCarregando(false);
     }
@@ -172,7 +612,7 @@ export default function RelatoriosPage() {
         setLancamentos(data);
       }
     } catch (error) {
-      console.error(t("mensagens.erroCarregarLancamentos"), error);
+      console.error(translations.mensagens.erroCarregarLancamentos, error);
     }
   };
 
@@ -183,110 +623,108 @@ export default function RelatoriosPage() {
     }
   }, [filtros]);
 
-  // Se é plano free, mostrar mensagem educativa
-  if (planoUsuario === "free") {
-    return (
-      <div className="h-full flex flex-col overflow-hidden p-4 sm:p-6">
-        <div className="max-w-4xl mx-auto w-full h-full flex flex-col gap-4 sm:gap-6">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 flex-shrink-0"
-          >
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-500 to-blue-600 dark:from-gray-500 dark:to-gray-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                <BarChart3 className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white truncate">
-                  {t("titulos.relatoriosFinanceiros")}
-                </h1>
-                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 truncate">
-                  {t("subtitulos.analiseCompleta")}
-                </p>
-              </div>
+// Se é plano free, mostrar mensagem educativa
+if (planoUsuario === "free") {
+  return (
+    <div className="h-full flex flex-col overflow-hidden p-4 sm:p-6">
+      <div className="max-w-4xl mx-auto w-full h-full flex flex-col gap-4 sm:gap-6">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 flex-shrink-0"
+        >
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-500 to-blue-600 dark:from-gray-500 dark:to-gray-600 rounded-lg flex items-center justify-center flex-shrink-0">
+              <BarChart3 className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
             </div>
-          </motion.div>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white truncate">
+                {translations.titulos.relatoriosFinanceiros}
+              </h1>
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 truncate">
+                {translations.subtitulos.analiseCompleta}
+              </p>
+            </div>
+          </div>
+        </motion.div>
 
-          {/* Mensagem de plano necessário */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-            className="flex-1 min-h-0"
-          >
-            <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm flex flex-col h-full">
-              <CardContent className="p-0 flex flex-col h-full">
-                <div className="flex-1 overflow-y-auto p-6 sm:p-8 md:p-12 flex flex-col items-center justify-center text-center">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 flex items-center justify-center mb-4 sm:mb-6">
-                    <Crown className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
-                  </div>
-
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2 sm:mb-3">
-                    Relatórios Financeiros Avançados
-                  </h2>
-
-                  <p className="text-gray-600 dark:text-gray-400 mb-4 sm:mb-6 max-w-md">
-                    Acesse análises detalhadas, gráficos interativos e
-                    relatórios personalizados para tomar decisões financeiras
-                    mais inteligentes. Exporte seus dados em diversos formatos.
-                  </p>
-
-                  <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/10 border border-blue-200 dark:border-blue-800 rounded-xl p-4 sm:p-6 mb-6 sm:mb-8 max-w-lg w-full">
-                    <div className="flex items-center justify-center gap-3 mb-3 sm:mb-4">
-                      <Lock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                      <span className="font-medium text-blue-800 dark:text-blue-300">
-                        Seu plano atual: Grátis
-                      </span>
-                    </div>
-
-                    <ul className="space-y-2 text-left text-sm sm:text-base">
-                      <li className="flex items-start gap-2">
-                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
-                        <span className="text-gray-700 dark:text-gray-300">
-                          Relatórios detalhados em PDF e JSON
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
-                        <span className="text-gray-700 dark:text-gray-300">
-                          Análises por categoria, cartão e período
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
-                        <span className="text-gray-700 dark:text-gray-300">
-                          Gráficos interativos e visualizações
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
-                        <span className="text-gray-700 dark:text-gray-300">
-                          Comparativos e tendências históricas
-                        </span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                    <Button
-                      onClick={() => router.push("/dashboard/perfil")}
-                      className="bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90"
-                    >
-                      <Crown className="mr-2 h-4 w-4" />
-                      Fazer Upgrade para Pro
-                    </Button>
-                  </div>
+        {/* Mensagem de plano necessário */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+          className="flex-1 min-h-0"
+        >
+          <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm flex flex-col h-full">
+            <CardContent className="p-0 flex flex-col h-full">
+              <div className="flex-1 overflow-y-auto p-6 sm:p-8 md:p-12 flex flex-col items-center justify-center text-center">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 flex items-center justify-center mb-4 sm:mb-6">
+                  <Crown className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                 </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
+
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2 sm:mb-3">
+                  {getTranslation("planos.relatoriosAvancados")}
+                </h2>
+
+                <p className="text-gray-600 dark:text-gray-400 mb-4 sm:mb-6 max-w-md">
+                  {getTranslation("planos.descricaoRelatorios")}
+                </p>
+
+                <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/10 border border-blue-200 dark:border-blue-800 rounded-xl p-4 sm:p-6 mb-6 sm:mb-8 max-w-lg w-full">
+                  <div className="flex items-center justify-center gap-3 mb-3 sm:mb-4">
+                    <Lock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <span className="font-medium text-blue-800 dark:text-blue-300">
+                      {getTranslation("planos.seuPlanoAtual")}: {getTranslation("planos.gratis")}
+                    </span>
+                  </div>
+
+                  <ul className="space-y-2 text-left text-sm sm:text-base">
+                    <li className="flex items-start gap-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
+                      <span className="text-gray-700 dark:text-gray-300">
+                        {getTranslation("planos.beneficioRelatoriosPDF")}
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
+                      <span className="text-gray-700 dark:text-gray-300">
+                        {getTranslation("planos.beneficioAnalises")}
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
+                      <span className="text-gray-700 dark:text-gray-300">
+                        {getTranslation("planos.beneficioGraficos")}
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
+                      <span className="text-gray-700 dark:text-gray-300">
+                        {getTranslation("planos.beneficioComparativos")}
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                  <Button
+                    onClick={() => router.push(getLocalizedPath("/dashboard/perfil"))}
+                    className="bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90"
+                  >
+                    <Crown className="mr-2 h-4 w-4" />
+                    {getTranslation("planos.fazerUpgradePro")}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   const exportarPDF = () => {
     const doc = new jsPDF();
@@ -297,11 +735,11 @@ export default function RelatoriosPage() {
     doc.rect(0, 0, 210, 40, "F");
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(20);
-    doc.text(t("pdf.titulo"), 105, 20, { align: "center" });
+    doc.text(translations.pdf.titulo, 105, 20, { align: "center" });
 
     doc.setFontSize(12);
     doc.text(
-      `${t("pdf.geradoEm")}: ${new Date().toLocaleDateString(locale)}`,
+      `${translations.pdf.geradoEm}: ${new Date().toLocaleDateString(locale)}`,
       105,
       30,
       {
@@ -314,16 +752,16 @@ export default function RelatoriosPage() {
     doc.setFontSize(10);
     let yPos = 50;
 
-    doc.text(t("pdf.filtrosAplicados"), 14, yPos);
+    doc.text(translations.pdf.filtrosAplicados, 14, yPos);
     yPos += 7;
     doc.text(
-      `• ${t("pdf.periodo")}: ${filtros.periodo === "todos" ? t("periodos.todos") : t("periodos.ultimosNDias", { dias: filtros.periodo })}`,
+      `• ${translations.pdf.periodo}: ${filtros.periodo === "todos" ? translations.periodos.todos : t("periodos.ultimosNDias", { dias: filtros.periodo })}`,
       20,
       yPos,
     );
     yPos += 5;
     doc.text(
-      `• ${t("pdf.cartao")}: ${filtros.cartaoId === "todos" ? t("filtros.todosCartoes") : cartoes.find((c) => c.id === filtros.cartaoId)?.nome}`,
+      `• ${translations.pdf.cartao}: ${filtros.cartaoId === "todos" ? translations.filtros.todosCartoes : cartoes.find((c) => c.id === filtros.cartaoId)?.nome}`,
       20,
       yPos,
     );
@@ -333,7 +771,7 @@ export default function RelatoriosPage() {
     doc.setFontSize(14);
     doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "bold");
-    doc.text(t("pdf.estatisticasGerais"), 14, yPos);
+    doc.text(translations.pdf.estatisticasGerais, 14, yPos);
 
     yPos += 10;
     doc.setFontSize(10);
@@ -341,17 +779,17 @@ export default function RelatoriosPage() {
 
     autoTable(doc, {
       startY: yPos,
-      head: [[t("pdf.descricao"), t("pdf.valor")]],
+      head: [[translations.pdf.descricao, translations.pdf.valor]],
       body: [
         [
-          t("estatisticas.totalDespesas"),
+          translations.estatisticas.totalDespesas,
           formatarMoeda(estatisticas.totalDespesas),
         ],
         [
-          t("estatisticas.totalReceitas"),
+          translations.estatisticas.totalReceitas,
           formatarMoeda(estatisticas.totalReceitas),
         ],
-        [t("estatisticas.saldo"), formatarMoeda(estatisticas.saldo)],
+        [translations.estatisticas.saldo, formatarMoeda(estatisticas.saldo)],
       ],
       styles: { fontSize: 10 },
       headStyles: { fillColor: [30, 41, 59] },
@@ -363,7 +801,7 @@ export default function RelatoriosPage() {
     doc.setFontSize(14);
     doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "bold");
-    doc.text(t("pdf.topCategorias"), 14, yPos);
+    doc.text(translations.pdf.topCategorias, 14, yPos);
 
     yPos += 10;
     const categoriaData = rankingCategorias
@@ -376,7 +814,7 @@ export default function RelatoriosPage() {
 
     autoTable(doc, {
       startY: yPos,
-      head: [[t("pdf.categoria"), t("pdf.valorGasto"), "%"]],
+      head: [[translations.pdf.categoria, translations.pdf.valorGasto, "%"]],
       body: categoriaData,
       styles: { fontSize: 10 },
       headStyles: { fillColor: [30, 41, 59] },
@@ -388,7 +826,7 @@ export default function RelatoriosPage() {
     doc.setFontSize(14);
     doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "bold");
-    doc.text(t("pdf.ultimosLancamentos"), 14, yPos);
+    doc.text(translations.pdf.ultimosLancamentos, 14, yPos);
 
     yPos += 10;
     const lancamentosData = lancamentos
@@ -396,14 +834,21 @@ export default function RelatoriosPage() {
       .map((lanc) => [
         new Date(lanc.data).toLocaleDateString(locale),
         lanc.descricao.substring(0, 30),
-        lanc.tipo === "DESPESA" ? t("tipos.despesa") : t("tipos.receita"),
+        lanc.tipo === "DESPESA"
+          ? translations.tipos.despesa
+          : translations.tipos.receita,
         formatarMoeda(lanc.valor),
       ]);
 
     autoTable(doc, {
       startY: yPos,
       head: [
-        [t("pdf.data"), t("pdf.descricao"), t("pdf.tipo"), t("pdf.valor")],
+        [
+          translations.pdf.data,
+          translations.pdf.descricao,
+          translations.pdf.tipo,
+          translations.pdf.valor,
+        ],
       ],
       body: lancamentosData,
       styles: { fontSize: 8 },
@@ -417,7 +862,7 @@ export default function RelatoriosPage() {
       doc.setFontSize(8);
       doc.setTextColor(100, 100, 100);
       doc.text(
-        `${t("pdf.pagina")} ${i} ${t("pdf.de")} ${pageCount} • ${t("pdf.geradoPor")}`,
+        `${translations.pdf.pagina} ${i} ${translations.pdf.de} ${pageCount} • ${translations.pdf.geradoPor}`,
         105,
         290,
         { align: "center" },
@@ -425,7 +870,7 @@ export default function RelatoriosPage() {
     }
 
     doc.save(
-      `${t("pdf.nomeArquivo")}-${new Date().toISOString().split("T")[0]}.pdf`,
+      `${translations.pdf.nomeArquivo}-${new Date().toISOString().split("T")[0]}.pdf`,
     );
   };
 
@@ -452,7 +897,7 @@ export default function RelatoriosPage() {
     .reduce(
       (acc, lancamento) => {
         const categoriaNome =
-          lancamento.categoria?.nome || t("categorias.semCategoria");
+          lancamento.categoria?.nome || translations.categorias.semCategoria;
         if (!acc[categoriaNome]) {
           acc[categoriaNome] = {
             total: 0,
@@ -480,7 +925,8 @@ export default function RelatoriosPage() {
     .filter((l) => l.tipo === "DESPESA")
     .reduce(
       (acc, lancamento) => {
-        const cartaoNome = lancamento.cartao?.nome || t("cartoes.semCartao");
+        const cartaoNome =
+          lancamento.cartao?.nome || translations.cartoes.semCartao;
         if (!acc[cartaoNome]) {
           acc[cartaoNome] = {
             total: 0,
@@ -501,7 +947,7 @@ export default function RelatoriosPage() {
 
   const formatarMoeda = (valor: number) => {
     const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
-    const currency = i18n.language === "pt" ? "BRL" : "USD"; // ✅ Dinâmico
+    const currency = i18n.language === "pt" ? "BRL" : "USD";
     return new Intl.NumberFormat(locale, {
       style: "currency",
       currency: currency,
@@ -522,7 +968,7 @@ export default function RelatoriosPage() {
       periodo: filtros.periodo,
       cartao:
         filtros.cartaoId === "todos"
-          ? t("filtros.todosCartoes")
+          ? translations.filtros.todosCartoes
           : cartoes.find((c) => c.id === filtros.cartaoId)?.nome,
       estatisticas,
       categorias: rankingCategorias,
@@ -536,7 +982,7 @@ export default function RelatoriosPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${t("pdf.nomeArquivo")}-${new Date().toISOString().split("T")[0]}.json`;
+    a.download = `${translations.pdf.nomeArquivo}-${new Date().toISOString().split("T")[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -579,11 +1025,11 @@ export default function RelatoriosPage() {
               </div>
 
               <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">
-                {t("mensagens.semDadosTitulo")}
+                {translations.mensagens.semDadosTitulo}
               </h2>
 
               <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base md:text-lg mb-6 sm:mb-8">
-                {t("mensagens.semDadosDescricao")}
+                {translations.mensagens.semDadosDescricao}
               </p>
             </motion.div>
           </div>
@@ -625,7 +1071,7 @@ export default function RelatoriosPage() {
                 transition={{ delay: 0.1 }}
                 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white truncate"
               >
-                {t("titulos.relatoriosFinanceiros")}
+                {translations.titulos.relatoriosFinanceiros}
               </motion.h1>
               <motion.p
                 initial={{ x: -10, opacity: 0 }}
@@ -633,7 +1079,7 @@ export default function RelatoriosPage() {
                 transition={{ delay: 0.15 }}
                 className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate"
               >
-                {t("subtitulos.analiseCompleta")}
+                {translations.subtitulos.analiseCompleta}
               </motion.p>
             </div>
           </div>
@@ -651,7 +1097,9 @@ export default function RelatoriosPage() {
                 className="flex-1 sm:flex-none border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-500 text-xs sm:text-sm"
               >
                 <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="truncate">{t("botoes.exportarPDF")}</span>
+                <span className="truncate">
+                  {translations.botoes.exportarPDF}
+                </span>
               </Button>
             </motion.div>
           </motion.div>
@@ -673,7 +1121,7 @@ export default function RelatoriosPage() {
                 >
                   <Filter className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-700 dark:text-gray-300" />
                 </motion.div>
-                <span>{t("titulos.filtros")}</span>
+                <span>{translations.titulos.filtros}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -688,7 +1136,7 @@ export default function RelatoriosPage() {
                     htmlFor="cartao"
                     className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                   >
-                    {t("filtros.cartao")}
+                    {translations.filtros.cartao}
                   </Label>
                   <Select
                     value={filtros.cartaoId}
@@ -697,11 +1145,13 @@ export default function RelatoriosPage() {
                     }
                   >
                     <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm h-9 sm:h-10">
-                      <SelectValue placeholder={t("filtros.selecioneCartao")} />
+                      <SelectValue
+                        placeholder={translations.filtros.selecioneCartao}
+                      />
                     </SelectTrigger>
                     <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm">
                       <SelectItem value="todos">
-                        {t("filtros.todosCartoes")}
+                        {translations.filtros.todosCartoes}
                       </SelectItem>
                       {cartoes.map((cartao) => (
                         <SelectItem key={cartao.id} value={cartao.id}>
@@ -728,7 +1178,7 @@ export default function RelatoriosPage() {
                     htmlFor="periodo"
                     className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                   >
-                    {t("filtros.periodo")}
+                    {translations.filtros.periodo}
                   </Label>
                   <Select
                     value={filtros.periodo}
@@ -738,24 +1188,24 @@ export default function RelatoriosPage() {
                   >
                     <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm h-9 sm:h-10">
                       <SelectValue
-                        placeholder={t("filtros.selecionePeriodo")}
+                        placeholder={translations.filtros.selecionePeriodo}
                       />
                     </SelectTrigger>
                     <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm">
                       <SelectItem value="7">
-                        {t("periodos.ultimos7Dias")}
+                        {translations.periodos.ultimos7Dias}
                       </SelectItem>
                       <SelectItem value="30">
-                        {t("periodos.ultimos30Dias")}
+                        {translations.periodos.ultimos30Dias}
                       </SelectItem>
                       <SelectItem value="90">
-                        {t("periodos.ultimos90Dias")}
+                        {translations.periodos.ultimos90Dias}
                       </SelectItem>
                       <SelectItem value="365">
-                        {t("periodos.ultimos12Meses")}
+                        {translations.periodos.ultimos12Meses}
                       </SelectItem>
                       <SelectItem value="todos">
-                        {t("periodos.todos")}
+                        {translations.periodos.todos}
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -771,7 +1221,7 @@ export default function RelatoriosPage() {
                     htmlFor="tipo"
                     className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                   >
-                    {t("filtros.tipo")}
+                    {translations.filtros.tipo}
                   </Label>
                   <Select
                     value={filtros.tipo}
@@ -780,17 +1230,19 @@ export default function RelatoriosPage() {
                     }
                   >
                     <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm h-9 sm:h-10">
-                      <SelectValue placeholder={t("filtros.selecioneTipo")} />
+                      <SelectValue
+                        placeholder={translations.filtros.selecioneTipo}
+                      />
                     </SelectTrigger>
                     <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm">
                       <SelectItem value="todos">
-                        {t("filtros.todos")}
+                        {translations.filtros.todos}
                       </SelectItem>
                       <SelectItem value="DESPESA">
-                        {t("tipos.despesa")}
+                        {translations.tipos.despesa}
                       </SelectItem>
                       <SelectItem value="RECEITA">
-                        {t("tipos.receita")}
+                        {translations.tipos.receita}
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -806,7 +1258,7 @@ export default function RelatoriosPage() {
                     htmlFor="data"
                     className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                   >
-                    {t("filtros.dataCustomizada")}
+                    {translations.filtros.dataCustomizada}
                   </Label>
                   <Input
                     type="date"
@@ -835,7 +1287,7 @@ export default function RelatoriosPage() {
             <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
               <CardHeader className="pb-2 sm:pb-3">
                 <CardTitle className="text-gray-900 dark:text-white text-sm sm:text-base md:text-lg">
-                  {t("estatisticas.totalDespesas")}
+                  {translations.estatisticas.totalDespesas}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -859,7 +1311,7 @@ export default function RelatoriosPage() {
             <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
               <CardHeader className="pb-2 sm:pb-3">
                 <CardTitle className="text-gray-900 dark:text-white text-sm sm:text-base md:text-lg">
-                  {t("estatisticas.totalReceitas")}
+                  {translations.estatisticas.totalReceitas}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -883,7 +1335,7 @@ export default function RelatoriosPage() {
             <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
               <CardHeader className="pb-2 sm:pb-3">
                 <CardTitle className="text-gray-900 dark:text-white text-sm sm:text-base md:text-lg">
-                  {t("estatisticas.saldo")}
+                  {translations.estatisticas.saldo}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -898,8 +1350,8 @@ export default function RelatoriosPage() {
                 </p>
                 <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-1 sm:mt-2">
                   {estatisticas.saldo >= 0
-                    ? t("estatisticas.superavit")
-                    : t("estatisticas.deficit")}
+                    ? translations.estatisticas.superavit
+                    : translations.estatisticas.deficit}
                 </p>
               </CardContent>
             </Card>
@@ -928,11 +1380,11 @@ export default function RelatoriosPage() {
                     <PieChart className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-600 dark:text-purple-400" />
                   </motion.div>
                   <span className="truncate">
-                    {t("secoes.despesasPorCategoria")}
+                    {translations.secoes.despesasPorCategoria}
                   </span>
                 </CardTitle>
                 <CardDescription className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-                  {t("secoes.distribuicaoGastos")}
+                  {translations.secoes.distribuicaoGastos}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1002,13 +1454,13 @@ export default function RelatoriosPage() {
                           ease: "linear",
                         }}
                       >
-                        <PieChart className="h-5 w-5 sm:h-8 sm:w-8 text-gray-400 dark:text-gray-600" />
+                        <PieChart className="h-5 sm:h-8 sm:w-8 text-gray-400 dark:text-gray-600" />
                       </motion.div>
                       <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-1 sm:mb-2">
-                        {t("mensagens.semDadosCategorias")}
+                        {translations.mensagens.semDadosCategorias}
                       </h3>
                       <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm px-2">
-                        {t("mensagens.adicionarDespesasCategorizadas")}
+                        {translations.mensagens.adicionarDespesasCategorizadas}
                       </p>
                     </motion.div>
                   )}
@@ -1033,11 +1485,11 @@ export default function RelatoriosPage() {
                     <CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
                   </motion.div>
                   <span className="truncate">
-                    {t("secoes.despesasPorCartao")}
+                    {translations.secoes.despesasPorCartao}
                   </span>
                 </CardTitle>
                 <CardDescription className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-                  {t("secoes.distribuicaoGastosCartao")}
+                  {translations.secoes.distribuicaoGastosCartao}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1110,7 +1562,7 @@ export default function RelatoriosPage() {
                         <CreditCard className="h-8 w-8 sm:h-12 sm:w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3 sm:mb-4" />
                       </motion.div>
                       <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
-                        {t("mensagens.nenhumaDespesaEncontrada")}
+                        {translations.mensagens.nenhumaDespesaEncontrada}
                       </p>
                     </motion.div>
                   )}
@@ -1137,7 +1589,7 @@ export default function RelatoriosPage() {
                   <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-600 dark:text-amber-400" />
                 </motion.div>
                 <span className="truncate">
-                  {t("secoes.ultimosLancamentos")}
+                  {translations.secoes.ultimosLancamentos}
                 </span>
               </CardTitle>
               <CardDescription className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
@@ -1210,8 +1662,8 @@ export default function RelatoriosPage() {
                           }`}
                         >
                           {lancamento.tipo === "DESPESA"
-                            ? t("tipos.despesa")
-                            : t("tipos.receita")}
+                            ? translations.tipos.despesa
+                            : translations.tipos.receita}
                         </Badge>
                       </motion.div>
                     </div>
@@ -1238,7 +1690,7 @@ export default function RelatoriosPage() {
                       <BarChart3 className="h-8 w-8 sm:h-12 sm:w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3 sm:mb-4" />
                     </motion.div>
                     <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
-                      {t("mensagens.nenhumLancamentoEncontrado")}
+                      {translations.mensagens.nenhumLancamentoEncontrado}
                     </p>
                   </motion.div>
                 )}
@@ -1257,7 +1709,7 @@ export default function RelatoriosPage() {
                       router.push(getLocalizedPath("/dashboard/lancamentos"))
                     }
                   >
-                    {t("botoes.verTodosLancamentos")}
+                    {translations.botoes.verTodosLancamentos}
                   </Button>
                 </motion.div>
               )}

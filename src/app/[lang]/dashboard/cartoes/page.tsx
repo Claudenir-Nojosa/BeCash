@@ -61,6 +61,7 @@ import { Loading } from "@/components/ui/loading-barrinhas";
 import { FormEditarCartao } from "@/components/shared/FormEditarCartao";
 import { Cartao } from "../../../../../types/types";
 import { motion, AnimatePresence } from "framer-motion";
+import { getFallback } from "@/lib/i18nFallback";
 
 // Mova o componente FormularioCartao para fora do componente principal
 const FormularioCartao = ({
@@ -72,6 +73,7 @@ const FormularioCartao = ({
   BANDEIRAS,
   CORES,
   t,
+  translations,
 }: {
   formData: any;
   handleChange: (field: string, value: string) => void;
@@ -81,6 +83,7 @@ const FormularioCartao = ({
   BANDEIRAS: Array<{ value: string; label: string }>;
   CORES: Array<{ value: string; label: string }>;
   t: (key: string) => string;
+  translations: any;
 }) => (
   <motion.form
     initial={{ opacity: 0 }}
@@ -97,13 +100,13 @@ const FormularioCartao = ({
     >
       <div className="space-y-2">
         <Label htmlFor="nome" className="text-gray-700 dark:text-gray-300">
-          {t("formulario.nomeLabel")}
+          {translations.formulario.nomeLabel}
         </Label>
         <Input
           id="nome"
           value={formData.nome}
           onChange={(e) => handleChange("nome", e.target.value)}
-          placeholder={t("formulario.nomePlaceholder")}
+          placeholder={translations.formulario.nomePlaceholder}
           className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
           required
         />
@@ -111,7 +114,7 @@ const FormularioCartao = ({
 
       <div className="space-y-2">
         <Label htmlFor="bandeira" className="text-gray-700 dark:text-gray-300">
-          {t("formulario.bandeiraLabel")}
+          {translations.formulario.bandeiraLabel}
         </Label>
         <Select
           value={formData.bandeira}
@@ -119,7 +122,9 @@ const FormularioCartao = ({
           required
         >
           <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
-            <SelectValue placeholder={t("formulario.bandeiraPlaceholder")} />
+            <SelectValue
+              placeholder={translations.formulario.bandeiraPlaceholder}
+            />
           </SelectTrigger>
           <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
             {BANDEIRAS.map((bandeira) => (
@@ -139,7 +144,7 @@ const FormularioCartao = ({
       className="space-y-2"
     >
       <Label htmlFor="limite" className="text-gray-700 dark:text-gray-300">
-        {t("formulario.limiteLabel")}
+        {translations.formulario.limiteLabel}
       </Label>
       <Input
         id="limite"
@@ -148,7 +153,7 @@ const FormularioCartao = ({
         min="0"
         value={formData.limite}
         onChange={(e) => handleChange("limite", e.target.value)}
-        placeholder={t("formulario.limitePlaceholder")}
+        placeholder={translations.formulario.limitePlaceholder}
         className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
         required
       />
@@ -165,7 +170,7 @@ const FormularioCartao = ({
           htmlFor="diaFechamento"
           className="text-gray-700 dark:text-gray-300"
         >
-          {t("formulario.diaFechamentoLabel")}
+          {translations.formulario.diaFechamentoLabel}
         </Label>
         <Input
           id="diaFechamento"
@@ -174,12 +179,12 @@ const FormularioCartao = ({
           max="31"
           value={formData.diaFechamento}
           onChange={(e) => handleChange("diaFechamento", e.target.value)}
-          placeholder={t("formulario.diaFechamentoPlaceholder")}
+          placeholder={translations.formulario.diaFechamentoPlaceholder}
           className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
           required
         />
         <p className="text-xs text-gray-500 dark:text-gray-400">
-          {t("formulario.diaFechamentoHelper")}
+          {translations.formulario.diaFechamentoHelper}
         </p>
       </div>
 
@@ -188,7 +193,7 @@ const FormularioCartao = ({
           htmlFor="diaVencimento"
           className="text-gray-700 dark:text-gray-300"
         >
-          {t("formulario.diaVencimentoLabel")}
+          {translations.formulario.diaVencimentoLabel}
         </Label>
         <Input
           id="diaVencimento"
@@ -197,12 +202,12 @@ const FormularioCartao = ({
           max="31"
           value={formData.diaVencimento}
           onChange={(e) => handleChange("diaVencimento", e.target.value)}
-          placeholder={t("formulario.diaVencimentoPlaceholder")}
+          placeholder={translations.formulario.diaVencimentoPlaceholder}
           className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
           required
         />
         <p className="text-xs text-gray-500 dark:text-gray-400">
-          {t("formulario.diaVencimentoHelper")}
+          {translations.formulario.diaVencimentoHelper}
         </p>
       </div>
     </motion.div>
@@ -214,14 +219,14 @@ const FormularioCartao = ({
       className="space-y-2"
     >
       <Label htmlFor="cor" className="text-gray-700 dark:text-gray-300">
-        {t("formulario.corLabel")}
+        {translations.formulario.corLabel}
       </Label>
       <Select
         value={formData.cor}
         onValueChange={(value) => handleChange("cor", value)}
       >
         <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
-          <SelectValue placeholder={t("formulario.corPlaceholder")} />
+          <SelectValue placeholder={translations.formulario.corPlaceholder} />
         </SelectTrigger>
         <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
           {CORES.map((cor, index) => (
@@ -253,13 +258,13 @@ const FormularioCartao = ({
       className="space-y-2"
     >
       <Label htmlFor="observacoes" className="text-gray-700 dark:text-gray-300">
-        {t("formulario.observacoesLabel")}
+        {translations.formulario.observacoesLabel}
       </Label>
       <Textarea
         id="observacoes"
         value={formData.observacoes}
         onChange={(e) => handleChange("observacoes", e.target.value)}
-        placeholder={t("formulario.observacoesPlaceholder")}
+        placeholder={translations.formulario.observacoesPlaceholder}
         rows={3}
         className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
       />
@@ -277,14 +282,14 @@ const FormularioCartao = ({
         onClick={() => setSheetAberto(false)}
         className="flex-1 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
       >
-        {t("botoes.cancelar")}
+        {translations.botoes.cancelar}
       </Button>
       <Button
         type="submit"
         disabled={enviando}
         className="flex-1 bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white"
       >
-        {enviando ? t("estados.criando") : t("botoes.criar")}
+        {enviando ? translations.estados.criando : translations.botoes.criar}
       </Button>
     </motion.div>
   </motion.form>
@@ -306,6 +311,392 @@ export default function CartoesPage() {
   const [enviando, setEnviando] = useState(false);
   const [dropdownAberto, setDropdownAberto] = useState<string | null>(null);
   const [cartaoParaEditar, setCartaoParaEditar] = useState<Cartao | null>(null);
+  const currentLang = i18n.language || "pt";
+
+  // Função auxiliar para obter tradução com fallback
+  const getTranslation = (key: string) => {
+    // Primeiro tenta usar o i18n
+    const translation = t(key);
+    if (translation && translation !== key) {
+      return translation;
+    }
+
+    // Fallback manual baseado nas chaves que você tem nos arquivos JSON
+    switch (key) {
+      // Título
+      case "titulo":
+        return getFallback(currentLang, "Cartões", "Cards");
+
+      case "subtitulo":
+        return getFallback(
+          currentLang,
+          "Gerencie seus cartões de crédito e débito",
+          "Manage your credit and debit cards",
+        );
+
+      // Botões
+      case "botoes.novoCartao":
+        return getFallback(currentLang, "Novo Cartão", "New Card");
+      case "botoes.cadastrarPrimeiro":
+        return getFallback(
+          currentLang,
+          "Cadastrar Primeiro Cartão",
+          "Register First Card",
+        );
+      case "botoes.cancelar":
+        return getFallback(currentLang, "Cancelar", "Cancel");
+      case "botoes.criar":
+        return getFallback(currentLang, "Criar Cartão", "Create Card");
+      case "botoes.confirmar":
+        return getFallback(currentLang, "Confirmar", "Confirm");
+      case "botoes.detalhes":
+        return getFallback(currentLang, "Detalhes", "Details");
+      case "botoes.faturas":
+        return getFallback(currentLang, "Faturas", "Invoices");
+
+      case "mensagens.editadoSucesso":
+        return getFallback(
+          currentLang,
+          "Cartão atualizado com sucesso!",
+          "Card updated successfully!",
+        );
+
+      // Estados
+      case "estados.carregando":
+        return getFallback(
+          currentLang,
+          "Carregando cartões...",
+          "Loading cards...",
+        );
+      case "estados.criando":
+        return getFallback(currentLang, "Criando...", "Creating...");
+      case "estados.excluindo":
+        return getFallback(currentLang, "Excluindo...", "Deleting...");
+
+      // Bandeiras
+      case "bandeiras.VISA":
+        return getFallback(currentLang, "Visa", "Visa");
+      case "bandeiras.MASTERCARD":
+        return getFallback(currentLang, "Mastercard", "Mastercard");
+      case "bandeiras.ELO":
+        return getFallback(currentLang, "Elo", "Elo");
+      case "bandeiras.AMERICAN_EXPRESS":
+        return getFallback(currentLang, "American Express", "American Express");
+      case "bandeiras.HIPERCARD":
+        return getFallback(currentLang, "Hipercard", "Hipercard");
+      case "bandeiras.OUTROS":
+        return getFallback(currentLang, "Outros", "Others");
+
+      // Cores
+      case "cores.#3B82F6":
+        return getFallback(currentLang, "Azul", "Blue");
+      case "cores.#EF4444":
+        return getFallback(currentLang, "Vermelho", "Red");
+      case "cores.#10B981":
+        return getFallback(currentLang, "Verde", "Green");
+      case "cores.#F59E0B":
+        return getFallback(currentLang, "Amarelo", "Yellow");
+      case "cores.#8B5CF6":
+        return getFallback(currentLang, "Roxo", "Purple");
+      case "cores.#EC4899":
+        return getFallback(currentLang, "Rosa", "Pink");
+
+      // Formulário
+      case "formulario.tituloNovo":
+        return getFallback(currentLang, "Novo Cartão", "New Card");
+      case "formulario.descricaoNovo":
+        return getFallback(
+          currentLang,
+          "Adicione um novo cartão para gerenciar seus gastos",
+          "Add a new card to manage your expenses",
+        );
+      case "formulario.nomeLabel":
+        return getFallback(currentLang, "Nome do Cartão *", "Card Name *");
+      case "formulario.nomePlaceholder":
+        return getFallback(
+          currentLang,
+          "Ex: Nubank, Itaú Platinum...",
+          "Ex: Nubank, Itaú Platinum...",
+        );
+      case "formulario.bandeiraLabel":
+        return getFallback(currentLang, "Bandeira *", "Brand *");
+      case "formulario.bandeiraPlaceholder":
+        return getFallback(
+          currentLang,
+          "Selecione a bandeira",
+          "Select the brand",
+        );
+      case "formulario.limiteLabel":
+        return getFallback(currentLang, "Limite do Cartão *", "Card Limit *");
+      case "formulario.limitePlaceholder":
+        return getFallback(currentLang, "0,00", "0.00");
+      case "formulario.diaFechamentoLabel":
+        return getFallback(currentLang, "Dia de Fechamento *", "Closing Day *");
+      case "formulario.diaFechamentoPlaceholder":
+        return getFallback(currentLang, "1-31", "1-31");
+      case "formulario.diaFechamentoHelper":
+        return getFallback(
+          currentLang,
+          "Dia que a fatura fecha",
+          "Day when the invoice closes",
+        );
+      case "formulario.diaVencimentoLabel":
+        return getFallback(currentLang, "Dia de Vencimento *", "Due Date *");
+      case "formulario.diaVencimentoPlaceholder":
+        return getFallback(currentLang, "1-31", "1-31");
+      case "formulario.diaVencimentoHelper":
+        return getFallback(
+          currentLang,
+          "Dia que a fatura vence",
+          "Day when the invoice is due",
+        );
+      case "formulario.corLabel":
+        return getFallback(
+          currentLang,
+          "Cor de Identificação",
+          "Identification Color",
+        );
+      case "formulario.corPlaceholder":
+        return getFallback(currentLang, "Selecione uma cor", "Select a color");
+      case "formulario.observacoesLabel":
+        return getFallback(currentLang, "Observações", "Notes");
+      case "formulario.observacoesPlaceholder":
+        return getFallback(
+          currentLang,
+          "Observações sobre o cartão...",
+          "Notes about the card...",
+        );
+
+      // Cartão
+      case "cartao.limite":
+        return getFallback(currentLang, "Limite:", "Limit:");
+      case "cartao.utilizado":
+        return getFallback(currentLang, "Utilizado:", "Used:");
+      case "cartao.disponivel":
+        return getFallback(currentLang, "Disponível:", "Available:");
+      case "cartao.utilizacao":
+        return getFallback(currentLang, "Utilização:", "Usage:");
+      case "cartao.fechamento":
+        return getFallback(
+          currentLang,
+          "Fechamento: dia {{dia}}",
+          "Closing: day {{dia}}",
+        );
+      case "cartao.vencimento":
+        return getFallback(
+          currentLang,
+          "Vencimento: dia {{dia}}",
+          "Due: day {{dia}}",
+        );
+      case "cartao.lancamentos":
+        return getFallback(
+          currentLang,
+          "{{count}} lançamentos",
+          "{{count}} transactions",
+        );
+
+      // Status
+      case "status.critico":
+        return getFallback(currentLang, "Limite crítico", "Critical limit");
+      case "status.alerta":
+        return getFallback(currentLang, "Atenção", "Warning");
+      case "status.normal":
+        return getFallback(currentLang, "Dentro do limite", "Within limit");
+
+      // Menu
+      case "menu.verDetalhes":
+        return getFallback(currentLang, "Ver Detalhes", "View Details");
+      case "menu.verFaturas":
+        return getFallback(currentLang, "Ver Faturas", "View Invoices");
+      case "menu.editar":
+        return getFallback(currentLang, "Editar", "Edit");
+      case "menu.excluir":
+        return getFallback(currentLang, "Excluir", "Delete");
+      case "menu.editarCartao":
+        return getFallback(currentLang, "Editar Cartão", "Edit Card");
+      case "menu.editarCartaoDescricao":
+        return getFallback(
+          currentLang,
+          "Atualize as informações do seu cartão",
+          "Update your card information",
+        );
+
+      // Confirmação
+      case "confirmacao.titulo":
+        return getFallback(currentLang, "Excluir Cartão", "Delete Card");
+      case "confirmacao.descricao":
+        return getFallback(
+          currentLang,
+          "Tem certeza que deseja excluir este cartão? Esta ação não pode ser desfeita.",
+          "Are you sure you want to delete this card? This action cannot be undone.",
+        );
+
+      // Mensagens
+      case "mensagens.nenhumCartao":
+        return getFallback(
+          currentLang,
+          "Nenhum cartão cadastrado",
+          "No cards registered",
+        );
+      case "mensagens.nenhumCartaoDescricao":
+        return getFallback(
+          currentLang,
+          "Comece cadastrando seu primeiro cartão para acompanhar seus gastos.",
+          "Start by registering your first card to track your expenses.",
+        );
+      case "mensagens.criado":
+        return getFallback(
+          currentLang,
+          "Cartão criado com sucesso!",
+          "Card created successfully!",
+        );
+      case "mensagens.excluido":
+        return getFallback(
+          currentLang,
+          "Cartão excluído com sucesso",
+          "Card deleted successfully",
+        );
+      case "mensagens.erroCarregar":
+        return getFallback(
+          currentLang,
+          "Erro ao carregar cartões",
+          "Error loading cards",
+        );
+      case "mensagens.erroCriar":
+        return getFallback(
+          currentLang,
+          "Erro ao criar cartão",
+          "Error creating card",
+        );
+      case "mensagens.erroExcluir":
+        return getFallback(
+          currentLang,
+          "Erro ao excluir cartão",
+          "Error deleting card",
+        );
+
+      default:
+        return key;
+    }
+  };
+
+  // Criar um objeto de traduções para fácil acesso
+  const translations = {
+    titulo: getTranslation("titulo"),
+    subtitulo: getTranslation("subtitulo"),
+
+    // Botões
+    botoes: {
+      novoCartao: getTranslation("botoes.novoCartao"),
+      cadastrarPrimeiro: getTranslation("botoes.cadastrarPrimeiro"),
+      cancelar: getTranslation("botoes.cancelar"),
+      criar: getTranslation("botoes.criar"),
+      confirmar: getTranslation("botoes.confirmar"),
+      detalhes: getTranslation("botoes.detalhes"),
+      faturas: getTranslation("botoes.faturas"),
+    },
+
+    // Estados
+    estados: {
+      carregando: getTranslation("estados.carregando"),
+      criando: getTranslation("estados.criando"),
+      excluindo: getTranslation("estados.excluindo"),
+    },
+
+    // Bandeiras
+    bandeiras: {
+      VISA: getTranslation("bandeiras.VISA"),
+      MASTERCARD: getTranslation("bandeiras.MASTERCARD"),
+      ELO: getTranslation("bandeiras.ELO"),
+      AMERICAN_EXPRESS: getTranslation("bandeiras.AMERICAN_EXPRESS"),
+      HIPERCARD: getTranslation("bandeiras.HIPERCARD"),
+      OUTROS: getTranslation("bandeiras.OUTROS"),
+    },
+
+    // Cores
+    cores: {
+      "#3B82F6": getTranslation("cores.#3B82F6"),
+      "#EF4444": getTranslation("cores.#EF4444"),
+      "#10B981": getTranslation("cores.#10B981"),
+      "#F59E0B": getTranslation("cores.#F59E0B"),
+      "#8B5CF6": getTranslation("cores.#8B5CF6"),
+      "#EC4899": getTranslation("cores.#EC4899"),
+    },
+
+    // Formulário
+    formulario: {
+      tituloNovo: getTranslation("formulario.tituloNovo"),
+      descricaoNovo: getTranslation("formulario.descricaoNovo"),
+      nomeLabel: getTranslation("formulario.nomeLabel"),
+      nomePlaceholder: getTranslation("formulario.nomePlaceholder"),
+      bandeiraLabel: getTranslation("formulario.bandeiraLabel"),
+      bandeiraPlaceholder: getTranslation("formulario.bandeiraPlaceholder"),
+      limiteLabel: getTranslation("formulario.limiteLabel"),
+      limitePlaceholder: getTranslation("formulario.limitePlaceholder"),
+      diaFechamentoLabel: getTranslation("formulario.diaFechamentoLabel"),
+      diaFechamentoPlaceholder: getTranslation(
+        "formulario.diaFechamentoPlaceholder",
+      ),
+      diaFechamentoHelper: getTranslation("formulario.diaFechamentoHelper"),
+      diaVencimentoLabel: getTranslation("formulario.diaVencimentoLabel"),
+      diaVencimentoPlaceholder: getTranslation(
+        "formulario.diaVencimentoPlaceholder",
+      ),
+      diaVencimentoHelper: getTranslation("formulario.diaVencimentoHelper"),
+      corLabel: getTranslation("formulario.corLabel"),
+      corPlaceholder: getTranslation("formulario.corPlaceholder"),
+      observacoesLabel: getTranslation("formulario.observacoesLabel"),
+      observacoesPlaceholder: getTranslation(
+        "formulario.observacoesPlaceholder",
+      ),
+    },
+
+    // Cartão
+    cartao: {
+      limite: getTranslation("cartao.limite"),
+      utilizado: getTranslation("cartao.utilizado"),
+      disponivel: getTranslation("cartao.disponivel"),
+      utilizacao: getTranslation("cartao.utilizacao"),
+      fechamento: getTranslation("cartao.fechamento"),
+      vencimento: getTranslation("cartao.vencimento"),
+      lancamentos: getTranslation("cartao.lancamentos"),
+    },
+
+    // Status
+    status: {
+      critico: getTranslation("status.critico"),
+      alerta: getTranslation("status.alerta"),
+      normal: getTranslation("status.normal"),
+    },
+
+    // Menu
+    menu: {
+      verDetalhes: getTranslation("menu.verDetalhes"),
+      verFaturas: getTranslation("menu.verFaturas"),
+      editar: getTranslation("menu.editar"),
+      excluir: getTranslation("menu.excluir"),
+      editarCartao: getTranslation("menu.editarCartao"),
+      editarCartaoDescricao: getTranslation("menu.editarCartaoDescricao"),
+    },
+
+    // Confirmação
+    confirmacao: {
+      titulo: getTranslation("confirmacao.titulo"),
+      descricao: getTranslation("confirmacao.descricao"),
+    },
+
+    // Mensagens
+    mensagens: {
+      nenhumCartao: getTranslation("mensagens.nenhumCartao"),
+      nenhumCartaoDescricao: getTranslation("mensagens.nenhumCartaoDescricao"),
+      criado: getTranslation("mensagens.criado"),
+      excluido: getTranslation("mensagens.excluido"),
+      editadoSucesso: getTranslation("mensagens.editadoSucesso"),
+      erroCarregar: getTranslation("mensagens.erroCarregar"),
+      erroCriar: getTranslation("mensagens.erroCriar"),
+      erroExcluir: getTranslation("mensagens.erroExcluir"),
+    },
+  };
 
   const [formData, setFormData] = useState({
     nome: "",
@@ -318,21 +709,24 @@ export default function CartoesPage() {
   });
 
   const BANDEIRAS = [
-    { value: "VISA", label: t("bandeiras.VISA") },
-    { value: "MASTERCARD", label: t("bandeiras.MASTERCARD") },
-    { value: "ELO", label: t("bandeiras.ELO") },
-    { value: "AMERICAN_EXPRESS", label: t("bandeiras.AMERICAN_EXPRESS") },
-    { value: "HIPERCARD", label: t("bandeiras.HIPERCARD") },
-    { value: "OUTROS", label: t("bandeiras.OUTROS") },
+    { value: "VISA", label: translations.bandeiras.VISA },
+    { value: "MASTERCARD", label: translations.bandeiras.MASTERCARD },
+    { value: "ELO", label: translations.bandeiras.ELO },
+    {
+      value: "AMERICAN_EXPRESS",
+      label: translations.bandeiras.AMERICAN_EXPRESS,
+    },
+    { value: "HIPERCARD", label: translations.bandeiras.HIPERCARD },
+    { value: "OUTROS", label: translations.bandeiras.OUTROS },
   ];
 
   const CORES = [
-    { value: "#3B82F6", label: t("cores.#3B82F6") },
-    { value: "#EF4444", label: t("cores.#EF4444") },
-    { value: "#10B981", label: t("cores.#10B981") },
-    { value: "#F59E0B", label: t("cores.#F59E0B") },
-    { value: "#8B5CF6", label: t("cores.#8B5CF6") },
-    { value: "#EC4899", label: t("cores.#EC4899") },
+    { value: "#3B82F6", label: translations.cores["#3B82F6"] },
+    { value: "#EF4444", label: translations.cores["#EF4444"] },
+    { value: "#10B981", label: translations.cores["#10B981"] },
+    { value: "#F59E0B", label: translations.cores["#F59E0B"] },
+    { value: "#8B5CF6", label: translations.cores["#8B5CF6"] },
+    { value: "#EC4899", label: translations.cores["#EC4899"] },
   ];
 
   const getLocalizedPath = (path: string) => {
@@ -350,7 +744,7 @@ export default function CartoesPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || t("mensagens.erroCarregar"));
+        throw new Error(errorData.error || translations.mensagens.erroCarregar);
       }
 
       const data = await response.json();
@@ -382,9 +776,11 @@ export default function CartoesPage() {
 
       setCartoes(cartoesComLimiteReal);
     } catch (error) {
-      console.error(t("mensagens.erroCarregar"), error);
+      console.error(translations.mensagens.erroCarregar, error);
       toast.error(
-        error instanceof Error ? error.message : t("mensagens.erroCarregar"),
+        error instanceof Error
+          ? error.message
+          : translations.mensagens.erroCarregar,
       );
     } finally {
       setCarregando(false);
@@ -407,14 +803,16 @@ export default function CartoesPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || t("mensagens.erroExcluir"));
+        throw new Error(errorData.error || translations.mensagens.erroExcluir);
       }
 
-      toast.success(t("mensagens.excluido"));
+      toast.success(translations.mensagens.excluido);
     } catch (error) {
-      console.error(t("mensagens.erroExcluir"), error);
+      console.error(translations.mensagens.erroExcluir, error);
       toast.error(
-        error instanceof Error ? error.message : t("mensagens.erroExcluir"),
+        error instanceof Error
+          ? error.message
+          : translations.mensagens.erroExcluir,
       );
 
       if (cartaoParaExcluir) {
@@ -443,10 +841,10 @@ export default function CartoesPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || t("mensagens.erroCriar"));
+        throw new Error(errorData.error || translations.mensagens.erroCriar);
       }
 
-      toast.success(t("mensagens.criado"));
+      toast.success(translations.mensagens.criado);
 
       setSheetAberto(false);
       setFormData({
@@ -461,7 +859,7 @@ export default function CartoesPage() {
 
       carregarCartoes();
     } catch (error: any) {
-      toast.error(error.message || t("mensagens.erroCriar"));
+      toast.error(error.message || translations.mensagens.erroCriar);
       console.error(error);
     } finally {
       setEnviando(false);
@@ -480,7 +878,7 @@ export default function CartoesPage() {
   };
 
   const handleCartaoEditado = () => {
-    toast.success(t("mensagens.editadoSucesso"));
+    toast.success(translations.mensagens.editadoSucesso);
     handleFecharEditar();
     carregarCartoes();
   };
@@ -497,7 +895,7 @@ export default function CartoesPage() {
 
   const formatarMoeda = (valor: number) => {
     const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
-    const currency = i18n.language === "pt" ? "BRL" : "USD"; // ✅ Dinâmico
+    const currency = i18n.language === "pt" ? "BRL" : "USD";
     return new Intl.NumberFormat(locale, {
       style: "currency",
       currency: currency,
@@ -528,14 +926,12 @@ export default function CartoesPage() {
           className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4"
         >
           <div className="flex items-center gap-2 sm:gap-3">
-            <motion.div
-              className="flex-1 min-w-0"
-            >
+            <motion.div className="flex-1 min-w-0">
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white truncate">
-                {t("titulo")}
+                {translations.titulo}
               </h1>
               <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 truncate">
-                {t("subtitulo")}
+                {translations.subtitulo}
               </p>
             </motion.div>
           </div>
@@ -552,7 +948,9 @@ export default function CartoesPage() {
                     className="flex-1 sm:flex-none border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-500 text-xs sm:text-sm"
                   >
                     <Plus className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    <span className="truncate">{t("botoes.novoCartao")}</span>
+                    <span className="truncate">
+                      {translations.botoes.novoCartao}
+                    </span>
                   </Button>
                 </motion.div>
               </SheetTrigger>
@@ -564,10 +962,10 @@ export default function CartoesPage() {
                     transition={{ duration: 0.3 }}
                   >
                     <SheetTitle className="text-gray-900 dark:text-white text-lg sm:text-xl">
-                      {t("formulario.tituloNovo")}
+                      {translations.formulario.tituloNovo}
                     </SheetTitle>
                     <SheetDescription className="text-gray-600 dark:text-gray-400 text-sm">
-                      {t("formulario.descricaoNovo")}
+                      {translations.formulario.descricaoNovo}
                     </SheetDescription>
                   </motion.div>
                 </SheetHeader>
@@ -580,6 +978,7 @@ export default function CartoesPage() {
                   BANDEIRAS={BANDEIRAS}
                   CORES={CORES}
                   t={t}
+                  translations={translations}
                 />
               </SheetContent>
             </Sheet>
@@ -612,10 +1011,10 @@ export default function CartoesPage() {
                     <CreditCard className="h-12 w-12 sm:h-16 sm:w-16 text-gray-300 dark:text-gray-600 mb-3 sm:mb-4" />
                   </motion.div>
                   <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-1 sm:mb-2 text-center">
-                    {t("mensagens.nenhumCartao")}
+                    {translations.mensagens.nenhumCartao}
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400 text-center text-xs sm:text-sm mb-4 sm:mb-6 max-w-md">
-                    {t("mensagens.nenhumCartaoDescricao")}
+                    {translations.mensagens.nenhumCartaoDescricao}
                   </p>
                   <Sheet>
                     <SheetTrigger asChild>
@@ -626,7 +1025,7 @@ export default function CartoesPage() {
                         <Button className="bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white text-sm sm:text-base">
                           <Plus className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
                           <span className="truncate">
-                            {t("botoes.cadastrarPrimeiro")}
+                            {translations.botoes.cadastrarPrimeiro}
                           </span>
                         </Button>
                       </motion.div>
@@ -634,10 +1033,10 @@ export default function CartoesPage() {
                     <SheetContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white overflow-y-auto w-full sm:max-w-md">
                       <SheetHeader className="mb-4 sm:mb-6">
                         <SheetTitle className="text-gray-900 dark:text-white text-lg sm:text-xl">
-                          {t("formulario.tituloNovo")}
+                          {translations.formulario.tituloNovo}
                         </SheetTitle>
                         <SheetDescription className="text-gray-600 dark:text-gray-400 text-sm">
-                          {t("formulario.descricaoNovo")}
+                          {translations.formulario.descricaoNovo}
                         </SheetDescription>
                       </SheetHeader>
                       <FormularioCartao
@@ -649,6 +1048,7 @@ export default function CartoesPage() {
                         BANDEIRAS={BANDEIRAS}
                         CORES={CORES}
                         t={t}
+                        translations={translations}
                       />
                     </SheetContent>
                   </Sheet>
@@ -707,7 +1107,11 @@ export default function CartoesPage() {
                                 <span className="truncate">{cartao.nome}</span>
                               </CardTitle>
                               <CardDescription className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm truncate">
-                                {t(`bandeiras.${cartao.bandeira}`)}
+                                {
+                                  translations.bandeiras[
+                                    cartao.bandeira as keyof typeof translations.bandeiras
+                                  ]
+                                }
                               </CardDescription>
                             </div>
 
@@ -760,7 +1164,7 @@ export default function CartoesPage() {
                                   >
                                     <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                     <span className="truncate">
-                                      {t("menu.verDetalhes")}
+                                      {translations.menu.verDetalhes}
                                     </span>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
@@ -776,7 +1180,7 @@ export default function CartoesPage() {
                                   >
                                     <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                     <span className="truncate">
-                                      {t("menu.verFaturas")}
+                                      {translations.menu.verFaturas}
                                     </span>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
@@ -785,7 +1189,7 @@ export default function CartoesPage() {
                                   >
                                     <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                     <span className="truncate">
-                                      {t("menu.editar")}
+                                      {translations.menu.editar}
                                     </span>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
@@ -797,7 +1201,7 @@ export default function CartoesPage() {
                                   >
                                     <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                     <span className="truncate">
-                                      {t("menu.excluir")}
+                                      {translations.menu.excluir}
                                     </span>
                                   </DropdownMenuItem>
                                 </motion.div>
@@ -809,7 +1213,7 @@ export default function CartoesPage() {
                           <div className="space-y-1.5 sm:space-y-2">
                             <div className="flex justify-between text-xs sm:text-sm">
                               <span className="text-gray-600 dark:text-gray-400 truncate pr-1">
-                                {t("cartao.limite")}
+                                {translations.cartao.limite}
                               </span>
                               <span className="font-medium text-gray-900 dark:text-white truncate pl-1 text-right">
                                 {formatarMoeda(cartao.limite)}
@@ -817,7 +1221,7 @@ export default function CartoesPage() {
                             </div>
                             <div className="flex justify-between text-xs sm:text-sm">
                               <span className="text-gray-600 dark:text-gray-400 truncate pr-1">
-                                {t("cartao.utilizado")}
+                                {translations.cartao.utilizado}
                               </span>
                               <span className="font-medium text-gray-900 dark:text-white truncate pl-1 text-right">
                                 {formatarMoeda(cartao.totalGasto || 0)}
@@ -825,7 +1229,7 @@ export default function CartoesPage() {
                             </div>
                             <div className="flex justify-between text-xs sm:text-sm">
                               <span className="text-gray-600 dark:text-gray-400 truncate pr-1">
-                                {t("cartao.disponivel")}
+                                {translations.cartao.disponivel}
                               </span>
                               <span className="font-medium text-gray-900 dark:text-white truncate pl-1 text-right">
                                 {formatarMoeda(
@@ -838,7 +1242,7 @@ export default function CartoesPage() {
                           <div className="space-y-1.5 sm:space-y-2">
                             <div className="flex justify-between text-xs sm:text-sm">
                               <span className="text-gray-600 dark:text-gray-400">
-                                {t("cartao.utilizacao")}
+                                {translations.cartao.utilizacao}
                               </span>
                               <motion.span
                                 key={cartao.utilizacaoLimite}
@@ -890,7 +1294,7 @@ export default function CartoesPage() {
                                       : "text-emerald-600 dark:text-green-400"
                                 }`}
                               >
-                                {t(`status.${status}`)}
+                                {translations.status[status]}
                               </span>
                             </div>
                             <motion.div
@@ -942,7 +1346,7 @@ export default function CartoesPage() {
                               >
                                 <Eye className="w-3 h-3 mr-1" />
                                 <span className="truncate">
-                                  {t("botoes.detalhes")}
+                                  {translations.botoes.detalhes}
                                 </span>
                               </Button>
                             </motion.div>
@@ -966,7 +1370,7 @@ export default function CartoesPage() {
                               >
                                 <FileText className="w-3 h-3 mr-1" />
                                 <span className="truncate">
-                                  {t("botoes.faturas")}
+                                  {translations.botoes.faturas}
                                 </span>
                               </Button>
                             </motion.div>
@@ -995,10 +1399,10 @@ export default function CartoesPage() {
           >
             <DialogHeader>
               <DialogTitle className="text-gray-900 dark:text-white text-lg">
-                {t("confirmacao.titulo")}
+                {translations.confirmacao.titulo}
               </DialogTitle>
               <DialogDescription className="text-gray-600 dark:text-gray-400 text-sm">
-                {t("confirmacao.descricao")}
+                {translations.confirmacao.descricao}
               </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
@@ -1007,7 +1411,7 @@ export default function CartoesPage() {
                 onClick={() => setDialogExclusaoAberto(null)}
                 className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm"
               >
-                {t("botoes.cancelar")}
+                {translations.botoes.cancelar}
               </Button>
               <Button
                 variant="destructive"
@@ -1015,7 +1419,9 @@ export default function CartoesPage() {
                 disabled={!!excluindo}
                 className="text-sm"
               >
-                {excluindo ? t("estados.excluindo") : t("botoes.confirmar")}
+                {excluindo
+                  ? translations.estados.excluindo
+                  : translations.botoes.confirmar}
               </Button>
             </div>
           </motion.div>
@@ -1032,10 +1438,10 @@ export default function CartoesPage() {
               transition={{ duration: 0.3 }}
             >
               <SheetTitle className="text-gray-900 dark:text-white text-xl">
-                {t("menu.editarCartao")}
+                {translations.menu.editarCartao}
               </SheetTitle>
               <SheetDescription className="text-gray-600 dark:text-gray-400">
-                {t("menu.editarCartaoDescricao")}
+                {translations.menu.editarCartaoDescricao}
               </SheetDescription>
             </motion.div>
           </SheetHeader>

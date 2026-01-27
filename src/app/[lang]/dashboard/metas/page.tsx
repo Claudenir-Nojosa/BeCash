@@ -63,6 +63,7 @@ import { useSession } from "next-auth/react";
 import { ColaboradoresMeta } from "@/components/shared/ColaboradoresMeta";
 import { Loading } from "@/components/ui/loading-barrinhas";
 import { motion, AnimatePresence } from "framer-motion";
+import { getFallback } from "@/lib/i18nFallback";
 
 type PlanoUsuario = "free" | "pro" | "family";
 
@@ -72,6 +73,389 @@ export default function MetasPage() {
   const { data: session } = useSession();
   const { t, i18n } = useTranslation("metas");
   const currentLang = (params?.lang as string) || "pt";
+
+  // Função auxiliar para obter tradução com fallback
+  const getTranslation = (key: string) => {
+    // Primeiro tenta usar o i18n
+    const translation = t(key);
+    if (translation && translation !== key) {
+      return translation;
+    }
+
+    // Fallback manual baseado nas chaves que você tem nos arquivos JSON
+    switch (key) {
+      // Títulos
+      case "titulo":
+        return getFallback(currentLang, "Metas Pessoais", "Personal Goals");
+      case "subtitulo":
+        return getFallback(
+          currentLang,
+          "Gerencie seus objetivos financeiros",
+          "Manage your financial objectives",
+        );
+
+      // Botões
+      case "botoes.novaMeta":
+        return getFallback(currentLang, "Nova Meta", "New Goal");
+      case "botoes.criarMeta":
+        return getFallback(currentLang, "Criar Meta", "Create Goal");
+      case "botoes.criarPrimeiraMeta":
+        return getFallback(
+          currentLang,
+          "Criar Primeira Meta",
+          "Create First Goal",
+        );
+      case "botoes.atualizar":
+        return getFallback(currentLang, "Atualizar", "Update");
+      case "botoes.cancelar":
+        return getFallback(currentLang, "Cancelar", "Cancel");
+      case "botoes.confirmar":
+        return getFallback(currentLang, "Confirmar", "Confirm");
+      case "botoes.upgrade":
+        return getFallback(currentLang, "Upgrade", "Upgrade");
+
+      // Formulário
+      case "formulario.tituloNovo":
+        return getFallback(currentLang, "Nova Meta", "New Goal");
+      case "formulario.tituloEditar":
+        return getFallback(currentLang, "Editar Meta", "Edit Goal");
+      case "formulario.descricaoNovo":
+        return getFallback(
+          currentLang,
+          "Crie uma nova meta financeira",
+          "Create a new financial goal",
+        );
+      case "formulario.descricaoEditar":
+        return getFallback(
+          currentLang,
+          "Atualize os dados da meta",
+          "Update goal data",
+        );
+      case "formulario.tituloLabel":
+        return getFallback(currentLang, "Título", "Title");
+      case "formulario.tituloPlaceholder":
+        return getFallback(
+          currentLang,
+          "Ex: Comprar um carro, Viagem...",
+          "Ex: Buy a car, Trip...",
+        );
+      case "formulario.descricaoLabel":
+        return getFallback(currentLang, "Descrição", "Description");
+      case "formulario.descricaoPlaceholder":
+        return getFallback(
+          currentLang,
+          "Descrição detalhada da meta...",
+          "Detailed description of the goal...",
+        );
+      case "formulario.valorAlvoLabel":
+        return getFallback(currentLang, "Valor Alvo", "Target Amount");
+      case "formulario.valorAtualLabel":
+        return getFallback(currentLang, "Valor Atual", "Current Amount");
+      case "formulario.dataAlvoLabel":
+        return getFallback(currentLang, "Data Alvo", "Target Date");
+      case "formulario.categoriaLabel":
+        return getFallback(currentLang, "Categoria", "Category");
+      case "formulario.categoriaPlaceholder":
+        return getFallback(
+          currentLang,
+          "Ex: Veículo, Casa, Educação...",
+          "Ex: Vehicle, House, Education...",
+        );
+      case "formulario.corLabel":
+        return getFallback(currentLang, "Cor", "Color");
+      case "formulario.iconeLabel":
+        return getFallback(currentLang, "Ícone", "Icon");
+
+      // Status
+      case "status.concluida":
+        return getFallback(currentLang, "Concluída", "Completed");
+      case "status.atrasada":
+        return getFallback(currentLang, "Atrasada", "Overdue");
+      case "status.proxima":
+        return getFallback(currentLang, "Próxima", "Upcoming");
+      case "status.em_andamento":
+        return getFallback(currentLang, "Em andamento", "In Progress");
+
+      // Progresso
+      case "progresso.label":
+        return getFallback(currentLang, "Progresso", "Progress");
+
+      // Compartilhada
+      case "compartilhada.por":
+        return getFallback(currentLang, "Compartilhada por", "Shared by");
+
+      // Mensagens
+      case "mensagens.nenhumaMeta":
+        return getFallback(
+          currentLang,
+          "Nenhuma meta definida",
+          "No goals defined",
+        );
+      case "mensagens.comeceCriando":
+        return getFallback(
+          currentLang,
+          "Comece criando sua primeira meta financeira",
+          "Start by creating your first financial goal",
+        );
+      case "mensagens.criada":
+        return getFallback(
+          currentLang,
+          "Meta criada com sucesso!",
+          "Goal created successfully!",
+        );
+      case "mensagens.atualizada":
+        return getFallback(
+          currentLang,
+          "Meta atualizada com sucesso!",
+          "Goal updated successfully!",
+        );
+      case "mensagens.excluida":
+        return getFallback(
+          currentLang,
+          "Meta excluída com sucesso!",
+          "Goal deleted successfully!",
+        );
+      case "mensagens.valorAdicionado":
+        return getFallback(
+          currentLang,
+          "Valor de R$ {{valor}} adicionado com sucesso",
+          "Amount of $ {{valor}} added successfully",
+        );
+      case "mensagens.diasRestantes":
+        if (i18n.language === "pt") {
+          const count = Number(key.split(".").pop());
+          return count === 1
+            ? "{{count}} dia restante"
+            : "{{count}} dias restantes";
+        }
+        const count = Number(key.split(".").pop());
+        return count === 1
+          ? "{{count}} day remaining"
+          : "{{count}} days remaining";
+
+      // Estados
+      case "estados.carregando":
+        return getFallback(currentLang, "Carregando...", "Loading...");
+      case "estados.criando":
+        return getFallback(currentLang, "Criando...", "Creating...");
+      case "estados.atualizando":
+        return getFallback(currentLang, "Atualizando...", "Updating...");
+      case "estados.excluindo":
+        return getFallback(currentLang, "Excluindo...", "Deleting...");
+      case "estados.limiteMetas":
+        return getFallback(currentLang, "Limite", "Limit");
+
+      // Tooltips
+      case "tooltips.adicionarValor":
+        return getFallback(currentLang, "Adicionar valor", "Add amount");
+      case "tooltips.editarMeta":
+        return getFallback(currentLang, "Editar meta", "Edit goal");
+      case "tooltips.excluirMeta":
+        return getFallback(currentLang, "Excluir meta", "Delete goal");
+
+      // Confirmação
+      case "confirmacao.titulo":
+        return getFallback(currentLang, "Excluir Meta", "Delete Goal");
+      case "confirmacao.descricao":
+        return getFallback(
+          currentLang,
+          'Tem certeza que deseja excluir a meta "{{titulo}}"? Esta ação não pode ser desfeita.',
+          'Are you sure you want to delete the goal "{{titulo}}"? This action cannot be undone.',
+        );
+
+      // Erros
+      case "erros.carregarMetas":
+        return getFallback(
+          currentLang,
+          "Erro ao carregar metas",
+          "Error loading goals",
+        );
+      case "erros.carregarColaboradores":
+        return getFallback(
+          currentLang,
+          "Erro ao carregar colaboradores",
+          "Error loading collaborators",
+        );
+      case "erros.excluirMeta":
+        return getFallback(
+          currentLang,
+          "Erro ao excluir meta",
+          "Error deleting goal",
+        );
+      case "erros.salvarMeta":
+        return getFallback(
+          currentLang,
+          "Erro ao salvar meta",
+          "Error saving goal",
+        );
+      case "erros.valorInvalido":
+        return getFallback(
+          currentLang,
+          "Digite um valor válido",
+          "Enter a valid amount",
+        );
+      case "erros.contribuirMeta":
+        return getFallback(
+          currentLang,
+          "Erro ao contribuir para meta",
+          "Error contributing to goal",
+        );
+      case "erros.adicionarValor":
+        return getFallback(
+          currentLang,
+          "Erro ao adicionar valor",
+          "Error adding amount",
+        );
+      case "erros.contribuir":
+        return getFallback(
+          currentLang,
+          "Erro ao contribuir",
+          "Error contributing",
+        );
+
+      // Aviso Limite Metas (novas traduções)
+      case "avisos.metasFree.titulo":
+        return getFallback(currentLang, "Metas Free", "Free Goals");
+      case "avisos.metasFree.descricao":
+        return getFallback(
+          currentLang,
+          "metas • restantes",
+          "goals • remaining",
+        );
+      case "avisos.metasFree.atingido":
+        return getFallback(
+          currentLang,
+          "Você atingiu o limite de metas do plano Free",
+          "You have reached the Free plan goals limit",
+        );
+      case "avisos.colaboradores.titulo":
+        return getFallback(
+          currentLang,
+          "Recurso exclusivo do plano Família",
+          "Exclusive Family plan feature",
+        );
+      case "avisos.colaboradores.descricao":
+        return getFallback(
+          currentLang,
+          "Faça upgrade para adicionar colaboradores às suas metas",
+          "Upgrade to add collaborators to your goals",
+        );
+      case "avisos.colaboradores.conhecerPlanos":
+        return getFallback(currentLang, "Conhecer planos", "View plans");
+
+      default:
+        return key;
+    }
+  };
+
+  // Criar um objeto de traduções para fácil acesso
+  const translations = {
+    titulo: getTranslation("titulo"),
+    subtitulo: getTranslation("subtitulo"),
+
+    botoes: {
+      novaMeta: getTranslation("botoes.novaMeta"),
+      criarMeta: getTranslation("botoes.criarMeta"),
+      criarPrimeiraMeta: getTranslation("botoes.criarPrimeiraMeta"),
+      atualizar: getTranslation("botoes.atualizar"),
+      cancelar: getTranslation("botoes.cancelar"),
+      confirmar: getTranslation("botoes.confirmar"),
+      upgrade: getTranslation("botoes.upgrade"),
+    },
+
+    formulario: {
+      tituloNovo: getTranslation("formulario.tituloNovo"),
+      tituloEditar: getTranslation("formulario.tituloEditar"),
+      descricaoNovo: getTranslation("formulario.descricaoNovo"),
+      descricaoEditar: getTranslation("formulario.descricaoEditar"),
+      tituloLabel: getTranslation("formulario.tituloLabel"),
+      tituloPlaceholder: getTranslation("formulario.tituloPlaceholder"),
+      descricaoLabel: getTranslation("formulario.descricaoLabel"),
+      descricaoPlaceholder: getTranslation("formulario.descricaoPlaceholder"),
+      valorAlvoLabel: getTranslation("formulario.valorAlvoLabel"),
+      valorAtualLabel: getTranslation("formulario.valorAtualLabel"),
+      dataAlvoLabel: getTranslation("formulario.dataAlvoLabel"),
+      categoriaLabel: getTranslation("formulario.categoriaLabel"),
+      categoriaPlaceholder: getTranslation("formulario.categoriaPlaceholder"),
+      corLabel: getTranslation("formulario.corLabel"),
+      iconeLabel: getTranslation("formulario.iconeLabel"),
+    },
+
+    status: {
+      concluida: getTranslation("status.concluida"),
+      atrasada: getTranslation("status.atrasada"),
+      proxima: getTranslation("status.proxima"),
+      em_andamento: getTranslation("status.em_andamento"),
+    },
+
+    progresso: {
+      label: getTranslation("progresso.label"),
+    },
+
+    compartilhada: {
+      por: getTranslation("compartilhada.por"),
+    },
+
+    mensagens: {
+      nenhumaMeta: getTranslation("mensagens.nenhumaMeta"),
+      comeceCriando: getTranslation("mensagens.comeceCriando"),
+      criada: getTranslation("mensagens.criada"),
+      atualizada: getTranslation("mensagens.atualizada"),
+      excluida: getTranslation("mensagens.excluida"),
+      valorAdicionado: getTranslation("mensagens.valorAdicionado"),
+      diasRestantes: (count: number) => {
+        const key =
+          count === 1
+            ? "mensagens.diasRestantes"
+            : "mensagens.diasRestantes_plural";
+        return getTranslation(key);
+      },
+    },
+
+    estados: {
+      carregando: getTranslation("estados.carregando"),
+      criando: getTranslation("estados.criando"),
+      atualizando: getTranslation("estados.atualizando"),
+      excluindo: getTranslation("estados.excluindo"),
+      limiteMetas: getTranslation("estados.limiteMetas"),
+    },
+
+    tooltips: {
+      adicionarValor: getTranslation("tooltips.adicionarValor"),
+      editarMeta: getTranslation("tooltips.editarMeta"),
+      excluirMeta: getTranslation("tooltips.excluirMeta"),
+    },
+
+    confirmacao: {
+      titulo: getTranslation("confirmacao.titulo"),
+      descricao: getTranslation("confirmacao.descricao"),
+    },
+
+    erros: {
+      carregarMetas: getTranslation("erros.carregarMetas"),
+      carregarColaboradores: getTranslation("erros.carregarColaboradores"),
+      excluirMeta: getTranslation("erros.excluirMeta"),
+      salvarMeta: getTranslation("erros.salvarMeta"),
+      valorInvalido: getTranslation("erros.valorInvalido"),
+      contribuirMeta: getTranslation("erros.contribuirMeta"),
+      adicionarValor: getTranslation("erros.adicionarValor"),
+      contribuir: getTranslation("erros.contribuir"),
+    },
+
+    avisos: {
+      metasFree: {
+        titulo: getTranslation("avisos.metasFree.titulo"),
+        descricao: getTranslation("avisos.metasFree.descricao"),
+        atingido: getTranslation("avisos.metasFree.atingido"),
+      },
+      colaboradores: {
+        titulo: getTranslation("avisos.colaboradores.titulo"),
+        descricao: getTranslation("avisos.colaboradores.descricao"),
+        conhecerPlanos: getTranslation("avisos.colaboradores.conhecerPlanos"),
+      },
+    },
+  };
+
   const [colaboradoresCarregando, setColaboradoresCarregando] = useState<
     Set<string>
   >(new Set());
@@ -96,7 +480,7 @@ export default function MetasPage() {
     null,
   );
   const [limiteInfo, setLimiteInfo] = useState<{
-    plano: PlanoUsuario; // ← Altere para o tipo específico
+    plano: PlanoUsuario;
     usadoMetas: number;
     limiteMetas: number;
     metasAtingido: boolean;
@@ -144,7 +528,7 @@ export default function MetasPage() {
 
   useEffect(() => {
     carregarMetas();
-    fetchLimiteInfo(); // ← Adicione esta linha
+    fetchLimiteInfo();
   }, []);
 
   const fetchLimiteInfo = async () => {
@@ -169,11 +553,11 @@ export default function MetasPage() {
       setLoadingLimite(false);
     }
   };
-  // Adicione esta função após as outras funções utilitárias
+
   const podeTerColaboradores = () => {
     return limiteInfo?.plano === "family";
   };
-  // Adicione esta função para carregar colaboradores de uma meta específica
+
   const carregarColaboradoresMeta = async (metaId: string) => {
     try {
       setColaboradoresCarregando((prev) => new Set(prev).add(metaId));
@@ -182,7 +566,6 @@ export default function MetasPage() {
       if (response.ok) {
         const data = await response.json();
 
-        // Atualizar a meta específica com os colaboradores
         setMetas((prev) =>
           prev.map((meta) =>
             meta.id === metaId
@@ -196,8 +579,8 @@ export default function MetasPage() {
         );
       }
     } catch (error) {
-      console.error(t("erros.carregarColaboradores"), error);
-      toast.error(t("erros.carregarColaboradores"));
+      console.error(translations.erros.carregarColaboradores, error);
+      toast.error(translations.erros.carregarColaboradores);
     } finally {
       setColaboradoresCarregando((prev) => {
         const newSet = new Set(prev);
@@ -207,7 +590,6 @@ export default function MetasPage() {
     }
   };
 
-  // Adicione esta função para quando os colaboradores forem atualizados
   const handleColaboradoresAtualizados = (metaId: string) => {
     carregarColaboradoresMeta(metaId);
   };
@@ -217,13 +599,13 @@ export default function MetasPage() {
       setCarregando(true);
       const response = await fetch("/api/dashboard/metas");
 
-      if (!response.ok) throw new Error(t("erros.carregarMetas"));
+      if (!response.ok) throw new Error(translations.erros.carregarMetas);
 
       const data = await response.json();
       setMetas(data);
     } catch (error) {
-      console.error(t("erros.carregarMetas"), error);
-      toast.error(t("erros.carregarMetas"));
+      console.error(translations.erros.carregarMetas, error);
+      toast.error(translations.erros.carregarMetas);
     } finally {
       setCarregando(false);
     }
@@ -232,31 +614,27 @@ export default function MetasPage() {
   const excluirMeta = async (id: string) => {
     setExcluindo(id);
 
-    // Salva a meta para possível rollback
     const metaParaExcluir = metas.find((meta) => meta.id === id);
 
     try {
-      // Exclusão otimista - remove da UI imediatamente
       setMetas((prev) => prev.filter((meta) => meta.id !== id));
       setDialogAberto(null);
 
-      // Faz a exclusão real no banco
       const response = await fetch(`/api/dashboard/metas/${id}`, {
         method: "DELETE",
       });
 
-      if (!response.ok) throw new Error(t("erros.excluirMeta"));
+      if (!response.ok) throw new Error(translations.erros.excluirMeta);
 
-      toast.success(t("mensagens.excluida"));
+      toast.success(translations.mensagens.excluida);
     } catch (error) {
-      console.error(t("erros.excluirMeta"), error);
+      console.error(translations.erros.excluirMeta, error);
 
-      // Revert se der erro - adiciona a meta de volta
       if (metaParaExcluir) {
         setMetas((prev) => [...prev, metaParaExcluir]);
       }
 
-      toast.error(t("erros.excluirMeta"));
+      toast.error(translations.erros.excluirMeta);
     } finally {
       setExcluindo(null);
     }
@@ -286,7 +664,6 @@ export default function MetasPage() {
       if (!res.ok) {
         const errorData = await res.json();
 
-        // Verifica se é erro de limite de metas
         if (
           res.status === 403 &&
           errorData.error === "Limite de metas atingido"
@@ -300,21 +677,19 @@ export default function MetasPage() {
           return;
         }
 
-        throw new Error(errorData.error || t("erros.salvarMeta"));
+        throw new Error(errorData.error || translations.erros.salvarMeta);
       }
 
       const metaSalva = await res.json();
 
       if (editandoMeta) {
-        // Atualização otimista
         setMetas((prev) =>
           prev.map((meta) => (meta.id === editandoMeta.id ? metaSalva : meta)),
         );
-        toast.success(t("mensagens.atualizada"));
+        toast.success(translations.mensagens.atualizada);
       } else {
-        // Criação otimista
         setMetas((prev) => [...prev, metaSalva]);
-        toast.success(t("mensagens.criada"));
+        toast.success(translations.mensagens.criada);
       }
 
       setFormData({
@@ -331,9 +706,8 @@ export default function MetasPage() {
       setEditandoMeta(null);
       setIsSheetOpen(false);
     } catch (error) {
-      console.error(t("erros.salvarMeta"), error);
-      toast.error(t("erros.salvarMeta"));
-      // Em caso de erro, recarrega os dados do servidor
+      console.error(translations.erros.salvarMeta, error);
+      toast.error(translations.erros.salvarMeta);
       carregarMetas();
     } finally {
       setEnviando(false);
@@ -358,7 +732,7 @@ export default function MetasPage() {
 
   const adicionarValorCustomizado = async (id: string) => {
     if (!valorAdicional || parseFloat(valorAdicional) <= 0) {
-      toast.error(t("erros.valorInvalido"));
+      toast.error(translations.erros.valorInvalido);
       return;
     }
 
@@ -373,25 +747,27 @@ export default function MetasPage() {
         }),
       });
 
-      if (!response.ok) throw new Error(t("erros.contribuirMeta"));
+      if (!response.ok) throw new Error(translations.erros.contribuirMeta);
 
       toast.success(
-        t("mensagens.valorAdicionado", {
-          valor: parseFloat(valorAdicional).toFixed(2),
-        }),
+        translations.mensagens.valorAdicionado.replace(
+          "{{valor}}",
+          parseFloat(valorAdicional).toFixed(2),
+        ),
       );
       setMostrarInputValor(null);
       setValorAdicional("100");
       carregarMetas();
     } catch (error) {
-      console.error(t("erros.adicionarValor"), error);
-      toast.error(t("erros.adicionarValor"));
+      console.error(translations.erros.adicionarValor, error);
+      toast.error(translations.erros.adicionarValor);
     }
   };
+
   const currencySymbol = i18n.language === "en" ? "$" : "R$";
   const formatarMoeda = (valor: number) => {
     const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
-    const currency = i18n.language === "pt" ? "BRL" : "USD"; // ✅ Dinâmico
+    const currency = i18n.language === "pt" ? "BRL" : "USD";
     return new Intl.NumberFormat(locale, {
       style: "currency",
       currency: currency,
@@ -416,13 +792,11 @@ export default function MetasPage() {
     return "em_andamento";
   };
 
-  // Função para abrir o diálogo de contribuição
   const abrirDialogContribuicao = (metaId: string, metaTitulo: string) => {
     setMetaParaContribuir({ id: metaId, titulo: metaTitulo });
     setDialogContribuicaoAberto(true);
   };
 
-  // Função para confirmar a contribuição
   const confirmarContribuicao = async (data: {
     lancarComoDespesa: boolean;
     categoriaId?: string;
@@ -463,15 +837,16 @@ export default function MetasPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || t("erros.contribuirMeta"));
+        throw new Error(errorData.error || translations.erros.contribuirMeta);
       }
 
       const result = await response.json();
 
       toast.success(
-        t("mensagens.valorAdicionado", {
-          valor: parseFloat(valorParaContribuir).toFixed(2),
-        }),
+        translations.mensagens.valorAdicionado.replace(
+          "{{valor}}",
+          parseFloat(valorParaContribuir).toFixed(2),
+        ),
       );
 
       setDialogContribuicaoAberto(false);
@@ -479,14 +854,15 @@ export default function MetasPage() {
       setValorParaContribuir("100");
       carregarMetas();
     } catch (error) {
-      console.error(t("erros.contribuir"), error);
+      console.error(translations.erros.contribuir, error);
       toast.error(
-        error instanceof Error ? error.message : t("erros.contribuir"),
+        error instanceof Error ? error.message : translations.erros.contribuir,
       );
     } finally {
       setCarregandoContribuicao(false);
     }
   };
+
   if (carregando) {
     return <Loading />;
   }
@@ -499,19 +875,18 @@ export default function MetasPage() {
     const { usadoMetas, limiteMetas, metasAtingido, percentualMetas } =
       limiteInfo;
 
-    // Cores baseadas no percentual
-    let corProgresso = "#f59e0b"; // Amarelo padrão
+    let corProgresso = "#f59e0b";
     let corTexto = "text-amber-700 dark:text-amber-300";
     let corFundo = "bg-amber-50 dark:bg-amber-900/20";
     let corBorda = "border-amber-200 dark:border-amber-800";
 
     if (metasAtingido) {
-      corProgresso = "#ef4444"; // Vermelho
+      corProgresso = "#ef4444";
       corTexto = "text-red-700 dark:text-red-300";
       corFundo = "bg-red-50 dark:bg-red-900/20";
       corBorda = "border-red-200 dark:border-red-800";
     } else if (percentualMetas >= 80) {
-      corProgresso = "#f59e0b"; // Amarelo
+      corProgresso = "#f59e0b";
       corTexto = "text-amber-700 dark:text-amber-300";
       corFundo = "bg-amber-50 dark:bg-amber-900/20";
       corBorda = "border-amber-200 dark:border-amber-800";
@@ -521,7 +896,6 @@ export default function MetasPage() {
       <div className={`mb-4 p-4 rounded-lg border ${corBorda} ${corFundo}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {/* Círculo de progresso */}
             <div className="relative h-10 w-10">
               <svg className="h-full w-full" viewBox="0 0 100 100">
                 <circle
@@ -553,16 +927,17 @@ export default function MetasPage() {
               </div>
             </div>
 
-            {/* Informações */}
             <div>
               <div className="flex items-center gap-2">
                 <span className={`text-sm font-medium ${corTexto}`}>
-                  Metas Free
+                  {translations.avisos.metasFree.titulo}
                 </span>
               </div>
               <p className={`text-sm ${corTexto}`}>
-                {usadoMetas}/{limiteMetas} metas
-                {!metasAtingido && ` • ${limiteMetas - usadoMetas} restantes`}
+                {usadoMetas}/{limiteMetas}{" "}
+                {currentLang === "pt" ? "metas" : "goals"}
+                {!metasAtingido &&
+                  ` • ${limiteMetas - usadoMetas} ${currentLang === "pt" ? "restantes" : "remaining"}`}
               </p>
             </div>
           </div>
@@ -571,10 +946,10 @@ export default function MetasPage() {
             <Button
               size="sm"
               className="bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90 text-xs"
-              onClick={() => router.push(`/${currentLang}/dashboard/perfil`)} // ← Atualize esta linha
+              onClick={() => router.push(`/${currentLang}/dashboard/perfil`)}
             >
               <Crown className="h-3 w-3 mr-1" />
-              Upgrade
+              {translations.botoes.upgrade}
             </Button>
           )}
         </div>
@@ -600,10 +975,10 @@ export default function MetasPage() {
           <div className="flex items-center gap-2 sm:gap-3">
             <motion.div>
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
-                {t("titulo")}
+                {translations.titulo}
               </h1>
               <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                {t("subtitulo")}
+                {translations.subtitulo}
               </p>
             </motion.div>
           </div>
@@ -636,10 +1011,10 @@ export default function MetasPage() {
                   >
                     <Plus className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                     <span>
-                      {t("botoes.novaMeta")}
+                      {translations.botoes.novaMeta}
                       {limiteInfo?.metasAtingido &&
                         !editandoMeta &&
-                        " (Limite)"}
+                        ` (${translations.estados.limiteMetas})`}
                     </span>
                   </Button>
                 </motion.div>
@@ -653,13 +1028,13 @@ export default function MetasPage() {
                   >
                     <SheetTitle className="text-gray-900 dark:text-white text-lg sm:text-xl">
                       {editandoMeta
-                        ? t("formulario.tituloEditar")
-                        : t("formulario.tituloNovo")}
+                        ? translations.formulario.tituloEditar
+                        : translations.formulario.tituloNovo}
                     </SheetTitle>
                     <SheetDescription className="text-gray-600 dark:text-gray-400 text-sm">
                       {editandoMeta
-                        ? t("formulario.descricaoEditar")
-                        : t("formulario.descricaoNovo")}
+                        ? translations.formulario.descricaoEditar
+                        : translations.formulario.descricaoNovo}
                     </SheetDescription>
                   </motion.div>
                 </SheetHeader>
@@ -678,7 +1053,7 @@ export default function MetasPage() {
                       htmlFor="titulo"
                       className="text-gray-900 dark:text-white text-sm sm:text-base"
                     >
-                      {t("formulario.tituloLabel")}
+                      {translations.formulario.tituloLabel}
                     </Label>
                     <Input
                       id="titulo"
@@ -686,7 +1061,7 @@ export default function MetasPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, titulo: e.target.value })
                       }
-                      placeholder={t("formulario.tituloPlaceholder")}
+                      placeholder={translations.formulario.tituloPlaceholder}
                       className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-500 text-sm sm:text-base"
                       required
                     />
@@ -702,7 +1077,7 @@ export default function MetasPage() {
                       htmlFor="descricao"
                       className="text-gray-900 dark:text-white text-sm sm:text-base"
                     >
-                      {t("formulario.descricaoLabel")}
+                      {translations.formulario.descricaoLabel}
                     </Label>
                     <Input
                       id="descricao"
@@ -710,7 +1085,7 @@ export default function MetasPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, descricao: e.target.value })
                       }
-                      placeholder={t("formulario.descricaoPlaceholder")}
+                      placeholder={translations.formulario.descricaoPlaceholder}
                       className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-500 text-sm sm:text-base"
                     />
                   </motion.div>
@@ -726,7 +1101,7 @@ export default function MetasPage() {
                         htmlFor="valorAlvo"
                         className="text-gray-900 dark:text-white text-sm sm:text-base"
                       >
-                        {t("formulario.valorAlvoLabel")}
+                        {translations.formulario.valorAlvoLabel}
                       </Label>
                       <Input
                         id="valorAlvo"
@@ -750,7 +1125,7 @@ export default function MetasPage() {
                         htmlFor="valorAtual"
                         className="text-gray-900 dark:text-white text-sm sm:text-base"
                       >
-                        {t("formulario.valorAtualLabel")}
+                        {translations.formulario.valorAtualLabel}
                       </Label>
                       <Input
                         id="valorAtual"
@@ -780,7 +1155,7 @@ export default function MetasPage() {
                       htmlFor="dataAlvo"
                       className="text-gray-900 dark:text-white text-sm sm:text-base"
                     >
-                      {t("formulario.dataAlvoLabel")}
+                      {translations.formulario.dataAlvoLabel}
                     </Label>
                     <Input
                       id="dataAlvo"
@@ -804,7 +1179,7 @@ export default function MetasPage() {
                       htmlFor="categoria"
                       className="text-gray-900 dark:text-white text-sm sm:text-base"
                     >
-                      {t("formulario.categoriaLabel")}
+                      {translations.formulario.categoriaLabel}
                     </Label>
                     <Input
                       id="categoria"
@@ -812,7 +1187,7 @@ export default function MetasPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, categoria: e.target.value })
                       }
-                      placeholder={t("formulario.categoriaPlaceholder")}
+                      placeholder={translations.formulario.categoriaPlaceholder}
                       className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-500 text-sm sm:text-base"
                       required
                     />
@@ -825,7 +1200,7 @@ export default function MetasPage() {
                     className="space-y-2 sm:space-y-3"
                   >
                     <Label className="text-gray-900 dark:text-white text-sm sm:text-base">
-                      {t("formulario.corLabel")}
+                      {translations.formulario.corLabel}
                     </Label>
                     <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
                       <div
@@ -870,7 +1245,7 @@ export default function MetasPage() {
                     className="space-y-1 sm:space-y-2"
                   >
                     <Label className="text-gray-900 dark:text-white text-sm sm:text-base">
-                      {t("formulario.iconeLabel")}
+                      {translations.formulario.iconeLabel}
                     </Label>
                     <div className="grid grid-cols-4 sm:grid-cols-5 gap-1 sm:gap-2">
                       {iconesPredefinidos.map((icone, index) => (
@@ -924,11 +1299,11 @@ export default function MetasPage() {
                     >
                       {enviando
                         ? editandoMeta
-                          ? t("estados.atualizando")
-                          : t("estados.criando")
+                          ? translations.estados.atualizando
+                          : translations.estados.criando
                         : editandoMeta
-                          ? t("botoes.atualizar")
-                          : t("botoes.criarMeta")}
+                          ? translations.botoes.atualizar
+                          : translations.botoes.criarMeta}
                     </Button>
 
                     {editandoMeta && (
@@ -952,7 +1327,7 @@ export default function MetasPage() {
                         }}
                         className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 text-sm sm:text-base"
                       >
-                        {t("botoes.cancelar")}
+                        {translations.botoes.cancelar}
                       </Button>
                     )}
                   </motion.div>
@@ -962,7 +1337,6 @@ export default function MetasPage() {
           </div>
         </motion.div>
         <div>
-          {/* Seção de aviso de limite */}
           <AvisoLimiteMetas />
         </div>
         {/* Grid de Metas */}
@@ -989,10 +1363,10 @@ export default function MetasPage() {
                 <Trophy className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-3 sm:mb-4 text-gray-400 dark:text-gray-600" />
               </motion.div>
               <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white mb-1 sm:mb-2">
-                {t("mensagens.nenhumaMeta")}
+                {translations.mensagens.nenhumaMeta}
               </h3>
               <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4 sm:mb-6 px-4">
-                {t("mensagens.comeceCriando")}
+                {translations.mensagens.comeceCriando}
               </p>
               <motion.div
                 whileHover={{ scale: 1.05 }}
@@ -1003,7 +1377,7 @@ export default function MetasPage() {
                   className="bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 text-sm"
                 >
                   <Plus className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                  {t("botoes.criarPrimeiraMeta")}
+                  {translations.botoes.criarPrimeiraMeta}
                 </Button>
               </motion.div>
             </motion.div>
@@ -1024,7 +1398,6 @@ export default function MetasPage() {
                       (1000 * 60 * 60 * 24),
                   );
 
-                  // 👇 ADICIONE ESTA LINHA para verificar se o usuário atual é o dono
                   const usuarioAtualEhDono = meta.userId === session?.user?.id;
 
                   return (
@@ -1076,7 +1449,8 @@ export default function MetasPage() {
                                 </CardTitle>
                                 {meta.ehCompartilhada && meta.user && (
                                   <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                                    {t("compartilhada.por")} {meta.user.name}
+                                    {translations.compartilhada.por}{" "}
+                                    {meta.user.name}
                                   </p>
                                 )}
                               </div>
@@ -1097,7 +1471,7 @@ export default function MetasPage() {
                                         : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-700"
                                 }`}
                               >
-                                {t(`status.${status}`)}
+                                {translations.status[status]}
                               </Badge>
                             </motion.div>
                           </div>
@@ -1111,7 +1485,7 @@ export default function MetasPage() {
                           <div className="space-y-1 sm:space-y-2">
                             <div className="flex justify-between text-xs sm:text-sm">
                               <span className="text-gray-600 dark:text-gray-400">
-                                {t("progresso.label")}
+                                {translations.progresso.label}
                               </span>
                               <motion.span
                                 key={progresso}
@@ -1157,9 +1531,11 @@ export default function MetasPage() {
                               animate={{ scale: 1 }}
                               transition={{ duration: 0.2 }}
                             >
-                              {t("mensagens.diasRestantes", {
-                                count: diasRestantes,
-                              })}
+                              {diasRestantes === 1
+                                ? translations.mensagens.diasRestantes(1)
+                                : translations.mensagens.diasRestantes(
+                                    diasRestantes,
+                                  )}
                             </motion.span>
                           </div>
 
@@ -1179,7 +1555,6 @@ export default function MetasPage() {
                             {/* Ações */}
                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
                               {mostrarInputValor === meta.id ? (
-                                // Modo de edição de valor - VISÍVEL PARA DONO E COLABORADORES
                                 <motion.div
                                   initial={{ scale: 0.8, opacity: 0 }}
                                   animate={{ scale: 1, opacity: 1 }}
@@ -1263,9 +1638,7 @@ export default function MetasPage() {
                                   </motion.div>
                                 </motion.div>
                               ) : (
-                                // Modo normal - botões de ação
                                 <>
-                                  {/* Botão + - VISÍVEL PARA DONO E COLABORADORES */}
                                   <TooltipProvider>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
@@ -1289,12 +1662,13 @@ export default function MetasPage() {
                                         </motion.div>
                                       </TooltipTrigger>
                                       <TooltipContent className="bg-gray-900 dark:bg-gray-800 text-white dark:text-white border-gray-700 text-xs">
-                                        <p>{t("tooltips.adicionarValor")}</p>
+                                        <p>
+                                          {translations.tooltips.adicionarValor}
+                                        </p>
                                       </TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
 
-                                  {/* Botões de Editar e Excluir - APENAS PARA DONO */}
                                   {usuarioAtualEhDono && (
                                     <>
                                       <TooltipProvider>
@@ -1315,7 +1689,9 @@ export default function MetasPage() {
                                             </motion.div>
                                           </TooltipTrigger>
                                           <TooltipContent className="bg-gray-900 dark:bg-gray-800 text-white dark:text-white border-gray-700 text-xs">
-                                            <p>{t("tooltips.editarMeta")}</p>
+                                            <p>
+                                              {translations.tooltips.editarMeta}
+                                            </p>
                                           </TooltipContent>
                                         </Tooltip>
                                       </TooltipProvider>
@@ -1348,14 +1724,15 @@ export default function MetasPage() {
                                               <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white w-[90vw] sm:max-w-md">
                                                 <DialogHeader>
                                                   <DialogTitle className="text-gray-900 dark:text-white text-lg">
-                                                    {t("confirmacao.titulo")}
+                                                    {
+                                                      translations.confirmacao
+                                                        .titulo
+                                                    }
                                                   </DialogTitle>
                                                   <DialogDescription className="text-gray-600 dark:text-gray-400 text-sm">
-                                                    {t(
-                                                      "confirmacao.descricao",
-                                                      {
-                                                        titulo: meta.titulo,
-                                                      },
+                                                    {translations.confirmacao.descricao.replace(
+                                                      "{{titulo}}",
+                                                      meta.titulo,
                                                     )}
                                                   </DialogDescription>
                                                 </DialogHeader>
@@ -1367,7 +1744,10 @@ export default function MetasPage() {
                                                     }
                                                     className="border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 text-sm"
                                                   >
-                                                    {t("botoes.cancelar")}
+                                                    {
+                                                      translations.botoes
+                                                        .cancelar
+                                                    }
                                                   </Button>
                                                   <Button
                                                     variant="destructive"
@@ -1380,15 +1760,22 @@ export default function MetasPage() {
                                                     className="text-sm"
                                                   >
                                                     {excluindo === meta.id
-                                                      ? t("estados.excluindo")
-                                                      : t("botoes.confirmar")}
+                                                      ? translations.estados
+                                                          .excluindo
+                                                      : translations.botoes
+                                                          .confirmar}
                                                   </Button>
                                                 </div>
                                               </DialogContent>
                                             </Dialog>
                                           </TooltipTrigger>
                                           <TooltipContent className="bg-gray-900 dark:bg-gray-800 text-white dark:text-white border-gray-700 text-xs">
-                                            <p>{t("tooltips.excluirMeta")}</p>
+                                            <p>
+                                              {
+                                                translations.tooltips
+                                                  .excluirMeta
+                                              }
+                                            </p>
                                           </TooltipContent>
                                         </Tooltip>
                                       </TooltipProvider>
@@ -1399,7 +1786,7 @@ export default function MetasPage() {
                             </div>
                           </div>
 
-                          {/* 👇 SEÇÃO DE COLABORADORES - COM MENSAGEM EDUCATIVA */}
+                          {/* Seção de Colaboradores */}
                           {(usuarioAtualEhDono ||
                             (meta.ColaboradorMeta &&
                               meta.ColaboradorMeta.length > 0)) && (
@@ -1424,12 +1811,14 @@ export default function MetasPage() {
                                   <div className="flex items-center justify-center gap-2 text-sm text-amber-600 dark:text-amber-400">
                                     <Crown className="h-3 w-3" />
                                     <span className="font-medium">
-                                      Recurso exclusivo do plano Família
+                                      {translations.avisos.colaboradores.titulo}
                                     </span>
                                   </div>
                                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    Faça upgrade para adicionar colaboradores às
-                                    suas metas
+                                    {
+                                      translations.avisos.colaboradores
+                                        .descricao
+                                    }
                                   </p>
                                   <Button
                                     size="sm"
@@ -1442,7 +1831,10 @@ export default function MetasPage() {
                                     }
                                   >
                                     <Crown className="h-3 w-3 mr-1" />
-                                    Conhecer planos
+                                    {
+                                      translations.avisos.colaboradores
+                                        .conhecerPlanos
+                                    }
                                   </Button>
                                 </div>
                               )}

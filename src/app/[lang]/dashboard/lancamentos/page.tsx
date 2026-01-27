@@ -84,7 +84,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loading } from "@/components/ui/loading-barrinhas";
 import { useTranslation } from "react-i18next";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
+import { getFallback } from "@/lib/i18nFallback";
 
 interface Categoria {
   id: string;
@@ -144,10 +145,729 @@ interface Lancamento {
 
 export default function LancamentosPage() {
   const { t, i18n } = useTranslation("lancamentos");
+  const params = useParams();
+  const currentLang = (params?.lang as string) || "pt";
+
+  // Função auxiliar para obter tradução com fallback
+  const getTranslation = (key: string) => {
+    // Primeiro tenta usar o i18n
+    const translation = t(key);
+    if (translation && translation !== key) {
+      return translation;
+    }
+
+    // Fallback manual baseado nas chaves que você tem nos arquivos JSON
+    switch (key) {
+      // Título e subtítulo
+      case "titulo":
+        return getFallback(currentLang, "Lançamentos", "Transactions");
+      case "subtitulo":
+        return getFallback(
+          currentLang,
+          "Gerencie suas receitas e despesas",
+          "Manage your income and expenses",
+        );
+
+      // Filtros
+      case "categorias.filtros.titulo":
+        return getFallback(currentLang, "Filtros", "Filters");
+      case "categorias.filtros.categoria":
+        return getFallback(currentLang, "Categoria", "Category");
+      case "categorias.filtros.todos":
+        return getFallback(
+          currentLang,
+          "Todas as categorias",
+          "All categories",
+        );
+      case "categorias.filtros.tipoLancamento":
+        return getFallback(
+          currentLang,
+          "Tipo de lançamento",
+          "Transaction type",
+        );
+      case "categorias.filtros.individual":
+        return getFallback(currentLang, "Individual", "Individual");
+      case "categorias.filtros.compartilhado":
+        return getFallback(currentLang, "Compartilhado", "Shared");
+      case "categorias.filtros.tipo":
+        return getFallback(currentLang, "Tipo", "Type");
+      case "categorias.filtros.receita":
+        return getFallback(currentLang, "Receita", "Income");
+      case "categorias.filtros.despesa":
+        return getFallback(currentLang, "Despesa", "Expense");
+      case "categorias.filtros.status":
+        return getFallback(currentLang, "Status", "Status");
+      case "categorias.filtros.pago":
+        return getFallback(currentLang, "Pago", "Paid");
+      case "categorias.filtros.pendente":
+        return getFallback(currentLang, "Pendente", "Pending");
+      case "categorias.filtros.metodoPagamento":
+        return getFallback(
+          currentLang,
+          "Método de pagamento",
+          "Payment method",
+        );
+
+      // Estatísticas
+      case "categorias.estatisticas.receitas":
+        return getFallback(currentLang, "Receitas", "Income");
+      case "categorias.estatisticas.despesas":
+        return getFallback(currentLang, "Despesas", "Expenses");
+      case "categorias.estatisticas.saldo":
+        return getFallback(currentLang, "Saldo", "Balance");
+      case "categorias.estatisticas.receitasPagas":
+        return getFallback(currentLang, "Receitas pagas", "Paid income");
+      case "categorias.estatisticas.despesasPagas":
+        return getFallback(currentLang, "Despesas pagas", "Paid expenses");
+      case "categorias.estatisticas.faltaReceber":
+        return getFallback(currentLang, "Falta receber", "Income to receive");
+      case "categorias.estatisticas.faltaPagar":
+        return getFallback(currentLang, "Falta pagar", "Expenses to pay");
+
+      // Ações
+      case "categorias.acoes.novoLancamento":
+        return getFallback(currentLang, "Novo Lançamento", "New Transaction");
+      case "categorias.acoes.editar":
+        return getFallback(currentLang, "Editar", "Edit");
+      case "categorias.acoes.excluir":
+        return getFallback(currentLang, "Excluir", "Delete");
+      case "categorias.acoes.visualizar":
+        return getFallback(currentLang, "Visualizar detalhes", "View details");
+      case "categorias.acoes.compartilhar":
+        return getFallback(currentLang, "Compartilhar", "Share");
+      case "categorias.acoes.alterarStatus":
+        return getFallback(currentLang, "Alterar status", "Change status");
+      case "categorias.acoes.cancelar":
+        return getFallback(currentLang, "Cancelar", "Cancel");
+      case "categorias.acoes.confirmar":
+        return getFallback(currentLang, "Confirmar", "Confirm");
+      case "categorias.acoes.salvar":
+        return getFallback(currentLang, "Salvar", "Save");
+      case "categorias.acoes.fechar":
+        return getFallback(currentLang, "Fechar", "Close");
+      case "categorias.acoes.limpar":
+        return getFallback(currentLang, "Limpar", "Clear");
+
+      // Formulário
+      case "categorias.formulario.tituloNovo":
+        return getFallback(currentLang, "Novo Lançamento", "New Transaction");
+      case "categorias.formulario.tituloEditar":
+        return getFallback(
+          currentLang,
+          "Editar Lançamento",
+          "Edit Transaction",
+        );
+      case "categorias.formulario.descricao":
+        return getFallback(currentLang, "Descrição", "Description");
+      case "categorias.formulario.valor":
+        return getFallback(currentLang, "Valor", "Amount");
+      case "categorias.formulario.tipo":
+        return getFallback(currentLang, "Tipo", "Type");
+      case "categorias.formulario.categoria":
+        return getFallback(currentLang, "Categoria", "Category");
+      case "categorias.formulario.tipoLancamento":
+        return getFallback(
+          currentLang,
+          "Tipo de lançamento",
+          "Transaction type",
+        );
+      case "categorias.formulario.metodoPagamento":
+        return getFallback(
+          currentLang,
+          "Método de pagamento",
+          "Payment method",
+        );
+      case "categorias.formulario.cartao":
+        return getFallback(currentLang, "Cartão de Crédito", "Credit Card");
+      case "categorias.formulario.data":
+        return getFallback(currentLang, "Data", "Date");
+      case "categorias.formulario.observacoes":
+        return getFallback(currentLang, "Observações", "Notes");
+      case "categorias.formulario.recorrente":
+        return getFallback(currentLang, "Recorrente", "Recurring");
+      case "categorias.formulario.tipoRecorrencia":
+        return getFallback(
+          currentLang,
+          "Tipo de recorrência",
+          "Recurrence type",
+        );
+      case "categorias.formulario.parcelamento":
+        return getFallback(currentLang, "Parcelamento", "Installment");
+      case "categorias.formulario.parcelas":
+        return getFallback(
+          currentLang,
+          "Número de parcelas",
+          "Number of installments",
+        );
+      case "categorias.formulario.compartilhamento":
+        return getFallback(currentLang, "Compartilhamento", "Sharing");
+      case "categorias.formulario.usuarioAlvo":
+        return getFallback(
+          currentLang,
+          "Usuário para compartilhar",
+          "User to share with",
+        );
+      case "categorias.formulario.valorCompartilhado":
+        return getFallback(currentLang, "Valor compartilhado", "Shared amount");
+      case "categorias.formulario.dataFimRecorrencia":
+        return getFallback(
+          currentLang,
+          "Data de fim da recorrência",
+          "Recurrence end date",
+        );
+      case "categorias.formulario.selecione":
+        return getFallback(currentLang, "Selecione...", "Select...");
+      case "categorias.formulario.selecioneCartao":
+        return getFallback(
+          currentLang,
+          "Selecione um cartão...",
+          "Select card...",
+        );
+      case "categorias.formulario.selecioneUsuario":
+        return getFallback(
+          currentLang,
+          "Selecione um usuário...",
+          "Select user...",
+        );
+      case "categorias.formulario.usuariosRecentes":
+        return getFallback(currentLang, "Usuários Recentes", "Recent Users");
+      case "categorias.formulario.buscarUsername":
+        return getFallback(currentLang, "Buscar Username", "Search Username");
+      case "categorias.formulario.digitarUsername":
+        return getFallback(currentLang, "Digite o username", "Enter username");
+      case "categorias.formulario.frequencia":
+        return getFallback(currentLang, "Frequência", "Frequency");
+      case "categorias.formulario.placeholderDescricao":
+        return getFallback(
+          currentLang,
+          "Descrição do lançamento",
+          "Transaction description",
+        );
+      case "categorias.formulario.placeholderValor":
+        return getFallback(currentLang, "0,00", "0.00");
+      case "categorias.formulario.placeholderObservacoes":
+        return getFallback(
+          currentLang,
+          "Observações adicionais...",
+          "Additional notes...",
+        );
+
+      // Opções de método de pagamento
+      case "categorias.formulario.opcoesMetodoPagamento.dinheiro":
+        return getFallback(currentLang, "Dinheiro", "Cash");
+      case "categorias.formulario.opcoesMetodoPagamento.pix":
+        return getFallback(currentLang, "PIX", "PIX");
+      case "categorias.formulario.opcoesMetodoPagamento.debito":
+        return getFallback(currentLang, "Cartão de Débito", "Debit Card");
+      case "categorias.formulario.opcoesMetodoPagamento.credito":
+        return getFallback(currentLang, "Cartão de Crédito", "Credit Card");
+      case "categorias.formulario.opcoesMetodoPagamento.transferencia":
+        return getFallback(
+          currentLang,
+          "Transferência Bancária",
+          "Bank Transfer",
+        );
+
+      // Opções de tipo de recorrência
+      case "categorias.formulario.opcoesTipoRecorrencia.recorrencia":
+        return getFallback(currentLang, "Recorrência", "Recurring");
+      case "categorias.formulario.opcoesTipoRecorrencia.parcelamento":
+        return getFallback(currentLang, "Parcelamento", "Installments");
+
+      // Opções de frequência
+      case "categorias.formulario.opcoesFrequencia.mensal":
+        return getFallback(currentLang, "Mensal", "Monthly");
+
+      // Tabela
+      case "categorias.tabela.descricao":
+        return getFallback(currentLang, "Descrição", "Description");
+      case "categorias.tabela.valor":
+        return getFallback(currentLang, "Valor", "Amount");
+      case "categorias.tabela.tipo":
+        return getFallback(currentLang, "Tipo", "Type");
+      case "categorias.tabela.categoria":
+        return getFallback(currentLang, "Categoria", "Category");
+      case "categorias.tabela.data":
+        return getFallback(currentLang, "Data", "Date");
+      case "categorias.tabela.status":
+        return getFallback(currentLang, "Status", "Status");
+      case "categorias.tabela.metodo":
+        return getFallback(currentLang, "Método", "Method");
+      case "categorias.tabela.acoes":
+        return getFallback(currentLang, "Ações", "Actions");
+      case "categorias.tabela.nenhumLancamento":
+        return getFallback(
+          currentLang,
+          "Nenhum lançamento encontrado",
+          "No transactions found",
+        );
+      case "categorias.tabela.pesquisar":
+        return getFallback(
+          currentLang,
+          "Pesquisar lançamentos...",
+          "Search transactions...",
+        );
+      case "categorias.tabela.mesAno":
+        return getFallback(currentLang, "Mês/Ano", "Month/Year");
+
+      // Status
+      case "categorias.status.pago":
+        return getFallback(currentLang, "Pago", "Paid");
+      case "categorias.status.pendente":
+        return getFallback(currentLang, "Pendente", "Pending");
+      case "categorias.status.compartilhado":
+        return getFallback(currentLang, "Compartilhado", "Shared");
+      case "categorias.status.individual":
+        return getFallback(currentLang, "Individual", "Individual");
+
+      // Mensagens
+      case "categorias.mensagens.confirmacaoExclusao":
+        return getFallback(
+          currentLang,
+          "Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.",
+          "Are you sure you want to delete this transaction? This action cannot be undone.",
+        );
+      case "categorias.mensagens.sucessoCriacao":
+        return getFallback(
+          currentLang,
+          "Lançamento criado com sucesso!",
+          "Transaction created successfully!",
+        );
+      case "categorias.mensagens.sucessoEdicao":
+        return getFallback(
+          currentLang,
+          "Lançamento atualizado com sucesso!",
+          "Transaction updated successfully!",
+        );
+      case "categorias.mensagens.sucessoExclusao":
+        return getFallback(
+          currentLang,
+          "Lançamento excluído com sucesso!",
+          "Transaction deleted successfully!",
+        );
+      case "categorias.mensagens.erroCriacao":
+        return getFallback(
+          currentLang,
+          "Erro ao criar lançamento",
+          "Error creating transaction",
+        );
+      case "categorias.mensagens.erroEdicao":
+        return getFallback(
+          currentLang,
+          "Erro ao atualizar lançamento",
+          "Error updating transaction",
+        );
+      case "categorias.mensagens.erroExclusao":
+        return getFallback(
+          currentLang,
+          "Erro ao excluir lançamento",
+          "Error deleting transaction",
+        );
+      case "categorias.mensagens.erroCarregar":
+        return getFallback(
+          currentLang,
+          "Erro ao carregar dados",
+          "Error loading data",
+        );
+      case "categorias.mensagens.carregando":
+        return getFallback(currentLang, "Carregando...", "Loading...");
+      case "categorias.mensagens.semDados":
+        return getFallback(
+          currentLang,
+          "Nenhum lançamento para exibir",
+          "No transactions to display",
+        );
+      case "categorias.mensagens.sucessoStatus":
+        return getFallback(
+          currentLang,
+          "Status atualizado com sucesso!",
+          "Status updated successfully!",
+        );
+      case "categorias.mensagens.digitarUsername":
+        return getFallback(
+          currentLang,
+          "Digite um username para buscar",
+          "Enter a username to search",
+        );
+      case "categorias.mensagens.usuarioEncontrado":
+        return getFallback(currentLang, "Usuário encontrado!", "User found!");
+      case "categorias.mensagens.usuarioNaoEncontrado":
+        return getFallback(
+          currentLang,
+          "Usuário não encontrado",
+          "User not found",
+        );
+      case "categorias.mensagens.erroBusca":
+        return getFallback(
+          currentLang,
+          "Erro ao buscar usuário",
+          "Error searching for user",
+        );
+      case "categorias.mensagens.nenhumUsuarioRecente":
+        return getFallback(
+          currentLang,
+          "Nenhum usuário recente. Use a busca por username.",
+          "No recent users. Use username search.",
+        );
+
+      // Meses
+      case "categorias.meses.1":
+        return getFallback(currentLang, "Janeiro", "January");
+      case "categorias.meses.2":
+        return getFallback(currentLang, "Fevereiro", "February");
+      case "categorias.meses.3":
+        return getFallback(currentLang, "Março", "March");
+      case "categorias.meses.4":
+        return getFallback(currentLang, "Abril", "April");
+      case "categorias.meses.5":
+        return getFallback(currentLang, "Maio", "May");
+      case "categorias.meses.6":
+        return getFallback(currentLang, "Junho", "June");
+      case "categorias.meses.7":
+        return getFallback(currentLang, "Julho", "July");
+      case "categorias.meses.8":
+        return getFallback(currentLang, "Agosto", "August");
+      case "categorias.meses.9":
+        return getFallback(currentLang, "Setembro", "September");
+      case "categorias.meses.10":
+        return getFallback(currentLang, "Outubro", "October");
+      case "categorias.meses.11":
+        return getFallback(currentLang, "Novembro", "November");
+      case "categorias.meses.12":
+        return getFallback(currentLang, "Dezembro", "December");
+
+      // Detalhes
+      case "categorias.detalhes.titulo":
+        return getFallback(
+          currentLang,
+          "Detalhes do Lançamento",
+          "Transaction Details",
+        );
+      case "categorias.detalhes.descricao":
+        return getFallback(currentLang, "Descrição", "Description");
+      case "categorias.detalhes.valorTotal":
+        return getFallback(currentLang, "Valor total", "Total amount");
+      case "categorias.detalhes.valorCompartilhado":
+        return getFallback(currentLang, "Valor compartilhado", "Shared amount");
+      case "categorias.detalhes.tipo":
+        return getFallback(currentLang, "Tipo", "Type");
+      case "categorias.detalhes.categoria":
+        return getFallback(currentLang, "Categoria", "Category");
+      case "categorias.detalhes.metodoPagamento":
+        return getFallback(
+          currentLang,
+          "Método de pagamento",
+          "Payment method",
+        );
+      case "categorias.detalhes.cartao":
+        return getFallback(currentLang, "Cartão", "Card");
+      case "categorias.detalhes.data":
+        return getFallback(currentLang, "Data", "Date");
+      case "categorias.detalhes.status":
+        return getFallback(currentLang, "Status", "Status");
+      case "categorias.detalhes.observacoes":
+        return getFallback(currentLang, "Observações", "Notes");
+      case "categorias.detalhes.recorrente":
+        return getFallback(currentLang, "Recorrente", "Recurring");
+      case "categorias.detalhes.parcelamento":
+        return getFallback(currentLang, "Parcelamento", "Installment plan");
+      case "categorias.detalhes.parcelaAtual":
+        return getFallback(currentLang, "Parcela atual", "Current installment");
+      case "categorias.detalhes.parcelasTotal":
+        return getFallback(
+          currentLang,
+          "Total de parcelas",
+          "Total installments",
+        );
+      case "categorias.detalhes.dataFimRecorrencia":
+        return getFallback(
+          currentLang,
+          "Data de fim da recorrência",
+          "Recurrence end date",
+        );
+      case "categorias.detalhes.compartilhamento":
+        return getFallback(
+          currentLang,
+          "Informações de compartilhamento",
+          "Sharing information",
+        );
+      case "categorias.detalhes.criador":
+        return getFallback(currentLang, "Criado por", "Created by");
+      case "categorias.detalhes.destinatario":
+        return getFallback(currentLang, "Compartilhado com", "Shared with");
+
+      // Ícones
+      case "categorias.icones.filtro":
+        return getFallback(currentLang, "Filtro", "Filter");
+      case "categorias.icones.busca":
+        return getFallback(currentLang, "Buscar", "Search");
+      case "categorias.icones.adicionar":
+        return getFallback(currentLang, "Adicionar", "Add");
+      case "categorias.icones.editar":
+        return getFallback(currentLang, "Editar", "Edit");
+      case "categorias.icones.excluir":
+        return getFallback(currentLang, "Excluir", "Delete");
+      case "categorias.icones.visualizar":
+        return getFallback(currentLang, "Visualizar", "View");
+      case "categorias.icones.compartilhar":
+        return getFallback(currentLang, "Compartilhar", "Share");
+      case "categorias.icones.confirmar":
+        return getFallback(currentLang, "Confirmar", "Confirm");
+      case "categorias.icones.cancelar":
+        return getFallback(currentLang, "Cancelar", "Cancel");
+      case "categorias.icones.setaEsquerda":
+        return getFallback(currentLang, "Mês anterior", "Previous month");
+      case "categorias.icones.setaDireita":
+        return getFallback(currentLang, "Próximo mês", "Next month");
+      case "categorias.icones.olho":
+        return getFallback(currentLang, "Visualizar", "View");
+      case "categorias.icones.etiqueta":
+        return getFallback(currentLang, "Categoria", "Category");
+      case "categorias.icones.mais":
+        return getFallback(currentLang, "Mais opções", "More options");
+
+      default:
+        return key;
+    }
+  };
+
+  // Criar um objeto de traduções para fácil acesso
+  const translations = {
+    titulo: getTranslation("titulo"),
+    subtitulo: getTranslation("subtitulo"),
+
+    categorias: {
+      filtros: {
+        titulo: getTranslation("categorias.filtros.titulo"),
+        categoria: getTranslation("categorias.filtros.categoria"),
+        todos: getTranslation("categorias.filtros.todos"),
+        tipoLancamento: getTranslation("categorias.filtros.tipoLancamento"),
+        individual: getTranslation("categorias.filtros.individual"),
+        compartilhado: getTranslation("categorias.filtros.compartilhado"),
+        tipo: getTranslation("categorias.filtros.tipo"),
+        receita: getTranslation("categorias.filtros.receita"),
+        despesa: getTranslation("categorias.filtros.despesa"),
+        status: getTranslation("categorias.filtros.status"),
+        pago: getTranslation("categorias.filtros.pago"),
+        pendente: getTranslation("categorias.filtros.pendente"),
+        metodoPagamento: getTranslation("categorias.filtros.metodoPagamento"),
+      },
+      estatisticas: {
+        receitas: getTranslation("categorias.estatisticas.receitas"),
+        despesas: getTranslation("categorias.estatisticas.despesas"),
+        saldo: getTranslation("categorias.estatisticas.saldo"),
+        receitasPagas: getTranslation("categorias.estatisticas.receitasPagas"),
+        despesasPagas: getTranslation("categorias.estatisticas.despesasPagas"),
+        faltaReceber: getTranslation("categorias.estatisticas.faltaReceber"),
+        faltaPagar: getTranslation("categorias.estatisticas.faltaPagar"),
+      },
+      acoes: {
+        novoLancamento: getTranslation("categorias.acoes.novoLancamento"),
+        editar: getTranslation("categorias.acoes.editar"),
+        excluir: getTranslation("categorias.acoes.excluir"),
+        visualizar: getTranslation("categorias.acoes.visualizar"),
+        compartilhar: getTranslation("categorias.acoes.compartilhar"),
+        alterarStatus: getTranslation("categorias.acoes.alterarStatus"),
+        cancelar: getTranslation("categorias.acoes.cancelar"),
+        confirmar: getTranslation("categorias.acoes.confirmar"),
+        salvar: getTranslation("categorias.acoes.salvar"),
+        fechar: getTranslation("categorias.acoes.fechar"),
+        limpar: getTranslation("categorias.acoes.limpar"),
+      },
+      formulario: {
+        tituloNovo: getTranslation("categorias.formulario.tituloNovo"),
+        tituloEditar: getTranslation("categorias.formulario.tituloEditar"),
+        descricao: getTranslation("categorias.formulario.descricao"),
+        valor: getTranslation("categorias.formulario.valor"),
+        tipo: getTranslation("categorias.formulario.tipo"),
+        categoria: getTranslation("categorias.formulario.categoria"),
+        tipoLancamento: getTranslation("categorias.formulario.tipoLancamento"),
+        metodoPagamento: getTranslation(
+          "categorias.formulario.metodoPagamento",
+        ),
+        cartao: getTranslation("categorias.formulario.cartao"),
+        data: getTranslation("categorias.formulario.data"),
+        observacoes: getTranslation("categorias.formulario.observacoes"),
+        recorrente: getTranslation("categorias.formulario.recorrente"),
+        tipoRecorrencia: getTranslation(
+          "categorias.formulario.tipoRecorrencia",
+        ),
+        parcelamento: getTranslation("categorias.formulario.parcelamento"),
+        parcelas: getTranslation("categorias.formulario.parcelas"),
+        compartilhamento: getTranslation(
+          "categorias.formulario.compartilhamento",
+        ),
+        usuarioAlvo: getTranslation("categorias.formulario.usuarioAlvo"),
+        valorCompartilhado: getTranslation(
+          "categorias.formulario.valorCompartilhado",
+        ),
+        dataFimRecorrencia: getTranslation(
+          "categorias.formulario.dataFimRecorrencia",
+        ),
+        selecione: getTranslation("categorias.formulario.selecione"),
+        selecioneCartao: getTranslation(
+          "categorias.formulario.selecioneCartao",
+        ),
+        selecioneUsuario: getTranslation(
+          "categorias.formulario.selecioneUsuario",
+        ),
+        usuariosRecentes: getTranslation(
+          "categorias.formulario.usuariosRecentes",
+        ),
+        buscarUsername: getTranslation("categorias.formulario.buscarUsername"),
+        digitarUsername: getTranslation(
+          "categorias.formulario.digitarUsername",
+        ),
+        frequencia: getTranslation("categorias.formulario.frequencia"),
+        placeholderDescricao: getTranslation(
+          "categorias.formulario.placeholderDescricao",
+        ),
+        placeholderValor: getTranslation(
+          "categorias.formulario.placeholderValor",
+        ),
+        placeholderObservacoes: getTranslation(
+          "categorias.formulario.placeholderObservacoes",
+        ),
+        opcoesMetodoPagamento: {
+          dinheiro: getTranslation(
+            "categorias.formulario.opcoesMetodoPagamento.dinheiro",
+          ),
+          pix: getTranslation(
+            "categorias.formulario.opcoesMetodoPagamento.pix",
+          ),
+          debito: getTranslation(
+            "categorias.formulario.opcoesMetodoPagamento.debito",
+          ),
+          credito: getTranslation(
+            "categorias.formulario.opcoesMetodoPagamento.credito",
+          ),
+          transferencia: getTranslation(
+            "categorias.formulario.opcoesMetodoPagamento.transferencia",
+          ),
+        },
+        opcoesTipoRecorrencia: {
+          recorrencia: getTranslation(
+            "categorias.formulario.opcoesTipoRecorrencia.recorrencia",
+          ),
+          parcelamento: getTranslation(
+            "categorias.formulario.opcoesTipoRecorrencia.parcelamento",
+          ),
+        },
+        opcoesFrequencia: {
+          mensal: getTranslation(
+            "categorias.formulario.opcoesFrequencia.mensal",
+          ),
+        },
+      },
+      tabela: {
+        descricao: getTranslation("categorias.tabela.descricao"),
+        valor: getTranslation("categorias.tabela.valor"),
+        tipo: getTranslation("categorias.tabela.tipo"),
+        categoria: getTranslation("categorias.tabela.categoria"),
+        data: getTranslation("categorias.tabela.data"),
+        status: getTranslation("categorias.tabela.status"),
+        metodo: getTranslation("categorias.tabela.metodo"),
+        acoes: getTranslation("categorias.tabela.acoes"),
+        nenhumLancamento: getTranslation("categorias.tabela.nenhumLancamento"),
+        pesquisar: getTranslation("categorias.tabela.pesquisar"),
+        mesAno: getTranslation("categorias.tabela.mesAno"),
+      },
+      status: {
+        pago: getTranslation("categorias.status.pago"),
+        pendente: getTranslation("categorias.status.pendente"),
+        compartilhado: getTranslation("categorias.status.compartilhado"),
+        individual: getTranslation("categorias.status.individual"),
+      },
+      mensagens: {
+        confirmacaoExclusao: getTranslation(
+          "categorias.mensagens.confirmacaoExclusao",
+        ),
+        sucessoCriacao: getTranslation("categorias.mensagens.sucessoCriacao"),
+        sucessoEdicao: getTranslation("categorias.mensagens.sucessoEdicao"),
+        sucessoExclusao: getTranslation("categorias.mensagens.sucessoExclusao"),
+        erroCriacao: getTranslation("categorias.mensagens.erroCriacao"),
+        erroEdicao: getTranslation("categorias.mensagens.erroEdicao"),
+        erroExclusao: getTranslation("categorias.mensagens.erroExclusao"),
+        erroCarregar: getTranslation("categorias.mensagens.erroCarregar"),
+        carregando: getTranslation("categorias.mensagens.carregando"),
+        semDados: getTranslation("categorias.mensagens.semDados"),
+        sucessoStatus: getTranslation("categorias.mensagens.sucessoStatus"),
+        digitarUsername: getTranslation("categorias.mensagens.digitarUsername"),
+        usuarioEncontrado: getTranslation(
+          "categorias.mensagens.usuarioEncontrado",
+        ),
+        usuarioNaoEncontrado: getTranslation(
+          "categorias.mensagens.usuarioNaoEncontrado",
+        ),
+        erroBusca: getTranslation("categorias.mensagens.erroBusca"),
+        nenhumUsuarioRecente: getTranslation(
+          "categorias.mensagens.nenhumUsuarioRecente",
+        ),
+      },
+      meses: {
+        "1": getTranslation("categorias.meses.1"),
+        "2": getTranslation("categorias.meses.2"),
+        "3": getTranslation("categorias.meses.3"),
+        "4": getTranslation("categorias.meses.4"),
+        "5": getTranslation("categorias.meses.5"),
+        "6": getTranslation("categorias.meses.6"),
+        "7": getTranslation("categorias.meses.7"),
+        "8": getTranslation("categorias.meses.8"),
+        "9": getTranslation("categorias.meses.9"),
+        "10": getTranslation("categorias.meses.10"),
+        "11": getTranslation("categorias.meses.11"),
+        "12": getTranslation("categorias.meses.12"),
+      },
+      detalhes: {
+        titulo: getTranslation("categorias.detalhes.titulo"),
+        descricao: getTranslation("categorias.detalhes.descricao"),
+        valorTotal: getTranslation("categorias.detalhes.valorTotal"),
+        valorCompartilhado: getTranslation(
+          "categorias.detalhes.valorCompartilhado",
+        ),
+        tipo: getTranslation("categorias.detalhes.tipo"),
+        categoria: getTranslation("categorias.detalhes.categoria"),
+        metodoPagamento: getTranslation("categorias.detalhes.metodoPagamento"),
+        cartao: getTranslation("categorias.detalhes.cartao"),
+        data: getTranslation("categorias.detalhes.data"),
+        status: getTranslation("categorias.detalhes.status"),
+        observacoes: getTranslation("categorias.detalhes.observacoes"),
+        recorrente: getTranslation("categorias.detalhes.recorrente"),
+        parcelamento: getTranslation("categorias.detalhes.parcelamento"),
+        parcelaAtual: getTranslation("categorias.detalhes.parcelaAtual"),
+        parcelasTotal: getTranslation("categorias.detalhes.parcelasTotal"),
+        dataFimRecorrencia: getTranslation(
+          "categorias.detalhes.dataFimRecorrencia",
+        ),
+        compartilhamento: getTranslation(
+          "categorias.detalhes.compartilhamento",
+        ),
+        criador: getTranslation("categorias.detalhes.criador"),
+        destinatario: getTranslation("categorias.detalhes.destinatario"),
+      },
+      icones: {
+        filtro: getTranslation("categorias.icones.filtro"),
+        busca: getTranslation("categorias.icones.busca"),
+        adicionar: getTranslation("categorias.icones.adicionar"),
+        editar: getTranslation("categorias.icones.editar"),
+        excluir: getTranslation("categorias.icones.excluir"),
+        visualizar: getTranslation("categorias.icones.visualizar"),
+        compartilhar: getTranslation("categorias.icones.compartilhar"),
+        confirmar: getTranslation("categorias.icones.confirmar"),
+        cancelar: getTranslation("categorias.icones.cancelar"),
+        setaEsquerda: getTranslation("categorias.icones.setaEsquerda"),
+        setaDireita: getTranslation("categorias.icones.setaDireita"),
+        olho: getTranslation("categorias.icones.olho"),
+        etiqueta: getTranslation("categorias.icones.etiqueta"),
+        mais: getTranslation("categorias.icones.mais"),
+      },
+    },
+  };
+
   type PlanoUsuario = "free" | "pro" | "family";
   const [planoUsuario, setPlanoUsuario] = useState<PlanoUsuario | null>(null);
   const [carregandoPlano, setCarregandoPlano] = useState(true);
-  const currencySymbol = i18n.language === "en" ? "$" : "R$";
+  const currencySymbol = currentLang === "en" ? "$" : "R$";
   const [carregandoVisualizacao, setCarregandoVisualizacao] = useState<
     string | null
   >(null);
@@ -177,6 +897,7 @@ export default function LancamentosPage() {
     "recentes",
   );
   const router = useRouter();
+
   // Filtros
   const [filtros, setFiltros] = useState({
     categoria: "all",
@@ -197,6 +918,7 @@ export default function LancamentosPage() {
   const [mesSelecionado, setMesSelecionado] = useState(
     new Date().getMonth() + 1,
   );
+
   const carregarUsuarios = async () => {
     setCarregandoUsuarios(true);
     try {
@@ -306,7 +1028,7 @@ export default function LancamentosPage() {
       }
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
-      toast.error(t("categorias.mensagens.erroCarregar"));
+      toast.error(translations.categorias.mensagens.erroCarregar);
     } finally {
       setLoading(false);
     }
@@ -364,11 +1086,12 @@ export default function LancamentosPage() {
 
     return { ano, mes };
   };
+
   // Função para redirecionar para a página de perfil
   const handleRedirectToProfile = () => {
-    const lang = i18n.language; // 'pt' ou 'en'
-    router.push(`/${lang}/dashboard/perfil`);
+    router.push(`/${currentLang}/dashboard/perfil`);
   };
+
   const lancamentosFiltrados = lancamentos.filter((lancamento) => {
     const { ano, mes } = calcularMesReferenciaLancamento(lancamento);
 
@@ -531,7 +1254,7 @@ export default function LancamentosPage() {
       if (res.ok) {
         const lancamentoSalvo = await res.json();
         setLancamentos((prev) => [...prev, lancamentoSalvo]);
-        toast.success(t("categorias.mensagens.sucessoCriacao"));
+        toast.success(translations.categorias.mensagens.sucessoCriacao);
         setIsSheetOpen(false);
         setFormData({
           descricao: "",
@@ -555,11 +1278,13 @@ export default function LancamentosPage() {
         });
       } else {
         const errorData = await res.json();
-        toast.error(errorData.error || t("categorias.mensagens.erroCriacao"));
+        toast.error(
+          errorData.error || translations.categorias.mensagens.erroCriacao,
+        );
       }
     } catch (error) {
       console.error("Erro ao criar lançamento:", error);
-      toast.error(t("categorias.mensagens.erroCriacao"));
+      toast.error(translations.categorias.mensagens.erroCriacao);
     } finally {
       setEnviando(false);
     }
@@ -567,7 +1292,7 @@ export default function LancamentosPage() {
 
   const buscarUsuarioPorUsername = async () => {
     if (!buscaUsername.trim()) {
-      setErroUsuario(t("categorias.mensagens.digitarUsername"));
+      setErroUsuario(translations.categorias.mensagens.digitarUsername);
       return;
     }
 
@@ -585,20 +1310,22 @@ export default function LancamentosPage() {
         setUsuarioBuscado(usuario);
         setModoSelecao("busca");
         handleChange("usuarioAlvoId", usuario.id);
-        toast.success(t("categorias.mensagens.usuarioEncontrado"));
+        toast.success(translations.categorias.mensagens.usuarioEncontrado);
       } else {
         const errorData = await response.json();
         setErroUsuario(
-          errorData.error || t("categorias.mensagens.usuarioNaoEncontrado"),
+          errorData.error ||
+            translations.categorias.mensagens.usuarioNaoEncontrado,
         );
         toast.error(
-          errorData.error || t("categorias.mensagens.usuarioNaoEncontrado"),
+          errorData.error ||
+            translations.categorias.mensagens.usuarioNaoEncontrado,
         );
       }
     } catch (error) {
       console.error("Erro ao buscar usuário:", error);
-      setErroUsuario(t("categorias.mensagens.erroBusca"));
-      toast.error(t("categorias.mensagens.erroBusca"));
+      setErroUsuario(translations.categorias.mensagens.erroBusca);
+      toast.error(translations.categorias.mensagens.erroBusca);
     } finally {
       setBuscandoUsuario(false);
     }
@@ -613,15 +1340,16 @@ export default function LancamentosPage() {
       setDialogAberto(null);
 
       const res = await fetch(`/api/lancamentos/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error(t("categorias.mensagens.erroExclusao"));
+      if (!res.ok)
+        throw new Error(translations.categorias.mensagens.erroExclusao);
 
-      toast.success(t("categorias.mensagens.sucessoExclusao"));
+      toast.success(translations.categorias.mensagens.sucessoExclusao);
     } catch (error) {
       console.error("Erro ao deletar lançamento:", error);
       if (lancamentoParaExcluir) {
         setLancamentos((prev) => [...prev, lancamentoParaExcluir]);
       }
-      toast.error(t("categorias.mensagens.erroExclusao"));
+      toast.error(translations.categorias.mensagens.erroExclusao);
     } finally {
       setExcluindo(null);
     }
@@ -649,11 +1377,13 @@ export default function LancamentosPage() {
       } else {
         const errorData = await response.json();
         console.error("Erro na resposta:", errorData);
-        toast.error(errorData.error || t("categorias.mensagens.erroCarregar"));
+        toast.error(
+          errorData.error || translations.categorias.mensagens.erroCarregar,
+        );
       }
     } catch (error) {
       console.error("Erro ao visualizar lançamento:", error);
-      toast.error(t("categorias.mensagens.erroCarregar"));
+      toast.error(translations.categorias.mensagens.erroCarregar);
     } finally {
       setCarregandoVisualizacao(null);
     }
@@ -725,11 +1455,11 @@ export default function LancamentosPage() {
         });
         setMostrarDialogEditar(true);
       } else {
-        toast.error(t("categorias.mensagens.erroCarregar"));
+        toast.error(translations.categorias.mensagens.erroCarregar);
       }
     } catch (error) {
       console.error("Erro ao carregar dados do lançamento:", error);
-      toast.error(t("categorias.mensagens.erroCarregar"));
+      toast.error(translations.categorias.mensagens.erroCarregar);
     }
   };
 
@@ -814,16 +1544,18 @@ export default function LancamentosPage() {
             lanc.id === lancamentoSelecionado.id ? lancamentoAtualizado : lanc,
           ),
         );
-        toast.success(t("categorias.mensagens.sucessoEdicao"));
+        toast.success(translations.categorias.mensagens.sucessoEdicao);
         setMostrarDialogEditar(false);
         setLancamentoSelecionado(null);
       } else {
         const errorData = await res.json();
-        toast.error(errorData.error || t("categorias.mensagens.erroEdicao"));
+        toast.error(
+          errorData.error || translations.categorias.mensagens.erroEdicao,
+        );
       }
     } catch (error) {
       console.error("Erro ao atualizar lançamento:", error);
-      toast.error(t("categorias.mensagens.erroEdicao"));
+      toast.error(translations.categorias.mensagens.erroEdicao);
     } finally {
       setEditando(false);
     }
@@ -843,16 +1575,17 @@ export default function LancamentosPage() {
             lanc.id === lancamentoId ? { ...lanc, pago: !atualStatus } : lanc,
           ),
         );
-        toast.success(t("categorias.mensagens.sucessoStatus"));
+        toast.success(translations.categorias.mensagens.sucessoStatus);
       } else {
-        throw new Error(t("categorias.mensagens.erroEdicao"));
+        throw new Error(translations.categorias.mensagens.erroEdicao);
       }
     } catch (error) {
       console.error("Erro ao alterar status:", error);
-      toast.error(t("categorias.mensagens.erroEdicao"));
+      toast.error(translations.categorias.mensagens.erroEdicao);
       carregarDados();
     }
   };
+
   // Função para verificar limite
   const verificarLimiteFree = async () => {
     try {
@@ -864,7 +1597,9 @@ export default function LancamentosPage() {
         // Mostrar toast se limite atingido
         if (data.atingido) {
           toast.warning(
-            `Plano free atingiu limite de lançamentos. Faça upgrade para criar mais.`,
+            currentLang === "pt"
+              ? `Plano free atingiu limite de lançamentos. Faça upgrade para criar mais.`
+              : `Free plan has reached transaction limit. Upgrade to create more.`,
           );
         }
       }
@@ -872,6 +1607,7 @@ export default function LancamentosPage() {
       console.error("Erro ao verificar limite:", error);
     }
   };
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -953,10 +1689,10 @@ export default function LancamentosPage() {
         >
           <div className="flex-1 min-w-0">
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
-              {t("titulo")}
+              {translations.titulo}
             </h1>
             <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-0.5">
-              {t("subtitulo")}
+              {translations.subtitulo}
             </p>
           </div>
 
@@ -967,23 +1703,23 @@ export default function LancamentosPage() {
               className="flex-1 sm:flex-none border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-600 gap-1.5 sm:gap-2 text-xs sm:text-sm"
             >
               <Filter className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="truncate">{t("categorias.icones.filtro")}</span>
+              <span className="truncate">
+                {translations.categorias.icones.filtro}
+              </span>
             </Button>
 
             <Button
               variant={"outline"}
               onClick={() => setIsSheetOpen(true)}
               className="flex-1 sm:flex-none border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-500 text-xs sm:text-sm"
-              disabled={
-                planoUsuario === "free" && limiteFree?.atingido
-              }
+              disabled={planoUsuario === "free" && limiteFree?.atingido}
             >
               <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               {planoUsuario === "free" && limiteFree?.atingido && (
                 <Crown className="h-4 w-4 text-yellow-600 mr-1" />
               )}
               <span className="truncate">
-                {t("categorias.acoes.novoLancamento")}
+                {translations.categorias.acoes.novoLancamento}
               </span>
             </Button>
           </div>
@@ -1005,12 +1741,12 @@ export default function LancamentosPage() {
                     {/* Pesquisar */}
                     <div className="space-y-1.5 sm:space-y-2">
                       <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
-                        {t("categorias.icones.busca")}
+                        {translations.categorias.icones.busca}
                       </Label>
                       <div className="relative">
                         <Search className="absolute left-2.5 sm:left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-400" />
                         <Input
-                          placeholder={t("categorias.tabela.pesquisar")}
+                          placeholder={translations.categorias.tabela.pesquisar}
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
                           className="pl-8 sm:pl-9 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 w-full text-sm"
@@ -1023,7 +1759,7 @@ export default function LancamentosPage() {
                       {/* Categoria */}
                       <div className="space-y-1.5 sm:space-y-2">
                         <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
-                          {t("categorias.filtros.categoria")}
+                          {translations.categorias.filtros.categoria}
                         </Label>
                         <Select
                           value={filtros.categoria}
@@ -1031,14 +1767,16 @@ export default function LancamentosPage() {
                             setFiltros({ ...filtros, categoria: value })
                           }
                         >
-                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm h-9 sm:h-10">
+                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
                             <SelectValue
-                              placeholder={t("categorias.filtros.todos")}
+                              placeholder={
+                                translations.categorias.filtros.todos
+                              }
                             />
                           </SelectTrigger>
                           <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm">
                             <SelectItem value="all">
-                              {t("categorias.filtros.todos")}
+                              {translations.categorias.filtros.todos}
                             </SelectItem>
                             {categorias.map((cat) => (
                               <SelectItem key={cat.id} value={cat.id}>
@@ -1058,7 +1796,7 @@ export default function LancamentosPage() {
                       {/* Individual ou Compartilhado */}
                       <div className="space-y-1.5 sm:space-y-2">
                         <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
-                          {t("categorias.filtros.tipoLancamento")}
+                          {translations.categorias.filtros.tipoLancamento}
                         </Label>
                         <Select
                           value={filtros.tipoLancamento}
@@ -1066,20 +1804,22 @@ export default function LancamentosPage() {
                             setFiltros({ ...filtros, tipoLancamento: value })
                           }
                         >
-                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm h-9 sm:h-10">
+                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
                             <SelectValue
-                              placeholder={t("categorias.filtros.todos")}
+                              placeholder={
+                                translations.categorias.filtros.todos
+                              }
                             />
                           </SelectTrigger>
                           <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm">
                             <SelectItem value="all">
-                              {t("categorias.filtros.todos")}
+                              {translations.categorias.filtros.todos}
                             </SelectItem>
                             <SelectItem value="individual">
-                              {t("categorias.filtros.individual")}
+                              {translations.categorias.filtros.individual}
                             </SelectItem>
                             <SelectItem value="compartilhado">
-                              {t("categorias.filtros.compartilhado")}
+                              {translations.categorias.filtros.compartilhado}
                             </SelectItem>
                           </SelectContent>
                         </Select>
@@ -1088,7 +1828,7 @@ export default function LancamentosPage() {
                       {/* Receita ou Despesa */}
                       <div className="space-y-1.5 sm:space-y-2">
                         <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
-                          {t("categorias.filtros.tipo")}
+                          {translations.categorias.filtros.tipo}
                         </Label>
                         <Select
                           value={filtros.tipo}
@@ -1096,20 +1836,22 @@ export default function LancamentosPage() {
                             setFiltros({ ...filtros, tipo: value })
                           }
                         >
-                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm h-9 sm:h-10">
+                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
                             <SelectValue
-                              placeholder={t("categorias.filtros.todos")}
+                              placeholder={
+                                translations.categorias.filtros.todos
+                              }
                             />
                           </SelectTrigger>
                           <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm">
                             <SelectItem value="all">
-                              {t("categorias.filtros.todos")}
+                              {translations.categorias.filtros.todos}
                             </SelectItem>
                             <SelectItem value="RECEITA">
-                              {t("categorias.filtros.receita")}
+                              {translations.categorias.filtros.receita}
                             </SelectItem>
                             <SelectItem value="DESPESA">
-                              {t("categorias.filtros.despesa")}
+                              {translations.categorias.filtros.despesa}
                             </SelectItem>
                           </SelectContent>
                         </Select>
@@ -1118,7 +1860,7 @@ export default function LancamentosPage() {
                       {/* Status */}
                       <div className="space-y-1.5 sm:space-y-2">
                         <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
-                          {t("categorias.filtros.status")}
+                          {translations.categorias.filtros.status}
                         </Label>
                         <Select
                           value={filtros.status}
@@ -1126,20 +1868,22 @@ export default function LancamentosPage() {
                             setFiltros({ ...filtros, status: value })
                           }
                         >
-                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm h-9 sm:h-10">
+                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
                             <SelectValue
-                              placeholder={t("categorias.filtros.todos")}
+                              placeholder={
+                                translations.categorias.filtros.todos
+                              }
                             />
                           </SelectTrigger>
                           <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm">
                             <SelectItem value="all">
-                              {t("categorias.filtros.todos")}
+                              {translations.categorias.filtros.todos}
                             </SelectItem>
                             <SelectItem value="pago">
-                              {t("categorias.filtros.pago")}
+                              {translations.categorias.filtros.pago}
                             </SelectItem>
                             <SelectItem value="pendente">
-                              {t("categorias.filtros.pendente")}
+                              {translations.categorias.filtros.pendente}
                             </SelectItem>
                           </SelectContent>
                         </Select>
@@ -1148,7 +1892,7 @@ export default function LancamentosPage() {
                       {/* Método de Pagamento */}
                       <div className="space-y-1.5 sm:space-y-2">
                         <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
-                          {t("categorias.filtros.metodoPagamento")}
+                          {translations.categorias.filtros.metodoPagamento}
                         </Label>
                         <Select
                           value={filtros.metodoPagamento}
@@ -1164,34 +1908,40 @@ export default function LancamentosPage() {
                             });
                           }}
                         >
-                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm h-9 sm:h-10">
+                          <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
                             <SelectValue
-                              placeholder={t("categorias.filtros.todos")}
+                              placeholder={
+                                translations.categorias.filtros.todos
+                              }
                             />
                           </SelectTrigger>
                           <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm">
                             <SelectItem value="all">
-                              {t("categorias.filtros.todos")}
+                              {translations.categorias.filtros.todos}
                             </SelectItem>
                             <SelectItem value="PIX">
-                              {t(
-                                "categorias.formulario.opcoesMetodoPagamento.pix",
-                              )}
+                              {
+                                translations.categorias.formulario
+                                  .opcoesMetodoPagamento.pix
+                              }
                             </SelectItem>
                             <SelectItem value="CREDITO">
-                              {t(
-                                "categorias.formulario.opcoesMetodoPagamento.credito",
-                              )}
+                              {
+                                translations.categorias.formulario
+                                  .opcoesMetodoPagamento.credito
+                              }
                             </SelectItem>
                             <SelectItem value="DEBITO">
-                              {t(
-                                "categorias.formulario.opcoesMetodoPagamento.debito",
-                              )}
+                              {
+                                translations.categorias.formulario
+                                  .opcoesMetodoPagamento.debito
+                              }
                             </SelectItem>
                             <SelectItem value="TRANSFERENCIA">
-                              {t(
-                                "categorias.formulario.opcoesMetodoPagamento.transferencia",
-                              )}
+                              {
+                                translations.categorias.formulario
+                                  .opcoesMetodoPagamento.transferencia
+                              }
                             </SelectItem>
                           </SelectContent>
                         </Select>
@@ -1202,7 +1952,7 @@ export default function LancamentosPage() {
                         filtros.metodoPagamento === "DEBITO") && (
                         <div className="space-y-1.5 sm:space-y-2">
                           <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
-                            {t("categorias.formulario.cartao")}
+                            {translations.categorias.formulario.cartao}
                           </Label>
                           <Select
                             value={filtros.cartao}
@@ -1210,14 +1960,16 @@ export default function LancamentosPage() {
                               setFiltros({ ...filtros, cartao: value })
                             }
                           >
-                            <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm h-9 sm:h-10">
+                            <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
                               <SelectValue
-                                placeholder={t("categorias.filtros.todos")}
+                                placeholder={
+                                  translations.categorias.filtros.todos
+                                }
                               />
                             </SelectTrigger>
                             <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-xs sm:text-sm">
                               <SelectItem value="all">
-                                {t("categorias.filtros.todos")}
+                                {translations.categorias.filtros.todos}
                               </SelectItem>
                               {cartoes.map((cartao) => (
                                 <SelectItem key={cartao.id} value={cartao.id}>
@@ -1254,7 +2006,7 @@ export default function LancamentosPage() {
             <CardContent className="p-3 sm:p-4">
               <div className="space-y-2 sm:space-y-3">
                 <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
-                  {t("categorias.tabela.mesAno")}
+                  {translations.categorias.tabela.mesAno}
                 </Label>
                 <div className="flex items-center space-x-2">
                   <Button
@@ -1277,7 +2029,11 @@ export default function LancamentosPage() {
 
                   <div className="flex-1 text-center">
                     <p className="text-gray-900 dark:text-white font-medium text-xs sm:text-sm md:text-base truncate px-1">
-                      {t(`categorias.meses.${mesSelecionado}` as any)}{" "}
+                      {
+                        translations.categorias.meses[
+                          mesSelecionado.toString() as keyof typeof translations.categorias.meses
+                        ]
+                      }{" "}
                       {anoSelecionado}
                     </p>
                   </div>
@@ -1310,13 +2066,14 @@ export default function LancamentosPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
-                    {t("categorias.estatisticas.receitas")}
+                    {translations.categorias.estatisticas.receitas}
                   </p>
                   <p className="text-lg sm:text-xl md:text-2xl font-bold text-emerald-600 dark:text-green-400">
                     {currencySymbol} {totalReceitas.toFixed(2)}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    {t("categorias.estatisticas.faltaReceber")} {currencySymbol}{" "}
+                    {translations.categorias.estatisticas.faltaReceber}{" "}
+                    {currencySymbol}{" "}
                     {(totalReceitas - receitasPagas).toFixed(2)}
                   </p>
                 </div>
@@ -1333,13 +2090,14 @@ export default function LancamentosPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
-                    {t("categorias.estatisticas.despesas")}
+                    {translations.categorias.estatisticas.despesas}
                   </p>
                   <p className="text-lg sm:text-xl md:text-2xl font-bold text-red-600 dark:text-red-400">
                     {currencySymbol} {totalDespesas.toFixed(2)}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    {t("categorias.estatisticas.faltaPagar")} {currencySymbol}{" "}
+                    {translations.categorias.estatisticas.faltaPagar}{" "}
+                    {currencySymbol}{" "}
                     {(totalDespesas - despesasPagas).toFixed(2)}
                   </p>
                 </div>
@@ -1356,7 +2114,7 @@ export default function LancamentosPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
-                    {t("categorias.estatisticas.saldo")}
+                    {translations.categorias.estatisticas.saldo}
                   </p>
                   <p
                     className={`text-lg sm:text-xl md:text-2xl font-bold ${saldo >= 0 ? "text-emerald-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
@@ -1377,83 +2135,87 @@ export default function LancamentosPage() {
             </CardContent>
           </Card>
         </motion.div>
-    {/* Aviso de Limite para plano Free */}
-{planoUsuario === "free" && limiteFree?.atingido && (
-  <motion.div
-    initial={{ opacity: 0, y: -10 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.3 }}
-  >
-    <div className="mb-4 p-4 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800">
-      <div className="flex items-center justify-between">
-        {/* Lado esquerdo: Círculo e Informações */}
-        <div className="flex items-center gap-3">
-          <div className="relative h-10 w-10">
-            <svg className="h-full w-full" viewBox="0 0 100 100">
-              <circle
-                cx="50"
-                cy="50"
-                r="40"
-                fill="transparent"
-                stroke="#fbbf24"
-                strokeWidth="4"
-                strokeOpacity="0.2"
-              />
-              <circle
-                cx="50"
-                cy="50"
-                r="40"
-                fill="transparent"
-                stroke="#f59e0b"
-                strokeWidth="4"
-                strokeLinecap="round"
-                strokeDasharray={`${Math.min(
-                  (limiteFree.usado / limiteFree.total) * 100,
-                  100,
-                ) * 2.51} 251`}
-                strokeDashoffset="0"
-                transform="rotate(-90 50 50)"
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
-                {Math.min(
-                  (limiteFree.usado / limiteFree.total) * 100,
-                  100,
-                ).toFixed(0)}
-                %
-              </span>
-            </div>
-          </div>
+        {/* Aviso de Limite para plano Free */}
+        {planoUsuario === "free" && limiteFree?.atingido && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="mb-4 p-4 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800">
+              <div className="flex items-center justify-between">
+                {/* Lado esquerdo: Círculo e Informações */}
+                <div className="flex items-center gap-3">
+                  <div className="relative h-10 w-10">
+                    <svg className="h-full w-full" viewBox="0 0 100 100">
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="transparent"
+                        stroke="#fbbf24"
+                        strokeWidth="4"
+                        strokeOpacity="0.2"
+                      />
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="transparent"
+                        stroke="#f59e0b"
+                        strokeWidth="4"
+                        strokeLinecap="round"
+                        strokeDasharray={`${
+                          Math.min(
+                            (limiteFree.usado / limiteFree.total) * 100,
+                            100,
+                          ) * 2.51
+                        } 251`}
+                        strokeDashoffset="0"
+                        transform="rotate(-90 50 50)"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                        {Math.min(
+                          (limiteFree.usado / limiteFree.total) * 100,
+                          100,
+                        ).toFixed(0)}
+                        %
+                      </span>
+                    </div>
+                  </div>
 
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                Lançamentos Free
-              </span>
-            </div>
-            <p className="text-sm text-amber-700 dark:text-amber-300">
-              {limiteFree.usado}/{limiteFree.total} lançamentos
-            </p>
-          </div>
-        </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                        {currentLang === "pt"
+                          ? "Lançamentos Free"
+                          : "Free Transactions"}
+                      </span>
+                    </div>
+                    <p className="text-sm text-amber-700 dark:text-amber-300">
+                      {limiteFree.usado}/{limiteFree.total}{" "}
+                      {currentLang === "pt" ? "lançamentos" : "transactions"}
+                    </p>
+                  </div>
+                </div>
 
-        {/* Botão de Upgrade no lado direito */}
-        <Button
-          size="sm"
-          className="bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90 text-xs"
-          onClick={() => {
-            const lang = i18n.language;
-            router.push(`/${lang}/dashboard/perfil`);
-          }}
-        >
-          <Crown className="h-3 w-3 mr-1" />
-          Fazer Upgrade
-        </Button>
-      </div>
-    </div>
-  </motion.div>
-)}
+                {/* Botão de Upgrade no lado direito */}
+                <Button
+                  size="sm"
+                  className="bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90 text-xs"
+                  onClick={() => {
+                    router.push(`/${currentLang}/dashboard/perfil`);
+                  }}
+                >
+                  <Crown className="h-3 w-3 mr-1" />
+                  {currentLang === "pt" ? "Fazer Upgrade" : "Upgrade"}
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Tabela de Lançamentos */}
         <motion.div variants={itemVariants} initial="hidden" animate="visible">
@@ -1461,11 +2223,14 @@ export default function LancamentosPage() {
           <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-gray-900 dark:text-white text-base sm:text-lg">
-                {t("titulo")}
+                {translations.titulo}
               </CardTitle>
               <CardDescription className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
                 {lancamentosFiltrados.length}{" "}
-                {t("categorias.tabela.nenhumLancamento").replace("nenhum ", "")}
+                {translations.categorias.tabela.nenhumLancamento.replace(
+                  "nenhum ",
+                  "",
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1476,22 +2241,22 @@ export default function LancamentosPage() {
                     <thead>
                       <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                         <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium text-xs sm:text-sm">
-                          {t("categorias.tabela.tipo")}
+                          {translations.categorias.tabela.tipo}
                         </th>
                         <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium text-xs sm:text-sm">
-                          {t("categorias.tabela.categoria")}
+                          {translations.categorias.tabela.categoria}
                         </th>
                         <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium text-xs sm:text-sm">
-                          {t("categorias.tabela.descricao")}
+                          {translations.categorias.tabela.descricao}
                         </th>
                         <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium text-xs sm:text-sm">
-                          {t("categorias.tabela.valor")}
+                          {translations.categorias.tabela.valor}
                         </th>
                         <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium text-xs sm:text-sm">
-                          {t("categorias.tabela.status")}
+                          {translations.categorias.tabela.status}
                         </th>
                         <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300 font-medium text-xs sm:text-sm">
-                          {t("categorias.tabela.acoes")}
+                          {translations.categorias.tabela.acoes}
                         </th>
                       </tr>
                     </thead>
@@ -1533,8 +2298,8 @@ export default function LancamentosPage() {
                                   }`}
                                 >
                                   {lancamento.tipo === "RECEITA"
-                                    ? t("categorias.filtros.receita")
-                                    : t("categorias.filtros.despesa")}
+                                    ? translations.categorias.filtros.receita
+                                    : translations.categorias.filtros.despesa}
                                 </Badge>
                               </motion.div>
                             </td>
@@ -1606,7 +2371,10 @@ export default function LancamentosPage() {
                                         whileHover={{ opacity: 1, y: 0 }}
                                         className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 dark:bg-gray-700 text-white text-xs rounded whitespace-nowrap"
                                       >
-                                        {t("categorias.status.compartilhado")}
+                                        {
+                                          translations.categorias.status
+                                            .compartilhado
+                                        }
                                       </motion.div>
                                     </motion.div>
                                   )}
@@ -1660,8 +2428,8 @@ export default function LancamentosPage() {
                                       <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                                       <span className="hidden sm:inline">
                                         {lancamento.tipo === "RECEITA"
-                                          ? t("categorias.status.pago")
-                                          : t("categorias.status.pago")}
+                                          ? translations.categorias.status.pago
+                                          : translations.categorias.status.pago}
                                       </span>
                                     </>
                                   ) : (
@@ -1669,8 +2437,10 @@ export default function LancamentosPage() {
                                       <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                                       <span className="hidden sm:inline">
                                         {lancamento.tipo === "RECEITA"
-                                          ? t("categorias.status.pendente")
-                                          : t("categorias.status.pendente")}
+                                          ? translations.categorias.status
+                                              .pendente
+                                          : translations.categorias.status
+                                              .pendente}
                                       </span>
                                     </>
                                   )}
@@ -1723,7 +2493,12 @@ export default function LancamentosPage() {
                                       </motion.div>
                                     </TooltipTrigger>
                                     <TooltipContent className="bg-gray-800 dark:bg-gray-700 text-white border-gray-700 dark:border-gray-600 text-xs">
-                                      <p>{t("categorias.icones.visualizar")}</p>
+                                      <p>
+                                        {
+                                          translations.categorias.icones
+                                            .visualizar
+                                        }
+                                      </p>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
@@ -1753,7 +2528,9 @@ export default function LancamentosPage() {
                                       </motion.div>
                                     </TooltipTrigger>
                                     <TooltipContent className="bg-gray-800 dark:bg-gray-700 text-white border-gray-700 dark:border-gray-600 text-xs">
-                                      <p>{t("categorias.icones.editar")}</p>
+                                      <p>
+                                        {translations.categorias.icones.editar}
+                                      </p>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
@@ -1795,15 +2572,21 @@ export default function LancamentosPage() {
                                             >
                                               <DialogHeader>
                                                 <DialogTitle className="text-gray-900 dark:text-white text-lg">
-                                                  {t(
-                                                    "categorias.acoes.excluir",
-                                                  )}{" "}
-                                                  {t("titulo").slice(0, -1)}
+                                                  {
+                                                    translations.categorias
+                                                      .acoes.excluir
+                                                  }{" "}
+                                                  {translations.titulo.slice(
+                                                    0,
+                                                    -1,
+                                                  )}
                                                 </DialogTitle>
                                                 <DialogDescription className="text-gray-600 dark:text-gray-400 text-sm">
-                                                  {t(
-                                                    "categorias.mensagens.confirmacaoExclusao",
-                                                  )}
+                                                  {
+                                                    translations.categorias
+                                                      .mensagens
+                                                      .confirmacaoExclusao
+                                                  }
                                                 </DialogDescription>
                                               </DialogHeader>
                                               <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
@@ -1818,9 +2601,10 @@ export default function LancamentosPage() {
                                                     }
                                                     className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm"
                                                   >
-                                                    {t(
-                                                      "categorias.acoes.cancelar",
-                                                    )}
+                                                    {
+                                                      translations.categorias
+                                                        .acoes.cancelar
+                                                    }
                                                   </Button>
                                                 </motion.div>
                                                 <motion.div
@@ -1841,12 +2625,10 @@ export default function LancamentosPage() {
                                                     className="text-sm"
                                                   >
                                                     {excluindo === lancamento.id
-                                                      ? t(
-                                                          "categorias.mensagens.carregando",
-                                                        )
-                                                      : t(
-                                                          "categorias.acoes.confirmar",
-                                                        )}
+                                                      ? translations.categorias
+                                                          .mensagens.carregando
+                                                      : translations.categorias
+                                                          .acoes.confirmar}
                                                   </Button>
                                                 </motion.div>
                                               </div>
@@ -1856,7 +2638,9 @@ export default function LancamentosPage() {
                                       </motion.div>
                                     </TooltipTrigger>
                                     <TooltipContent className="bg-gray-800 dark:bg-gray-700 text-white border-gray-700 dark:border-gray-600 text-xs">
-                                      <p>{t("categorias.icones.excluir")}</p>
+                                      <p>
+                                        {translations.categorias.icones.excluir}
+                                      </p>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
@@ -1893,8 +2677,8 @@ export default function LancamentosPage() {
                                   }`}
                                 >
                                   {lancamento.tipo === "RECEITA"
-                                    ? t("categorias.filtros.receita")
-                                    : t("categorias.filtros.despesa")}
+                                    ? translations.categorias.filtros.receita
+                                    : translations.categorias.filtros.despesa}
                                 </Badge>
                                 {compartilhamento && (
                                   <Users className="h-3 w-3 text-blue-500 dark:text-blue-400" />
@@ -1950,15 +2734,17 @@ export default function LancamentosPage() {
                                     <>
                                       <CheckCircle className="w-3 h-3 mr-1" />
                                       {lancamento.tipo === "RECEITA"
-                                        ? t("categorias.status.pago")
-                                        : t("categorias.status.pago")}
+                                        ? translations.categorias.status.pago
+                                        : translations.categorias.status.pago}
                                     </>
                                   ) : (
                                     <>
                                       <Clock className="w-3 h-3 mr-1" />
                                       {lancamento.tipo === "RECEITA"
-                                        ? t("categorias.status.pendente")
-                                        : t("categorias.status.pendente")}
+                                        ? translations.categorias.status
+                                            .pendente
+                                        : translations.categorias.status
+                                            .pendente}
                                     </>
                                   )}
                                 </Button>
@@ -1990,7 +2776,12 @@ export default function LancamentosPage() {
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent className="bg-gray-800 dark:bg-gray-700 text-white border-gray-700 dark:border-gray-600 text-xs">
-                                    <p>{t("categorias.icones.visualizar")}</p>
+                                    <p>
+                                      {
+                                        translations.categorias.icones
+                                          .visualizar
+                                      }
+                                    </p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
@@ -2008,7 +2799,9 @@ export default function LancamentosPage() {
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent className="bg-gray-800 dark:bg-gray-700 text-white border-gray-700 dark:border-gray-600 text-xs">
-                                    <p>{t("categorias.icones.editar")}</p>
+                                    <p>
+                                      {translations.categorias.icones.editar}
+                                    </p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
@@ -2027,19 +2820,20 @@ export default function LancamentosPage() {
                                   className="text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 text-xs h-6"
                                 >
                                   <Trash2 className="w-3 h-3 mr-1" />
-                                  {t("categorias.icones.excluir")}
+                                  {translations.categorias.icones.excluir}
                                 </Button>
                               </DialogTrigger>
                               <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white w-[90vw] sm:max-w-md">
                                 <DialogHeader>
                                   <DialogTitle className="text-gray-900 dark:text-white text-lg">
-                                    {t("categorias.acoes.excluir")}{" "}
-                                    {t("titulo").slice(0, -1)}
+                                    {translations.categorias.acoes.excluir}{" "}
+                                    {translations.titulo.slice(0, -1)}
                                   </DialogTitle>
                                   <DialogDescription className="text-gray-600 dark:text-gray-400 text-sm">
-                                    {t(
-                                      "categorias.mensagens.confirmacaoExclusao",
-                                    )}
+                                    {
+                                      translations.categorias.mensagens
+                                        .confirmacaoExclusao
+                                    }
                                   </DialogDescription>
                                 </DialogHeader>
                                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
@@ -2048,7 +2842,7 @@ export default function LancamentosPage() {
                                     onClick={() => setDialogAberto(null)}
                                     className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm"
                                   >
-                                    {t("categorias.acoes.cancelar")}
+                                    {translations.categorias.acoes.cancelar}
                                   </Button>
                                   <Button
                                     variant="destructive"
@@ -2057,8 +2851,9 @@ export default function LancamentosPage() {
                                     className="text-sm"
                                   >
                                     {excluindo === lancamento.id
-                                      ? t("categorias.mensagens.carregando")
-                                      : t("categorias.acoes.confirmar")}
+                                      ? translations.categorias.mensagens
+                                          .carregando
+                                      : translations.categorias.acoes.confirmar}
                                   </Button>
                                 </div>
                               </DialogContent>
@@ -2073,7 +2868,7 @@ export default function LancamentosPage() {
                 {lancamentosFiltrados.length === 0 && (
                   <div className="text-center py-6 sm:py-8 text-gray-500 dark:text-gray-400">
                     <p className="text-sm">
-                      {t("categorias.tabela.nenhumLancamento")}
+                      {translations.categorias.tabela.nenhumLancamento}
                     </p>
                   </div>
                 )}
@@ -2088,10 +2883,10 @@ export default function LancamentosPage() {
         <SheetContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white w-full sm:max-w-md overflow-y-auto">
           <SheetHeader className="mb-4 sm:mb-6">
             <SheetTitle className="text-gray-900 dark:text-white text-lg sm:text-xl">
-              {t("categorias.formulario.tituloNovo")}
+              {translations.categorias.formulario.tituloNovo}
             </SheetTitle>
             <SheetDescription className="text-gray-600 dark:text-gray-400 text-sm">
-              {t("subtitulo")}
+              {translations.subtitulo}
             </SheetDescription>
           </SheetHeader>
 
@@ -2106,7 +2901,7 @@ export default function LancamentosPage() {
                   htmlFor="tipo"
                   className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                 >
-                  {t("categorias.formulario.tipo")} *
+                  {translations.categorias.formulario.tipo} *
                 </Label>
                 <Select
                   value={formData.tipo}
@@ -2115,15 +2910,15 @@ export default function LancamentosPage() {
                 >
                   <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
                     <SelectValue
-                      placeholder={t("categorias.formulario.selecione")}
+                      placeholder={translations.categorias.formulario.selecione}
                     />
                   </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
                     <SelectItem value="receita">
-                      {t("categorias.filtros.receita")}
+                      {translations.categorias.filtros.receita}
                     </SelectItem>
                     <SelectItem value="despesa">
-                      {t("categorias.filtros.despesa")}
+                      {translations.categorias.filtros.despesa}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -2134,7 +2929,7 @@ export default function LancamentosPage() {
                   htmlFor="categoria"
                   className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                 >
-                  {t("categorias.formulario.categoria")} *
+                  {translations.categorias.formulario.categoria} *
                 </Label>
                 <Select
                   value={formData.categoria}
@@ -2146,8 +2941,8 @@ export default function LancamentosPage() {
                     <SelectValue
                       placeholder={
                         !formData.tipo
-                          ? t("categorias.formulario.selecione")
-                          : t("categorias.formulario.selecione")
+                          ? translations.categorias.formulario.selecione
+                          : translations.categorias.formulario.selecione
                       }
                     />
                   </SelectTrigger>
@@ -2180,13 +2975,15 @@ export default function LancamentosPage() {
                 htmlFor="descricao"
                 className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
               >
-                {t("categorias.formulario.descricao")} *
+                {translations.categorias.formulario.descricao} *
               </Label>
               <Input
                 id="descricao"
                 value={formData.descricao}
                 onChange={(e) => handleChange("descricao", e.target.value)}
-                placeholder={t("categorias.formulario.placeholderDescricao")}
+                placeholder={
+                  translations.categorias.formulario.placeholderDescricao
+                }
                 required
                 className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-sm"
               />
@@ -2197,7 +2994,7 @@ export default function LancamentosPage() {
                 htmlFor="valor"
                 className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
               >
-                {t("categorias.formulario.valor")} *
+                {translations.categorias.formulario.valor} *
               </Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">
@@ -2210,7 +3007,9 @@ export default function LancamentosPage() {
                   min="0"
                   value={formData.valor}
                   onChange={(e) => handleChange("valor", e.target.value)}
-                  placeholder={t("categorias.formulario.placeholderValor")}
+                  placeholder={
+                    translations.categorias.formulario.placeholderValor
+                  }
                   required
                   className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-sm pl-9"
                 />
@@ -2224,7 +3023,7 @@ export default function LancamentosPage() {
                   htmlFor="tipoTransacao"
                   className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                 >
-                  {t("categorias.formulario.metodoPagamento")} *
+                  {translations.categorias.formulario.metodoPagamento} *
                 </Label>
                 <Select
                   value={formData.tipoTransacao}
@@ -2235,28 +3034,39 @@ export default function LancamentosPage() {
                 >
                   <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
                     <SelectValue
-                      placeholder={t("categorias.formulario.selecione")}
+                      placeholder={translations.categorias.formulario.selecione}
                     />
                   </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
                     <SelectItem value="DINHEIRO">
-                      {t(
-                        "categorias.formulario.opcoesMetodoPagamento.dinheiro",
-                      )}
+                      {
+                        translations.categorias.formulario.opcoesMetodoPagamento
+                          .dinheiro
+                      }
                     </SelectItem>
                     <SelectItem value="PIX">
-                      {t("categorias.formulario.opcoesMetodoPagamento.pix")}
+                      {
+                        translations.categorias.formulario.opcoesMetodoPagamento
+                          .pix
+                      }
                     </SelectItem>
                     <SelectItem value="CARTAO_DEBITO">
-                      {t("categorias.formulario.opcoesMetodoPagamento.debito")}
+                      {
+                        translations.categorias.formulario.opcoesMetodoPagamento
+                          .debito
+                      }
                     </SelectItem>
                     <SelectItem value="CARTAO_CREDITO">
-                      {t("categorias.formulario.opcoesMetodoPagamento.credito")}
+                      {
+                        translations.categorias.formulario.opcoesMetodoPagamento
+                          .credito
+                      }
                     </SelectItem>
                     <SelectItem value="TRANSFERENCIA">
-                      {t(
-                        "categorias.formulario.opcoesMetodoPagamento.transferencia",
-                      )}
+                      {
+                        translations.categorias.formulario.opcoesMetodoPagamento
+                          .transferencia
+                      }
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -2267,7 +3077,7 @@ export default function LancamentosPage() {
                   htmlFor="tipoLancamento"
                   className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                 >
-                  {t("categorias.formulario.tipoLancamento")} *
+                  {translations.categorias.formulario.tipoLancamento} *
                 </Label>
                 <Select
                   value={formData.tipoLancamento}
@@ -2278,15 +3088,15 @@ export default function LancamentosPage() {
                 >
                   <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
                     <SelectValue
-                      placeholder={t("categorias.formulario.selecione")}
+                      placeholder={translations.categorias.formulario.selecione}
                     />
                   </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
                     <SelectItem value="individual">
-                      {t("categorias.filtros.individual")}
+                      {translations.categorias.filtros.individual}
                     </SelectItem>
                     <SelectItem value="compartilhado">
-                      {t("categorias.filtros.compartilhado")}
+                      {translations.categorias.filtros.compartilhado}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -2305,10 +3115,10 @@ export default function LancamentosPage() {
                 >
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="recentes">
-                      {t("categorias.formulario.usuariosRecentes")}
+                      {translations.categorias.formulario.usuariosRecentes}
                     </TabsTrigger>
                     <TabsTrigger value="busca">
-                      {t("categorias.formulario.buscarUsername")}
+                      {translations.categorias.formulario.buscarUsername}
                     </TabsTrigger>
                   </TabsList>
 
@@ -2316,7 +3126,7 @@ export default function LancamentosPage() {
                     {usuariosRecentes.length > 0 ? (
                       <div className="space-y-2">
                         <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
-                          {t("categorias.formulario.selecioneUsuario")}
+                          {translations.categorias.formulario.selecioneUsuario}
                         </Label>
                         <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto">
                           {usuariosRecentes.map((usuario) => (
@@ -2359,7 +3169,7 @@ export default function LancamentosPage() {
                       </div>
                     ) : (
                       <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-                        {t("categorias.mensagens.nenhumUsuarioRecente")}
+                        {translations.categorias.mensagens.nenhumUsuarioRecente}
                       </p>
                     )}
                   </TabsContent>
@@ -2367,7 +3177,7 @@ export default function LancamentosPage() {
                   <TabsContent value="busca" className="space-y-3">
                     <div className="space-y-2">
                       <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
-                        {t("categorias.formulario.digitarUsername")}
+                        {translations.categorias.formulario.digitarUsername}
                       </Label>
                       <div className="flex gap-2">
                         <div className="relative flex-1">
@@ -2448,7 +3258,7 @@ export default function LancamentosPage() {
                 {formData.usuarioAlvoId && (
                   <div className="space-y-2">
                     <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
-                      {t("categorias.formulario.valorCompartilhado")} (
+                      {translations.categorias.formulario.valorCompartilhado} (
                       {currencySymbol})
                     </Label>
                     <div className="relative">
@@ -2464,9 +3274,9 @@ export default function LancamentosPage() {
                         onChange={(e) =>
                           handleChange("valorCompartilhado", e.target.value)
                         }
-                        placeholder={t(
-                          "categorias.formulario.placeholderValor",
-                        )}
+                        placeholder={
+                          translations.categorias.formulario.placeholderValor
+                        }
                         className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-sm pl-9"
                       />
                     </div>
@@ -2482,7 +3292,7 @@ export default function LancamentosPage() {
                   htmlFor="cartaoId"
                   className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                 >
-                  {t("categorias.formulario.cartao")} *
+                  {translations.categorias.formulario.cartao} *
                 </Label>
                 <Select
                   value={formData.cartaoId}
@@ -2491,7 +3301,9 @@ export default function LancamentosPage() {
                 >
                   <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
                     <SelectValue
-                      placeholder={t("categorias.formulario.selecioneCartao")}
+                      placeholder={
+                        translations.categorias.formulario.selecioneCartao
+                      }
                     />
                   </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
@@ -2517,7 +3329,7 @@ export default function LancamentosPage() {
                 htmlFor="data"
                 className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
               >
-                {t("categorias.formulario.data")} *
+                {translations.categorias.formulario.data} *
               </Label>
               <Input
                 type="date"
@@ -2543,7 +3355,7 @@ export default function LancamentosPage() {
                   htmlFor="recorrente"
                   className="font-medium text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                 >
-                  {t("categorias.formulario.recorrente")}
+                  {translations.categorias.formulario.recorrente}
                 </Label>
               </div>
 
@@ -2554,7 +3366,7 @@ export default function LancamentosPage() {
                       htmlFor="tipoRecorrencia"
                       className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                     >
-                      {t("categorias.formulario.tipoRecorrencia")}
+                      {translations.categorias.formulario.tipoRecorrencia}
                     </Label>
                     <Select
                       value={formData.tipoRecorrencia}
@@ -2564,19 +3376,23 @@ export default function LancamentosPage() {
                     >
                       <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
                         <SelectValue
-                          placeholder={t("categorias.formulario.selecione")}
+                          placeholder={
+                            translations.categorias.formulario.selecione
+                          }
                         />
                       </SelectTrigger>
                       <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
                         <SelectItem value="RECORRENCIA">
-                          {t(
-                            "categorias.formulario.opcoesTipoRecorrencia.recorrencia",
-                          )}
+                          {
+                            translations.categorias.formulario
+                              .opcoesTipoRecorrencia.recorrencia
+                          }
                         </SelectItem>
                         <SelectItem value="PARCELAMENTO">
-                          {t(
-                            "categorias.formulario.opcoesTipoRecorrencia.parcelamento",
-                          )}
+                          {
+                            translations.categorias.formulario
+                              .opcoesTipoRecorrencia.parcelamento
+                          }
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -2588,7 +3404,7 @@ export default function LancamentosPage() {
                         htmlFor="frequencia"
                         className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                       >
-                        {t("categorias.formulario.frequencia")}
+                        {translations.categorias.formulario.frequencia}
                       </Label>
                       <Select
                         value={formData.frequencia}
@@ -2598,12 +3414,17 @@ export default function LancamentosPage() {
                       >
                         <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
                           <SelectValue
-                            placeholder={t("categorias.formulario.selecione")}
+                            placeholder={
+                              translations.categorias.formulario.selecione
+                            }
                           />
                         </SelectTrigger>
                         <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
                           <SelectItem value="mensal">
-                            {t("categorias.formulario.opcoesFrequencia.mensal")}
+                            {
+                              translations.categorias.formulario
+                                .opcoesFrequencia.mensal
+                            }
                           </SelectItem>
                         </SelectContent>
                       </Select>
@@ -2616,7 +3437,7 @@ export default function LancamentosPage() {
                         htmlFor="parcelas"
                         className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                       >
-                        {t("categorias.formulario.parcelas")}
+                        {translations.categorias.formulario.parcelas}
                       </Label>
                       <Input
                         id="parcelas"
@@ -2639,7 +3460,8 @@ export default function LancamentosPage() {
                         htmlFor="dataFimRecorrencia"
                         className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                       >
-                        {t("categorias.formulario.dataFimRecorrencia")} *
+                        {translations.categorias.formulario.dataFimRecorrencia}{" "}
+                        *
                       </Label>
                       <Input
                         id="dataFimRecorrencia"
@@ -2652,7 +3474,7 @@ export default function LancamentosPage() {
                         className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-sm"
                       />
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {t("categorias.detalhes.dataFimRecorrencia")}
+                        {translations.categorias.detalhes.dataFimRecorrencia}
                       </p>
                     </div>
                   )}
@@ -2666,13 +3488,15 @@ export default function LancamentosPage() {
                 htmlFor="observacoes"
                 className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
               >
-                {t("categorias.formulario.observacoes")}
+                {translations.categorias.formulario.observacoes}
               </Label>
               <Textarea
                 id="observacoes"
                 value={formData.observacoes}
                 onChange={(e) => handleChange("observacoes", e.target.value)}
-                placeholder={t("categorias.formulario.placeholderObservacoes")}
+                placeholder={
+                  translations.categorias.formulario.placeholderObservacoes
+                }
                 rows={3}
                 className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-sm resize-none"
               />
@@ -2685,8 +3509,8 @@ export default function LancamentosPage() {
               disabled={enviando}
             >
               {enviando
-                ? t("categorias.mensagens.carregando")
-                : t("categorias.acoes.salvar")}
+                ? translations.categorias.mensagens.carregando
+                : translations.categorias.acoes.salvar}
             </Button>
           </form>
         </SheetContent>
@@ -2700,7 +3524,7 @@ export default function LancamentosPage() {
         <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white w-[90vw] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-gray-900 dark:text-white text-lg">
-              {t("categorias.detalhes.titulo")}
+              {translations.categorias.detalhes.titulo}
             </DialogTitle>
           </DialogHeader>
           {lancamentoSelecionado && (
@@ -2708,7 +3532,7 @@ export default function LancamentosPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <Label className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-                    {t("categorias.detalhes.descricao")}
+                    {translations.categorias.detalhes.descricao}
                   </Label>
                   <p className="text-gray-900 dark:text-white font-medium mt-1 text-sm sm:text-base">
                     {lancamentoSelecionado.descricao}
@@ -2716,7 +3540,7 @@ export default function LancamentosPage() {
                 </div>
                 <div>
                   <Label className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-                    {t("categorias.detalhes.valorTotal")}
+                    {translations.categorias.detalhes.valorTotal}
                   </Label>
                   <p
                     className={`font-bold mt-1 text-sm sm:text-base ${
@@ -2730,7 +3554,7 @@ export default function LancamentosPage() {
                 </div>
                 <div>
                   <Label className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-                    {t("categorias.detalhes.tipo")}
+                    {translations.categorias.detalhes.tipo}
                   </Label>
                   <div className="mt-1">
                     <Badge
@@ -2742,14 +3566,14 @@ export default function LancamentosPage() {
                       }`}
                     >
                       {lancamentoSelecionado.tipo === "RECEITA"
-                        ? t("categorias.filtros.receita")
-                        : t("categorias.filtros.despesa")}
+                        ? translations.categorias.filtros.receita
+                        : translations.categorias.filtros.despesa}
                     </Badge>
                   </div>
                 </div>
                 <div>
                   <Label className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-                    {t("categorias.detalhes.status")}
+                    {translations.categorias.detalhes.status}
                   </Label>
                   <p
                     className={`mt-1 text-sm ${
@@ -2759,23 +3583,23 @@ export default function LancamentosPage() {
                     }`}
                   >
                     {lancamentoSelecionado.pago
-                      ? t("categorias.status.pago")
-                      : t("categorias.status.pendente")}
+                      ? translations.categorias.status.pago
+                      : translations.categorias.status.pendente}
                   </p>
                 </div>
                 <div>
                   <Label className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-                    {t("categorias.detalhes.data")}
+                    {translations.categorias.detalhes.data}
                   </Label>
                   <p className="text-gray-900 dark:text-white mt-1 text-sm">
                     {new Date(lancamentoSelecionado.data).toLocaleDateString(
-                      "pt-BR",
+                      currentLang === "pt" ? "pt-BR" : "en-US",
                     )}
                   </p>
                 </div>
                 <div>
                   <Label className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-                    {t("categorias.detalhes.metodoPagamento")}
+                    {translations.categorias.detalhes.metodoPagamento}
                   </Label>
                   <p className="text-gray-900 dark:text-white mt-1 text-sm">
                     {lancamentoSelecionado.metodoPagamento}
@@ -2783,7 +3607,7 @@ export default function LancamentosPage() {
                 </div>
                 <div>
                   <Label className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-                    {t("categorias.detalhes.categoria")}
+                    {translations.categorias.detalhes.categoria}
                   </Label>
                   <div className="flex items-center gap-1.5 sm:gap-2 mt-1">
                     <div
@@ -2800,7 +3624,7 @@ export default function LancamentosPage() {
                 {lancamentoSelecionado.cartao && (
                   <div>
                     <Label className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-                      {t("categorias.detalhes.cartao")}
+                      {translations.categorias.detalhes.cartao}
                     </Label>
                     <p className="text-gray-900 dark:text-white mt-1 text-sm">
                       {lancamentoSelecionado.cartao.nome}
@@ -2812,7 +3636,7 @@ export default function LancamentosPage() {
               {lancamentoSelecionado.observacoes && (
                 <div>
                   <Label className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-                    {t("categorias.detalhes.observacoes")}
+                    {translations.categorias.detalhes.observacoes}
                   </Label>
                   <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 p-3 rounded-md mt-1 text-sm">
                     {lancamentoSelecionado.observacoes}
@@ -2823,12 +3647,12 @@ export default function LancamentosPage() {
               {lancamentoSelecionado.recorrente && (
                 <div className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50/50 dark:bg-gray-800/30">
                   <Label className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-                    {t("categorias.detalhes.recorrente")}
+                    {translations.categorias.detalhes.recorrente}
                   </Label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-2">
                     <div>
                       <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-                        {t("categorias.detalhes.parcelamento")}
+                        {translations.categorias.detalhes.parcelamento}
                       </p>
                       <p className="text-gray-900 dark:text-white mt-1 text-sm">
                         {lancamentoSelecionado.tipoParcelamento}
@@ -2837,7 +3661,7 @@ export default function LancamentosPage() {
                     {lancamentoSelecionado.parcelasTotal && (
                       <div>
                         <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
-                          {t("categorias.detalhes.parcelasTotal")}
+                          {translations.categorias.detalhes.parcelasTotal}
                         </p>
                         <p className="text-gray-900 dark:text-white mt-1 text-sm">
                           {lancamentoSelecionado.parcelaAtual}/
@@ -2854,12 +3678,11 @@ export default function LancamentosPage() {
       </Dialog>
 
       {/* Dialog para Editar Lançamento */}
-      {/* Dialog para Editar Lançamento */}
       <Dialog open={mostrarDialogEditar} onOpenChange={setMostrarDialogEditar}>
         <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white w-[90vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-gray-900 dark:text-white text-lg">
-              {t("categorias.formulario.tituloEditar")}
+              {translations.categorias.formulario.tituloEditar}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleAtualizar} className="space-y-4">
@@ -2870,7 +3693,7 @@ export default function LancamentosPage() {
                   htmlFor="tipo"
                   className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                 >
-                  {t("categorias.formulario.tipo")} *
+                  {translations.categorias.formulario.tipo} *
                 </Label>
                 <Select
                   value={formData.tipo}
@@ -2879,15 +3702,15 @@ export default function LancamentosPage() {
                 >
                   <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
                     <SelectValue
-                      placeholder={t("categorias.formulario.selecione")}
+                      placeholder={translations.categorias.formulario.selecione}
                     />
                   </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
                     <SelectItem value="receita">
-                      {t("categorias.filtros.receita")}
+                      {translations.categorias.filtros.receita}
                     </SelectItem>
                     <SelectItem value="despesa">
-                      {t("categorias.filtros.despesa")}
+                      {translations.categorias.filtros.despesa}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -2898,7 +3721,7 @@ export default function LancamentosPage() {
                   htmlFor="categoria"
                   className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                 >
-                  {t("categorias.formulario.categoria")} *
+                  {translations.categorias.formulario.categoria} *
                 </Label>
                 <Select
                   value={formData.categoria}
@@ -2910,8 +3733,8 @@ export default function LancamentosPage() {
                     <SelectValue
                       placeholder={
                         !formData.tipo
-                          ? t("categorias.formulario.selecione")
-                          : t("categorias.formulario.selecione")
+                          ? translations.categorias.formulario.selecione
+                          : translations.categorias.formulario.selecione
                       }
                     />
                   </SelectTrigger>
@@ -2944,13 +3767,15 @@ export default function LancamentosPage() {
                 htmlFor="descricao"
                 className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
               >
-                {t("categorias.formulario.descricao")} *
+                {translations.categorias.formulario.descricao} *
               </Label>
               <Input
                 id="descricao"
                 value={formData.descricao}
                 onChange={(e) => handleChange("descricao", e.target.value)}
-                placeholder={t("categorias.formulario.placeholderDescricao")}
+                placeholder={
+                  translations.categorias.formulario.placeholderDescricao
+                }
                 required
                 className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-sm"
               />
@@ -2961,7 +3786,7 @@ export default function LancamentosPage() {
                 htmlFor="valor"
                 className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
               >
-                {t("categorias.formulario.valor")} *
+                {translations.categorias.formulario.valor} *
               </Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">
@@ -2974,7 +3799,9 @@ export default function LancamentosPage() {
                   min="0"
                   value={formData.valor}
                   onChange={(e) => handleChange("valor", e.target.value)}
-                  placeholder={t("categorias.formulario.placeholderValor")}
+                  placeholder={
+                    translations.categorias.formulario.placeholderValor
+                  }
                   required
                   className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-sm pl-9"
                 />
@@ -2988,7 +3815,7 @@ export default function LancamentosPage() {
                   htmlFor="tipoTransacao"
                   className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                 >
-                  {t("categorias.formulario.metodoPagamento")} *
+                  {translations.categorias.formulario.metodoPagamento} *
                 </Label>
                 <Select
                   value={formData.tipoTransacao}
@@ -2999,28 +3826,39 @@ export default function LancamentosPage() {
                 >
                   <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
                     <SelectValue
-                      placeholder={t("categorias.formulario.selecione")}
+                      placeholder={translations.categorias.formulario.selecione}
                     />
                   </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
                     <SelectItem value="DINHEIRO">
-                      {t(
-                        "categorias.formulario.opcoesMetodoPagamento.dinheiro",
-                      )}
+                      {
+                        translations.categorias.formulario.opcoesMetodoPagamento
+                          .dinheiro
+                      }
                     </SelectItem>
                     <SelectItem value="PIX">
-                      {t("categorias.formulario.opcoesMetodoPagamento.pix")}
+                      {
+                        translations.categorias.formulario.opcoesMetodoPagamento
+                          .pix
+                      }
                     </SelectItem>
                     <SelectItem value="CARTAO_DEBITO">
-                      {t("categorias.formulario.opcoesMetodoPagamento.debito")}
+                      {
+                        translations.categorias.formulario.opcoesMetodoPagamento
+                          .debito
+                      }
                     </SelectItem>
                     <SelectItem value="CARTAO_CREDITO">
-                      {t("categorias.formulario.opcoesMetodoPagamento.credito")}
+                      {
+                        translations.categorias.formulario.opcoesMetodoPagamento
+                          .credito
+                      }
                     </SelectItem>
                     <SelectItem value="TRANSFERENCIA">
-                      {t(
-                        "categorias.formulario.opcoesMetodoPagamento.transferencia",
-                      )}
+                      {
+                        translations.categorias.formulario.opcoesMetodoPagamento
+                          .transferencia
+                      }
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -3031,7 +3869,7 @@ export default function LancamentosPage() {
                   htmlFor="tipoLancamento"
                   className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm"
                 >
-                  {t("categorias.formulario.tipoLancamento")} *
+                  {translations.categorias.formulario.tipoLancamento} *
                 </Label>
                 <Select
                   value={formData.tipoLancamento}
@@ -3043,15 +3881,15 @@ export default function LancamentosPage() {
                 >
                   <SelectTrigger className="bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10 cursor-not-allowed">
                     <SelectValue
-                      placeholder={t("categorias.formulario.selecione")}
+                      placeholder={translations.categorias.formulario.selecione}
                     />
                   </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
                     <SelectItem value="individual">
-                      {t("categorias.filtros.individual")}
+                      {translations.categorias.filtros.individual}
                     </SelectItem>
                     <SelectItem value="compartilhado">
-                      {t("categorias.filtros.compartilhado")}
+                      {translations.categorias.filtros.compartilhado}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -3065,14 +3903,14 @@ export default function LancamentosPage() {
                   <div className="flex items-center gap-2 mb-2">
                     <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     <Label className="text-blue-900 dark:text-blue-300 text-sm font-semibold">
-                      {t("categorias.detalhes.compartilhamento")}
+                      {translations.categorias.detalhes.compartilhamento}
                     </Label>
                   </div>
 
                   {/* Usuário Compartilhado */}
                   <div className="p-3 border border-blue-200 dark:border-blue-700 bg-white dark:bg-gray-800 rounded-md">
                     <Label className="text-gray-600 dark:text-gray-400 text-xs mb-2 block">
-                      {t("categorias.formulario.usuarioAlvo")}
+                      {translations.categorias.formulario.usuarioAlvo}
                     </Label>
                     <div className="flex items-center gap-2">
                       {lancamentoSelecionado.LancamentoCompartilhado[0]
@@ -3111,7 +3949,7 @@ export default function LancamentosPage() {
                         variant="outline"
                         className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-600"
                       >
-                        {t("categorias.status.compartilhado")}
+                        {translations.categorias.status.compartilhado}
                       </Badge>
                     </div>
                   </div>
@@ -3119,7 +3957,7 @@ export default function LancamentosPage() {
                   {/* Valor Compartilhado - SOMENTE LEITURA */}
                   <div className="space-y-2">
                     <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
-                      {t("categorias.formulario.valorCompartilhado")} (
+                      {translations.categorias.formulario.valorCompartilhado} (
                       {currencySymbol})
                     </Label>
                     <div className="relative">
@@ -3151,7 +3989,9 @@ export default function LancamentosPage() {
                           clipRule="evenodd"
                         />
                       </svg>
-                      As informações de compartilhamento não podem ser editadas
+                      {currentLang === "pt"
+                        ? "As informações de compartilhamento não podem ser editadas"
+                        : "Sharing information cannot be edited"}
                     </p>
                   </div>
                 </div>
@@ -3164,7 +4004,7 @@ export default function LancamentosPage() {
                   htmlFor="cartaoId"
                   className="text-gray-700 dark:text-gray-300 text-sm sm:text-base"
                 >
-                  {t("categorias.formulario.cartao")} *
+                  {translations.categorias.formulario.cartao} *
                 </Label>
                 <Select
                   value={formData.cartaoId}
@@ -3173,7 +4013,9 @@ export default function LancamentosPage() {
                 >
                   <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 w-full">
                     <SelectValue
-                      placeholder={t("categorias.formulario.selecioneCartao")}
+                      placeholder={
+                        translations.categorias.formulario.selecioneCartao
+                      }
                     />
                   </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 max-h-60">
@@ -3203,7 +4045,7 @@ export default function LancamentosPage() {
                 htmlFor="data"
                 className="text-gray-700 dark:text-gray-300 text-sm sm:text-base"
               >
-                {t("categorias.formulario.data")} *
+                {translations.categorias.formulario.data} *
               </Label>
               <Input
                 type="date"
@@ -3229,7 +4071,7 @@ export default function LancamentosPage() {
                   htmlFor="recorrente"
                   className="font-medium text-gray-700 dark:text-gray-300 text-sm sm:text-base"
                 >
-                  {t("categorias.formulario.recorrente")}
+                  {translations.categorias.formulario.recorrente}
                 </Label>
               </div>
 
@@ -3240,7 +4082,7 @@ export default function LancamentosPage() {
                       htmlFor="tipoRecorrencia"
                       className="text-gray-700 dark:text-gray-300 text-sm sm:text-base"
                     >
-                      {t("categorias.formulario.tipoRecorrencia")}
+                      {translations.categorias.formulario.tipoRecorrencia}
                     </Label>
                     <Select
                       value={formData.tipoRecorrencia}
@@ -3250,19 +4092,23 @@ export default function LancamentosPage() {
                     >
                       <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 w-full">
                         <SelectValue
-                          placeholder={t("categorias.formulario.selecione")}
+                          placeholder={
+                            translations.categorias.formulario.selecione
+                          }
                         />
                       </SelectTrigger>
                       <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                         <SelectItem value="RECORRENCIA">
-                          {t(
-                            "categorias.formulario.opcoesTipoRecorrencia.recorrencia",
-                          )}
+                          {
+                            translations.categorias.formulario
+                              .opcoesTipoRecorrencia.recorrencia
+                          }
                         </SelectItem>
                         <SelectItem value="PARCELAMENTO">
-                          {t(
-                            "categorias.formulario.opcoesTipoRecorrencia.parcelamento",
-                          )}
+                          {
+                            translations.categorias.formulario
+                              .opcoesTipoRecorrencia.parcelamento
+                          }
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -3274,7 +4120,7 @@ export default function LancamentosPage() {
                         htmlFor="frequencia"
                         className="text-gray-700 dark:text-gray-300 text-sm sm:text-base"
                       >
-                        {t("categorias.formulario.frequencia")}
+                        {translations.categorias.formulario.frequencia}
                       </Label>
                       <Select
                         value={formData.frequencia}
@@ -3284,12 +4130,17 @@ export default function LancamentosPage() {
                       >
                         <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 w-full">
                           <SelectValue
-                            placeholder={t("categorias.formulario.selecione")}
+                            placeholder={
+                              translations.categorias.formulario.selecione
+                            }
                           />
                         </SelectTrigger>
                         <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                           <SelectItem value="mensal">
-                            {t("categorias.formulario.opcoesFrequencia.mensal")}
+                            {
+                              translations.categorias.formulario
+                                .opcoesFrequencia.mensal
+                            }
                           </SelectItem>
                         </SelectContent>
                       </Select>
@@ -3302,7 +4153,7 @@ export default function LancamentosPage() {
                         htmlFor="parcelas"
                         className="text-gray-700 dark:text-gray-300 text-sm sm:text-base"
                       >
-                        {t("categorias.formulario.parcelas")}
+                        {translations.categorias.formulario.parcelas}
                       </Label>
                       <Input
                         id="parcelas"
@@ -3325,7 +4176,8 @@ export default function LancamentosPage() {
                         htmlFor="dataFimRecorrencia"
                         className="text-gray-700 dark:text-gray-300 text-sm sm:text-base"
                       >
-                        {t("categorias.formulario.dataFimRecorrencia")} *
+                        {translations.categorias.formulario.dataFimRecorrencia}{" "}
+                        *
                       </Label>
                       <Input
                         id="dataFimRecorrencia"
@@ -3338,7 +4190,7 @@ export default function LancamentosPage() {
                         className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 w-full"
                       />
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {t("categorias.detalhes.dataFimRecorrencia")}
+                        {translations.categorias.detalhes.dataFimRecorrencia}
                       </p>
                     </div>
                   )}
@@ -3352,13 +4204,15 @@ export default function LancamentosPage() {
                 htmlFor="observacoes"
                 className="text-gray-700 dark:text-gray-300 text-sm sm:text-base"
               >
-                {t("categorias.formulario.observacoes")}
+                {translations.categorias.formulario.observacoes}
               </Label>
               <Textarea
                 id="observacoes"
                 value={formData.observacoes}
                 onChange={(e) => handleChange("observacoes", e.target.value)}
-                placeholder={t("categorias.formulario.placeholderObservacoes")}
+                placeholder={
+                  translations.categorias.formulario.placeholderObservacoes
+                }
                 rows={3}
                 className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 w-full resize-y min-h-[80px]"
               />
@@ -3371,7 +4225,7 @@ export default function LancamentosPage() {
                 onClick={() => setMostrarDialogEditar(false)}
                 className="flex-1 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 w-full sm:w-auto"
               >
-                {t("categorias.acoes.cancelar")}
+                {translations.categorias.acoes.cancelar}
               </Button>
               <Button
                 type="submit"
@@ -3379,8 +4233,8 @@ export default function LancamentosPage() {
                 disabled={editando}
               >
                 {editando
-                  ? t("categorias.mensagens.carregando")
-                  : t("categorias.acoes.salvar")}
+                  ? translations.categorias.mensagens.carregando
+                  : translations.categorias.acoes.salvar}
               </Button>
             </div>
           </form>

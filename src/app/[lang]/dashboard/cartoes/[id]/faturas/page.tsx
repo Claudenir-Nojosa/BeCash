@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Loading } from "@/components/ui/loading-barrinhas";
+import { getFallback } from "@/lib/i18nFallback";
 
 interface Fatura {
   id: string;
@@ -76,6 +77,232 @@ export default function FaturasPage() {
   const router = useRouter();
   const { t, i18n } = useTranslation("faturas");
   const cartaoId = params.id as string;
+  const currentLang = i18n.language || "pt";
+
+  // Função auxiliar para obter tradução com fallback
+  const getTranslation = (key: string) => {
+    // Primeiro tenta usar o i18n
+    const translation = t(key);
+    if (translation && translation !== key) {
+      return translation;
+    }
+
+    // Fallback manual baseado nas chaves que você tem nos arquivos JSON
+    switch (key) {
+      // Títulos
+      case "titulos.faturasCartao":
+        return getFallback(currentLang, "Faturas do Cartão", "Card Invoices");
+
+      // Labels
+      case "labels.parcela":
+        return getFallback(currentLang, "Parcela", "Installment");
+
+      // Status
+      case "status.prevista":
+        return getFallback(currentLang, "Prevista", "Forecast");
+      case "status.paga":
+        return getFallback(currentLang, "Paga", "Paid");
+      case "status.atrasada":
+        return getFallback(currentLang, "Atrasada", "Late");
+      case "status.fechada":
+        return getFallback(currentLang, "Fechada", "Closed");
+      case "status.aberta":
+        return getFallback(currentLang, "Aberta", "Open");
+      case "status.pago":
+        return getFallback(currentLang, "Pago", "Paid");
+      case "status.pendenteBadge":
+        return getFallback(currentLang, "Pendente", "Pending");
+
+      // Seções
+      case "secoes.comprasParceladas":
+        return getFallback(
+          currentLang,
+          "Compras Parceladas",
+          "Installment Purchases",
+        );
+      case "secoes.comprasParceladasDescricao":
+        return getFallback(
+          currentLang,
+          "Compras divididas em parcelas",
+          "Purchases divided into installments",
+        );
+      case "secoes.compras":
+        return getFallback(currentLang, "Compras", "Purchases");
+      case "secoes.comprasDescricao":
+        return getFallback(
+          currentLang,
+          "Compras à vista e receitas",
+          "Cash purchases and income",
+        );
+      case "secoes.pagar":
+        return getFallback(currentLang, "Pagar", "Pay");
+
+      // Resumo
+      case "resumo.totalFatura":
+        return getFallback(currentLang, "Total da Fatura", "Total Invoice");
+      case "resumo.totalFaturaDescricao":
+        return getFallback(
+          currentLang,
+          "Soma de todos os lançamentos",
+          "Sum of all transactions",
+        );
+      case "resumo.valorPago":
+        return getFallback(currentLang, "Valor Pago", "Amount Paid");
+      case "resumo.pagamentosRealizados":
+        return getFallback(
+          currentLang,
+          "{{count}} pagamento(s) realizado(s)",
+          "{{count}} payment(s) made",
+        );
+      case "resumo.semPagamentos":
+        return getFallback(
+          currentLang,
+          "Nenhum pagamento realizado",
+          "No payments made",
+        );
+      case "resumo.pendente":
+        return getFallback(currentLang, "Pendente", "Pending");
+      case "resumo.pendenteDescricao":
+        return getFallback(
+          currentLang,
+          "Valor ainda a pagar",
+          "Amount still to pay",
+        );
+      case "resumo.quitadoDescricao":
+        return getFallback(
+          currentLang,
+          "Fatura totalmente quitada",
+          "Invoice fully paid",
+        );
+
+      // Formato
+      case "formatos.dataInvalida":
+        return getFallback(currentLang, "Data inválida", "Invalid date");
+
+      // Estados
+      case "estados.carregando":
+        return getFallback(
+          currentLang,
+          "Carregando faturas...",
+          "Loading invoices...",
+        );
+
+      // Bandeiras
+      case "bandeiras.VISA":
+        return getFallback(currentLang, "Visa", "Visa");
+      case "bandeiras.MASTERCARD":
+        return getFallback(currentLang, "Mastercard", "Mastercard");
+      case "bandeiras.ELO":
+        return getFallback(currentLang, "Elo", "Elo");
+      case "bandeiras.AMERICAN_EXPRESS":
+        return getFallback(currentLang, "American Express", "American Express");
+      case "bandeiras.HIPERCARD":
+        return getFallback(currentLang, "Hipercard", "Hipercard");
+      case "bandeiras.OUTROS":
+        return getFallback(currentLang, "Outros", "Others");
+
+      // Cartão
+      case "cartao.limite":
+        return getFallback(currentLang, "Limite", "Limit");
+
+      // Mensagens
+      case "mensagens.erroCarregarFaturas":
+        return getFallback(
+          currentLang,
+          "Erro ao carregar faturas",
+          "Error loading invoices",
+        );
+      case "mensagens.erroCarregar":
+        return getFallback(currentLang, "Erro ao carregar", "Error loading");
+      case "mensagens.nenhumaFatura":
+        return getFallback(
+          currentLang,
+          "Nenhuma fatura disponível",
+          "No invoices available",
+        );
+      case "mensagens.nenhumaFaturaDescricao":
+        return getFallback(
+          currentLang,
+          "Não há faturas para exibir neste momento",
+          "There are no invoices to display at this time",
+        );
+
+      default:
+        return key;
+    }
+  };
+
+  // Criar um objeto de traduções para fácil acesso
+  const translations = {
+    titulos: {
+      faturasCartao: getTranslation("titulos.faturasCartao"),
+    },
+
+    labels: {
+      parcela: getTranslation("labels.parcela"),
+    },
+
+    status: {
+      prevista: getTranslation("status.prevista"),
+      paga: getTranslation("status.paga"),
+      atrasada: getTranslation("status.atrasada"),
+      fechada: getTranslation("status.fechada"),
+      aberta: getTranslation("status.aberta"),
+      pago: getTranslation("status.pago"),
+      pendenteBadge: getTranslation("status.pendenteBadge"),
+    },
+
+    secoes: {
+      comprasParceladas: getTranslation("secoes.comprasParceladas"),
+      comprasParceladasDescricao: getTranslation(
+        "secoes.comprasParceladasDescricao",
+      ),
+      compras: getTranslation("secoes.compras"),
+      comprasDescricao: getTranslation("secoes.comprasDescricao"),
+      pagar: getTranslation("secoes.pagar"),
+    },
+
+    resumo: {
+      totalFatura: getTranslation("resumo.totalFatura"),
+      totalFaturaDescricao: getTranslation("resumo.totalFaturaDescricao"),
+      valorPago: getTranslation("resumo.valorPago"),
+      pagamentosRealizados: getTranslation("resumo.pagamentosRealizados"),
+      semPagamentos: getTranslation("resumo.semPagamentos"),
+      pendente: getTranslation("resumo.pendente"),
+      pendenteDescricao: getTranslation("resumo.pendenteDescricao"),
+      quitadoDescricao: getTranslation("resumo.quitadoDescricao"),
+    },
+
+    formatos: {
+      dataInvalida: getTranslation("formatos.dataInvalida"),
+    },
+
+    estados: {
+      carregando: getTranslation("estados.carregando"),
+    },
+
+    bandeiras: {
+      VISA: getTranslation("bandeiras.VISA"),
+      MASTERCARD: getTranslation("bandeiras.MASTERCARD"),
+      ELO: getTranslation("bandeiras.ELO"),
+      AMERICAN_EXPRESS: getTranslation("bandeiras.AMERICAN_EXPRESS"),
+      HIPERCARD: getTranslation("bandeiras.HIPERCARD"),
+      OUTROS: getTranslation("bandeiras.OUTROS"),
+    },
+
+    cartao: {
+      limite: getTranslation("cartao.limite"),
+    },
+
+    mensagens: {
+      erroCarregarFaturas: getTranslation("mensagens.erroCarregarFaturas"),
+      erroCarregar: getTranslation("mensagens.erroCarregar"),
+      nenhumaFatura: getTranslation("mensagens.nenhumaFatura"),
+      nenhumaFaturaDescricao: getTranslation(
+        "mensagens.nenhumaFaturaDescricao",
+      ),
+    },
+  };
 
   const [faturas, setFaturas] = useState<Fatura[]>([]);
   const [cartao, setCartao] = useState<Cartao | null>(null);
@@ -91,7 +318,7 @@ export default function FaturasPage() {
       setCarregando(true);
       const faturasResponse = await fetch(`/api/cartoes/${cartaoId}/faturas`);
       if (!faturasResponse.ok)
-        throw new Error(t("mensagens.erroCarregarFaturas"));
+        throw new Error(translations.mensagens.erroCarregarFaturas);
       const faturasData = await faturasResponse.json();
 
       // Ordenar por mês decrescente (mês mais recente primeiro)
@@ -145,7 +372,7 @@ export default function FaturasPage() {
       }
     } catch (e) {
       console.error(e);
-      toast.error(t("mensagens.erroCarregar"));
+      toast.error(translations.mensagens.erroCarregar);
     } finally {
       setCarregando(false);
     }
@@ -162,7 +389,7 @@ export default function FaturasPage() {
 
   const formatarData = (dataString: string) => {
     if (!dataString || dataString === "Invalid Date")
-      return t("formatos.dataInvalida");
+      return translations.formatos.dataInvalida;
 
     const dataPart = dataString.substring(0, 10);
     const [ano, mes, dia] = dataPart.split("-");
@@ -210,30 +437,30 @@ export default function FaturasPage() {
 
     if (f.ehPrevisao)
       return {
-        label: t("status.prevista"),
+        label: translations.status.prevista,
         cor: "bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 dark:from-blue-900/30 dark:to-cyan-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800",
         icone: Calendar,
       };
     if (f.status === "PAGA")
       return {
-        label: t("status.paga"),
+        label: translations.status.paga,
         cor: "bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 dark:from-emerald-900/30 dark:to-green-900/30 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800",
         icone: CheckCircle,
       };
     if (f.status === "FECHADA" && vencimento < hoje)
       return {
-        label: t("status.atrasada"),
+        label: translations.status.atrasada,
         cor: "bg-gradient-to-r from-rose-100 to-red-100 text-rose-800 dark:from-rose-900/30 dark:to-red-900/30 dark:text-rose-300 border border-rose-200 dark:border-rose-800",
         icone: AlertTriangle,
       };
     if (f.status === "FECHADA")
       return {
-        label: t("status.fechada"),
+        label: translations.status.fechada,
         cor: "bg-gradient-to-r from-sky-100 to-blue-100 text-sky-800 dark:from-sky-900/30 dark:to-blue-900/30 dark:text-sky-300 border border-sky-200 dark:border-sky-800",
         icone: FileText,
       };
     return {
-      label: t("status.aberta"),
+      label: translations.status.aberta,
       cor: "bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 dark:from-amber-900/30 dark:to-yellow-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800",
       icone: Clock,
     };
@@ -295,7 +522,7 @@ export default function FaturasPage() {
                 transition={{ delay: 0.3 }}
                 className="text-xl font-bold text-gray-800 dark:text-white mb-2"
               >
-                {t("mensagens.nenhumaFatura")}
+                {translations.mensagens.nenhumaFatura}
               </motion.h3>
               <motion.p
                 initial={{ opacity: 0, y: 10 }}
@@ -303,7 +530,7 @@ export default function FaturasPage() {
                 transition={{ delay: 0.4 }}
                 className="text-gray-600 dark:text-gray-400"
               >
-                {t("mensagens.nenhumaFaturaDescricao")}
+                {translations.mensagens.nenhumaFaturaDescricao}
               </motion.p>
             </div>
           </motion.div>
@@ -342,7 +569,7 @@ export default function FaturasPage() {
             </Button>
             <div className="flex-1 min-w-0">
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent truncate">
-                {t("titulos.faturasCartao")}
+                {translations.titulos.faturasCartao}
               </h1>
               {cartao && (
                 <motion.div
@@ -358,7 +585,13 @@ export default function FaturasPage() {
                   <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
                     <span className="font-medium">{cartao.nome}</span>
                     <span className="mx-1">•</span>
-                    <span>{t(`bandeiras.${cartao.bandeira}`)}</span>
+                    <span>
+                      {
+                        translations.bandeiras[
+                          cartao.bandeira as keyof typeof translations.bandeiras
+                        ]
+                      }
+                    </span>
                   </p>
                 </motion.div>
               )}
@@ -373,7 +606,7 @@ export default function FaturasPage() {
               className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 border border-gray-300 dark:border-gray-700 mt-2 sm:mt-0"
             >
               <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                {t("cartao.limite")}:{" "}
+                {translations.cartao.limite}:{" "}
                 <span className="font-bold">
                   {formatarMoeda(cartao.limite)}
                 </span>
@@ -495,7 +728,7 @@ export default function FaturasPage() {
                               dark:focus-visible:ring-blue-600
                             "
                           >
-                            {t("secoes.pagar")}
+                            {translations.secoes.pagar}
                           </motion.button>
                         )}
 
@@ -545,14 +778,14 @@ export default function FaturasPage() {
                   </motion.div>
                 </div>
                 <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 mb-1.5 sm:mb-2">
-                  {t("resumo.totalFatura")}
+                  {translations.resumo.totalFatura}
                 </p>
                 <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">
                   {formatarMoeda(faturaAtual.valorTotal)}
                 </p>
                 <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-700">
                   <p className="text-xs text-gray-500 dark:text-gray-500">
-                    {t("resumo.totalFaturaDescricao")}
+                    {translations.resumo.totalFaturaDescricao}
                   </p>
                 </div>
               </CardContent>
@@ -578,7 +811,7 @@ export default function FaturasPage() {
                   </motion.div>
                 </div>
                 <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 mb-1.5 sm:mb-2">
-                  {t("resumo.valorPago")}
+                  {translations.resumo.valorPago}
                 </p>
                 <p className="text-xl sm:text-2xl md:text-3xl font-bold text-emerald-600 dark:text-emerald-400">
                   {formatarMoeda(faturaAtual.valorPago)}
@@ -589,7 +822,7 @@ export default function FaturasPage() {
                       ? t("resumo.pagamentosRealizados", {
                           count: faturaAtual.PagamentoFatura.length,
                         })
-                      : t("resumo.semPagamentos")}
+                      : translations.resumo.semPagamentos}
                   </p>
                 </div>
               </CardContent>
@@ -630,7 +863,7 @@ export default function FaturasPage() {
                   </motion.div>
                 </div>
                 <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 mb-1.5 sm:mb-2">
-                  {t("resumo.pendente")}
+                  {translations.resumo.pendente}
                 </p>
                 <p
                   className={`
@@ -643,8 +876,8 @@ export default function FaturasPage() {
                 <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-700">
                   <p className="text-xs text-gray-500 dark:text-gray-500">
                     {pendente > 0
-                      ? t("resumo.pendenteDescricao")
-                      : t("resumo.quitadoDescricao")}
+                      ? translations.resumo.pendenteDescricao
+                      : translations.resumo.quitadoDescricao}
                   </p>
                 </div>
               </CardContent>
@@ -677,10 +910,10 @@ export default function FaturasPage() {
                         </motion.div>
                         <div className="flex-1 min-w-0">
                           <CardTitle className="text-gray-800 dark:text-white text-sm sm:text-base truncate">
-                            {t("secoes.comprasParceladas")}
+                            {translations.secoes.comprasParceladas}
                           </CardTitle>
                           <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 truncate">
-                            {t("secoes.comprasParceladasDescricao")}
+                            {translations.secoes.comprasParceladasDescricao}
                           </p>
                         </div>
                       </div>
@@ -737,7 +970,7 @@ export default function FaturasPage() {
                               </p>
                               <div className="flex items-center gap-2 mt-0.5">
                                 <p className="text-xs text-gray-500 dark:text-gray-500 whitespace-nowrap">
-                                  {t("labels.parcela")}{" "}
+                                  {translations.labels.parcela}{" "}
                                   {lancamento.parcelaAtual}
                                 </p>
                                 <span className="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 whitespace-nowrap text-xs sm:hidden">
@@ -779,10 +1012,10 @@ export default function FaturasPage() {
                         </motion.div>
                         <div className="flex-1 min-w-0">
                           <CardTitle className="text-gray-800 dark:text-white text-sm sm:text-base truncate">
-                            {t("secoes.compras")}
+                            {translations.secoes.compras}
                           </CardTitle>
                           <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 truncate">
-                            {t("secoes.comprasDescricao")}
+                            {translations.secoes.comprasDescricao}
                           </p>
                         </div>
                       </div>
@@ -885,8 +1118,8 @@ export default function FaturasPage() {
                                   } hidden sm:inline-flex`}
                                 >
                                   {lancamento.pago
-                                    ? t("status.pago")
-                                    : t("status.pendenteBadge")}
+                                    ? translations.status.pago
+                                    : translations.status.pendenteBadge}
                                 </Badge>
                               </div>
                             </div>

@@ -13,6 +13,7 @@ import { useRouter, useParams } from "next/navigation";
 import { Icons } from "./loadingSpinner";
 import { useTranslation } from "react-i18next";
 import { signIn } from "next-auth/react";
+import { getFallback } from "@/lib/i18nFallback";
 
 interface RegisterFormProps {
   lang?: string;
@@ -21,8 +22,82 @@ interface RegisterFormProps {
 export default function RegisterForm({ lang }: RegisterFormProps) {
   const params = useParams();
   const { t } = useTranslation("register");
-
   const currentLang = lang || (params?.lang as string) || "pt";
+  
+  // Função auxiliar para obter tradução com fallback
+  const getTranslation = (key: string) => {
+    // Primeiro tenta usar o i18n
+    const translation = t(key);
+    if (translation && translation !== key) {
+      return translation;
+    }
+
+    // Fallback manual baseado nas chaves
+    switch (key) {
+      // Labels e placeholders
+      case "formulario.nome":
+        return getFallback(currentLang, "Nome", "Name");
+      case "formulario.placeholderNome":
+        return getFallback(currentLang, "Fulano de Tal", "John Doe");
+      
+      case "formulario.email":
+        return getFallback(currentLang, "Email", "Email");
+      case "formulario.placeholderEmail":
+        return getFallback(currentLang, "eu@exemplo.com", "you@example.com");
+      
+      case "formulario.senha":
+        return getFallback(currentLang, "Senha", "Password");
+      case "formulario.placeholderSenha":
+        return getFallback(currentLang, "********", "********");
+      case "formulario.dicaSenha":
+        return getFallback(currentLang, "Mínimo 6 caracteres", "Minimum 6 characters");
+      
+      // Botões
+      case "botoes.registrar":
+        return getFallback(currentLang, "Registrar", "Register");
+      case "botoes.registrando":
+        return getFallback(currentLang, "Registrando...", "Registering...");
+      
+      // Mensagens de sucesso/erro
+      case "mensagens.sucesso":
+        return getFallback(currentLang, "Registro realizado com sucesso! Redirecionando...", "Registration successful! Redirecting...");
+      case "mensagens.erroDuplicado":
+        return getFallback(currentLang, "Este email já está cadastrado", "This email is already registered");
+      case "mensagens.erroGenerico":
+        return getFallback(currentLang, "Ocorreu um erro ao registrar. Tente novamente.", "An error occurred during registration. Please try again.");
+      case "mensagens.registroConcluido":
+        return getFallback(currentLang, "Registro concluído! Faça login para continuar.", "Registration completed! Please log in to continue.");
+      case "mensagens.erroLoginAuto":
+        return getFallback(currentLang, "Erro no login automático", "Error in automatic login");
+      
+      default:
+        return key;
+    }
+  };
+
+  // Criar objeto de traduções
+  const translations = {
+    formulario: {
+      nome: getTranslation("formulario.nome"),
+      placeholderNome: getTranslation("formulario.placeholderNome"),
+      email: getTranslation("formulario.email"),
+      placeholderEmail: getTranslation("formulario.placeholderEmail"),
+      senha: getTranslation("formulario.senha"),
+      placeholderSenha: getTranslation("formulario.placeholderSenha"),
+      dicaSenha: getTranslation("formulario.dicaSenha"),
+    },
+    botoes: {
+      registrar: getTranslation("botoes.registrar"),
+      registrando: getTranslation("botoes.registrando"),
+    },
+    mensagens: {
+      sucesso: getTranslation("mensagens.sucesso"),
+      erroDuplicado: getTranslation("mensagens.erroDuplicado"),
+      erroGenerico: getTranslation("mensagens.erroGenerico"),
+      registroConcluido: getTranslation("mensagens.registroConcluido"),
+      erroLoginAuto: getTranslation("mensagens.erroLoginAuto"),
+    },
+  };
 
   const [state, formAction, isPending] = useActionState(registerAction, null);
   const [hasShownToast, setHasShownToast] = useState(false);
@@ -44,7 +119,7 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
 
       if (result?.error) {
         console.error("Erro no login automático:", result.error);
-        toast.error("Registro concluído! Faça login para continuar.");
+        toast.error(translations.mensagens.registroConcluido);
         // Redirecionar para página de login
         setTimeout(() => {
           router.push(
@@ -58,7 +133,7 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
       }
     } catch (error) {
       console.error("Erro no login automático:", error);
-      toast.error("Registro concluído! Faça login para continuar.");
+      toast.error(translations.mensagens.registroConcluido);
       setTimeout(() => {
         router.push(`/${currentLang}/login?email=${encodeURIComponent(email)}`);
       }, 2000);
@@ -71,7 +146,7 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
         toast.error(state.message);
         setHasShownToast(true);
       } else if (state.success === true) {
-        toast.success(state.message);
+        toast.success(translations.mensagens.sucesso);
         setHasShownToast(true);
 
         // 🆕 Se registro foi bem-sucedido, fazer login automático
@@ -88,7 +163,7 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
         }
       }
     }
-  }, [state, hasShownToast, router, currentLang]);
+  }, [state, hasShownToast, router, currentLang, translations.mensagens]);
 
   useEffect(() => {
     if (!isPending) {
@@ -104,12 +179,12 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
         <div className="space-y-4">
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {t("fields.name.label")}
+              {translations.formulario.nome}
             </Label>
             <Input
               type="text"
               name="name"
-              placeholder={t("fields.name.placeholder")}
+              placeholder={translations.formulario.placeholderNome}
               className="w-full"
               required
               disabled={isPending}
@@ -118,12 +193,12 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
 
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {t("fields.email.label")}
+              {translations.formulario.email}
             </Label>
             <Input
               type="email"
               name="email"
-              placeholder={t("fields.email.placeholder")}
+              placeholder={translations.formulario.placeholderEmail}
               className="w-full"
               required
               disabled={isPending}
@@ -132,19 +207,19 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
 
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {t("fields.password.label")}
+              {translations.formulario.senha}
             </Label>
             <Input
               type="password"
               name="password"
-              placeholder={t("fields.password.placeholder")}
+              placeholder={translations.formulario.placeholderSenha}
               className="w-full"
               required
               disabled={isPending}
               minLength={6}
             />
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              {t("fields.password.hint", "Mínimo 6 caracteres")}
+              {translations.formulario.dicaSenha}
             </p>
           </div>
 
@@ -156,10 +231,10 @@ export default function RegisterForm({ lang }: RegisterFormProps) {
             {isPending ? (
               <>
                 <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                {t("buttons.registering")}
+                {translations.botoes.registrando}
               </>
             ) : (
-              t("buttons.register")
+              translations.botoes.registrar
             )}
           </Button>
         </div>

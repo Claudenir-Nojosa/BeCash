@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Image from "next/image";
+import { getFallback } from "@/lib/i18nFallback";
 
 interface PhoneInfo {
   temTelefoneVinculado: boolean;
@@ -59,7 +60,388 @@ interface PhoneInfo {
 export default function VincularTelefone() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const params = useParams();
   const { t, i18n } = useTranslation("vincularTelefone");
+  const currentLang = (params?.lang as string) || "pt";
+
+  // Função auxiliar para obter tradução com fallback
+  const getTranslation = (key: string) => {
+    // Primeiro tenta usar o i18n
+    const translation = t(key);
+    if (translation && translation !== key) {
+      return translation;
+    }
+
+    // Fallback manual baseado nas chaves que você tem nos arquivos JSON
+    switch (key) {
+      // Títulos
+      case "titulo":
+        return getFallback(currentLang, "Vincular Telefone", "Link Phone");
+      case "subtitulo":
+        return getFallback(
+          currentLang,
+          "Conecte seu telefone para receber notificações",
+          "Connect your phone to receive notifications",
+        );
+
+      // Formulário
+      case "formulario.labelTelefone":
+        return getFallback(currentLang, "Número de telefone", "Phone number");
+      case "formulario.placeholderTelefone":
+        return getFallback(currentLang, "(11) 99999-9999", "(11) 99999-9999");
+      case "formulario.instrucaoTelefone":
+        return getFallback(
+          currentLang,
+          "Digite seu número com DDD",
+          "Enter your number with area code",
+        );
+      case "formulario.labelIdioma":
+        return getFallback(
+          currentLang,
+          "Idioma preferido para notificações",
+          "Preferred language for notifications",
+        );
+      case "formulario.placeholderIdioma":
+        return getFallback(
+          currentLang,
+          "Selecione um idioma",
+          "Select a language",
+        );
+      case "formulario.instrucaoIdioma":
+        return getFallback(
+          currentLang,
+          "Esta configuração define o idioma das mensagens que você receberá.",
+          "This setting defines the language of the messages you will receive.",
+        );
+
+      // Botões
+      case "botoes.vincularTelefone":
+        return getFallback(currentLang, "Vincular Telefone", "Link Phone");
+      case "botoes.desvincular":
+        return getFallback(currentLang, "Desvincular", "Unlink");
+      case "botoes.salvarIdioma":
+        return getFallback(currentLang, "Salvar Idioma", "Save Language");
+      case "botoes.cancelar":
+        return getFallback(currentLang, "Cancelar", "Cancel");
+      case "botoes.desconectar":
+        return getFallback(currentLang, "Desconectar", "Disconnect");
+
+      // Estados
+      case "estados.vinculando":
+        return getFallback(currentLang, "Vinculando...", "Linking...");
+      case "estados.desvinculando":
+        return getFallback(currentLang, "Desvinculando...", "Unlinking...");
+      case "estados.salvando":
+        return getFallback(currentLang, "Salvando...", "Saving...");
+      case "estados.salvandoConfiguracao":
+        return getFallback(
+          currentLang,
+          "Salvando configuração...",
+          "Saving configuration...",
+        );
+      case "estados.processando":
+        return getFallback(currentLang, "Processando...", "Processing...");
+
+      // Mensagens
+      case "mensagens.erroCarregar":
+        return getFallback(
+          currentLang,
+          "Erro ao carregar informações",
+          "Error loading information",
+        );
+      case "mensagens.erroConfiguracoes":
+        return getFallback(
+          currentLang,
+          "Erro ao carregar configurações",
+          "Error loading settings",
+        );
+      case "mensagens.idiomaSalvo":
+        return getFallback(
+          currentLang,
+          "Idioma salvo com sucesso!",
+          "Language saved successfully!",
+        );
+      case "mensagens.jaVinculado":
+        return getFallback(
+          currentLang,
+          "Você já possui um telefone vinculado. Desvincule primeiro para adicionar outro.",
+          "You already have a linked phone. Unlink first to add another.",
+        );
+      case "mensagens.vinculadoSucesso":
+        return getFallback(
+          currentLang,
+          "Telefone vinculado com sucesso!",
+          "Phone linked successfully!",
+        );
+      case "mensagens.desvinculadoSucesso":
+        return getFallback(
+          currentLang,
+          "Telefone desvinculado com sucesso!",
+          "Phone unlinked successfully!",
+        );
+
+      // Erros
+      case "erros.salvarIdioma":
+        return getFallback(currentLang, "Erro ao salvar idioma", "Error saving language");
+      case "erros.vincularTelefone":
+        return getFallback(
+          currentLang,
+          "Erro ao vincular telefone",
+          "Error linking phone",
+        );
+      case "erros.desvincularTelefone":
+        return getFallback(
+          currentLang,
+          "Erro ao desvincular telefone",
+          "Error unlinking phone",
+        );
+
+      // Labels
+      case "labels.usuario":
+        return getFallback(currentLang, "Usuário", "User");
+
+      // Idiomas
+      case "idiomas.portugues":
+        return getFallback(currentLang, "Português (Brasil)", "Portuguese (Brazil)");
+      case "idiomas.ingles":
+        return getFallback(currentLang, "English (US)", "English (US)");
+
+      // Cartões - Telefone Vinculado
+      case "cartoes.telefoneVinculado.titulo":
+        return getFallback(currentLang, "Telefone Vinculado", "Linked Phone");
+      case "cartoes.telefoneVinculado.descricao":
+        return getFallback(
+          currentLang,
+          "Seu telefone está vinculado e pronto para receber notificações.",
+          "Your phone is linked and ready to receive notifications.",
+        );
+
+      // Cartões - Segurança
+      case "cartoes.seguranca.titulo":
+        return getFallback(currentLang, "Segurança", "Security");
+      case "cartoes.seguranca.descricao":
+        return getFallback(
+          currentLang,
+          "Seu telefone está protegido e não será compartilhado com terceiros.",
+          "Your phone is protected and will not be shared with third parties.",
+        );
+
+      // Cartões - Vincular Telefone
+      case "cartoes.vincularTelefone.titulo":
+        return getFallback(currentLang, "Vincular Telefone", "Link Phone");
+      case "cartoes.vincularTelefone.descricao":
+        return getFallback(
+          currentLang,
+          "Adicione seu número para receber notificações",
+          "Add your number to receive notifications",
+        );
+
+      // Cartões - Idioma
+      case "cartoes.idioma.titulo":
+        return getFallback(
+          currentLang,
+          "Preferência de Idioma",
+          "Language Preference",
+        );
+      case "cartoes.idioma.descricao":
+        return getFallback(
+          currentLang,
+          "Escolha o idioma das suas notificações",
+          "Choose your notification language",
+        );
+      case "cartoes.idioma.atualSalvo":
+        return getFallback(
+          currentLang,
+          "Idioma atual salvo:",
+          "Current saved language:",
+        );
+
+      // Benefícios
+      case "beneficios.titulo":
+        return getFallback(currentLang, "Por que conectar?", "Why connect?");
+      case "beneficios.subtitulo":
+        return getFallback(
+          currentLang,
+          "Vantagens de usar o WhatsApp",
+          "Advantages of using WhatsApp",
+        );
+      case "beneficios.alertas.titulo":
+        return getFallback(currentLang, "Alertas Instantâneos", "Instant Alerts");
+      case "beneficios.alertas.descricao":
+        return getFallback(
+          currentLang,
+          "Receba notificações em tempo real sobre seus lançamentos",
+          "Receive real-time notifications about your transactions",
+        );
+      case "beneficios.comandos.titulo":
+        return getFallback(currentLang, "Comandos por Voz", "Voice Commands");
+      case "beneficios.comandos.descricao":
+        return getFallback(
+          currentLang,
+          "Registre gastos usando áudio - rápido e prático",
+          "Record expenses using audio - fast and practical",
+        );
+      case "beneficios.acesso.titulo":
+        return getFallback(currentLang, "Acesso Rápido", "Quick Access");
+      case "beneficios.acesso.descricao":
+        return getFallback(
+          currentLang,
+          "Consulte informações importantes sem abrir o app",
+          "Check important information without opening the app",
+        );
+      case "beneficios.seguranca.titulo":
+        return getFallback(currentLang, "Segurança Total", "Total Security");
+      case "beneficios.seguranca.descricao":
+        return getFallback(
+          currentLang,
+          "Seu número é protegido com criptografia de ponta",
+          "Your number is protected with state-of-the-art encryption",
+        );
+
+      // Privacidade
+      case "privacidade.titulo":
+        return getFallback(currentLang, "Sua Privacidade", "Your Privacy");
+      case "privacidade.descricao":
+        return getFallback(
+          currentLang,
+          "Usamos seu número apenas para enviar notificações. Nunca faremos spam ou compartilharemos seus dados.",
+          "We use your number only to send notifications. We will never spam or share your data.",
+        );
+      case "privacidade.criptografia":
+        return getFallback(
+          currentLang,
+          "Protegido por criptografia de ponta a ponta",
+          "Protected by end-to-end encryption",
+        );
+
+      // Confirmação
+      case "confirmacao.titulo":
+        return getFallback(currentLang, "Desconectar WhatsApp", "Disconnect WhatsApp");
+      case "confirmacao.descricao":
+        return getFallback(
+          currentLang,
+          "Tem certeza que deseja desconectar o número {{telefone}}?",
+          "Are you sure you want to disconnect the number {{telefone}}?",
+        );
+      case "confirmacao.aviso":
+        return getFallback(
+          currentLang,
+          "Você não conseguirá realizar os lançamentos via Whatsapp até conectar novamente.",
+          "You will not be able to make transactions via WhatsApp until you connect again.",
+        );
+
+      default:
+        return key;
+    }
+  };
+
+  // Criar um objeto de traduções para fácil acesso
+  const translations = {
+    titulo: getTranslation("titulo"),
+    subtitulo: getTranslation("subtitulo"),
+
+    formulario: {
+      labelTelefone: getTranslation("formulario.labelTelefone"),
+      placeholderTelefone: getTranslation("formulario.placeholderTelefone"),
+      instrucaoTelefone: getTranslation("formulario.instrucaoTelefone"),
+      labelIdioma: getTranslation("formulario.labelIdioma"),
+      placeholderIdioma: getTranslation("formulario.placeholderIdioma"),
+      instrucaoIdioma: getTranslation("formulario.instrucaoIdioma"),
+    },
+
+    botoes: {
+      vincularTelefone: getTranslation("botoes.vincularTelefone"),
+      desvincular: getTranslation("botoes.desvincular"),
+      salvarIdioma: getTranslation("botoes.salvarIdioma"),
+      cancelar: getTranslation("botoes.cancelar"),
+      desconectar: getTranslation("botoes.desconectar"),
+    },
+
+    estados: {
+      vinculando: getTranslation("estados.vinculando"),
+      desvinculando: getTranslation("estados.desvinculando"),
+      salvando: getTranslation("estados.salvando"),
+      salvandoConfiguracao: getTranslation("estados.salvandoConfiguracao"),
+      processando: getTranslation("estados.processando"),
+    },
+
+    mensagens: {
+      erroCarregar: getTranslation("mensagens.erroCarregar"),
+      erroConfiguracoes: getTranslation("mensagens.erroConfiguracoes"),
+      idiomaSalvo: getTranslation("mensagens.idiomaSalvo"),
+      jaVinculado: getTranslation("mensagens.jaVinculado"),
+      vinculadoSucesso: getTranslation("mensagens.vinculadoSucesso"),
+      desvinculadoSucesso: getTranslation("mensagens.desvinculadoSucesso"),
+    },
+
+    erros: {
+      salvarIdioma: getTranslation("erros.salvarIdioma"),
+      vincularTelefone: getTranslation("erros.vincularTelefone"),
+      desvincularTelefone: getTranslation("erros.desvincularTelefone"),
+    },
+
+    labels: {
+      usuario: getTranslation("labels.usuario"),
+    },
+
+    idiomas: {
+      portugues: getTranslation("idiomas.portugues"),
+      ingles: getTranslation("idiomas.ingles"),
+    },
+
+    cartoes: {
+      telefoneVinculado: {
+        titulo: getTranslation("cartoes.telefoneVinculado.titulo"),
+        descricao: getTranslation("cartoes.telefoneVinculado.descricao"),
+      },
+      seguranca: {
+        titulo: getTranslation("cartoes.seguranca.titulo"),
+        descricao: getTranslation("cartoes.seguranca.descricao"),
+      },
+      vincularTelefone: {
+        titulo: getTranslation("cartoes.vincularTelefone.titulo"),
+        descricao: getTranslation("cartoes.vincularTelefone.descricao"),
+      },
+      idioma: {
+        titulo: getTranslation("cartoes.idioma.titulo"),
+        descricao: getTranslation("cartoes.idioma.descricao"),
+        atualSalvo: getTranslation("cartoes.idioma.atualSalvo"),
+      },
+    },
+
+    beneficios: {
+      titulo: getTranslation("beneficios.titulo"),
+      subtitulo: getTranslation("beneficios.subtitulo"),
+      alertas: {
+        titulo: getTranslation("beneficios.alertas.titulo"),
+        descricao: getTranslation("beneficios.alertas.descricao"),
+      },
+      comandos: {
+        titulo: getTranslation("beneficios.comandos.titulo"),
+        descricao: getTranslation("beneficios.comandos.descricao"),
+      },
+      acesso: {
+        titulo: getTranslation("beneficios.acesso.titulo"),
+        descricao: getTranslation("beneficios.acesso.descricao"),
+      },
+      seguranca: {
+        titulo: getTranslation("beneficios.seguranca.titulo"),
+        descricao: getTranslation("beneficios.seguranca.descricao"),
+      },
+    },
+
+    privacidade: {
+      titulo: getTranslation("privacidade.titulo"),
+      descricao: getTranslation("privacidade.descricao"),
+      criptografia: getTranslation("privacidade.criptografia"),
+    },
+
+    confirmacao: {
+      titulo: getTranslation("confirmacao.titulo"),
+      descricao: getTranslation("confirmacao.descricao"),
+      aviso: getTranslation("confirmacao.aviso"),
+    },
+  };
 
   const [phoneInfo, setPhoneInfo] = useState<PhoneInfo | null>(null);
   const [telefone, setTelefone] = useState("");
@@ -88,14 +470,14 @@ export default function VincularTelefone() {
       if (data.success) {
         setPhoneInfo(data);
       } else {
-        setMessage({ type: "error", text: t("mensagens.erroCarregar") });
+        setMessage({ type: "error", text: translations.mensagens.erroCarregar });
       }
     } catch (error) {
-      setMessage({ type: "error", text: t("mensagens.erroCarregar") });
+      setMessage({ type: "error", text: translations.mensagens.erroCarregar });
     } finally {
       setLoadingPhoneInfo(false);
     }
-  }, [t]);
+  }, [translations.mensagens.erroCarregar]);
 
   const fetchUserConfig = useCallback(async () => {
     try {
@@ -107,9 +489,9 @@ export default function VincularTelefone() {
         setSavedLanguage(data.configuracoes.idioma || "pt-BR");
       }
     } catch (error) {
-      console.error(t("mensagens.erroConfiguracoes"), error);
+      console.error(translations.mensagens.erroConfiguracoes, error);
     }
-  }, [t]);
+  }, [translations.mensagens.erroConfiguracoes]);
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -137,16 +519,16 @@ export default function VincularTelefone() {
         setSavedLanguage(selectedLanguage);
         setMessage({
           type: "success",
-          text: t("mensagens.idiomaSalvo"),
+          text: translations.mensagens.idiomaSalvo,
         });
       } else {
         setMessage({
           type: "error",
-          text: data.error || t("erros.salvarIdioma"),
+          text: data.error || translations.erros.salvarIdioma,
         });
       }
     } catch (error) {
-      setMessage({ type: "error", text: t("erros.salvarIdioma") });
+      setMessage({ type: "error", text: translations.erros.salvarIdioma });
     } finally {
       setSavingLanguage(false);
     }
@@ -167,7 +549,7 @@ export default function VincularTelefone() {
     if (phoneInfo?.temTelefoneVinculado) {
       setMessage({
         type: "error",
-        text: t("mensagens.jaVinculado"),
+        text: translations.mensagens.jaVinculado,
       });
       return;
     }
@@ -189,7 +571,7 @@ export default function VincularTelefone() {
       if (data.success) {
         setMessage({
           type: "success",
-          text: t("mensagens.vinculadoSucesso"),
+          text: translations.mensagens.vinculadoSucesso,
         });
         setTelefone("");
         await fetchPhoneInfo();
@@ -200,11 +582,11 @@ export default function VincularTelefone() {
       } else {
         setMessage({
           type: "error",
-          text: data.error || t("erros.vincularTelefone"),
+          text: data.error || translations.erros.vincularTelefone,
         });
       }
     } catch (error) {
-      setMessage({ type: "error", text: t("erros.vincularTelefone") });
+      setMessage({ type: "error", text: translations.erros.vincularTelefone });
     } finally {
       setLoading(false);
     }
@@ -222,17 +604,17 @@ export default function VincularTelefone() {
       if (data.success) {
         setMessage({
           type: "success",
-          text: t("mensagens.desvinculadoSucesso"),
+          text: translations.mensagens.desvinculadoSucesso,
         });
         await fetchPhoneInfo();
       } else {
         setMessage({
           type: "error",
-          text: data.error || t("erros.desvincularTelefone"),
+          text: data.error || translations.erros.desvincularTelefone,
         });
       }
     } catch (error) {
-      setMessage({ type: "error", text: t("erros.desvincularTelefone") });
+      setMessage({ type: "error", text: translations.erros.desvincularTelefone });
     } finally {
       setIsDeleting(false);
       setShowDeleteDialog(false);
@@ -282,10 +664,10 @@ export default function VincularTelefone() {
             <div className="flex items-center gap-3 sm:gap-4">
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-                  {t("titulo")}
+                  {translations.titulo}
                 </h1>
                 <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                  {t("subtitulo")}
+                  {translations.subtitulo}
                 </p>
               </div>
             </div>
@@ -315,7 +697,7 @@ export default function VincularTelefone() {
                             height={20}
                             className="h-6 w-6 sm:h-5 sm:w-5"
                           />
-                          {t("cartoes.telefoneVinculado.titulo")}
+                          {translations.cartoes.telefoneVinculado.titulo}
                         </div>
                         <Button
                           variant="outline"
@@ -327,18 +709,18 @@ export default function VincularTelefone() {
                           {isDeleting ? (
                             <div className="flex items-center gap-2">
                               <div className="w-3 h-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-                              {t("estados.desvinculando")}
+                              {translations.estados.desvinculando}
                             </div>
                           ) : (
                             <>
                               <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                              {t("botoes.desvincular")}
+                              {translations.botoes.desvincular}
                             </>
                           )}
                         </Button>
                       </CardTitle>
                       <CardDescription className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                        {t("cartoes.telefoneVinculado.descricao")}
+                        {translations.cartoes.telefoneVinculado.descricao}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="p-4 sm:p-6 pt-0">
@@ -355,7 +737,7 @@ export default function VincularTelefone() {
                             </div>
                             <div>
                               <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                {phoneInfo.usuario.name || t("labels.usuario")}
+                                {phoneInfo.usuario.name || translations.labels.usuario}
                               </p>
                               <p className="text-lg font-bold text-green-700 dark:text-green-400">
                                 {formatPhoneForDisplay(phoneInfo.telefone)}
@@ -377,10 +759,10 @@ export default function VincularTelefone() {
                             <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
                             <div>
                               <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                {t("cartoes.seguranca.titulo")}
+                                {translations.cartoes.seguranca.titulo}
                               </p>
                               <p className="text-sm text-gray-600 dark:text-gray-400">
-                                {t("cartoes.seguranca.descricao")}
+                                {translations.cartoes.seguranca.descricao}
                               </p>
                             </div>
                           </div>
@@ -403,10 +785,10 @@ export default function VincularTelefone() {
                     <CardHeader className="p-4 sm:p-6">
                       <CardTitle className="flex items-center gap-2 text-lg sm:text-xl text-gray-900 dark:text-white">
                         <Smartphone className="h-4 w-4 sm:h-5 sm:w-5" />
-                        {t("cartoes.vincularTelefone.titulo")}
+                        {translations.cartoes.vincularTelefone.titulo}
                       </CardTitle>
                       <CardDescription className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                        {t("cartoes.vincularTelefone.descricao")}
+                        {translations.cartoes.vincularTelefone.descricao}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="p-4 sm:p-6 pt-0">
@@ -424,20 +806,20 @@ export default function VincularTelefone() {
                             htmlFor="telefone"
                             className="text-sm sm:text-base text-gray-900 dark:text-white"
                           >
-                            {t("formulario.labelTelefone")}
+                            {translations.formulario.labelTelefone}
                           </Label>
                           <Input
                             id="telefone"
                             name="telefone"
                             type="tel"
-                            placeholder={t("formulario.placeholderTelefone")}
+                            placeholder={translations.formulario.placeholderTelefone}
                             required
                             value={telefone}
                             onChange={handleTelefoneChange}
                             className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-500 focus:border-blue-500 dark:focus:border-blue-500 w-full text-sm sm:text-base"
                           />
                           <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                            {t("formulario.instrucaoTelefone")}
+                            {translations.formulario.instrucaoTelefone}
                           </p>
                         </motion.div>
 
@@ -483,12 +865,12 @@ export default function VincularTelefone() {
                             <div className="flex items-center justify-center gap-2">
                               <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                               <span className="truncate">
-                                {t("estados.vinculando")}
+                                {translations.estados.vinculando}
                               </span>
                             </div>
                           ) : (
                             <span className="truncate">
-                              {t("botoes.vincularTelefone")}
+                              {translations.botoes.vincularTelefone}
                             </span>
                           )}
                         </Button>
@@ -509,10 +891,10 @@ export default function VincularTelefone() {
                 <CardHeader className="p-4 sm:p-6">
                   <CardTitle className="flex items-center gap-2 text-lg sm:text-xl text-gray-900 dark:text-white">
                     <Globe className="h-4 w-4 sm:h-5 sm:w-5" />
-                    {t("cartoes.idioma.titulo")}
+                    {translations.cartoes.idioma.titulo}
                   </CardTitle>
                   <CardDescription className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                    {t("cartoes.idioma.descricao")}
+                    {translations.cartoes.idioma.descricao}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-4 sm:p-6 pt-0">
@@ -522,7 +904,7 @@ export default function VincularTelefone() {
                         htmlFor="language"
                         className="text-sm sm:text-base text-gray-900 dark:text-white"
                       >
-                        {t("formulario.labelIdioma")}
+                        {translations.formulario.labelIdioma}
                       </Label>
                       <Select
                         value={selectedLanguage}
@@ -530,26 +912,26 @@ export default function VincularTelefone() {
                       >
                         <SelectTrigger className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
                           <SelectValue
-                            placeholder={t("formulario.placeholderIdioma")}
+                            placeholder={translations.formulario.placeholderIdioma}
                           />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="pt-BR">
                             <div className="flex items-center gap-2">
                               <span className="text-2xl">🇧🇷</span>
-                              <span>{t("idiomas.portugues")}</span>
+                              <span>{translations.idiomas.portugues}</span>
                             </div>
                           </SelectItem>
                           <SelectItem value="en-US">
                             <div className="flex items-center gap-2">
                               <span className="text-2xl">🇺🇸</span>
-                              <span>{t("idiomas.ingles")}</span>
+                              <span>{translations.idiomas.ingles}</span>
                             </div>
                           </SelectItem>
                         </SelectContent>
                       </Select>
                       <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                        {t("formulario.instrucaoIdioma")}
+                        {translations.formulario.instrucaoIdioma}
                       </p>
                     </div>
 
@@ -561,10 +943,10 @@ export default function VincularTelefone() {
                       {savingLanguage ? (
                         <div className="flex items-center justify-center gap-2">
                           <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          <span>{t("estados.salvando")}</span>
+                          <span>{translations.estados.salvando}</span>
                         </div>
                       ) : (
-                        t("botoes.salvarIdioma")
+                        translations.botoes.salvarIdioma
                       )}
                     </Button>
 
@@ -575,21 +957,21 @@ export default function VincularTelefone() {
                       className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
                     >
                       <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">
-                        {t("cartoes.idioma.atualSalvo")}
+                        {translations.cartoes.idioma.atualSalvo}
                       </p>
                       <div className="flex items-center gap-2">
                         {savedLanguage === "pt-BR" ? (
                           <>
                             <span className="text-2xl">🇧🇷</span>
                             <span className="text-gray-700 dark:text-gray-300">
-                              {t("idiomas.portugues")}
+                              {translations.idiomas.portugues}
                             </span>
                           </>
                         ) : (
                           <>
                             <span className="text-2xl">🇺🇸</span>
                             <span className="text-gray-700 dark:text-gray-300">
-                              {t("idiomas.ingles")}
+                              {translations.idiomas.ingles}
                             </span>
                           </>
                         )}
@@ -611,10 +993,10 @@ export default function VincularTelefone() {
               <Card className="border-0 shadow-2xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 overflow-hidden">
                 <CardHeader>
                   <CardTitle className="text-lg sm:text-xl text-gray-900 dark:text-white">
-                    {t("beneficios.titulo")}
+                    {translations.beneficios.titulo}
                   </CardTitle>
                   <CardDescription className="text-gray-600 dark:text-gray-400">
-                    {t("beneficios.subtitulo")}
+                    {translations.beneficios.subtitulo}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -624,8 +1006,8 @@ export default function VincularTelefone() {
                       gradient: "from-green-500 to-emerald-600",
                       bg: "from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20",
                       border: "border-green-100 dark:border-green-800/50",
-                      titulo: t("beneficios.alertas.titulo"),
-                      descricao: t("beneficios.alertas.descricao"),
+                      titulo: translations.beneficios.alertas.titulo,
+                      descricao: translations.beneficios.alertas.descricao,
                       delay: 0.2,
                     },
                     {
@@ -633,8 +1015,8 @@ export default function VincularTelefone() {
                       gradient: "from-blue-500 to-cyan-600",
                       bg: "from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20",
                       border: "border-blue-100 dark:border-blue-800/50",
-                      titulo: t("beneficios.comandos.titulo"),
-                      descricao: t("beneficios.comandos.descricao"),
+                      titulo: translations.beneficios.comandos.titulo,
+                      descricao: translations.beneficios.comandos.descricao,
                       delay: 0.3,
                     },
                     {
@@ -642,8 +1024,8 @@ export default function VincularTelefone() {
                       gradient: "from-purple-500 to-pink-600",
                       bg: "from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20",
                       border: "border-purple-100 dark:border-purple-800/50",
-                      titulo: t("beneficios.acesso.titulo"),
-                      descricao: t("beneficios.acesso.descricao"),
+                      titulo: translations.beneficios.acesso.titulo,
+                      descricao: translations.beneficios.acesso.descricao,
                       delay: 0.4,
                     },
                     {
@@ -651,8 +1033,8 @@ export default function VincularTelefone() {
                       gradient: "from-amber-500 to-orange-600",
                       bg: "from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20",
                       border: "border-amber-100 dark:border-amber-800/50",
-                      titulo: t("beneficios.seguranca.titulo"),
-                      descricao: t("beneficios.seguranca.descricao"),
+                      titulo: translations.beneficios.seguranca.titulo,
+                      descricao: translations.beneficios.seguranca.descricao,
                       delay: 0.5,
                     },
                   ].map((item, index) => (
@@ -696,14 +1078,14 @@ export default function VincularTelefone() {
                       <Shield className="h-6 w-6 text-white" />
                     </div>
                     <h3 className="font-bold text-gray-900 dark:text-white mb-2">
-                      {t("privacidade.titulo")}
+                      {translations.privacidade.titulo}
                     </h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                      {t("privacidade.descricao")}
+                      {translations.privacidade.descricao}
                     </p>
                     <div className="flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
                       <CheckCircle2 className="h-4 w-4 text-green-500 mr-2" />
-                      {t("privacidade.criptografia")}
+                      {translations.privacidade.criptografia}
                     </div>
                   </div>
                 </CardContent>
@@ -722,19 +1104,20 @@ export default function VincularTelefone() {
               </div>
               <div>
                 <AlertDialogTitle className="text-xl text-gray-900 dark:text-white">
-                  {t("confirmacao.titulo")}
+                  {translations.confirmacao.titulo}
                 </AlertDialogTitle>
                 <AlertDialogDescription className="text-gray-600 dark:text-gray-400">
-                  {t("confirmacao.descricao", {
-                    telefone: formatPhoneForDisplay(phoneInfo?.telefone || ""),
-                  })}
+                  {translations.confirmacao.descricao.replace(
+                    "{{telefone}}",
+                    formatPhoneForDisplay(phoneInfo?.telefone || ""),
+                  )}
                 </AlertDialogDescription>
               </div>
             </div>
           </AlertDialogHeader>
           <div className="p-4 bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 rounded-xl border border-red-200 dark:border-red-800 mb-6">
             <p className="text-sm text-red-700 dark:text-red-300">
-              ⚠️ {t("confirmacao.aviso")}
+              ⚠️ {translations.confirmacao.aviso}
             </p>
           </div>
           <AlertDialogFooter>
@@ -742,7 +1125,7 @@ export default function VincularTelefone() {
               disabled={isDeleting}
               className="px-6 py-3 border-2 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl"
             >
-              {t("botoes.cancelar")}
+              {translations.botoes.cancelar}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeletePhone}
@@ -752,10 +1135,10 @@ export default function VincularTelefone() {
               {isDeleting ? (
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  {t("estados.processando")}
+                  {translations.estados.processando}
                 </div>
               ) : (
-                t("botoes.desconectar")
+                translations.botoes.desconectar
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
