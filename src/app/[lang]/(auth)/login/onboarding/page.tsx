@@ -845,6 +845,7 @@ export default function OnboardingPage() {
 
     if (perguntaAtual < perguntas.length - 1) {
       setPerguntaAtual(perguntaAtual + 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
       setMostrarConfirmacao(true);
       setMostrarConfetti(true);
@@ -864,15 +865,7 @@ export default function OnboardingPage() {
     setCarregando(true);
     setErro(null);
 
-    // 🔥 DEBUG: Verifique o que está nas respostas
-    console.log("📤 Dados antes de enviar:", {
-      usernameNoEstado: username,
-      usernameNaResposta: respostas.escolher_username,
-      todasRespostas: respostas,
-    });
-
     try {
-      // 🔥 GARANTE que o username está incluído
       const usernameParaEnviar = username || respostas.escolher_username;
 
       if (!usernameParaEnviar || usernameParaEnviar.length < 3) {
@@ -889,10 +882,10 @@ export default function OnboardingPage() {
         body: JSON.stringify({
           respostas: {
             ...respostas,
-            escolher_username: usernameParaEnviar, // Força o username
+            escolher_username: usernameParaEnviar,
           },
           dataCompletado: new Date().toISOString(),
-          username: usernameParaEnviar, // Envia explicitamente
+          username: usernameParaEnviar,
         }),
       });
 
@@ -902,8 +895,11 @@ export default function OnboardingPage() {
       }
 
       const { atualizado } = await response.json();
+
       if (atualizado) {
-        router.push(`/${lang}/dashboard`);
+        // 🔥 SOLUÇÃO: Usar window.location.href para forçar um reload completo
+        // Isso garante que a sessão será recarregada do servidor
+        window.location.href = `/${lang}/dashboard`;
       }
     } catch (error) {
       console.error("Erro:", error);
@@ -1069,30 +1065,6 @@ export default function OnboardingPage() {
                           {t("questions.username.tips.tip3")}
                         </li>
                       </ul>
-
-                      {/* Exemplos de username disponíveis */}
-                      <div className="mt-4">
-                        <p className="text-sm text-gray-500 mb-2">
-                          Exemplos disponíveis:
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {[
-                            "joao.silva",
-                            "maria.fernanda",
-                            "pedro_2024",
-                            "ana.costa",
-                          ].map((exemplo) => (
-                            <button
-                              key={exemplo}
-                              type="button"
-                              onClick={() => setUsername(exemplo)}
-                              className="text-sm px-3 py-1 rounded-lg bg-gray-700/50 hover:bg-gray-700 text-gray-300 hover:text-white transition-colors"
-                            >
-                              @{exemplo}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </motion.div>
@@ -1220,7 +1192,7 @@ export default function OnboardingPage() {
                       (pergunta.id === "escolher_username" &&
                         (!usernameValido || verificandoUsername))
                     }
-                    className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white px-8 py-6 text-lg transition-all hover:shadow-lg hover:shadow-blue-500/20"
+                    className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white  transition-all hover:shadow-lg hover:shadow-blue-500/20"
                   >
                     {carregando ? (
                       <>
@@ -1242,7 +1214,7 @@ export default function OnboardingPage() {
                       setTimeout(() => setMostrarConfetti(false), 5000);
                     }}
                     disabled={carregando}
-                    className="bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-700 hover:to-green-600 text-white px-8 py-6 text-lg transition-all hover:shadow-lg hover:shadow-emerald-500/20"
+                    className="bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-700 hover:to-green-600 text-white transition-all hover:shadow-lg hover:shadow-emerald-500/20"
                   >
                     {carregando ? (
                       <>
