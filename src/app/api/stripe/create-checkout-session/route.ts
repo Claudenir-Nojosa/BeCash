@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
       // Atualizar usuário com stripeCustomerId
       await db.user.update({
         where: { id: userId },
-        data: { stripeCustomerId },
+        data: { stripeCustomerId: customer.id },
       });
     }
 
