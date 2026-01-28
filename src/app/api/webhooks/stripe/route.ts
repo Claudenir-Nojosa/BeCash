@@ -41,68 +41,129 @@ export async function POST(req: Request) {
         console.log("📋 Subscription ID:", subscriptionData.id);
         console.log("📋 Customer ID:", customerId);
 
-        // 1. PRIMEIRO: Buscar cliente no Stripe para pegar email
         let userId = null;
         let customerEmail = null;
         let stripeCustomer: Stripe.Customer | null = null;
 
-        try {
-          stripeCustomer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
-          customerEmail = stripeCustomer.email;
-          console.log("📧 Customer email:", customerEmail);
-          
-          // 2. Buscar usuário pelo email no banco
-          if (customerEmail) {
-            const user = await db.user.findUnique({
-              where: { email: customerEmail },
-              select: { id: true, stripeCustomerId: true }
-            });
-            
-            if (user) {
-              userId = user.id;
-              console.log("✅ Usuário encontrado por email:", userId);
-              
-              // Atualizar stripeCustomerId se estiver null
-              if (!user.stripeCustomerId) {
-                await db.user.update({
-                  where: { id: userId },
-                  data: { stripeCustomerId: customerId }
-                });
-                console.log("✅ stripeCustomerId atualizado no usuário");
-              }
-            } else {
-              console.log("⚠️  Usuário não encontrado no banco para email:", customerEmail);
-            }
-          } else {
-            console.log("⚠️  Cliente Stripe não tem email");
-          }
-        } catch (error: any) {
-          console.error("❌ Erro ao buscar cliente no Stripe:", error.message);
-        }
-
-        // 3. SEGUNDA TENTATIVA: Buscar por metadata da subscription
-        if (!userId && subscriptionData.metadata?.userId) {
+        // 🔥 PRIMEIRA TENTATIVA: Metadata da subscription (MAIS CONFIÁVEL)
+        if (subscriptionData.metadata?.userId) {
           userId = subscriptionData.metadata.userId;
-          console.log("✅ UserId encontrado no metadata da subscription:", userId);
+          console.log(
+            "✅ UserId encontrado no metadata da subscription:",
+            userId,
+          );
         }
 
-        // 4. TERCEIRA TENTATIVA: Buscar por invoice
+        // 🔥 SEGUNDA TENTATIVA: Buscar cliente no Stripe e verificar metadata
+        if (!userId) {
+          try {
+            stripeCustomer = (await stripe.customers.retrieve(
+              customerId,
+            )) as Stripe.Customer;
+            customerEmail = stripeCustomer.email;
+            console.log("📧 Customer email:", customerEmail);
+
+            // Verificar metadata do customer
+            if (stripeCustomer.metadata?.userId) {
+              userId = stripeCustomer.metadata.userId;
+              console.log(
+                "✅ UserId encontrado no metadata do customer:",
+                userId,
+              );
+            }
+
+            // Se não tem userId no metadata, buscar por email
+            if (!userId && customerEmail) {
+              const user = await db.user.findUnique({
+                where: { email: customerEmail },
+                select: { id: true, stripeCustomerId: true },
+              });
+
+              if (user) {
+                userId = user.id;
+                console.log("✅ Usuário encontrado por email:", userId);
+
+                // Atualizar stripeCustomerId se estiver null
+                if (!user.stripeCustomerId) {
+                  await db.user.update({
+                    where: { id: userId },
+                    data: { stripeCustomerId: customerId },
+                  });
+                  console.log("✅ stripeCustomerId atualizado no usuário");
+                }
+              }
+            }
+          } catch (error: any) {
+            console.error(
+              "❌ Erro ao buscar cliente no Stripe:",
+              error.message,
+            );
+          }
+        }
+
+        // 🔥 TERCEIRA TENTATIVA: Buscar por checkout sessions
+        if (!userId) {
+          try {
+            const sessions = await stripe.checkout.sessions.list({
+              customer: customerId,
+              limit: 5,
+            });
+
+            if (sessions.data.length > 0) {
+              for (const session of sessions.data) {
+                if (session.client_reference_id) {
+                  userId = session.client_reference_id;
+                  console.log(
+                    "✅ UserId encontrado na session:",
+                    userId,
+                    "Session ID:",
+                    session.id,
+                  );
+                  break;
+                }
+              }
+
+              if (!userId) {
+                for (const session of sessions.data) {
+                  if (session.metadata?.userId) {
+                    userId = session.metadata.userId;
+                    console.log(
+                      "✅ UserId encontrado no metadata da session:",
+                      userId,
+                    );
+                    break;
+                  }
+                }
+              }
+            }
+          } catch (error: any) {
+            console.error("❌ Erro ao buscar sessions:", error.message);
+          }
+        }
+
+        // 🔥 QUARTA TENTATIVA: Buscar por invoice
         if (!userId && subscriptionData.latest_invoice) {
           try {
-            const invoice = await stripe.invoices.retrieve(subscriptionData.latest_invoice);
+            const invoice = await stripe.invoices.retrieve(
+              subscriptionData.latest_invoice,
+            );
+
             if (invoice.metadata?.userId) {
               userId = invoice.metadata.userId;
-              console.log("✅ UserId encontrado na invoice:", userId);
+              console.log("✅ UserId encontrado na invoice metadata:", userId);
             }
+
             if (!userId && invoice.customer_email) {
-              // Tentar buscar por email da invoice
               const userByInvoiceEmail = await db.user.findUnique({
                 where: { email: invoice.customer_email },
-                select: { id: true }
+                select: { id: true },
               });
               if (userByInvoiceEmail) {
                 userId = userByInvoiceEmail.id;
-                console.log("✅ UserId encontrado pelo email da invoice:", userId);
+                console.log(
+                  "✅ UserId encontrado pelo email da invoice:",
+                  userId,
+                );
               }
             }
           } catch (error: any) {
@@ -110,79 +171,27 @@ export async function POST(req: Request) {
           }
         }
 
-        // 5. QUARTA TENTATIVA: Buscar por checkout sessions
+        // ❌ ERRO FINAL: Se ainda não encontrou
         if (!userId) {
-          try {
-            // BUSCAR POR CUSTOMER, não por subscription!
-            const sessions = await stripe.checkout.sessions.list({
-              customer: customerId,
-              limit: 3, // Buscar mais para garantir
-              expand: ["data.line_items"]
-            });
+          console.error(
+            "❌ Não foi possível encontrar userId após todas as tentativas",
+          );
+          console.log("📊 Dump completo para debugging:");
+          console.log("   Customer ID:", customerId);
+          console.log("   Customer Email:", customerEmail);
+          console.log("   Subscription Metadata:", subscriptionData.metadata);
+          console.log("   Latest Invoice:", subscriptionData.latest_invoice);
 
-            if (sessions.data.length > 0) {
-              for (const session of sessions.data) {
-                if (session.client_reference_id) {
-                  userId = session.client_reference_id;
-                  console.log("✅ UserId encontrado na session:", userId, "Session ID:", session.id);
-                  break;
-                }
-              }
-              
-              // Se ainda não encontrou, verificar metadata da session
-              if (!userId) {
-                for (const session of sessions.data) {
-                  if (session.metadata?.userId) {
-                    userId = session.metadata.userId;
-                    console.log("✅ UserId encontrado no metadata da session:", userId);
-                    break;
-                  }
-                }
-              }
-            } else {
-              console.log("⚠️  Nenhuma session encontrada para o customer");
-            }
-          } catch (error: any) {
-            console.error("❌ Erro ao buscar sessions:", error.message);
+          if (stripeCustomer?.metadata) {
+            console.log("   Customer Metadata:", stripeCustomer.metadata);
           }
-        }
 
-        // 6. ÚLTIMA TENTATIVA: Buscar por email se não tiver userId ainda
-        if (!userId && customerEmail) {
-          try {
-            // Tentar criar usuário se não existir? Ou apenas logar?
-            console.log("⚠️  Tentando encontrar ou criar usuário por email:", customerEmail);
-            
-            // Para agora, apenas logamos o erro
-            console.log("❌ Usuário não encontrado após todas as tentativas");
-            console.log("📊 Dump completo para debugging:");
-            console.log("   Customer ID:", customerId);
-            console.log("   Customer Email:", customerEmail);
-            console.log("   Subscription Metadata:", subscriptionData.metadata);
-            console.log("   Latest Invoice:", subscriptionData.latest_invoice);
-            
-            if (stripeCustomer?.metadata) {
-              console.log("   Customer Metadata:", stripeCustomer.metadata);
-            }
-            
-          } catch (error: any) {
-            console.error("❌ Erro na última tentativa:", error.message);
-          }
-        }
-
-        // ERRO FINAL: Se ainda não encontrou
-        if (!userId) {
-          console.error("❌ Não foi possível encontrar userId após todas as tentativas");
-          
-          // Retornar sucesso mas com warning (não falhar completamente)
-          // Isso evita que o Stripe fique retentando infinitamente
-          console.log("⚠️  Subscription criada mas usuário não encontrado. Manual fix required.");
-          return NextResponse.json({ 
-            received: true, 
+          return NextResponse.json({
+            received: true,
             warning: "User not found, manual fix required",
             customerId,
             customerEmail,
-            subscriptionId: subscriptionData.id
+            subscriptionId: subscriptionData.id,
           });
         }
 
@@ -218,50 +227,53 @@ export async function POST(req: Request) {
           return NextResponse.json({ error: "Invalid date" }, { status: 400 });
         }
 
-        // ✅ CORREÇÃO: Buscar informações do preço para determinar o plano
+        // ✅ Determinar o nome do plano
         let nomePlano = "free";
 
-        try {
-          // Buscar o preço do Stripe para verificar os metadados
-          const price = await stripe.prices.retrieve(priceId, {
-            expand: ["product"],
-          });
-
-          console.log("🔍 Price metadata:", price.metadata);
+        // 🔥 PRIMEIRO: Tentar pegar do metadata da subscription
+        if (subscriptionData.metadata?.plan) {
+          nomePlano = subscriptionData.metadata.plan;
           console.log(
-            "🔍 Product metadata:",
-            (price.product as Stripe.Product)?.metadata,
+            "✅ Plano identificado pelo metadata da subscription:",
+            nomePlano,
           );
+        } else {
+          // Fallback: buscar informações do preço
+          try {
+            const price = await stripe.prices.retrieve(priceId, {
+              expand: ["product"],
+            });
 
-          // Tentar obter o plano dos metadados
-          const planType =
-            price.metadata?.plan_type ||
-            price.metadata?.plan_name ||
-            (price.product as Stripe.Product)?.metadata?.plan_type;
+            const planType =
+              price.metadata?.plan_type ||
+              price.metadata?.plan_name ||
+              (price.product as Stripe.Product)?.metadata?.plan_type;
 
-          if (planType) {
-            nomePlano = planType;
-          } else {
-            // Fallback: verificar o nome do produto
-            const productName =
-              (price.product as Stripe.Product)?.name?.toLowerCase() || "";
-            if (productName.includes("pro")) {
-              nomePlano = "pro";
-            } else if (
-              productName.includes("family") ||
-              productName.includes("família")
-            ) {
-              nomePlano = "family";
+            if (planType) {
+              nomePlano = planType;
+            } else {
+              const productName =
+                (price.product as Stripe.Product)?.name?.toLowerCase() || "";
+              if (productName.includes("pro")) {
+                nomePlano = "pro";
+              } else if (
+                productName.includes("family") ||
+                productName.includes("família")
+              ) {
+                nomePlano = "family";
+              }
             }
-          }
 
-          console.log(`✅ Plano identificado: ${nomePlano}`);
-        } catch (priceError: any) {
-          console.error("❌ Erro ao buscar informações do preço:", priceError.message);
-          // Fallback: verificar pelo amount
-          if (subscriptionItem.price.unit_amount > 0) {
-            nomePlano =
-              subscriptionItem.price.unit_amount >= 4990 ? "family" : "pro";
+            console.log(`✅ Plano identificado: ${nomePlano}`);
+          } catch (priceError: any) {
+            console.error(
+              "❌ Erro ao buscar informações do preço:",
+              priceError.message,
+            );
+            if (subscriptionItem.price.unit_amount > 0) {
+              nomePlano =
+                subscriptionItem.price.unit_amount >= 4990 ? "family" : "pro";
+            }
           }
         }
 
@@ -293,7 +305,6 @@ export async function POST(req: Request) {
             },
           });
 
-          // ✅ Atualizar também na tabela User
           await db.user.update({
             where: { id: userId },
             data: {
@@ -305,7 +316,10 @@ export async function POST(req: Request) {
 
           console.log(`✅ Subscription criada para usuário ${userId}`);
         } catch (dbError: any) {
-          console.error("❌ Erro ao salvar no banco de dados:", dbError.message);
+          console.error(
+            "❌ Erro ao salvar no banco de dados:",
+            dbError.message,
+          );
           return NextResponse.json(
             { error: "Database error", details: dbError.message },
             { status: 500 },
@@ -331,20 +345,21 @@ export async function POST(req: Request) {
 
         if (!userSub) {
           console.log(`⚠️  Usuário não encontrado para customer ${customerId}`);
-          
-          // Tentar encontrar por email do cliente
+
           try {
-            const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
+            const customer = (await stripe.customers.retrieve(
+              customerId,
+            )) as Stripe.Customer;
             if (customer.email) {
               const user = await db.user.findUnique({
                 where: { email: customer.email },
-                select: { id: true }
+                select: { id: true },
               });
               if (user) {
-                // Atualizar subscription com userId encontrado
                 const fimPlano = new Date(currentPeriodEnd * 1000);
-                const status = subscriptionData.status === "active" ? "active" : "canceled";
-                
+                const status =
+                  subscriptionData.status === "active" ? "active" : "canceled";
+
                 await db.subscription.update({
                   where: { userId: user.id },
                   data: {
@@ -357,17 +372,23 @@ export async function POST(req: Request) {
                     updatedAt: new Date(),
                   },
                 });
-                console.log(`✅ Subscription atualizada via email lookup: ${subscriptionData.id}`);
+                console.log(
+                  `✅ Subscription atualizada via email lookup: ${subscriptionData.id}`,
+                );
               }
             }
           } catch (error: any) {
-            console.error("❌ Erro ao tentar atualizar via email:", error.message);
+            console.error(
+              "❌ Erro ao tentar atualizar via email:",
+              error.message,
+            );
           }
           break;
         }
 
         const fimPlano = new Date(currentPeriodEnd * 1000);
-        const status = subscriptionData.status === "active" ? "active" : "canceled";
+        const status =
+          subscriptionData.status === "active" ? "active" : "canceled";
 
         await db.subscription.update({
           where: { userId: userSub.userId },
