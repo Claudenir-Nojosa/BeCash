@@ -7,7 +7,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-12-15.clover",
 });
 
-// Configuração de trial: 7 dias para todos os planos pagos
 const TRIAL_DAYS = 7;
 
 export async function POST(req: NextRequest) {
@@ -22,12 +21,10 @@ export async function POST(req: NextRequest) {
       userEmail,
     });
 
-    // Validar dados recebidos
     if (!plan || !currency || !interval || !userId || !userEmail) {
       return NextResponse.json({ error: "Dados incompletos" }, { status: 400 });
     }
 
-    // Obter Price ID baseado nos parâmetros
     const period = interval === "month" ? "monthly" : "yearly";
     const priceId = await getPriceId({
       plan: plan as "free" | "pro" | "family",
@@ -49,7 +46,6 @@ export async function POST(req: NextRequest) {
 
     console.log("✅ Price ID encontrado:", priceId);
 
-    // Verificar se usuário já teve trial antes
     const existingSubscription = await db.subscription.findFirst({
       where: { userId },
     });
@@ -57,7 +53,6 @@ export async function POST(req: NextRequest) {
     const hasHadTrial = existingSubscription !== null;
     console.log("🔍 Usuário já teve trial?", hasHadTrial);
 
-    // Criar ou buscar cliente no Stripe
     let stripeCustomerId: string;
 
     const user = await db.user.findUnique({
@@ -71,22 +66,23 @@ export async function POST(req: NextRequest) {
     } else {
       const customer = await stripe.customers.create({
         email: userEmail,
-        metadata: { userId },
+        metadata: {
+          userId, // 🔥 CRUCIAL: userId no metadata do customer
+          plan, // 🔥 BONUS: adicionar o plano também
+        },
       });
       stripeCustomerId = customer.id;
       console.log("✅ Novo cliente Stripe criado:", stripeCustomerId);
 
-      // Atualizar usuário com stripeCustomerId
       await db.user.update({
         where: { id: userId },
         data: { stripeCustomerId: customer.id },
       });
     }
 
-    // Configurar sessão de checkout
     const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       customer: stripeCustomerId,
-      client_reference_id: userId,
+      client_reference_id: userId, // 🔥 Mantém isso
       mode: "subscription",
       line_items: [
         {
@@ -97,20 +93,20 @@ export async function POST(req: NextRequest) {
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/pricing?canceled=true`,
       metadata: {
-        userId,
+        userId, // 🔥 userId no metadata da session
         plan,
         currency,
         interval,
       },
       subscription_data: {
         metadata: {
-          userId,
+          userId, // 🔥 CRUCIAL: userId no metadata da subscription
           plan,
+          userEmail, // 🔥 BONUS: adicionar email também
         },
       },
     };
 
-    // Adicionar trial de 7 dias apenas se o usuário nunca teve trial antes
     let trialDaysApplied = 0;
     if (!hasHadTrial) {
       sessionConfig.subscription_data!.trial_period_days = TRIAL_DAYS;
@@ -122,10 +118,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Criar sessão de checkout
     const session = await stripe.checkout.sessions.create(sessionConfig);
 
     console.log("✅ Sessão criada:", session.id);
+    console.log("📋 Metadata configurado:", {
+      session: sessionConfig.metadata,
+      subscription: sessionConfig.subscription_data?.metadata,
+    });
 
     return NextResponse.json({
       url: session.url,
