@@ -582,7 +582,7 @@ export default function DashboardPage() {
 
       // ✅ Descartar toast de loading e mostrar sucesso
       toast.dismiss(toastId);
-      toast.success(t("status.dashboardCarregado"));
+   toast.success(translations.status.dashboardCarregado);
     } catch (error) {
       console.error("Erro completo ao carregar dashboard:", error);
 
@@ -615,7 +615,7 @@ export default function DashboardPage() {
             className="rounded-full h-12 w-12 border-b-2 border-gray-800 dark:border-white mx-auto mb-4"
           />
           <p className="text-gray-600 dark:text-gray-300">
-            {t("status.verificando")}
+           {translations.status.verificando}
           </p>
         </motion.div>
       </div>
@@ -855,7 +855,7 @@ export default function DashboardPage() {
                   onClick={handleRefresh}
                   disabled={carregando}
                   className="h-8 w-8 sm:h-9 sm:w-9 border-gray-300 dark:border-gray-700 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 shadow-sm"
-                  title={t("botoes.refresh")}
+              title={carregando ? translations.botoes.atualizando : translations.botoes.refresh}
                 >
                   <RefreshCw
                     className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${carregando ? "animate-spin" : ""}`}
@@ -1209,7 +1209,7 @@ export default function DashboardPage() {
                                 router.push(`/${currentLang}/dashboard/limites`)
                               }
                             >
-                              {t("limites.verTodos")}
+                             {translations.limites.verTodos}
                               <ArrowRight className="ml-2 h-3.5 w-3.5" />
                             </Button>
                           </motion.div>
