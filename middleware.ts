@@ -67,15 +67,8 @@ export async function middleware(request: NextRequest) {
   try {
     const { pathname } = request.nextUrl;
 
-    if (pathname.startsWith("/api/")) {
-      console.log(
-        `✅ [MIDDLEWARE] Ignorando completamente rota de API: ${pathname}`,
-      );
-      // Crie uma nova resposta sem nenhum redirecionamento
-      const response = NextResponse.next();
-      // Adicione headers se necessário
-      response.headers.set("x-middleware-cache", "no-cache");
-      return response;
+    if (pathname === "/api/webhooks/stripe") {
+      return NextResponse.next();
     }
 
     // Ignorar arquivos estáticos e APIs
