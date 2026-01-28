@@ -133,7 +133,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
         return getFallback(currentLang, "Fazer Upgrade", "Upgrade");
       case "limites.upgrade":
         return getFallback(currentLang, "Upgrade", "Upgrade");
-
+      case "usuario.saindo":
+        return getFallback(currentLang, "Saindo...", "Signing out...");
+      case "usuario.erroLogout":
+        return getFallback(currentLang, "Erro ao sair", "Error signing out");
       default:
         return key;
     }
@@ -151,7 +154,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
     vincularTelefone: getTranslation("menu.vincularTelefone"),
     bicla: getTranslation("menu.bicla"),
     suporte: getTranslation("menu.suporte"),
-    sair: getTranslation("usuario.sair"),
     usuarioPadrao: getTranslation("usuario.usuarioPadrao"),
     limiteFree: getTranslation("limites.limiteFree"),
     limiteAtingido: getTranslation("limites.limiteAtingido"),
@@ -160,6 +162,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
     metasLabel: getTranslation("limites.metasLabel"),
     fazerUpgrade: getTranslation("limites.fazerUpgrade"),
     upgrade: getTranslation("limites.upgrade"),
+    sair: getTranslation("usuario.sair"),
+    saindo: getTranslation("usuario.saindo"),
+    erroLogout: getTranslation("usuario.erroLogout"),
   };
 
   const fetchLimiteInfo = async () => {
@@ -1233,7 +1238,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
           <LogoutButtonSimple
             locale={locale}
             isCollapsed={isCollapsed}
-            translations={{ sair: translations.sair }}
+            translations={{
+              sair: translations.sair,
+              saindo: translations.saindo,
+              erroLogout: translations.erroLogout,
+            }}
           />
         </div>
       </div>
