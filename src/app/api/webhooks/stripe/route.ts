@@ -34,10 +34,10 @@ export async function POST(req: Request) {
   try {
     switch (event.type) {
       case "customer.subscription.created": {
-
         console.log("🔍 Processando customer.subscription.created");
 
         const subscriptionData = event.data.object as any;
+        const customerId = subscriptionData.customer;
         // Verificar se está em trial
         const isInTrial = subscriptionData.status === "trialing";
         const trialEnd = subscriptionData.trial_end
@@ -49,10 +49,9 @@ export async function POST(req: Request) {
           trialEnd: trialEnd?.toISOString(),
         });
 
-
         // Buscar a session recente para pegar o client_reference_id
         const sessions = await stripe.checkout.sessions.list({
-          subscription: subscriptionData.id,
+          customer: customerId,
           limit: 1,
         });
 
@@ -61,6 +60,18 @@ export async function POST(req: Request) {
 
         if (!userId) {
           console.error("❌ No client_reference_id found");
+          const customer = (await stripe.customers.retrieve(
+            customerId,
+          )) as Stripe.Customer;
+          console.log("🔍 Customer email:", customer.email);
+          if (customer.email) {
+            const user = await db.user.findUnique({
+              where: { email: customer.email },
+            });
+            if (user) {
+              console.log("✅ Usuário encontrado por email:", user.id);
+            }
+          }
           return NextResponse.json({ error: "No userId" }, { status: 400 });
         }
 

@@ -6,7 +6,12 @@ const locales = ["pt", "en"];
 const defaultLocale = "pt";
 
 // Rotas públicas (não precisam de autenticação)
-const publicRoutes = ["/login", "/signup", "/forgot-password"];
+const publicRoutes = [
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/api/webhooks/stripe",
+];
 
 // Rotas de onboarding
 const onboardingRoutes = ["/login/onboarding"];
@@ -62,8 +67,6 @@ export async function middleware(request: NextRequest) {
   try {
     const { pathname } = request.nextUrl;
 
-   
-
     // Ignorar arquivos estáticos e APIs
     if (
       pathname.startsWith("/_next") ||
@@ -81,7 +84,7 @@ export async function middleware(request: NextRequest) {
     // 1. CASO ESPECIAL: Rota raiz sem locale
     if (pathname === "/") {
       const preferredLocale = getPreferredLocale(request);
-     
+
       const redirectUrl = new URL(`/${preferredLocale}`, request.url);
       return NextResponse.redirect(redirectUrl);
     }
