@@ -7,7 +7,6 @@ import { useTranslation } from "react-i18next";
 // --- Types ---
 interface Testimonial {
   text: string;
-  image: string;
   name: string;
   role: string;
 }
@@ -35,7 +34,7 @@ const TestimonialsColumn = (props: {
         {[
           ...new Array(2).fill(0).map((_, index) => (
             <React.Fragment key={index}>
-              {props.testimonials.map(({ text, image, name, role }, i) => (
+              {props.testimonials.map(({ text, name, role }, i) => (
                 <motion.div
                   key={`${index}-${i}`}
                   className="rounded-2xl border border-gray-200/60 dark:border-gray-800/60 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm p-6 shadow-sm hover:shadow-md transition-all duration-300"
@@ -61,17 +60,10 @@ const TestimonialsColumn = (props: {
                       {text}
                     </p>
                     <motion.div
-                      className="flex items-center gap-3"
-                      whileHover={{ gap: 4 }}
+                      className="flex items-center"
+                      whileHover={{ x: 2 }}
                       transition={{ duration: 0.2 }}
                     >
-                      <motion.img
-                        src={image}
-                        alt={name}
-                        className="w-10 h-10 rounded-full object-cover"
-                        whileHover={{ scale: 1.1 }}
-                        transition={{ duration: 0.2 }}
-                      />
                       <div>
                         <motion.p
                           className="font-semibold text-sm text-gray-900 dark:text-white"
@@ -80,13 +72,7 @@ const TestimonialsColumn = (props: {
                         >
                           {name}
                         </motion.p>
-                        <motion.p
-                          className="text-xs text-gray-600 dark:text-gray-400"
-                          whileHover={{ x: 2 }}
-                          transition={{ duration: 0.2, delay: 0.05 }}
-                        >
-                          {role}
-                        </motion.p>
+
                       </div>
                     </motion.div>
                   </motion.div>
@@ -109,8 +95,6 @@ const TestimonialsSection = () => {
         "items.0.text",
         "This ERP revolutionized our operations, streamlining finance and inventory. The cloud-based platform keeps us productive, even remotely.",
       ),
-      image:
-        "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150&h=150",
       name: t("items.0.name", "Briana Patton"),
       role: t("items.0.role", "Operations Manager"),
     },
@@ -119,8 +103,7 @@ const TestimonialsSection = () => {
         "items.1.text",
         "Implementing this ERP was smooth and quick. The customizable, user-friendly interface made team training effortless.",
       ),
-      image:
-        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150&h=150",
+
       name: t("items.1.name", "Bilal Ahmed"),
       role: t("items.1.role", "IT Manager"),
     },
@@ -129,8 +112,7 @@ const TestimonialsSection = () => {
         "items.2.text",
         "The support team is exceptional, guiding us through setup and providing ongoing assistance, ensuring our satisfaction.",
       ),
-      image:
-        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=150&h=150",
+
       name: t("items.2.name", "Saman Malik"),
       role: t("items.2.role", "Customer Support Lead"),
     },
@@ -139,8 +121,7 @@ const TestimonialsSection = () => {
         "items.3.text",
         "This ERP's seamless integration enhanced our business operations and efficiency. Highly recommend for its intuitive interface.",
       ),
-      image:
-        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150&h=150",
+
       name: t("items.3.name", "Omar Raza"),
       role: t("items.3.role", "CEO"),
     },
@@ -149,8 +130,7 @@ const TestimonialsSection = () => {
         "items.4.text",
         "Its robust features and quick support have transformed our workflow, making us significantly more efficient.",
       ),
-      image:
-        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150&h=150",
+
       name: t("items.4.name", "Zainab Hussain"),
       role: t("items.4.role", "Project Manager"),
     },
@@ -159,8 +139,7 @@ const TestimonialsSection = () => {
         "items.5.text",
         "The smooth implementation exceeded expectations. It streamlined processes, improving overall business performance.",
       ),
-      image:
-        "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=150&h=150",
+
       name: t("items.5.name", "Aliza Khan"),
       role: t("items.5.role", "Business Analyst"),
     },
@@ -169,8 +148,7 @@ const TestimonialsSection = () => {
         "items.6.text",
         "Our business functions improved with a user-friendly design and positive customer feedback.",
       ),
-      image:
-        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=150&h=150",
+
       name: t("items.6.name", "Farhan Siddiqui"),
       role: t("items.6.role", "Marketing Director"),
     },
@@ -179,8 +157,7 @@ const TestimonialsSection = () => {
         "items.7.text",
         "They delivered a solution that exceeded expectations, understanding our needs and enhancing our operations.",
       ),
-      image:
-        "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=150&h=150",
+
       name: t("items.7.name", "Sana Sheikh"),
       role: t("items.7.role", "Sales Manager"),
     },
@@ -189,8 +166,7 @@ const TestimonialsSection = () => {
         "items.8.text",
         "Using this ERP, our online presence and conversions significantly improved, boosting business performance.",
       ),
-      image:
-        "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=150&h=150",
+
       name: t("items.8.name", "Hassan Ali"),
       role: t("items.8.role", "E-commerce Manager"),
     },
@@ -201,7 +177,10 @@ const TestimonialsSection = () => {
   const thirdColumn = testimonials.slice(6, 9);
 
   return (
-    <section className="w-full relative overflow-hidden bg-background" id="testimonials">
+    <section
+      className="w-full relative overflow-hidden bg-background"
+      id="testimonials"
+    >
       {/* Background Effects */}
       <motion.div
         className="absolute inset-0"
