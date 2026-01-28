@@ -67,11 +67,21 @@ export async function middleware(request: NextRequest) {
   try {
     const { pathname } = request.nextUrl;
 
+    if (pathname.startsWith("/api/")) {
+      console.log(
+        `✅ [MIDDLEWARE] Ignorando completamente rota de API: ${pathname}`,
+      );
+      // Crie uma nova resposta sem nenhum redirecionamento
+      const response = NextResponse.next();
+      // Adicione headers se necessário
+      response.headers.set("x-middleware-cache", "no-cache");
+      return response;
+    }
+
     // Ignorar arquivos estáticos e APIs
     if (
       pathname.startsWith("/_next") ||
       pathname.startsWith("/static") ||
-      pathname.startsWith("/api") ||
       pathname.includes(".") // Arquivos com extensão
     ) {
       return NextResponse.next();
