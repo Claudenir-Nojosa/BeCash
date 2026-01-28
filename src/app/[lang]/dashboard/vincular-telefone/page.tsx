@@ -172,10 +172,6 @@ export default function VincularTelefone() {
         setVerificationCode("");
         setStep("phone");
         await fetchPhoneInfo();
-
-        setTimeout(() => {
-          router.push(getLocalizedPath("/dashboard"));
-        }, 2000);
       } else {
         setMessage({
           type: "error",
@@ -783,54 +779,6 @@ export default function VincularTelefone() {
     return null;
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (phoneInfo?.temTelefoneVinculado) {
-      setMessage({
-        type: "error",
-        text: translations.mensagens.jaVinculado,
-      });
-      return;
-    }
-
-    setLoading(true);
-    setMessage(null);
-
-    try {
-      const response = await fetch("/api/usuarios/vincular-telefone", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ telefone }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setMessage({
-          type: "success",
-          text: translations.mensagens.vinculadoSucesso,
-        });
-        setTelefone("");
-        await fetchPhoneInfo();
-
-        setTimeout(() => {
-          router.push(getLocalizedPath("/dashboard"));
-        }, 2000);
-      } else {
-        setMessage({
-          type: "error",
-          text: data.error || translations.erros.vincularTelefone,
-        });
-      }
-    } catch (error) {
-      setMessage({ type: "error", text: translations.erros.vincularTelefone });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleDeletePhone = async () => {
     setIsDeleting(true);
