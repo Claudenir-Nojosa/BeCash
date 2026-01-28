@@ -61,9 +61,161 @@ export default function VincularTelefone() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
+  const [step, setStep] = useState<"phone" | "code">("phone"); // Novo estado para controlar o passo
+  const [verificationCode, setVerificationCode] = useState(""); // Código digitado pelo usuário
+  const [timeLeft, setTimeLeft] = useState<number | null>(null); // Tempo restante do código
+  const [attemptsLeft, setAttemptsLeft] = useState<number>(3); // Tentativas restantes
   const { t, i18n } = useTranslation("vincularTelefone");
   const currentLang = (params?.lang as string) || "pt";
+  useEffect(() => {
+    if (timeLeft === null || timeLeft <= 0) return;
 
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeLeft]);
+  const handleRequestCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (phoneInfo?.temTelefoneVinculado) {
+      setMessage({
+        type: "error",
+        text: translations.mensagens.jaVinculado,
+      });
+      return;
+    }
+
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch("/api/usuarios/vincular-telefone", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "request_code",
+          telefone,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setMessage({
+          type: "success",
+          text: data.message || "Código enviado via WhatsApp!",
+        });
+        setStep("code");
+        setTimeLeft(data.expiresIn || 600);
+        setAttemptsLeft(3);
+      } else {
+        setMessage({
+          type: "error",
+          text: data.error || "Erro ao solicitar código",
+        });
+      }
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text: "Erro ao solicitar código de verificação",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!verificationCode || verificationCode.length !== 6) {
+      setMessage({
+        type: "error",
+        text: "Digite o código de 6 dígitos",
+      });
+      return;
+    }
+
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch("/api/usuarios/vincular-telefone", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "verify_code",
+          telefone,
+          code: verificationCode,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setMessage({
+          type: "success",
+          text: data.message || translations.mensagens.vinculadoSucesso,
+        });
+        setTelefone("");
+        setVerificationCode("");
+        setStep("phone");
+        await fetchPhoneInfo();
+
+        setTimeout(() => {
+          router.push(getLocalizedPath("/dashboard"));
+        }, 2000);
+      } else {
+        setMessage({
+          type: "error",
+          text: data.error || "Código inválido",
+        });
+
+        if (data.attemptsLeft !== undefined) {
+          setAttemptsLeft(data.attemptsLeft);
+        }
+
+        // Se não há mais tentativas, voltar para o início
+        if (data.attemptsLeft === 0) {
+          setTimeout(() => {
+            setStep("phone");
+            setVerificationCode("");
+            setTelefone("");
+          }, 3000);
+        }
+      }
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text: "Erro ao verificar código",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBackToPhone = () => {
+    setStep("phone");
+    setVerificationCode("");
+    setMessage(null);
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
   // Função auxiliar para obter tradução com fallback
   const getTranslation = (key: string) => {
     // Primeiro tenta usar o i18n
@@ -83,7 +235,52 @@ export default function VincularTelefone() {
           "Conecte seu telefone para receber notificações",
           "Connect your phone to receive notifications",
         );
-
+      case "verificacao.codigoEnviadoPara":
+        return getFallback(
+          currentLang,
+          "Código enviado para:",
+          "Code sent to:",
+        );
+      case "verificacao.expiraEm":
+        return getFallback(currentLang, "⏰ Expira em:", "⏰ Expires in:");
+      case "verificacao.codigoExpirado":
+        return getFallback(
+          currentLang,
+          "⚠️ Código expirado. Solicite um novo código.",
+          "⚠️ Code expired. Request a new code.",
+        );
+      case "verificacao.tentativasRestantes":
+        return getFallback(
+          currentLang,
+          "⚠️ {attempts} tentativa(s) restante(s)",
+          "⚠️ {attempts} attempt(s) remaining",
+        );
+      case "verificacao.digiteCodigo":
+        return getFallback(
+          currentLang,
+          "Digite o código de 6 dígitos enviado via WhatsApp",
+          "Enter the 6-digit code sent via WhatsApp",
+        );
+      case "verificacao.codigoPlaceholder":
+        return getFallback(currentLang, "000000", "000000");
+      case "verificacao.voltar":
+        return getFallback(currentLang, "← Voltar", "← Back");
+      case "verificacao.verificar":
+        return getFallback(currentLang, "Verificar", "Verify");
+      case "verificacao.solicitarNovoCodigo":
+        return getFallback(
+          currentLang,
+          "Solicitar novo código",
+          "Request new code",
+        );
+      case "verificacao.titulo":
+        return getFallback(currentLang, "Verificar Código", "Verify Code");
+      case "verificacao.descricao":
+        return getFallback(
+          currentLang,
+          "Digite o código de 6 dígitos enviado via WhatsApp",
+          "Enter the 6-digit code sent via WhatsApp",
+        );
       // Formulário
       case "formulario.labelTelefone":
         return getFallback(currentLang, "Número de telefone", "Phone number");
@@ -125,7 +322,12 @@ export default function VincularTelefone() {
         return getFallback(currentLang, "Cancelar", "Cancel");
       case "botoes.desconectar":
         return getFallback(currentLang, "Desconectar", "Disconnect");
-
+      case "botoes.enviarCodigo":
+        return getFallback(
+          currentLang,
+          "Enviar Código via WhatsApp",
+          "Send Code via WhatsApp",
+        );
       // Estados
       case "estados.vinculando":
         return getFallback(currentLang, "Vinculando...", "Linking...");
@@ -179,10 +381,19 @@ export default function VincularTelefone() {
           "Telefone desvinculado com sucesso!",
           "Phone unlinked successfully!",
         );
-
+      case "verificacao.labelCodigo":
+        return getFallback(
+          currentLang,
+          "Código de Verificação",
+          "Verification Code",
+        );
       // Erros
       case "erros.salvarIdioma":
-        return getFallback(currentLang, "Erro ao salvar idioma", "Error saving language");
+        return getFallback(
+          currentLang,
+          "Erro ao salvar idioma",
+          "Error saving language",
+        );
       case "erros.vincularTelefone":
         return getFallback(
           currentLang,
@@ -202,7 +413,11 @@ export default function VincularTelefone() {
 
       // Idiomas
       case "idiomas.portugues":
-        return getFallback(currentLang, "Português (Brasil)", "Portuguese (Brazil)");
+        return getFallback(
+          currentLang,
+          "Português (Brasil)",
+          "Portuguese (Brazil)",
+        );
       case "idiomas.ingles":
         return getFallback(currentLang, "English (US)", "English (US)");
 
@@ -266,7 +481,11 @@ export default function VincularTelefone() {
           "Advantages of using WhatsApp",
         );
       case "beneficios.alertas.titulo":
-        return getFallback(currentLang, "Alertas Instantâneos", "Instant Alerts");
+        return getFallback(
+          currentLang,
+          "Alertas Instantâneos",
+          "Instant Alerts",
+        );
       case "beneficios.alertas.descricao":
         return getFallback(
           currentLang,
@@ -316,7 +535,11 @@ export default function VincularTelefone() {
 
       // Confirmação
       case "confirmacao.titulo":
-        return getFallback(currentLang, "Desconectar WhatsApp", "Disconnect WhatsApp");
+        return getFallback(
+          currentLang,
+          "Desconectar WhatsApp",
+          "Disconnect WhatsApp",
+        );
       case "confirmacao.descricao":
         return getFallback(
           currentLang,
@@ -348,13 +571,27 @@ export default function VincularTelefone() {
       placeholderIdioma: getTranslation("formulario.placeholderIdioma"),
       instrucaoIdioma: getTranslation("formulario.instrucaoIdioma"),
     },
-
+    verificacao: {
+      labelCodigo: getTranslation("verificacao.labelCodigo"),
+      codigoEnviadoPara: getTranslation("verificacao.codigoEnviadoPara"),
+      expiraEm: getTranslation("verificacao.expiraEm"),
+      codigoExpirado: getTranslation("verificacao.codigoExpirado"),
+      tentativasRestantes: getTranslation("verificacao.tentativasRestantes"),
+      digiteCodigo: getTranslation("verificacao.digiteCodigo"),
+      codigoPlaceholder: getTranslation("verificacao.codigoPlaceholder"),
+      voltar: getTranslation("verificacao.voltar"),
+      verificar: getTranslation("verificacao.verificar"),
+      solicitarNovoCodigo: getTranslation("verificacao.solicitarNovoCodigo"),
+      titulo: getTranslation("verificacao.titulo"),
+      descricao: getTranslation("verificacao.descricao"),
+    },
     botoes: {
       vincularTelefone: getTranslation("botoes.vincularTelefone"),
       desvincular: getTranslation("botoes.desvincular"),
       salvarIdioma: getTranslation("botoes.salvarIdioma"),
       cancelar: getTranslation("botoes.cancelar"),
       desconectar: getTranslation("botoes.desconectar"),
+      enviarCodigo: getTranslation("botoes.enviarCodigo"),
     },
 
     estados: {
@@ -470,7 +707,10 @@ export default function VincularTelefone() {
       if (data.success) {
         setPhoneInfo(data);
       } else {
-        setMessage({ type: "error", text: translations.mensagens.erroCarregar });
+        setMessage({
+          type: "error",
+          text: translations.mensagens.erroCarregar,
+        });
       }
     } catch (error) {
       setMessage({ type: "error", text: translations.mensagens.erroCarregar });
@@ -614,7 +854,10 @@ export default function VincularTelefone() {
         });
       }
     } catch (error) {
-      setMessage({ type: "error", text: translations.erros.desvincularTelefone });
+      setMessage({
+        type: "error",
+        text: translations.erros.desvincularTelefone,
+      });
     } finally {
       setIsDeleting(false);
       setShowDeleteDialog(false);
@@ -677,210 +920,6 @@ export default function VincularTelefone() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Formulário de Vinculação */}
           <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-            {/* Card de Telefone Vinculado */}
-            <AnimatePresence mode="wait">
-              {phoneInfo?.temTelefoneVinculado && phoneInfo.telefone && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Card className="bg-white dark:bg-gray-900 border-green-200 dark:border-green-800 shadow-2xl">
-                    <CardHeader className="p-4 sm:p-6">
-                      <CardTitle className="flex items-center justify-between text-lg sm:text-xl text-gray-900 dark:text-white">
-                        <div className="flex items-center gap-2">
-                          <Image
-                            src="/icons/whatsapp.png"
-                            alt="WhatsApp"
-                            width={20}
-                            height={20}
-                            className="h-6 w-6 sm:h-5 sm:w-5"
-                          />
-                          {translations.cartoes.telefoneVinculado.titulo}
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setShowDeleteDialog(true)}
-                          disabled={isDeleting}
-                          className="border-red-200 dark:border-red-800 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700"
-                        >
-                          {isDeleting ? (
-                            <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-                              {translations.estados.desvinculando}
-                            </div>
-                          ) : (
-                            <>
-                              <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                              {translations.botoes.desvincular}
-                            </>
-                          )}
-                        </Button>
-                      </CardTitle>
-                      <CardDescription className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                        {translations.cartoes.telefoneVinculado.descricao}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-4 sm:p-6 pt-0">
-                      <div className="space-y-4">
-                        <motion.div
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.1 }}
-                          className="p-3 sm:p-4 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-100 dark:border-green-800"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
-                              <Smartphone className="h-5 w-5 text-green-600 dark:text-green-400" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                {phoneInfo.usuario.name || translations.labels.usuario}
-                              </p>
-                              <p className="text-lg font-bold text-green-700 dark:text-green-400">
-                                {formatPhoneForDisplay(phoneInfo.telefone)}
-                              </p>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">
-                                {phoneInfo.usuario.email}
-                              </p>
-                            </div>
-                          </div>
-                        </motion.div>
-
-                        <motion.div
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.2 }}
-                          className="p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-800"
-                        >
-                          <div className="flex items-start gap-3">
-                            <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                            <div>
-                              <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                {translations.cartoes.seguranca.titulo}
-                              </p>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
-                                {translations.cartoes.seguranca.descricao}
-                              </p>
-                            </div>
-                          </div>
-                        </motion.div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )}
-
-              {/* Card de Vincular Novo Telefone */}
-              {!phoneInfo?.temTelefoneVinculado && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
-                    <CardHeader className="p-4 sm:p-6">
-                      <CardTitle className="flex items-center gap-2 text-lg sm:text-xl text-gray-900 dark:text-white">
-                        <Smartphone className="h-4 w-4 sm:h-5 sm:w-5" />
-                        {translations.cartoes.vincularTelefone.titulo}
-                      </CardTitle>
-                      <CardDescription className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                        {translations.cartoes.vincularTelefone.descricao}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-4 sm:p-6 pt-0">
-                      <form
-                        className="space-y-4 sm:space-y-6"
-                        onSubmit={handleSubmit}
-                      >
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.1 }}
-                          className="space-y-2 sm:space-y-3"
-                        >
-                          <Label
-                            htmlFor="telefone"
-                            className="text-sm sm:text-base text-gray-900 dark:text-white"
-                          >
-                            {translations.formulario.labelTelefone}
-                          </Label>
-                          <Input
-                            id="telefone"
-                            name="telefone"
-                            type="tel"
-                            placeholder={translations.formulario.placeholderTelefone}
-                            required
-                            value={telefone}
-                            onChange={handleTelefoneChange}
-                            className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-500 focus:border-blue-500 dark:focus:border-blue-500 w-full text-sm sm:text-base"
-                          />
-                          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                            {translations.formulario.instrucaoTelefone}
-                          </p>
-                        </motion.div>
-
-                        <AnimatePresence>
-                          {message && (
-                            <motion.div
-                              initial={{ opacity: 0, y: -10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -10 }}
-                              transition={{ duration: 0.2 }}
-                              className={`p-3 sm:p-4 rounded-lg border text-sm sm:text-base ${
-                                message.type === "success"
-                                  ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700 text-green-700 dark:text-green-300"
-                                  : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700 text-red-700 dark:text-red-300"
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                {message.type === "success" ? (
-                                  <>
-                                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                                    <span className="truncate">
-                                      {message.text}
-                                    </span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <span className="truncate">
-                                      ❌ {message.text}
-                                    </span>
-                                  </>
-                                )}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-
-                        <Button
-                          type="submit"
-                          disabled={loading || telefone.length < 14}
-                          className="w-full bg-blue-600 hover:bg-blue-700 text-white border-0 text-sm sm:text-base py-2.5 sm:py-3"
-                        >
-                          {loading ? (
-                            <div className="flex items-center justify-center gap-2">
-                              <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                              <span className="truncate">
-                                {translations.estados.vinculando}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="truncate">
-                              {translations.botoes.vincularTelefone}
-                            </span>
-                          )}
-                        </Button>
-                      </form>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
             {/* Card de Preferências de Idioma */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -912,7 +951,9 @@ export default function VincularTelefone() {
                       >
                         <SelectTrigger className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white">
                           <SelectValue
-                            placeholder={translations.formulario.placeholderIdioma}
+                            placeholder={
+                              translations.formulario.placeholderIdioma
+                            }
                           />
                         </SelectTrigger>
                         <SelectContent>
@@ -981,6 +1022,366 @@ export default function VincularTelefone() {
                 </CardContent>
               </Card>
             </motion.div>
+            {/* Card de Telefone Vinculado */}
+            <AnimatePresence mode="wait">
+              {phoneInfo?.temTelefoneVinculado && phoneInfo.telefone && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Card className="bg-white dark:bg-gray-900 border-green-200 dark:border-green-800 shadow-2xl">
+                    <CardHeader className="p-4 sm:p-6">
+                      <CardTitle className="flex items-center justify-between text-lg sm:text-xl text-gray-900 dark:text-white">
+                        <div className="flex items-center gap-2">
+                          <Image
+                            src="/icons/whatsapp.png"
+                            alt="WhatsApp"
+                            width={20}
+                            height={20}
+                            className="h-6 w-6 sm:h-5 sm:w-5"
+                          />
+                          {translations.cartoes.telefoneVinculado.titulo}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowDeleteDialog(true)}
+                          disabled={isDeleting}
+                          className="border-red-200 dark:border-red-800 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700"
+                        >
+                          {isDeleting ? (
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                              {translations.estados.desvinculando}
+                            </div>
+                          ) : (
+                            <>
+                              <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                              {translations.botoes.desvincular}
+                            </>
+                          )}
+                        </Button>
+                      </CardTitle>
+                      <CardDescription className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+                        {translations.cartoes.telefoneVinculado.descricao}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-4 sm:p-6 pt-0">
+                      <div className="space-y-4">
+                        <motion.div
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.1 }}
+                          className="p-3 sm:p-4 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-100 dark:border-green-800"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                              <Smartphone className="h-5 w-5 text-green-600 dark:text-green-400" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                {phoneInfo.usuario.name ||
+                                  translations.labels.usuario}
+                              </p>
+                              <p className="text-lg font-bold text-green-700 dark:text-green-400">
+                                {formatPhoneForDisplay(phoneInfo.telefone)}
+                              </p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                                {phoneInfo.usuario.email}
+                              </p>
+                            </div>
+                          </div>
+                        </motion.div>
+
+                        <motion.div
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.2 }}
+                          className="p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-800"
+                        >
+                          <div className="flex items-start gap-3">
+                            <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                {translations.cartoes.seguranca.titulo}
+                              </p>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {translations.cartoes.seguranca.descricao}
+                              </p>
+                            </div>
+                          </div>
+                        </motion.div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+
+              {/* Card de Vincular Novo Telefone */}
+              {!phoneInfo?.temTelefoneVinculado && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.1 }}
+                >
+                  <Card className="border-2 shadow-lg">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-3">
+                        <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl">
+                          <Smartphone className="w-6 h-6 text-white" />
+                        </div>
+                        {step === "phone"
+                          ? translations.cartoes.vincularTelefone.titulo
+                          : translations.verificacao.titulo}
+                      </CardTitle>
+                      <CardDescription>
+                        {step === "phone"
+                          ? translations.cartoes.vincularTelefone.descricao
+                          : translations.verificacao.descricao}
+                      </CardDescription>
+                    </CardHeader>
+
+                    <CardContent>
+                      <AnimatePresence mode="wait">
+                        {/* PASSO 1: Inserir Telefone */}
+                        {step === "phone" && (
+                          <motion.form
+                            key="phone-form"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            onSubmit={handleRequestCode}
+                            className="space-y-6"
+                          >
+                            <div className="space-y-2">
+                              <Label htmlFor="telefone">
+                                {translations.formulario.labelTelefone}
+                              </Label>
+                              <Input
+                                id="telefone"
+                                type="tel"
+                                value={telefone}
+                                onChange={handleTelefoneChange}
+                                placeholder={
+                                  translations.formulario.placeholderTelefone
+                                }
+                                className="text-lg"
+                                maxLength={15}
+                                required
+                              />
+                              <p className="text-sm text-muted-foreground">
+                                {translations.formulario.instrucaoTelefone}
+                              </p>
+                            </div>
+
+                            {message && (
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className={`p-4 rounded-lg border ${
+                                  message.type === "success"
+                                    ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300"
+                                    : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  {message.type === "success" ? (
+                                    <>
+                                      <CheckCircle2 className="w-5 h-5" />
+                                      {message.text}
+                                    </>
+                                  ) : (
+                                    <>❌ {message.text}</>
+                                  )}
+                                </div>
+                              </motion.div>
+                            )}
+
+                            <Button
+                              type="submit"
+                              className="w-full bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700"
+                              size="lg"
+                              disabled={loading || !telefone}
+                            >
+                              {loading ? (
+                                <div className="flex items-center gap-2">
+                                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                  {translations.estados.processando}
+                                </div>
+                              ) : (
+                                <>
+                                  <MessageCircle className="w-5 h-5 mr-2" />
+                                  {translations.botoes.enviarCodigo}
+                                </>
+                              )}
+                            </Button>
+                          </motion.form>
+                        )}
+
+                        {/* PASSO 2: Verificar Código */}
+                        {step === "code" && (
+                          <motion.form
+                            key="code-form"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            onSubmit={handleVerifyCode}
+                            className="space-y-6"
+                          >
+                            {/* Timer e Telefone */}
+                            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">
+                                  {translations.verificacao.codigoEnviadoPara}
+                                </span>
+                                <span className="font-mono font-bold">
+                                  {formatPhoneForDisplay(telefone)}
+                                </span>
+                              </div>
+
+                              {timeLeft !== null && timeLeft > 0 && (
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm text-muted-foreground">
+                                    {translations.verificacao.expiraEm}
+                                  </span>
+                                  <span className="font-mono font-bold text-blue-600 dark:text-blue-400">
+                                    {formatTime(timeLeft)}
+                                  </span>
+                                </div>
+                              )}
+
+                              {timeLeft === 0 && (
+                                <div className="text-sm text-red-600 dark:text-red-400 font-medium">
+                                  {translations.verificacao.codigoExpirado}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Input do Código */}
+                            <div className="space-y-2">
+                              <Label htmlFor="code" className="text-lg">
+                                {translations.verificacao.labelCodigo}
+                              </Label>
+                              <Input
+                                id="code"
+                                type="text"
+                                value={verificationCode}
+                                onChange={(e) => {
+                                  const value = e.target.value.replace(
+                                    /\D/g,
+                                    "",
+                                  );
+                                  if (value.length <= 6) {
+                                    setVerificationCode(value);
+                                  }
+                                }}
+                                placeholder={
+                                  translations.verificacao.codigoPlaceholder
+                                }
+                                className="text-center text-2xl font-mono tracking-widest"
+                                maxLength={6}
+                                required
+                                autoFocus
+                              />
+                              <p className="text-sm text-muted-foreground text-center">
+                                {translations.verificacao.digiteCodigo}
+                              </p>
+
+                              {attemptsLeft < 3 && (
+                                <p className="text-sm text-amber-600 dark:text-amber-400 text-center font-medium">
+                                  {translations.verificacao.tentativasRestantes.replace(
+                                    "{attempts}",
+                                    attemptsLeft.toString(),
+                                  )}
+                                </p>
+                              )}
+                            </div>
+
+                            {message && (
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className={`p-4 rounded-lg border ${
+                                  message.type === "success"
+                                    ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300"
+                                    : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  {message.type === "success" ? (
+                                    <>
+                                      <CheckCircle2 className="w-5 h-5" />
+                                      {message.text}
+                                    </>
+                                  ) : (
+                                    <>❌ {message.text}</>
+                                  )}
+                                </div>
+                              </motion.div>
+                            )}
+
+                            {/* Botões */}
+                            <div className="flex gap-3">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="flex-1"
+                                onClick={handleBackToPhone}
+                                disabled={loading}
+                              >
+                                {translations.verificacao.voltar}
+                              </Button>
+
+                              <Button
+                                type="submit"
+                                className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                                size="lg"
+                                disabled={
+                                  loading ||
+                                  !verificationCode ||
+                                  verificationCode.length !== 6 ||
+                                  timeLeft === 0
+                                }
+                              >
+                                {loading ? (
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    {translations.estados.processando}
+                                  </div>
+                                ) : (
+                                  <>
+                                    <CheckCircle2 className="w-5 h-5 mr-2" />
+                                    {translations.verificacao.verificar}
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+
+                            {/* Reenviar código */}
+                            {timeLeft === 0 && (
+                              <Button
+                                type="button"
+                                variant="link"
+                                className="w-full text-blue-600 dark:text-blue-400"
+                                onClick={() => {
+                                  setStep("phone");
+                                  setVerificationCode("");
+                                  setMessage(null);
+                                }}
+                              >
+                                {translations.verificacao.solicitarNovoCodigo}
+                              </Button>
+                            )}
+                          </motion.form>
+                        )}
+                      </AnimatePresence>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Sidebar de Benefícios */}
