@@ -1113,13 +1113,13 @@ export default function OnboardingPage() {
 
                                 {/* Texto com altura mínima */}
                                 <div className="space-y-2 flex-1 min-h-[72px]">
-                                  <h3 className="font-semibold text-lg line-clamp-2">
+                                <h3 className="font-semibold text-lg line-clamp-2 text-gray-900 dark:text-gray-100">
                                     {opcao.texto}
                                   </h3>
                                   {opcao.descricao && (
-                                    <p className="text-sm text-gray-400 line-clamp-2">
-                                      {opcao.descricao}
-                                    </p>
+                                    <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
+    {opcao.descricao}
+  </p>
                                   )}
                                 </div>
 

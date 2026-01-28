@@ -1,5 +1,5 @@
-import { loadStripe } from '@stripe/stripe-js';
-import { useRouter } from 'next/navigation';
+import { loadStripe } from "@stripe/stripe-js";
+import { useRouter } from "next/navigation";
 
 // Inicializar Stripe apenas uma vez
 let stripePromise: Promise<any> | null = null;
@@ -18,79 +18,73 @@ export function useStripeCheckout() {
     plan,
     period,
     currency,
-    lang = 'pt',
+    lang = "pt",
     userEmail,
+    userId,
   }: {
-    plan: 'basic' | 'pro' | 'family';
-    period: 'monthly' | 'yearly';
-    currency: 'USD' | 'BRL';
+    plan: "basic" | "pro" | "family";
+    period: "monthly" | "yearly";
+    currency: "USD" | "BRL";
     lang?: string;
     userEmail?: string;
+    userId?: string;
   }) => {
     try {
-      console.log('Iniciando checkout:', { plan, period, currency, lang });
+      console.log("Iniciando checkout:", { plan, period, currency, lang });
 
       // Se for plano básico, redireciona direto para signup
-      if (plan === 'basic') {
+      if (plan === "basic") {
         router.push(`/${lang}/signup`);
         return;
       }
 
       // Para planos pagos, criar sessão de checkout
-      const response = await fetch('/api/checkout', {
-        method: 'POST',
+      const response = await fetch("/api/stripe/create-checkout-session", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           plan,
-          period,
+          interval: period === "monthly" ? "month" : "year",
           currency,
           userEmail,
-          successUrl: `${window.location.origin}/${lang}/success?session_id={CHECKOUT_SESSION_ID}`,
-          cancelUrl: `${window.location.origin}/${lang}/pricing`,
+          userId,
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        console.error('Erro na API:', data);
-        throw new Error(data.error || 'Erro ao criar sessão');
+        console.error("Erro na API:", data);
+        throw new Error(data.error || "Erro ao criar sessão");
       }
 
-      if (data.sessionId) {
-        const stripe = await getStripe();
-        if (!stripe) throw new Error('Stripe não carregado');
-
-        // Se tiver URL direta, usar redirectToCheckout
-        if (data.url) {
-          window.location.href = data.url;
-        } else {
-          const { error } = await stripe.redirectToCheckout({ 
-            sessionId: data.sessionId 
-          });
-
-          if (error) {
-            console.error('Erro ao redirecionar para checkout:', error);
-            alert('Erro ao processar pagamento. Tente novamente.');
-          }
+      if (data.url) {
+        // Mostrar informação sobre trial se houver
+        if (data.trialDays > 0) {
+          console.log(`✨ Período de teste: ${data.trialDays} dias grátis!`);
         }
+
+        // Redirecionar para checkout
+        window.location.href = data.url;
       } else {
-        throw new Error('Sessão não criada');
+        throw new Error("URL de checkout não encontrada");
       }
     } catch (error: any) {
-      console.error('Erro ao criar sessão de checkout:', error);
-      alert(`Erro: ${error.message || 'Não foi possível processar o pagamento'}`);
+      console.error("Erro ao criar sessão de checkout:", error);
+      alert(
+        `Erro: ${error.message || "Não foi possível processar o pagamento"}`,
+      );
     }
   };
 
   const redirectToCustomerPortal = async () => {
     try {
-      const response = await fetch('/api/create-portal-session', {
-        method: 'POST',
+      const response = await fetch("/api/create-portal-session", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
 
@@ -99,12 +93,12 @@ export function useStripeCheckout() {
         window.location.href = url;
       }
     } catch (error) {
-      console.error('Erro ao acessar portal do cliente:', error);
+      console.error("Erro ao acessar portal do cliente:", error);
     }
   };
 
-  return { 
-    createCheckoutSession, 
-    redirectToCustomerPortal 
+  return {
+    createCheckoutSession,
+    redirectToCustomerPortal,
   };
 }

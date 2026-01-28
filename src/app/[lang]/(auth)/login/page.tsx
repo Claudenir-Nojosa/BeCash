@@ -22,16 +22,12 @@ export default async function LoginPage({
 
   const session = await auth();
 
-  // Se já está autenticado, redirecionar baseado no onboarding
+  // Se já está autenticado, SEMPRE redirecionar para dashboard
   if (session?.user) {
-    const onboardingCompleto = (session.user as any).onboardingCompleto || false;
-    const redirectTo = onboardingCompleto 
-      ? `/${lang}/dashboard`
-      : `/${lang}/login/onboarding`;
-    
-    console.log("🔄 [LOGIN PAGE SERVER] Usuário já autenticado, redirecionando para:", redirectTo);
-    redirect(redirectTo);
+    console.log("🔄 [LOGIN PAGE SERVER] Usuário já autenticado, redirecionando para dashboard");
+    redirect(`/${lang}/dashboard`);
   }
+
 
   // Mensagens traduzidas por idioma
   const translations = {

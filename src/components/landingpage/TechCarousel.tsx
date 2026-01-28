@@ -10,16 +10,12 @@ const technologies = [
     iconLight: "/icons/Claude_Logo_0.svg",
     iconDark: "/icons/Claude_Logo_1.svg",
     color: "from-orange-400/80 to-amber-500/80",
-    width: 80,
-    height: 80,
   },
   {
     name: "Meta API",
     iconLight: "/icons/meta.svg",
     iconDark: "/icons/meta.svg",
     color: "from-blue-500/80 to-blue-400/80",
-    width: 60,
-    height: 60,
   },
   {
     name: "Next.js",
@@ -27,32 +23,24 @@ const technologies = [
     iconDark: "/icons/next-white.png",
     color:
       "from-gray-800/80 to-gray-600/80 dark:from-gray-300/80 dark:to-gray-400/80",
-    width: 80,
-    height: 80,
   },
   {
     name: "Prisma",
     iconLight: "/icons/Prisma-IndigoLogo.png",
     iconDark: "/icons/Prisma_Prisma-LightLogo_0.svg",
     color: "from-indigo-500/80 to-purple-500/80",
-    width: 80,
-    height: 80,
   },
   {
     name: "OpenAI",
     iconLight: "/icons/OpenAI_Logo_1.svg",
     iconDark: "/icons/OpenAI_Logo_0.svg",
     color: "from-emerald-400/80 to-teal-400/80",
-    width: 80,
-    height: 80,
   },
   {
     name: "Auth.js",
     iconLight: "/icons/authjs.png",
     iconDark: "/icons/authjs.png",
     color: "from-violet-500/80 to-purple-500/80",
-    width: 40,
-    height: 40,
     isPNG: true,
   },
   {
@@ -60,16 +48,12 @@ const technologies = [
     iconLight: "/icons/supabase-logo-wordmark--light.svg",
     iconDark: "/icons/supabase-logo-wordmark--dark.svg",
     color: "from-green-400/80 to-emerald-400/80",
-    width: 80,
-    height: 80,
   },
   {
     name: "Stripe",
     iconLight: "/icons/stripe-4.svg",
     iconDark: "/icons/stripe-4.svg",
     color: "from-blue-500/80 to-indigo-500/80",
-    width: 80,
-    height: 80,
   },
 ];
 
@@ -112,8 +96,8 @@ const TechCard = ({ tech, index }: TechCardProps) => (
             <Image
               src={tech.iconLight}
               alt={`Logo ${tech.name}`}
-              width={tech.width}
-              height={tech.height}
+              width={48} // Tamanho fixo
+              height={48} // Tamanho fixo
               className="object-contain dark:hidden"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
@@ -129,8 +113,8 @@ const TechCard = ({ tech, index }: TechCardProps) => (
             <Image
               src={tech.iconDark}
               alt={`Logo ${tech.name}`}
-              width={tech.width}
-              height={tech.height}
+                        width={48} // Tamanho fixo
+              height={48} // Tamanho fixo
               className="object-contain hidden dark:block"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;

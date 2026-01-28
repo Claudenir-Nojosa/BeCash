@@ -12,7 +12,7 @@ const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 export async function POST(req: Request) {
   const body = await req.text();
-  
+
   const headersList = await headers();
   const signature = headersList.get("stripe-signature");
 
@@ -34,9 +34,21 @@ export async function POST(req: Request) {
   try {
     switch (event.type) {
       case "customer.subscription.created": {
+
         console.log("🔍 Processando customer.subscription.created");
-        
+
         const subscriptionData = event.data.object as any;
+        // Verificar se está em trial
+        const isInTrial = subscriptionData.status === "trialing";
+        const trialEnd = subscriptionData.trial_end
+          ? new Date(subscriptionData.trial_end * 1000)
+          : null;
+        console.log("🔍 Processando customer.subscription.created");
+        console.log("📋 Trial info:", {
+          isInTrial,
+          trialEnd: trialEnd?.toISOString(),
+        });
+
 
         // Buscar a session recente para pegar o client_reference_id
         const sessions = await stripe.checkout.sessions.list({
@@ -56,18 +68,24 @@ export async function POST(req: Request) {
         const subscriptionItem = subscriptionData.items?.data?.[0];
         if (!subscriptionItem) {
           console.error("❌ No subscription item found");
-          return NextResponse.json({ error: "Invalid subscription" }, { status: 400 });
+          return NextResponse.json(
+            { error: "Invalid subscription" },
+            { status: 400 },
+          );
         }
 
         const priceId = subscriptionItem.price.id;
         const currentPeriodEnd = subscriptionItem.current_period_end;
-        
+
         console.log("📝 Price ID:", priceId);
         console.log("📝 Current period end:", currentPeriodEnd);
 
         if (!currentPeriodEnd) {
           console.error("❌ current_period_end não encontrado");
-          return NextResponse.json({ error: "Invalid subscription" }, { status: 400 });
+          return NextResponse.json(
+            { error: "Invalid subscription" },
+            { status: 400 },
+          );
         }
 
         const fimPlano = new Date(currentPeriodEnd * 1000);
@@ -79,44 +97,54 @@ export async function POST(req: Request) {
 
         // ✅ CORREÇÃO: Buscar informações do preço para determinar o plano
         let nomePlano = "free";
-        
+
         try {
           // Buscar o preço do Stripe para verificar os metadados
           const price = await stripe.prices.retrieve(priceId, {
-            expand: ['product']
+            expand: ["product"],
           });
-          
+
           console.log("🔍 Price metadata:", price.metadata);
-          console.log("🔍 Product metadata:", (price.product as Stripe.Product)?.metadata);
-          
+          console.log(
+            "🔍 Product metadata:",
+            (price.product as Stripe.Product)?.metadata,
+          );
+
           // Tentar obter o plano dos metadados
-          const planType = price.metadata?.plan_type || 
-                          price.metadata?.plan_name || 
-                          (price.product as Stripe.Product)?.metadata?.plan_type;
-          
+          const planType =
+            price.metadata?.plan_type ||
+            price.metadata?.plan_name ||
+            (price.product as Stripe.Product)?.metadata?.plan_type;
+
           if (planType) {
             nomePlano = planType;
           } else {
             // Fallback: verificar o nome do produto
-            const productName = (price.product as Stripe.Product)?.name?.toLowerCase() || '';
-            if (productName.includes('pro')) {
-              nomePlano = 'pro';
-            } else if (productName.includes('family') || productName.includes('família')) {
-              nomePlano = 'family';
+            const productName =
+              (price.product as Stripe.Product)?.name?.toLowerCase() || "";
+            if (productName.includes("pro")) {
+              nomePlano = "pro";
+            } else if (
+              productName.includes("family") ||
+              productName.includes("família")
+            ) {
+              nomePlano = "family";
             }
           }
-          
+
           console.log(`✅ Plano identificado: ${nomePlano}`);
-          
         } catch (priceError) {
           console.error("❌ Erro ao buscar informações do preço:", priceError);
           // Fallback: verificar pelo amount
           if (subscriptionItem.price.unit_amount > 0) {
-            nomePlano = subscriptionItem.price.unit_amount >= 4990 ? 'family' : 'pro';
+            nomePlano =
+              subscriptionItem.price.unit_amount >= 4990 ? "family" : "pro";
           }
         }
 
-        console.log(`💾 Salvando subscription: userId=${userId}, plano=${nomePlano}, fimPlano=${fimPlano.toISOString()}`);
+        console.log(
+          `💾 Salvando subscription: userId=${userId}, plano=${nomePlano}, fimPlano=${fimPlano.toISOString()}`,
+        );
 
         await db.subscription.upsert({
           where: { userId },
@@ -158,7 +186,8 @@ export async function POST(req: Request) {
       case "customer.subscription.updated": {
         const subscriptionData = event.data.object as any;
         const customerId = subscriptionData.customer;
-        const currentPeriodEnd = subscriptionData.items?.data?.[0]?.current_period_end;
+        const currentPeriodEnd =
+          subscriptionData.items?.data?.[0]?.current_period_end;
 
         if (!currentPeriodEnd) {
           console.error("❌ current_period_end não encontrado");
@@ -175,15 +204,16 @@ export async function POST(req: Request) {
         }
 
         const fimPlano = new Date(currentPeriodEnd * 1000);
-        const status = subscriptionData.status === "active" ? "active" : "canceled";
+        const status =
+          subscriptionData.status === "active" ? "active" : "canceled";
 
         await db.subscription.update({
           where: { userId: userSub.userId },
           data: {
             status,
             fimPlano,
-            canceladoEm: subscriptionData.canceled_at 
-              ? new Date(subscriptionData.canceled_at * 1000) 
+            canceladoEm: subscriptionData.canceled_at
+              ? new Date(subscriptionData.canceled_at * 1000)
               : null,
             updatedAt: new Date(),
           },
@@ -229,7 +259,7 @@ export async function POST(req: Request) {
     console.error("Stack trace:", error.stack);
     return NextResponse.json(
       { error: "Webhook handler failed", details: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -12,6 +12,8 @@ interface ErrorMessages {
       required: string;
       email: string;
       password: string;
+      passwordStrength: string;
+      confirmPassword: string;
       duplicate: string;
       generic: string;
     };
@@ -25,6 +27,9 @@ const messages: ErrorMessages = {
       required: "Por favor, preencha todos os campos",
       email: "Por favor, insira um email válido",
       password: "A senha deve ter pelo menos 6 caracteres",
+      passwordStrength:
+        "A senha deve conter pelo menos um número e um caractere especial",
+      confirmPassword: "As senhas não conferem",
       duplicate: "Este email já está cadastrado",
       generic: "Ocorreu um erro ao registrar. Tente novamente.",
     },
@@ -35,22 +40,40 @@ const messages: ErrorMessages = {
       required: "Please fill in all fields",
       email: "Please enter a valid email",
       password: "Password must be at least 6 characters",
+      passwordStrength:
+        "Password must contain at least one number and one special character",
+      confirmPassword: "Passwords do not match",
       duplicate: "This email is already registered",
       generic: "An error occurred during registration. Please try again.",
     },
   },
 };
 
+// Função para validar força da senha no servidor
+function validatePasswordStrength(password: string): boolean {
+  // Mínimo 6 caracteres
+  if (password.length < 6) return false;
+
+  // Pelo menos um número
+  if (!/\d/.test(password)) return false;
+
+  // Pelo menos um caractere especial
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) return false;
+
+  return true;
+}
+
 export default async function registerAction(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   _prevState: any,
-  formData: FormData
+  formData: FormData,
 ) {
   const entries = Array.from(formData.entries());
   const data = Object.fromEntries(entries) as {
     name: string;
     email: string;
     password: string;
+    confirmPassword?: string;
     lang?: string;
   };
 
@@ -76,9 +99,19 @@ export default async function registerAction(
       };
     }
 
-    if (data.password.length < 6) {
+    // Validar força da senha
+    if (!validatePasswordStrength(data.password)) {
       return {
-        message: t.error.password,
+        message: t.error.passwordStrength,
+        success: false,
+        lang: lang,
+      };
+    }
+
+    // Validar confirmação de senha (se enviada)
+    if (data.confirmPassword && data.password !== data.confirmPassword) {
+      return {
+        message: t.error.confirmPassword,
         success: false,
         lang: lang,
       };
@@ -103,21 +136,20 @@ export default async function registerAction(
         name: data.name.trim(),
         email: data.email.toLowerCase().trim(),
         password: hashSync(data.password),
-        onboardingCompleto: false, // 🆕 IMPORTANTE: Novo usuário precisa fazer onboarding
+        onboardingCompleto: false,
         subscriptionStatus: "free",
-        // Criar configurações padrão
         configuracoesUsuarios: {
           create: {
             idioma: lang === "en" ? "en-US" : "pt-BR",
-          }
-        }
+          },
+        },
       },
       select: {
         id: true,
         email: true,
         name: true,
         onboardingCompleto: true,
-      }
+      },
     });
 
     console.log("------ Server Action - Registrar Usuário ------");
@@ -129,7 +161,6 @@ export default async function registerAction(
       lang: lang,
     });
 
-    // 🆕 Não redirecionar aqui, vamos fazer login primeiro
     return {
       message: t.success,
       success: true,
@@ -138,10 +169,9 @@ export default async function registerAction(
       email: newUser.email,
       password: data.password, // Para login automático
     };
-
   } catch (error) {
     console.error("Error in registerAction:", error);
-    
+
     return {
       message: t.error.generic,
       success: false,

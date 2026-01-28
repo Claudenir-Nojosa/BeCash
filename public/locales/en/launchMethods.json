@@ -27,7 +27,7 @@
     },
     "normal": {
       "title": "Normal Launch",
-      "description": "For those who prefer total control, our intuitive interface allows quick manual entries with categorization, tags, and attachments",
+      "description": "For those who prefer total control, our intuitive interface allows quick manual entries.",
       "features": [
         "Intuitive interface",
         "Customizable fields",

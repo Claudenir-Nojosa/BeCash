@@ -45,9 +45,6 @@ import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-// Mock da função de tradução
-const t = (key: string, fallback: string) => fallback;
-
 interface UserSubscription {
   id: string;
   userId: string;
@@ -60,6 +57,11 @@ interface UserSubscription {
   fimPlano: Date;
   canceladoEm: Date | null;
 }
+
+// Função auxiliar para obter tradução com fallback
+const getFallback = (lang: string, pt: string, en: string) => {
+  return lang === "en" ? en : pt;
+};
 
 export default function PerfilPage() {
   const { data: session, update } = useSession();
@@ -78,28 +80,465 @@ export default function PerfilPage() {
   const [isReactivating, setIsReactivating] = useState(false);
   const [showPlans, setShowPlans] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { i18n } = useTranslation("");
+  const { t, i18n } = useTranslation("perfil");
+  const currentLang = i18n.language || "pt";
+
+  // Função auxiliar para obter tradução com fallback
+  const getTranslation = (key: string) => {
+    // Primeiro tenta usar o i18n
+    const translation = t(key);
+    if (translation && translation !== key) {
+      return translation;
+    }
+
+    // Fallback manual baseado nas chaves que você tem nos arquivos JSON
+    switch (key) {
+      // Títulos
+      case "titulo":
+        return getFallback(currentLang, "Meu Perfil", "My Profile");
+      case "descricao":
+        return getFallback(
+          currentLang,
+          "Gerencie suas informações pessoais e preferências",
+          "Manage your personal information and preferences",
+        );
+
+      // Informações Pessoais
+      case "informacoesPessoais":
+        return getFallback(
+          currentLang,
+          "Informações Pessoais",
+          "Personal Information",
+        );
+      case "descricaoInformacoes.comFoto":
+        return getFallback(
+          currentLang,
+          "Clique em Salvar Alterações para atualizar sua foto",
+          "Click Save Changes to update your photo",
+        );
+      case "descricaoInformacoes.semFoto":
+        return getFallback(
+          currentLang,
+          "Clique no ícone da câmera para alterar sua foto de perfil",
+          "Click the camera icon to change your profile picture",
+        );
+
+      // Botões
+      case "cancelar":
+        return getFallback(currentLang, "Cancelar", "Cancel");
+      case "salvando":
+        return getFallback(currentLang, "Salvando...", "Saving...");
+      case "salvarAlteracoes":
+        return getFallback(currentLang, "Salvar Alterações", "Save Changes");
+      case "editarFoto":
+        return getFallback(currentLang, "Editar Foto", "Edit Photo");
+      case "removerFoto":
+        return getFallback(
+          currentLang,
+          "Remover Foto Atual",
+          "Remove Current Photo",
+        );
+
+      // Status da Conta
+      case "statusConta":
+        return getFallback(currentLang, "Status da Conta", "Account Status");
+      case "gerenciarPlano":
+        return getFallback(currentLang, "Gerenciar Plano", "Manage Plan");
+
+      // Campos
+      case "campos.nomeCompleto":
+        return getFallback(currentLang, "Nome Completo", "Full Name");
+      case "campos.email":
+        return getFallback(currentLang, "E-mail", "Email");
+      case "campos.telefone":
+        return getFallback(currentLang, "Telefone", "Phone");
+      case "campos.dataCadastro":
+        return getFallback(
+          currentLang,
+          "Data de Cadastro",
+          "Registration Date",
+        );
+      case "campos.planoAtual":
+        return getFallback(currentLang, "Plano Atual", "Current Plan");
+      case "campos.validade":
+        return getFallback(currentLang, "Validade", "Expiration Date");
+      case "campos.naoInformado":
+        return getFallback(currentLang, "Não informado", "Not informed");
+
+      // Notificações
+      case "notificacoes.fotoAtualizada":
+        return getFallback(
+          currentLang,
+          "Foto atualizada com sucesso!",
+          "Photo updated successfully!",
+        );
+      case "notificacoes.fotoRemovida":
+        return getFallback(
+          currentLang,
+          "Foto removida com sucesso!",
+          "Photo removed successfully!",
+        );
+      case "notificacoes.erroAtualizar":
+        return getFallback(
+          currentLang,
+          "Erro ao atualizar foto",
+          "Error updating photo",
+        );
+      case "notificacoes.erroRemover":
+        return getFallback(
+          currentLang,
+          "Erro ao remover foto",
+          "Error removing photo",
+        );
+      case "notificacoes.arquivoInvalido":
+        return getFallback(
+          currentLang,
+          "Por favor, selecione uma imagem válida",
+          "Please select a valid image file",
+        );
+      case "notificacoes.tamanhoExcedido":
+        return getFallback(
+          currentLang,
+          "A imagem deve ter no máximo 5MB",
+          "Image must be maximum 5MB",
+        );
+
+      // Dicas
+      case "dicas.selecionarImagem":
+        return getFallback(
+          currentLang,
+          "Clique no ícone da câmera para selecionar uma nova foto",
+          "Click the camera icon to select a new photo",
+        );
+      case "dicas.formatosSuportados":
+        return getFallback(
+          currentLang,
+          "Formatos suportados: JPG, PNG, WebP",
+          "Supported formats: JPG, PNG, WebP",
+        );
+      case "dicas.tamanhoMaximo":
+        return getFallback(
+          currentLang,
+          "Tamanho máximo: 5MB",
+          "Maximum size: 5MB",
+        );
+
+      // Planos
+      case "plano.free":
+        return getFallback(currentLang, "Grátis", "Free");
+      case "plano.premium":
+        return getFallback(currentLang, "Premium", "Premium");
+      case "plano.business":
+        return getFallback(currentLang, "Business", "Business");
+      case "plano.expirado":
+        return getFallback(currentLang, "Expirado", "Expired");
+      case "plano.ativo":
+        return getFallback(currentLang, "Ativo", "Active");
+
+      // Tabs
+      case "perfil":
+        return getFallback(currentLang, "Perfil", "Profile");
+      case "assinatura":
+        return getFallback(currentLang, "Assinatura", "Subscription");
+
+      // Assinatura
+      case "assinatura.titulo":
+        return getFallback(
+          currentLang,
+          "Gerenciar Assinatura",
+          "Manage Subscription",
+        );
+      case "assinatura.descricao":
+        return getFallback(
+          currentLang,
+          "Visualize e gerencie sua assinatura atual",
+          "View and manage your current subscription",
+        );
+      case "assinatura.cobrancaMensal":
+        return getFallback(currentLang, "Cobrança mensal", "Monthly billing");
+      case "assinatura.status":
+        return getFallback(currentLang, "Status", "Status");
+      case "assinatura.inicio":
+        return getFallback(currentLang, "Data de Início", "Start Date");
+      case "assinatura.expirouEm":
+        return getFallback(currentLang, "Expirou em", "Expired on");
+      case "assinatura.expiraEm":
+        return getFallback(currentLang, "Expira em", "Expires on");
+      case "assinatura.renovaEm":
+        return getFallback(currentLang, "Próxima Renovação", "Next Renewal");
+
+      // Status
+      case "status.ativo":
+        return getFallback(currentLang, "Ativo", "Active");
+      case "status.cancelado":
+        return getFallback(currentLang, "Cancelado", "Canceled");
+      case "status.expirado":
+        return getFallback(currentLang, "Expirado", "Expired");
+
+      // Avisos
+      case "avisos.assinaturaCancelada":
+        return getFallback(
+          currentLang,
+          "Assinatura Cancelada",
+          "Subscription Canceled",
+        );
+      case "avisos.acessoAte":
+        return getFallback(
+          currentLang,
+          "Você ainda terá acesso aos recursos premium até",
+          "You will still have access to premium features until",
+        );
+      case "avisos.assinaturaExpirada":
+        return getFallback(
+          currentLang,
+          "Assinatura Expirada",
+          "Subscription Expired",
+        );
+      case "avisos.renovePara":
+        return getFallback(
+          currentLang,
+          "Sua assinatura expirou. Renove agora para continuar aproveitando todos os recursos premium.",
+          "Your subscription has expired. Renew now to continue enjoying all premium features.",
+        );
+
+      // Recursos
+      case "recursosIncluidos":
+        return getFallback(
+          currentLang,
+          "Recursos Incluídos no seu Plano",
+          "Features Included in Your Plan",
+        );
+      case "recursos.lancamentosLimitados":
+        return getFallback(
+          currentLang,
+          "Até 50 lançamentos por mês",
+          "Up to 50 entries per month",
+        );
+      case "recursos.whatsappLimitado":
+        return getFallback(
+          currentLang,
+          "3 mensagens WhatsApp AI por mês",
+          "3 WhatsApp AI messages per month",
+        );
+      case "recursos.categorias":
+        return getFallback(
+          currentLang,
+          "Até 10 categorias",
+          "Up to 10 categories",
+        );
+      case "recursos.metas":
+        return getFallback(
+          currentLang,
+          "Até 2 metas pessoais",
+          "Up to 2 personal goals",
+        );
+      case "recursos.lancamentosIlimitados":
+        return getFallback(
+          currentLang,
+          "Lançamentos ilimitados",
+          "Unlimited entries",
+        );
+      case "recursos.whatsappIlimitado":
+        return getFallback(
+          currentLang,
+          "WhatsApp AI ilimitado",
+          "Unlimited WhatsApp AI",
+        );
+      case "recursos.categoriasIlimitadas":
+        return getFallback(
+          currentLang,
+          "Categorias ilimitadas",
+          "Unlimited categories",
+        );
+      case "recursos.metasIlimitadas":
+        return getFallback(currentLang, "Metas ilimitadas", "Unlimited goals");
+      case "recursos.limitesCategorias":
+        return getFallback(
+          currentLang,
+          "Limites por categoria",
+          "Limits by category",
+        );
+      case "recursos.despesasCompartilhadas":
+        return getFallback(
+          currentLang,
+          "Até 3 despesas compartilhadas",
+          "Up to 3 shared expenses",
+        );
+      case "recursos.tudoPro":
+        return getFallback(
+          currentLang,
+          "Tudo do plano Pro",
+          "Everything from Pro plan",
+        );
+      case "recursos.membros":
+        return getFallback(
+          currentLang,
+          "Até 5 membros da família",
+          "Up to 5 family members",
+        );
+      case "recursos.despesasIlimitadas":
+        return getFallback(
+          currentLang,
+          "Despesas compartilhadas ilimitadas",
+          "Unlimited shared expenses",
+        );
+      case "recursos.metasFamiliares":
+        return getFallback(
+          currentLang,
+          "Metas familiares colaborativas",
+          "Collaborative family goals",
+        );
+
+      // Ações
+      case "acoes":
+        return getFallback(currentLang, "Ações", "Actions");
+      case "portalGerenciamento":
+        return getFallback(
+          currentLang,
+          "Abrir Portal do Stripe",
+          "Open Stripe Portal",
+        );
+      case "cancelarAssinatura":
+        return getFallback(
+          currentLang,
+          "Cancelar Assinatura",
+          "Cancel Subscription",
+        );
+      case "reativarAssinatura":
+        return getFallback(
+          currentLang,
+          "Reativar Assinatura",
+          "Reactivate Subscription",
+        );
+      case "assinarAgora":
+        return getFallback(currentLang, "Assinar Agora", "Subscribe Now");
+      case "verPlanos":
+        return getFallback(
+          currentLang,
+          "Ver Planos Disponíveis",
+          "View Available Plans",
+        );
+      case "upgradePlano":
+        return getFallback(currentLang, "Fazer Upgrade", "Upgrade Plan");
+
+      // Carregamento
+      case "carregando":
+        return getFallback(currentLang, "Carregando...", "Loading...");
+      case "cancelando":
+        return getFallback(currentLang, "Cancelando...", "Canceling...");
+      case "reativando":
+        return getFallback(currentLang, "Reativando...", "Reactivating...");
+
+      // Sem assinatura
+      case "semAssinatura.titulo":
+        return getFallback(
+          currentLang,
+          "Nenhuma assinatura ativa",
+          "No active subscription",
+        );
+      case "semAssinatura.descricao":
+        return getFallback(
+          currentLang,
+          "Você está usando o plano gratuito. Faça upgrade para desbloquear recursos premium e aproveitar ao máximo nossa plataforma.",
+          "You are using the free plan. Upgrade to unlock premium features and make the most of our platform.",
+        );
+
+      // Voltar
+      case "voltarParaAssinatura":
+        return getFallback(
+          currentLang,
+          "Voltar para Assinatura",
+          "Back to Subscription",
+        );
+
+      // Dialogs
+      case "dialog.cancelar.titulo":
+        return getFallback(
+          currentLang,
+          "Confirmar Cancelamento",
+          "Confirm Cancellation",
+        );
+      case "dialog.cancelar.descricao":
+        return getFallback(
+          currentLang,
+          "Tem certeza que deseja cancelar sua assinatura?",
+          "Are you sure you want to cancel your subscription?",
+        );
+      case "dialog.cancelar.acessoAte":
+        return getFallback(
+          currentLang,
+          "Acesso até o fim do período",
+          "Access until the end of the period",
+        );
+      case "dialog.cancelar.continuaraAcesso":
+        return getFallback(
+          currentLang,
+          "Você continuará com acesso premium até",
+          "You will continue to have premium access until",
+        );
+      case "dialog.cancelar.manterAssinatura":
+        return getFallback(
+          currentLang,
+          "Manter Assinatura",
+          "Keep Subscription",
+        );
+      case "dialog.cancelar.confirmarCancelamento":
+        return getFallback(
+          currentLang,
+          "Confirmar Cancelamento",
+          "Confirm Cancellation",
+        );
+
+      case "dialog.reativar.titulo":
+        return getFallback(
+          currentLang,
+          "Reativar Assinatura",
+          "Reactivate Subscription",
+        );
+      case "dialog.reativar.descricao":
+        return getFallback(
+          currentLang,
+          "Confirme a reativação da sua assinatura",
+          "Confirm the reactivation of your subscription",
+        );
+      case "dialog.reativar.beneficios":
+        return getFallback(
+          currentLang,
+          "Benefícios que você recupera",
+          "Benefits you will regain",
+        );
+      case "dialog.reativar.manterCancelado":
+        return getFallback(currentLang, "Manter Cancelado", "Keep Canceled");
+      case "dialog.reativar.reativarAgora":
+        return getFallback(currentLang, "Reativar Agora", "Reactivate Now");
+      case "dialog.reativar.processando":
+        return getFallback(currentLang, "Processando...", "Processing...");
+
+      default:
+        return key;
+    }
+  };
 
   // Carregar dados da assinatura
   useEffect(() => {
     loadUserSubscription();
   }, []);
 
-const loadUserSubscription = async () => {
-  try {
-    setLoadingSubscription(true);
-    const response = await fetch("/api/usuarios/subscription");
-    if (response.ok) {
-      const data = await response.json();
-      setSubscription(data.subscription);
+  const loadUserSubscription = async () => {
+    try {
+      setLoadingSubscription(true);
+      const response = await fetch("/api/usuarios/subscription");
+      if (response.ok) {
+        const data = await response.json();
+        setSubscription(data.subscription);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar assinatura:", error);
+      toast.error(getTranslation("notificacoes.erroAtualizar"));
+    } finally {
+      setLoadingSubscription(false);
     }
-  } catch (error) {
-    console.error("Erro ao carregar assinatura:", error);
-    toast.error("Não foi possível carregar os dados da assinatura");
-  } finally {
-    setLoadingSubscription(false);
-  }
-};
+  };
 
   const getUsername = () => {
     if (!session?.user?.email) return "";
@@ -117,94 +556,98 @@ const loadUserSubscription = async () => {
       .toUpperCase();
   };
 
-const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-  const file = event.target.files?.[0];
-  if (file) {
-    if (!file.type.startsWith("image/")) {
-      toast.error("Por favor, selecione uma imagem válida");
-      return;
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        toast.error(getTranslation("notificacoes.arquivoInvalido"));
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(getTranslation("notificacoes.tamanhoExcedido"));
+        return;
+      }
+
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
+  };
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("A imagem deve ter no máximo 5MB");
-      return;
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      if (!selectedFile) {
+        toast.info(getTranslation("notificacoes.arquivoInvalido"));
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("avatar", selectedFile);
+
+      const response = await fetch("/api/usuarios/alterar-foto", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(getTranslation("notificacoes.erroAtualizar"));
+      }
+
+      toast.success(getTranslation("notificacoes.fotoAtualizada"));
+
+      await update();
+      setSelectedFile(null);
+      setAvatarPreview(null);
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    } catch (error: any) {
+      console.error("Erro ao salvar foto:", error);
+      toast.error(
+        error.message || getTranslation("notificacoes.erroAtualizar"),
+      );
+    } finally {
+      setIsSaving(false);
     }
+  };
 
-    setSelectedFile(file);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setAvatarPreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-  }
-};
+  const handleConfirmCancel = async () => {
+    try {
+      setIsCanceling(true);
+      const response = await fetch("/api/usuarios/subscription/cancel", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: cancellationReason
+          ? JSON.stringify({ reason: cancellationReason })
+          : JSON.stringify({}),
+      });
 
-const handleSave = async () => {
-  setIsSaving(true);
-  try {
-    if (!selectedFile) {
-      toast.info("Nenhuma imagem selecionada");
-      return;
+      if (response.ok) {
+        toast.success(getTranslation("notificacoes.fotoAtualizada"));
+
+        await loadUserSubscription();
+        setShowCancelDialog(false);
+        setCancellationReason("");
+      } else {
+        throw new Error(getTranslation("notificacoes.erroAtualizar"));
+      }
+    } catch (error: any) {
+      console.error("Erro ao cancelar assinatura:", error);
+      toast.error(
+        error.message || getTranslation("notificacoes.erroAtualizar"),
+      );
+    } finally {
+      setIsCanceling(false);
     }
-
-    const formData = new FormData();
-    formData.append("avatar", selectedFile);
-
-    const response = await fetch("/api/usuarios/alterar-foto", {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error("Erro ao atualizar foto");
-    }
-
-    toast.success("Foto atualizada com sucesso!");
-    
-    await update();
-    setSelectedFile(null);
-    setAvatarPreview(null);
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  } catch (error: any) {
-    console.error("Erro ao salvar foto:", error);
-    toast.error(error.message || "Erro ao atualizar foto");
-  } finally {
-    setIsSaving(false);
-  }
-};
-
-const handleConfirmCancel = async () => {
-  try {
-    setIsCanceling(true);
-    const response = await fetch("/api/usuarios/subscription/cancel", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: cancellationReason
-        ? JSON.stringify({ reason: cancellationReason })
-        : JSON.stringify({}),
-    });
-
-    if (response.ok) {
-      toast.success("Assinatura cancelada com sucesso");
-      
-      await loadUserSubscription();
-      setShowCancelDialog(false);
-      setCancellationReason("");
-    } else {
-      throw new Error("Erro ao cancelar assinatura");
-    }
-  } catch (error: any) {
-    console.error("Erro ao cancelar assinatura:", error);
-    toast.error(error.message || "Erro ao cancelar assinatura");
-  } finally {
-    setIsCanceling(false);
-  }
-};
+  };
 
   const handleCancel = () => {
     setSelectedFile(null);
@@ -221,170 +664,222 @@ const handleConfirmCancel = async () => {
   const getPlansData = () => {
     return [
       {
-        name: t("pricingPlans:plans.basic.name", "Básico"),
+        name: getFallback(currentLang, "Básico", "Basic"),
         price: "0",
         yearlyPrice: "0",
         priceReal: "0",
         yearlyPriceReal: "0",
-        period: t("pricingPlans:plans.basic.period", "mês"),
+        period: getFallback(currentLang, "mês", "month"),
         features: [
-          t(
-            "pricingPlans:plans.basic.features.0",
+          getFallback(
+            currentLang,
             "Até 50 lançamentos por mês",
+            "Up to 50 entries per month",
           ),
-          t(
-            "pricingPlans:plans.basic.features.1",
+          getFallback(
+            currentLang,
             "3 mensagens WhatsApp AI por mês",
+            "3 WhatsApp AI messages per month",
           ),
-          t(
-            "pricingPlans:plans.basic.features.2",
+          getFallback(
+            currentLang,
             "Criação de até 10 categorias",
+            "Create up to 10 categories",
           ),
-          t(
-            "pricingPlans:plans.basic.features.3",
+          getFallback(
+            currentLang,
             "Criação de até 2 metas pessoais",
+            "Create up to 2 personal goals",
           ),
-          t("pricingPlans:plans.basic.features.4", "Análise básica de gastos"),
-          t("pricingPlans:plans.basic.features.5", "Suporte por email"),
+          getFallback(
+            currentLang,
+            "Análise básica de gastos",
+            "Basic spending analysis",
+          ),
+          getFallback(currentLang, "Suporte por email", "Email support"),
         ],
-        description: t(
-          "pricingPlans:plans.basic.description",
+        description: getFallback(
+          currentLang,
           "Perfeito para começar a controlar suas finanças",
+          "Perfect for starting to control your finances",
         ),
-        buttonText: t("pricingPlans:plans.basic.buttonText", "Começar Grátis"),
-        href: `/${i18n.language}/signup`,
+        buttonText: getFallback(currentLang, "Começar Grátis", "Start Free"),
+        href: `/${currentLang}/signup`,
         isPopular: false,
       },
       {
-        name: t("pricingPlans:plans.pro.name", "Pro"),
+        name: getFallback(currentLang, "Pro", "Pro"),
         price: "5.00",
         yearlyPrice: "4.00",
         priceReal: "19.90",
         yearlyPriceReal: "16.58",
-        period: t("pricingPlans:plans.pro.period", "mês"),
+        period: getFallback(currentLang, "mês", "month"),
         features: [
-          t("pricingPlans:plans.pro.features.0", "Lançamentos ilimitados"),
-          t("pricingPlans:plans.pro.features.1", "WhatsApp AI ilimitado"),
-          t("pricingPlans:plans.pro.features.2", "Categorias ilimitadas"),
-          t("pricingPlans:plans.pro.features.3", "Metas ilimitadas"),
-          t("pricingPlans:plans.pro.features.4", "Limites por categoria"),
-          t(
-            "pricingPlans:plans.pro.features.5",
-            "Até 3 despesas compartilhadas",
+          getFallback(
+            currentLang,
+            "Lançamentos ilimitados",
+            "Unlimited entries",
           ),
-          t("pricingPlans:plans.pro.features.6", "Relatórios avançados"),
-          t("pricingPlans:plans.pro.features.7", "Suporte prioritário"),
+          getFallback(
+            currentLang,
+            "WhatsApp AI ilimitado",
+            "Unlimited WhatsApp AI",
+          ),
+          getFallback(
+            currentLang,
+            "Categorias ilimitadas",
+            "Unlimited categories",
+          ),
+          getFallback(currentLang, "Metas ilimitadas", "Unlimited goals"),
+          getFallback(
+            currentLang,
+            "Limites por categoria",
+            "Limits by category",
+          ),
+          getFallback(
+            currentLang,
+            "Até 3 despesas compartilhadas",
+            "Up to 3 shared expenses",
+          ),
+          getFallback(currentLang, "Relatórios avançados", "Advanced reports"),
+          getFallback(currentLang, "Suporte prioritário", "Priority support"),
         ],
-        description: t(
-          "pricingPlans:plans.pro.description",
+        description: getFallback(
+          currentLang,
           "Para quem leva finanças a sério",
+          "For those who take finances seriously",
         ),
         buttonText: session?.user
-          ? t("perfil:upgradeParaPro", "Upgrade para Pro")
-          : t("pricingPlans:plans.pro.buttonText", "Seja PRO"),
+          ? getFallback(currentLang, "Upgrade para Pro", "Upgrade to Pro")
+          : getFallback(currentLang, "Seja PRO", "Go PRO"),
         href: session?.user
-          ? `/api/checkout?plan=pro&lang=${i18n.language}`
-          : `/${i18n.language}/signup?plan=pro`,
+          ? `/api/checkout?plan=pro&lang=${currentLang}`
+          : `/${currentLang}/signup?plan=pro`,
         isPopular: true,
-        badge: t("popularBadge", "Popular"),
+        badge: getFallback(currentLang, "Popular", "Popular"),
       },
       {
-        name: t("pricingPlans:plans.family.name", "Família"),
+        name: getFallback(currentLang, "Família", "Family"),
         price: "13.00",
         yearlyPrice: "11.00",
         priceReal: "49.90",
         yearlyPriceReal: "41.58",
-        period: t("pricingPlans:plans.family.period", "mês"),
+        period: getFallback(currentLang, "mês", "month"),
         features: [
-          t("pricingPlans:plans.family.features.0", "Tudo do plano Pro"),
-          t("pricingPlans:plans.family.features.1", "Até 5 membros da família"),
-          t(
-            "pricingPlans:plans.family.features.2",
+          getFallback(
+            currentLang,
+            "Tudo do plano Pro",
+            "Everything from Pro plan",
+          ),
+          getFallback(
+            currentLang,
+            "Até 5 membros da família",
+            "Up to 5 family members",
+          ),
+          getFallback(
+            currentLang,
             "Despesas compartilhadas ilimitadas",
+            "Unlimited shared expenses",
           ),
-          t(
-            "pricingPlans:plans.family.features.3",
+          getFallback(
+            currentLang,
             "Metas familiares colaborativas",
+            "Collaborative family goals",
           ),
-          t(
-            "pricingPlans:plans.family.features.4",
+          getFallback(
+            currentLang,
             "Suporte 24/7 com BiCla (IA assistente financeiro)",
+            "24/7 support with BiCla (AI financial assistant)",
           ),
         ],
-        description: t(
-          "pricingPlans:plans.family.description",
+        description: getFallback(
+          currentLang,
           "Ideal para famílias que querem controlar tudo junto",
+          "Ideal for families who want to control everything together",
         ),
         buttonText: session?.user
-          ? t("perfil:upgradeParaFamilia", "Upgrade para Família")
-          : t("pricingPlans:plans.family.buttonText", "Começar Teste Grátis"),
+          ? getFallback(
+              currentLang,
+              "Upgrade para Família",
+              "Upgrade to Family",
+            )
+          : getFallback(
+              currentLang,
+              "Começar Teste Grátis",
+              "Start Free Trial",
+            ),
         href: session?.user
-          ? `/api/checkout?plan=family&lang=${i18n.language}`
-          : `/${i18n.language}/signup?plan=family`,
+          ? `/api/checkout?plan=family&lang=${currentLang}`
+          : `/${currentLang}/signup?plan=family`,
         isPopular: false,
       },
     ];
   };
 
-const handleManageSubscription = async () => {
-  try {
-    setIsManaging(true);
-    const response = await fetch("/api/create-portal-session", {
-      method: "POST",
-    });
+  const handleManageSubscription = async () => {
+    try {
+      setIsManaging(true);
+      const response = await fetch("/api/create-portal-session", {
+        method: "POST",
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (data.url) {
-      window.open(data.url, "_blank");
-    } else {
-      throw new Error("URL do portal não disponível");
+      if (data.url) {
+        window.open(data.url, "_blank");
+      } else {
+        throw new Error(getTranslation("notificacoes.erroAtualizar"));
+      }
+    } catch (error) {
+      console.error("Erro ao acessar portal:", error);
+      toast.error(getTranslation("notificacoes.erroAtualizar"));
+    } finally {
+      setIsManaging(false);
     }
-  } catch (error) {
-    console.error("Erro ao acessar portal:", error);
-    toast.error("Erro ao acessar portal de gerenciamento");
-  } finally {
-    setIsManaging(false);
-  }
-};
+  };
 
-const handleReactivateSubscription = async () => {
-  try {
-    setIsReactivating(true);
-    const response = await fetch("/api/usuarios/subscription/reactivate", {
-      method: "POST",
-    });
+  const handleReactivateSubscription = async () => {
+    try {
+      setIsReactivating(true);
+      const response = await fetch("/api/usuarios/subscription/reactivate", {
+        method: "POST",
+      });
 
-    if (response.ok) {
-      toast.success("Assinatura reativada com sucesso");
-      
-      await loadUserSubscription();
-      setShowReactivateDialog(false);
-    } else {
-      throw new Error("Erro ao reativar assinatura");
+      if (response.ok) {
+        toast.success(getTranslation("notificacoes.fotoAtualizada"));
+
+        await loadUserSubscription();
+        setShowReactivateDialog(false);
+      } else {
+        throw new Error(getTranslation("notificacoes.erroAtualizar"));
+      }
+    } catch (error: any) {
+      console.error("Erro ao reativar assinatura:", error);
+      toast.error(
+        error.message || getTranslation("notificacoes.erroAtualizar"),
+      );
+    } finally {
+      setIsReactivating(false);
     }
-  } catch (error: any) {
-    console.error("Erro ao reativar assinatura:", error);
-    toast.error(error.message || "Erro ao reativar assinatura");
-  } finally {
-    setIsReactivating(false);
-  }
-};
+  };
 
   const formatDate = (date: Date | null) => {
     if (!date) return "-";
-    return new Date(date).toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
+    return new Date(date).toLocaleDateString(
+      currentLang === "en" ? "en-US" : "pt-BR",
+      {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      },
+    );
   };
 
   const getPlanName = (plan: string) => {
     const planMap: Record<string, string> = {
-      free: "Básico",
-      pro: "Pro",
-      family: "Família",
+      free: getFallback(currentLang, "Básico", "Basic"),
+      pro: getFallback(currentLang, "Pro", "Pro"),
+      family: getFallback(currentLang, "Família", "Family"),
     };
     return planMap[plan] || plan;
   };
@@ -428,17 +923,21 @@ const handleReactivateSubscription = async () => {
             )}
 
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Meu Perfil
+              {getTranslation("titulo")}
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Gerencie suas informações pessoais e preferências
+              {getTranslation("descricao")}
             </p>
           </div>
 
           <Tabs defaultValue="profile" className="space-y-6">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="profile">Perfil</TabsTrigger>
-              <TabsTrigger value="subscription">Assinatura</TabsTrigger>
+              <TabsTrigger value="profile">
+                {getTranslation("perfil")}
+              </TabsTrigger>
+              <TabsTrigger value="subscription">
+                {getTranslation("assinatura")}
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="profile" className="space-y-6">
@@ -449,12 +948,12 @@ const handleReactivateSubscription = async () => {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <User className="h-5 w-5" />
-                        Informações Pessoais
+                        {getTranslation("informacoesPessoais")}
                       </CardTitle>
                       <CardDescription>
                         {selectedFile
-                          ? "Clique em Salvar Alterações para atualizar sua foto"
-                          : "Clique no ícone da câmera para alterar sua foto de perfil"}
+                          ? getTranslation("descricaoInformacoes.comFoto")
+                          : getTranslation("descricaoInformacoes.semFoto")}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
@@ -464,7 +963,10 @@ const handleReactivateSubscription = async () => {
                           <Avatar className="h-24 w-24 border-4 border-gray-100 dark:border-gray-800">
                             <AvatarImage
                               src={avatarPreview || session?.user?.image || ""}
-                              alt={session?.user?.name || "Usuário"}
+                              alt={
+                                session?.user?.name ||
+                                getTranslation("campos.nomeCompleto")
+                              }
                               className="object-cover"
                             />
                             <AvatarFallback className="text-2xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white">
@@ -530,7 +1032,8 @@ const handleReactivateSubscription = async () => {
                                 </div>
                               </div>
                               <p className="text-xs text-gray-400 dark:text-gray-500">
-                                Tamanho máximo: 5MB • Formatos: JPG, PNG, WebP
+                                {getTranslation("dicas.tamanhoMaximo")} •{" "}
+                                {getTranslation("dicas.formatosSuportados")}
                               </p>
                             </div>
                           )}
@@ -543,22 +1046,24 @@ const handleReactivateSubscription = async () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div className="space-y-2">
                             <Label className="text-gray-500 dark:text-gray-400">
-                              Nome Completo
+                              {getTranslation("campos.nomeCompleto")}
                             </Label>
                             <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                               <p className="text-gray-900 dark:text-white">
-                                {session?.user?.name || "Não informado"}
+                                {session?.user?.name ||
+                                  getTranslation("campos.naoInformado")}
                               </p>
                             </div>
                           </div>
 
                           <div className="space-y-2">
                             <Label className="text-gray-500 dark:text-gray-400">
-                              E-mail
+                              {getTranslation("campos.email")}
                             </Label>
                             <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                               <p className="text-gray-900 dark:text-white">
-                                {session?.user?.email || "Não informado"}
+                                {session?.user?.email ||
+                                  getTranslation("campos.naoInformado")}
                               </p>
                             </div>
                           </div>
@@ -572,18 +1077,18 @@ const handleReactivateSubscription = async () => {
                             onClick={handleCancel}
                             disabled={isSaving}
                           >
-                            Cancelar
+                            {getTranslation("cancelar")}
                           </Button>
                           <Button onClick={handleSave} disabled={isSaving}>
                             {isSaving ? (
                               <>
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Salvando...
+                                {getTranslation("salvando")}
                               </>
                             ) : (
                               <>
                                 <Save className="h-4 w-4 mr-2" />
-                                Salvar Alterações
+                                {getTranslation("salvarAlteracoes")}
                               </>
                             )}
                           </Button>
@@ -597,19 +1102,21 @@ const handleReactivateSubscription = async () => {
                 <div className="space-y-6">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">Status da Conta</CardTitle>
+                      <CardTitle className="text-lg">
+                        {getTranslation("statusConta")}
+                      </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="flex items-center justify-between">
                         <span className="text-gray-600 dark:text-gray-400">
-                          Plano Atual
+                          {getTranslation("campos.planoAtual")}
                         </span>
                         {loadingSubscription ? (
                           <Skeleton className="h-6 w-20" />
                         ) : (
                           <Badge
                             className={getPlanColor(
-                              subscription?.plano || "free"
+                              subscription?.plano || "free",
                             )}
                           >
                             {getPlanName(subscription?.plano || "free")}
@@ -619,28 +1126,28 @@ const handleReactivateSubscription = async () => {
 
                       <div className="flex items-center justify-between">
                         <span className="text-gray-600 dark:text-gray-400">
-                          Status
+                          {getTranslation("assinatura.status")}
                         </span>
                         {loadingSubscription ? (
                           <Skeleton className="h-6 w-24" />
                         ) : effectiveStatus === "active" ? (
                           <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
                             <CheckCircle className="h-3 w-3 mr-1" />
-                            Ativo
+                            {getTranslation("status.ativo")}
                           </Badge>
                         ) : effectiveStatus === "canceled" ? (
                           <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
                             <X className="h-3 w-3 mr-1" />
-                            Cancelado
+                            {getTranslation("status.cancelado")}
                           </Badge>
                         ) : effectiveStatus === "expired" ? (
                           <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300">
                             <AlertCircle className="h-3 w-3 mr-1" />
-                            Expirado
+                            {getTranslation("status.expirado")}
                           </Badge>
                         ) : (
                           <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                            Teste Grátis
+                            {getTranslation("plano.free")}
                           </Badge>
                         )}
                       </div>
@@ -648,7 +1155,9 @@ const handleReactivateSubscription = async () => {
                       {subscription?.fimPlano && (
                         <div className="flex items-center justify-between">
                           <span className="text-gray-600 dark:text-gray-400">
-                            {isExpired ? "Expirou em" : "Próximo vencimento"}
+                            {isExpired
+                              ? getTranslation("assinatura.expirouEm")
+                              : getTranslation("assinatura.renovaEm")}
                           </span>
                           <span className="font-medium text-sm">
                             {formatDate(subscription.fimPlano)}
@@ -671,7 +1180,7 @@ const handleReactivateSubscription = async () => {
                       className="gap-2"
                     >
                       <ArrowLeft className="h-4 w-4" />
-                      {t("perfil:voltarParaAssinatura", "Voltar para Assinatura")}
+                      {getTranslation("voltarParaAssinatura")}
                     </Button>
                   </div>
                   <PricingMenor plans={getPlansData()} />
@@ -681,13 +1190,10 @@ const handleReactivateSubscription = async () => {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <PlanIcon className="h-5 w-5" />
-                      {t("perfil:assinatura.titulo", "Gerenciar Assinatura")}
+                      {getTranslation("assinatura.titulo")}
                     </CardTitle>
                     <CardDescription>
-                      {t(
-                        "perfil:assinatura.descricao",
-                        "Visualize e gerencie sua assinatura atual",
-                      )}
+                      {getTranslation("assinatura.descricao")}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -705,13 +1211,12 @@ const handleReactivateSubscription = async () => {
                               <div className="flex items-center gap-3 mb-4">
                                 <div>
                                   <h3 className="text-2xl font-bold">
-                                    {t("perfil:plano", "Plano")}{" "}
+                                    {getTranslation("campos.planoAtual")}{" "}
                                     {getPlanName(subscription.plano)}
                                   </h3>
                                   <p className="text-gray-600 dark:text-gray-400">
-                                    {t(
-                                      "perfil:assinatura.cobrancaMensal",
-                                      "Cobrança mensal",
+                                    {getTranslation(
+                                      "assinatura.cobrancaMensal",
                                     )}
                                   </p>
                                 </div>
@@ -720,7 +1225,7 @@ const handleReactivateSubscription = async () => {
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div>
                                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                                    {t("perfil:assinatura.status", "Status")}
+                                    {getTranslation("assinatura.status")}
                                   </p>
                                   <div className="flex items-center gap-2">
                                     {subscription.status === "active" &&
@@ -729,7 +1234,7 @@ const handleReactivateSubscription = async () => {
                                       <>
                                         <CheckCircle className="h-5 w-5 text-green-500" />
                                         <span className="text-lg font-semibold text-green-600 dark:text-green-400">
-                                          {t("perfil:status.ativo", "Ativo")}
+                                          {getTranslation("status.ativo")}
                                         </span>
                                       </>
                                     ) : subscription.status === "canceled" ||
@@ -737,20 +1242,14 @@ const handleReactivateSubscription = async () => {
                                       <>
                                         <X className="h-5 w-5 text-red-500" />
                                         <span className="text-lg font-semibold text-red-600 dark:text-red-400">
-                                          {t(
-                                            "perfil:status.cancelado",
-                                            "Cancelado",
-                                          )}
+                                          {getTranslation("status.cancelado")}
                                         </span>
                                       </>
                                     ) : (
                                       <>
                                         <AlertCircle className="h-5 w-5 text-gray-500" />
                                         <span className="text-lg font-semibold text-gray-600 dark:text-gray-400">
-                                          {t(
-                                            "perfil:status.expirado",
-                                            "Expirado",
-                                          )}
+                                          {getTranslation("status.expirado")}
                                         </span>
                                       </>
                                     )}
@@ -759,10 +1258,7 @@ const handleReactivateSubscription = async () => {
 
                                 <div>
                                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                                    {t(
-                                      "perfil:assinatura.inicio",
-                                      "Data de Início",
-                                    )}
+                                    {getTranslation("assinatura.inicio")}
                                   </p>
                                   <div className="flex items-center gap-2">
                                     <Calendar className="h-4 w-4 text-gray-400" />
@@ -777,20 +1273,12 @@ const handleReactivateSubscription = async () => {
 
                                 <div>
                                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                                    {new Date(subscription.fimPlano) < new Date()
-                                      ? t(
-                                          "perfil:assinatura.expirouEm",
-                                          "Expirou em",
-                                        )
+                                    {new Date(subscription.fimPlano) <
+                                    new Date()
+                                      ? getTranslation("assinatura.expirouEm")
                                       : subscription.canceladoEm
-                                        ? t(
-                                            "perfil:assinatura.expiraEm",
-                                            "Expira em",
-                                          )
-                                        : t(
-                                            "perfil:assinatura.renovaEm",
-                                            "Próxima Renovação",
-                                          )}
+                                        ? getTranslation("assinatura.expiraEm")
+                                        : getTranslation("assinatura.renovaEm")}
                                   </p>
                                   <div className="flex items-center gap-2">
                                     <Calendar className="h-4 w-4 text-gray-400" />
@@ -813,7 +1301,7 @@ const handleReactivateSubscription = async () => {
                                     className="whitespace-nowrap bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90"
                                   >
                                     <ExternalLink className="h-4 w-4 mr-2" />
-                                    {t("perfil:upgradePlano", "Fazer Upgrade")}
+                                    {getTranslation("upgradePlano")}
                                   </Button>
                                 </div>
                               )}
@@ -827,16 +1315,12 @@ const handleReactivateSubscription = async () => {
                                   <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
                                   <div className="flex-1">
                                     <p className="text-yellow-800 dark:text-yellow-300 font-semibold">
-                                      {t(
-                                        "perfil:avisos.assinaturaCancelada",
-                                        "Assinatura Cancelada",
+                                      {getTranslation(
+                                        "avisos.assinaturaCancelada",
                                       )}
                                     </p>
                                     <p className="text-yellow-700 dark:text-yellow-400 text-sm mt-1">
-                                      {t(
-                                        "perfil:avisos.acessoAte",
-                                        "Você ainda terá acesso aos recursos premium até",
-                                      )}{" "}
+                                      {getTranslation("avisos.acessoAte")}{" "}
                                       <span className="font-semibold">
                                         {format(
                                           new Date(subscription.fimPlano),
@@ -856,16 +1340,12 @@ const handleReactivateSubscription = async () => {
                                 <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5" />
                                 <div className="flex-1">
                                   <p className="text-red-800 dark:text-red-300 font-semibold">
-                                    {t(
-                                      "perfil:avisos.assinaturaExpirada",
-                                      "Assinatura Expirada",
+                                    {getTranslation(
+                                      "avisos.assinaturaExpirada",
                                     )}
                                   </p>
                                   <p className="text-red-700 dark:text-red-400 text-sm mt-1">
-                                    {t(
-                                      "perfil:avisos.renovePara",
-                                      "Sua assinatura expirou. Renove agora para continuar aproveitando todos os recursos premium.",
-                                    )}
+                                    {getTranslation("avisos.renovePara")}
                                   </p>
                                 </div>
                               </div>
@@ -879,10 +1359,7 @@ const handleReactivateSubscription = async () => {
                         <div>
                           <h4 className="font-semibold text-lg mb-4 flex items-center gap-2">
                             <CheckCircle className="h-5 w-5 text-[#007cca]" />
-                            {t(
-                              "perfil:recursosIncluidos",
-                              "Recursos Incluídos no seu Plano",
-                            )}
+                            {getTranslation("recursosIncluidos")}
                           </h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {subscription.plano === "free" ? (
@@ -890,34 +1367,29 @@ const handleReactivateSubscription = async () => {
                                 <div className="flex items-center gap-2 text-sm">
                                   <CheckCircle className="h-4 w-4 text-green-500" />
                                   <span>
-                                    {t(
+                                    {getTranslation(
                                       "recursos.lancamentosLimitados",
-                                      "Até 50 lançamentos por mês",
                                     )}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm">
                                   <CheckCircle className="h-4 w-4 text-green-500" />
                                   <span>
-                                    {t(
+                                    {getTranslation(
                                       "recursos.whatsappLimitado",
-                                      "3 mensagens WhatsApp AI por mês",
                                     )}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm">
                                   <CheckCircle className="h-4 w-4 text-green-500" />
                                   <span>
-                                    {t(
-                                      "recursos.categorias",
-                                      "Até 10 categorias",
-                                    )}
+                                    {getTranslation("recursos.categorias")}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm">
                                   <CheckCircle className="h-4 w-4 text-green-500" />
                                   <span>
-                                    {t("recursos.metas", "Até 2 metas pessoais")}
+                                    {getTranslation("recursos.metas")}
                                   </span>
                                 </div>
                               </>
@@ -926,54 +1398,46 @@ const handleReactivateSubscription = async () => {
                                 <div className="flex items-center gap-2 text-sm">
                                   <CheckCircle className="h-4 w-4 text-green-500" />
                                   <span className="font-semibold bg-gradient-to-r from-[#00cfec] to-[#007cca] bg-clip-text text-transparent">
-                                    {t(
+                                    {getTranslation(
                                       "recursos.lancamentosIlimitados",
-                                      "Lançamentos ilimitados",
                                     )}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm">
                                   <CheckCircle className="h-4 w-4 text-green-500" />
                                   <span className="font-semibold bg-gradient-to-r from-[#00cfec] to-[#007cca] bg-clip-text text-transparent">
-                                    {t(
+                                    {getTranslation(
                                       "recursos.whatsappIlimitado",
-                                      "WhatsApp AI ilimitado",
                                     )}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm">
                                   <CheckCircle className="h-4 w-4 text-green-500" />
                                   <span>
-                                    {t(
+                                    {getTranslation(
                                       "recursos.categoriasIlimitadas",
-                                      "Categorias ilimitadas",
                                     )}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm">
                                   <CheckCircle className="h-4 w-4 text-green-500" />
                                   <span>
-                                    {t(
-                                      "recursos.metasIlimitadas",
-                                      "Metas ilimitadas",
-                                    )}
+                                    {getTranslation("recursos.metasIlimitadas")}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm">
                                   <CheckCircle className="h-4 w-4 text-green-500" />
                                   <span>
-                                    {t(
+                                    {getTranslation(
                                       "recursos.limitesCategorias",
-                                      "Limites por categoria",
                                     )}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm">
                                   <CheckCircle className="h-4 w-4 text-green-500" />
                                   <span>
-                                    {t(
+                                    {getTranslation(
                                       "recursos.despesasCompartilhadas",
-                                      "Até 3 despesas compartilhadas",
                                     )}
                                   </span>
                                 </div>
@@ -983,34 +1447,27 @@ const handleReactivateSubscription = async () => {
                                 <div className="flex items-center gap-2 text-sm">
                                   <CheckCircle className="h-4 w-4 text-purple-500" />
                                   <span className="font-semibold">
-                                    {t("recursos.tudoPro", "Tudo do plano Pro")}
+                                    {getTranslation("recursos.tudoPro")}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm">
                                   <CheckCircle className="h-4 w-4 text-purple-500" />
                                   <span>
-                                    {t(
-                                      "recursos.membros",
-                                      "Até 5 membros da família",
-                                    )}
+                                    {getTranslation("recursos.membros")}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm">
                                   <CheckCircle className="h-4 w-4 text-purple-500" />
                                   <span>
-                                    {t(
+                                    {getTranslation(
                                       "recursos.despesasIlimitadas",
-                                      "Despesas compartilhadas ilimitadas",
                                     )}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm">
                                   <CheckCircle className="h-4 w-4 text-purple-500" />
                                   <span>
-                                    {t(
-                                      "recursos.metasFamiliares",
-                                      "Metas familiares colaborativas",
-                                    )}
+                                    {getTranslation("recursos.metasFamiliares")}
                                   </span>
                                 </div>
                               </>
@@ -1023,7 +1480,7 @@ const handleReactivateSubscription = async () => {
                         {/* Ações */}
                         <div className="space-y-4">
                           <h4 className="font-semibold text-lg">
-                            {t("perfil:acoes", "Ações")}
+                            {getTranslation("acoes")}
                           </h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Button
@@ -1035,15 +1492,12 @@ const handleReactivateSubscription = async () => {
                               {isManaging ? (
                                 <>
                                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  {t("perfil:carregando", "Carregando...")}
+                                  {getTranslation("carregando")}
                                 </>
                               ) : (
                                 <>
                                   <ExternalLink className="h-4 w-4 mr-2" />
-                                  {t(
-                                    "perfil:portalGerenciamento",
-                                    "Abrir Portal do Stripe",
-                                  )}
+                                  {getTranslation("portalGerenciamento")}
                                 </>
                               )}
                             </Button>
@@ -1059,15 +1513,12 @@ const handleReactivateSubscription = async () => {
                                 {isCanceling ? (
                                   <>
                                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    {t("perfil:cancelando", "Cancelando...")}
+                                    {getTranslation("cancelando")}
                                   </>
                                 ) : (
                                   <>
                                     <X className="h-4 w-4 mr-2" />
-                                    {t(
-                                      "perfil:cancelarAssinatura",
-                                      "Cancelar Assinatura",
-                                    )}
+                                    {getTranslation("cancelarAssinatura")}
                                   </>
                                 )}
                               </Button>
@@ -1082,15 +1533,12 @@ const handleReactivateSubscription = async () => {
                                 {isReactivating ? (
                                   <>
                                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    {t("perfil:reativando", "Reativando...")}
+                                    {getTranslation("reativando")}
                                   </>
                                 ) : (
                                   <>
                                     <RotateCcw className="h-4 w-4 mr-2" />
-                                    {t(
-                                      "perfil:reativarAssinatura",
-                                      "Reativar Assinatura",
-                                    )}
+                                    {getTranslation("reativarAssinatura")}
                                   </>
                                 )}
                               </Button>
@@ -1100,7 +1548,7 @@ const handleReactivateSubscription = async () => {
                                 className="w-full bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90"
                               >
                                 <Shield className="h-4 w-4 mr-2" />
-                                {t("perfil:assinarAgora", "Assinar Agora")}
+                                {getTranslation("assinarAgora")}
                               </Button>
                             )}
                           </div>
@@ -1113,16 +1561,10 @@ const handleReactivateSubscription = async () => {
                           <Shield className="h-10 w-10 text-gray-400" />
                         </div>
                         <h3 className="text-xl font-semibold mb-2">
-                          {t(
-                            "perfil:semAssinatura.titulo",
-                            "Nenhuma assinatura ativa",
-                          )}
+                          {getTranslation("semAssinatura.titulo")}
                         </h3>
                         <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto">
-                          {t(
-                            "perfil:semAssinatura.descricao",
-                            "Você está usando o plano gratuito. Faça upgrade para desbloquear recursos premium e aproveitar ao máximo nossa plataforma.",
-                          )}
+                          {getTranslation("semAssinatura.descricao")}
                         </p>
                         <Button
                           onClick={() => setShowPlans(true)}
@@ -1130,7 +1572,7 @@ const handleReactivateSubscription = async () => {
                           className="bg-gradient-to-r from-[#00cfec] to-[#007cca] text-white hover:opacity-90"
                         >
                           <Shield className="h-5 w-5 mr-2" />
-                          {t("perfil:verPlanos", "Ver Planos Disponíveis")}
+                          {getTranslation("verPlanos")}
                         </Button>
                       </div>
                     )}
@@ -1146,10 +1588,10 @@ const handleReactivateSubscription = async () => {
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="text-center text-xl">
-                Confirmar Cancelamento
+                {getTranslation("dialog.cancelar.titulo")}
               </DialogTitle>
               <DialogDescription className="text-center">
-                Tem certeza que deseja cancelar sua assinatura?
+                {getTranslation("dialog.cancelar.descricao")}
               </DialogDescription>
             </DialogHeader>
 
@@ -1159,10 +1601,10 @@ const handleReactivateSubscription = async () => {
                   <Calendar className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium text-amber-800 dark:text-amber-300">
-                      Acesso até o fim do período
+                      {getTranslation("dialog.cancelar.acessoAte")}
                     </p>
                     <p className="text-sm text-amber-700 dark:text-amber-400">
-                      Você continuará com acesso premium até{" "}
+                      {getTranslation("dialog.cancelar.continuaraAcesso")}{" "}
                       <span className="font-semibold">
                         {format(
                           new Date(subscription?.fimPlano || new Date()),
@@ -1181,7 +1623,7 @@ const handleReactivateSubscription = async () => {
                 onClick={() => setShowCancelDialog(false)}
                 className="w-full sm:w-1/2"
               >
-                Manter Assinatura
+                {getTranslation("dialog.cancelar.manterAssinatura")}
               </Button>
               <Button
                 variant="destructive"
@@ -1192,10 +1634,10 @@ const handleReactivateSubscription = async () => {
                 {isCanceling ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Cancelando...
+                    {getTranslation("cancelando")}
                   </>
                 ) : (
-                  "Confirmar Cancelamento"
+                  getTranslation("dialog.cancelar.confirmarCancelamento")
                 )}
               </Button>
             </DialogFooter>
@@ -1203,17 +1645,20 @@ const handleReactivateSubscription = async () => {
         </Dialog>
 
         {/* Dialog de Reativação */}
-        <Dialog open={showReactivateDialog} onOpenChange={setShowReactivateDialog}>
+        <Dialog
+          open={showReactivateDialog}
+          onOpenChange={setShowReactivateDialog}
+        >
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 mb-4">
                 <RotateCcw className="h-6 w-6 text-emerald-600" />
               </div>
               <DialogTitle className="text-center text-xl">
-                Reativar Assinatura
+                {getTranslation("dialog.reativar.titulo")}
               </DialogTitle>
               <DialogDescription className="text-center">
-                Confirme a reativação da sua assinatura{" "}
+                {getTranslation("dialog.reativar.descricao")}{" "}
                 {getPlanName(subscription?.plano || "pro")}
               </DialogDescription>
             </DialogHeader>
@@ -1224,20 +1669,20 @@ const handleReactivateSubscription = async () => {
                   <CheckCircle className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium text-emerald-800 dark:text-emerald-300">
-                      Benefícios que você recupera
+                      {getTranslation("dialog.reativar.beneficios")}
                     </p>
                     <ul className="mt-2 space-y-1 text-sm text-emerald-700 dark:text-emerald-400">
                       <li className="flex items-center gap-2">
                         <CheckCircle className="h-3 w-3" />
-                        Lançamentos ilimitados
+                        {getTranslation("recursos.lancamentosIlimitados")}
                       </li>
                       <li className="flex items-center gap-2">
                         <CheckCircle className="h-3 w-3" />
-                        WhatsApp AI ilimitado
+                        {getTranslation("recursos.whatsappIlimitado")}
                       </li>
                       <li className="flex items-center gap-2">
                         <CheckCircle className="h-3 w-3" />
-                        Categorias ilimitadas
+                        {getTranslation("recursos.categoriasIlimitadas")}
                       </li>
                     </ul>
                   </div>
@@ -1251,7 +1696,7 @@ const handleReactivateSubscription = async () => {
                 onClick={() => setShowReactivateDialog(false)}
                 className="w-full sm:w-1/2"
               >
-                Manter Cancelado
+                {getTranslation("dialog.reativar.manterCancelado")}
               </Button>
               <Button
                 onClick={handleReactivateSubscription}
@@ -1261,12 +1706,12 @@ const handleReactivateSubscription = async () => {
                 {isReactivating ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Processando...
+                    {getTranslation("dialog.reativar.processando")}
                   </>
                 ) : (
                   <>
                     <RotateCcw className="h-4 w-4 mr-2" />
-                    Reativar Agora
+                    {getTranslation("dialog.reativar.reativarAgora")}
                   </>
                 )}
               </Button>
@@ -1274,7 +1719,6 @@ const handleReactivateSubscription = async () => {
           </DialogContent>
         </Dialog>
       </div>
-
     </>
   );
 }

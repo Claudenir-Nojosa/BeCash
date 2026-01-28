@@ -174,7 +174,7 @@ export const CTA2 = () => {
                     </div>
                     <div className="text-left">
                       <div className="font-bold text-gray-900 dark:text-white text-sm">
-                        {t("features.trial.title", "14 dias grátis")}
+                        {t("features.trial.title", "7 dias grátis")}
                       </div>
                       <div className="text-xs text-gray-600 dark:text-gray-400">
                         {t("features.trial.subtitle", "Sem cartão de crédito")}

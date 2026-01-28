@@ -18,11 +18,6 @@ export const SharedExpenses = () => {
       title: t("features.multipleParticipants.title"),
       description: t("features.multipleParticipants.description"),
     },
-    {
-      icon: ArrowLeftRight,
-      title: t("features.balanceOwed.title"),
-      description: t("features.balanceOwed.description"),
-    },
   ];
 
   const expensesList = [

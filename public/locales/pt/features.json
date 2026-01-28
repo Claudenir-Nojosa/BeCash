@@ -16,7 +16,7 @@
     },
     "smartAlerts": {
       "title": "Alertas Inteligentes",
-      "description": "Receba notificações sobre gastos, limites e oportunidades de economia"
+      "description": "Defina limites de gastos por categoria e receba alertas para manter o controle total das suas finanças"
     },
     "visualReports": {
       "title": "Relatórios Visuais",
@@ -27,8 +27,8 @@
       "description": "Criptografia de ponta e autenticação avançada protegem seus dados"
     },
     "automation": {
-      "title": "Automação",
-      "description": "Automatize transferências, pagamentos e investimentos recorrentes"
+      "title": "Automação Completa",
+      "description": "Lançamentos via WhatsApp, parcelamentos automáticos, despesas recorrentes e muito mais"
     }
   }
 }

@@ -347,7 +347,7 @@ export const Navbar = () => {
               className="flex items-center gap-2"
             >
               <Link
-                href={`/`}
+                href={`/${currentLang}`}
                 className="flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#007cca] focus:ring-offset-2 dark:focus:ring-offset-gray-900 rounded-lg p-1"
                 aria-label={translations.aria.goHome}
               >

@@ -17,7 +17,7 @@ export const LaunchMethods = () => {
       description: t("methods.audio.description"),
       features: t("methods.audio.features", { returnObjects: true }),
       image:
-        "https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=800&auto=format&fit=crop&q=80",
+        "https://images.pexels.com/photos/5592279/pexels-photo-5592279.jpeg",
       gradient: "from-blue-600 to-cyan-700",
     },
     {
@@ -27,7 +27,7 @@ export const LaunchMethods = () => {
       description: t("methods.message.description"),
       features: t("methods.message.features", { returnObjects: true }),
       image:
-        "https://images.unsplash.com/photo-1611746872915-64382b5c76da?w=800&auto=format&fit=crop&q=80",
+        "https://images.pexels.com/photos/5588373/pexels-photo-5588373.jpeg",
       gradient: "from-blue-500 to-cyan-600",
     },
     {
@@ -37,7 +37,7 @@ export const LaunchMethods = () => {
       description: t("methods.normal.description"),
       features: t("methods.normal.features", { returnObjects: true }),
       image:
-        "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&auto=format&fit=crop&q=80",
+        "https://images.pexels.com/photos/5926395/pexels-photo-5926395.jpeg",
       gradient: "from-blue-400 to-cyan-500",
     },
   ];

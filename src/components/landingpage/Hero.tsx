@@ -325,27 +325,34 @@ export const Hero = () => {
               </Button>
             </Link>
 
-            <Button
-              size="lg"
-              variant="outline"
-              className="px-6 md:px-8 py-5 text-lg font-medium border border-gray-300/80 dark:border-gray-700/80 hover:border-[#007cca]/40 dark:hover:border-[#00cfec]/40 text-gray-800 dark:text-gray-200 hover:text-[#007cca] dark:hover:text-[#00cfec] transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] rounded-xl bg-white/70 dark:bg-gray-900/30 backdrop-blur-sm w-full sm:w-auto"
-              onMouseEnter={() => setIsHoveringSecondary(true)}
-              onMouseLeave={() => setIsHoveringSecondary(false)}
-            >
-              <motion.div
-                animate={{ y: isHoveringSecondary ? [0, 1.5, 0] : 0 }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  repeatType: "loop",
-                  ease: "easeInOut",
-                }}
-                className="mr-2"
-              >
-                <ChevronRight className="w-4 h-4 rotate-90 text-gray-600 dark:text-gray-400 group-hover:text-[#007cca] dark:group-hover:text-[#00cfec] transition-colors duration-200" />
-              </motion.div>
-              {translations.buttons.howItWorks}
-            </Button>
+           <Button
+  size="lg"
+  variant="outline"
+  className="px-6 md:px-8 py-5 text-lg font-medium border border-gray-300/80 dark:border-gray-700/80 hover:border-[#007cca]/40 dark:hover:border-[#00cfec]/40 text-gray-800 dark:text-gray-200 hover:text-[#007cca] dark:hover:text-[#00cfec] transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] rounded-xl bg-white/70 dark:bg-gray-900/30 backdrop-blur-sm w-full sm:w-auto"
+  onMouseEnter={() => setIsHoveringSecondary(true)}
+  onMouseLeave={() => setIsHoveringSecondary(false)}
+  onClick={() => {
+    // Scroll suave para a seção HowItWorks
+    const howItWorksSection = document.getElementById('how-it-works');
+    if (howItWorksSection) {
+      howItWorksSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  }}
+>
+  <motion.div
+    animate={{ y: isHoveringSecondary ? [0, 1.5, 0] : 0 }}
+    transition={{
+      duration: 2,
+      repeat: Infinity,
+      repeatType: "loop",
+      ease: "easeInOut",
+    }}
+    className="mr-2"
+  >
+    <ChevronRight className="w-4 h-4 rotate-90 text-gray-600 dark:text-gray-400 group-hover:text-[#007cca] dark:group-hover:text-[#00cfec] transition-colors duration-200" />
+  </motion.div>
+  {translations.buttons.howItWorks}
+</Button>
           </motion.div>
 
           {/* Trust Indicators - Ajustes finos */}

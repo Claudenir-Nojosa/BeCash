@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Download, Link, Sparkles, TrendingUp } from "lucide-react";
+import { CircleUserRound, Download, HandCoins, Link, ListPlus, Sparkles, TrendingUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export const HowItWorks = () => {
@@ -9,24 +9,24 @@ export const HowItWorks = () => {
 
   const steps = [
     {
-      icon: Download,
+      icon: CircleUserRound,
       title: t("steps.createAccount.title", "Crie sua conta"),
-      description: t("steps.createAccount.description", "Cadastre-se em segundos com seu email ou redes sociais."),
+      description: t("steps.createAccount.description", "Cadastre-se em segundos com seu email ou google."),
     },
     {
-      icon: Link,
-      title: t("steps.connectAccounts.title", "Conecte suas contas"),
-      description: t("steps.connectAccounts.description", "Vincule suas contas bancárias e cartões de forma segura."),
+      icon: ListPlus,
+      title: t("steps.connectAccounts.title", "Crie categorias"),
+      description: t("steps.connectAccounts.description", "Informe se é receita ou despesa, customize a cor e ícone."),
     },
     {
-      icon: Sparkles,
-      title: t("steps.receiveInsights.title", "Receba insights"),
-      description: t("steps.receiveInsights.description", "Nossa IA analisa seus gastos e sugere melhorias personalizadas."),
+      icon: HandCoins,
+      title: t("steps.receiveInsights.title", "Faça os lançamentos"),
+      description: t("steps.receiveInsights.description", "Realize os lançamentos das receitas ou despesas, seja por áudio, mensagem, ou manual na plataforma."),
     },
     {
       icon: TrendingUp,
       title: t("steps.reachGoals.title", "Alcance suas metas"),
-      description: t("steps.reachGoals.description", "Acompanhe seu progresso e veja seu dinheiro crescer."),
+      description: t("steps.reachGoals.description", "Acompanhe sua movimentação e nunca mais perca o seu controle financeiro."),
     },
   ];
 

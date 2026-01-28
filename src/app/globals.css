@@ -492,3 +492,52 @@ body {
   margin-top: 0.25rem !important;
   margin-bottom: 0.25rem !important;
 }
+
+.password-strength {
+  display: flex;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.password-strength-bar {
+  height: 4px;
+  flex-grow: 1;
+  border-radius: 2px;
+  background-color: #e5e7eb; /* bg-gray-200 */
+  transition: all 0.3s ease;
+}
+
+.password-strength-bar.weak {
+  background-color: #ef4444; /* bg-red-500 */
+}
+
+.password-strength-bar.medium {
+  background-color: #f59e0b; /* bg-yellow-500 */
+}
+
+.password-strength-bar.strong {
+  background-color: #10b981; /* bg-green-500 */
+}
+
+.password-strength-text {
+  font-size: 0.75rem; /* text-xs */
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+.password-strength-text.weak {
+  color: #ef4444; /* text-red-500 */
+}
+
+.password-strength-text.medium {
+  color: #f59e0b; /* text-yellow-500 */
+}
+
+.password-strength-text.strong {
+  color: #10b981; /* text-green-500 */
+}
+
+/* Para modo escuro */
+.dark .password-strength-bar {
+  background-color: #374151; /* dark:bg-gray-700 */
+}

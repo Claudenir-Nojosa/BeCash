@@ -1,116 +1,143 @@
-// app/api/stripe/create-checkout-session/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
-import db from '@/lib/db';
+import { NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
+import db from "@/lib/db";
+import { getPriceId } from "@/lib/stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-12-15.clover',
+  apiVersion: "2025-12-15.clover",
 });
+
+// Configuração de trial: 7 dias para todos os planos pagos
+const TRIAL_DAYS = 7;
 
 export async function POST(req: NextRequest) {
   try {
     const { plan, currency, interval, userId, userEmail } = await req.json();
 
+    console.log("📝 Dados recebidos:", {
+      plan,
+      currency,
+      interval,
+      userId,
+      userEmail,
+    });
+
     // Validar dados recebidos
     if (!plan || !currency || !interval || !userId || !userEmail) {
+      return NextResponse.json({ error: "Dados incompletos" }, { status: 400 });
+    }
+
+    // Obter Price ID baseado nos parâmetros
+    const period = interval === "month" ? "monthly" : "yearly";
+    const priceId = await getPriceId({
+      plan: plan as "free" | "pro" | "family",
+      period,
+      currency: currency as "BRL" | "USD",
+    });
+
+    if (!priceId) {
+      console.error("❌ Preço não encontrado para:", {
+        plan,
+        period,
+        currency,
+      });
       return NextResponse.json(
-        { error: 'Dados incompletos' },
-        { status: 400 }
+        { error: "Preço não encontrado para esta configuração" },
+        { status: 400 },
       );
     }
 
-    // Mapear para as URLs de checkout corretas
-    const checkoutUrlMap = {
-      pro: {
-        BRL: {
-          month: process.env.NEXT_PUBLIC_STRIPE_PRO_BRL_MONTHLY_CHECKOUT_URL,
-          year: process.env.NEXT_PUBLIC_STRIPE_PRO_BRL_YEARLY_CHECKOUT_URL,
-        },
-        USD: {
-          month: process.env.NEXT_PUBLIC_STRIPE_PRO_USD_MONTHLY_CHECKOUT_URL,
-          year: process.env.NEXT_PUBLIC_STRIPE_PRO_USD_YEARLY_CHECKOUT_URL,
-        },
-      },
-      family: {
-        BRL: {
-          month: process.env.NEXT_PUBLIC_STRIPE_FAMILY_BRL_MONTHLY_CHECKOUT_URL,
-          year: process.env.NEXT_PUBLIC_STRIPE_FAMILY_BRL_YEARLY_CHECKOUT_URL,
-        },
-        USD: {
-          month: process.env.NEXT_PUBLIC_STRIPE_FAMILY_USD_MONTHLY_CHECKOUT_URL,
-          year: process.env.NEXT_PUBLIC_STRIPE_FAMILY_USD_YEARLY_CHECKOUT_URL,
-        },
-      },
-    };
+    console.log("✅ Price ID encontrado:", priceId);
 
-    // Obter URL de checkout
-    const checkoutUrl = checkoutUrlMap[plan as keyof typeof checkoutUrlMap]?.[currency as 'BRL' | 'USD']?.[interval as 'month' | 'year'];
+    // Verificar se usuário já teve trial antes
+    const existingSubscription = await db.subscription.findFirst({
+      where: { userId },
+    });
 
-    if (!checkoutUrl) {
-      return NextResponse.json(
-        { error: 'URL de checkout não encontrada para esta configuração' },
-        { status: 400 }
-      );
-    }
+    const hasHadTrial = existingSubscription !== null;
+    console.log("🔍 Usuário já teve trial?", hasHadTrial);
 
     // Criar ou buscar cliente no Stripe
     let stripeCustomerId: string;
-    
-    // Verificar se usuário já tem stripeCustomerId
+
     const user = await db.user.findUnique({
       where: { id: userId },
-      select: { stripeCustomerId: true }
+      select: { stripeCustomerId: true },
     });
 
     if (user?.stripeCustomerId) {
       stripeCustomerId = user.stripeCustomerId;
+      console.log("✅ Cliente Stripe existente:", stripeCustomerId);
     } else {
-      // Criar novo cliente no Stripe
       const customer = await stripe.customers.create({
         email: userEmail,
-        metadata: { userId }
+        metadata: { userId },
       });
       stripeCustomerId = customer.id;
+      console.log("✅ Novo cliente Stripe criado:", stripeCustomerId);
 
       // Atualizar usuário com stripeCustomerId
       await db.user.update({
         where: { id: userId },
-        data: { stripeCustomerId }
+        data: { stripeCustomerId },
       });
     }
 
-    // Criar sessão de checkout do Stripe usando a URL de checkout pronta
-    // Mas passando o customer e metadata
-    const session = await stripe.checkout.sessions.create({
+    // Configurar sessão de checkout
+    const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       customer: stripeCustomerId,
-      mode: 'subscription',
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?canceled=true`,
+      client_reference_id: userId,
+      mode: "subscription",
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/pricing?canceled=true`,
       metadata: {
         userId,
         plan,
         currency,
         interval,
-        checkoutType: 'direct_link',
       },
-      // Para usar URLs de checkout prontas, você pode usar o line_items
-      // Mas como temos URLs prontas, vamos redirecionar para elas
-      // com parâmetros de cliente pré-preenchidos
+      subscription_data: {
+        metadata: {
+          userId,
+          plan,
+        },
+      },
+    };
+
+    // Adicionar trial de 7 dias apenas se o usuário nunca teve trial antes
+    let trialDaysApplied = 0;
+    if (!hasHadTrial) {
+      sessionConfig.subscription_data!.trial_period_days = TRIAL_DAYS;
+      trialDaysApplied = TRIAL_DAYS;
+      console.log(`✨ Trial de ${TRIAL_DAYS} dias adicionado!`);
+    } else {
+      console.log(
+        "⚠️ Trial não aplicado - usuário já teve trial anteriormente",
+      );
+    }
+
+    // Criar sessão de checkout
+    const session = await stripe.checkout.sessions.create(sessionConfig);
+
+    console.log("✅ Sessão criada:", session.id);
+
+    return NextResponse.json({
+      url: session.url,
+      sessionId: session.id,
+      trialDays: trialDaysApplied,
+      hasHadTrial,
     });
-
-    // Retornar URL de checkout com cliente pré-preenchido
-    const checkoutWithCustomer = `${checkoutUrl}?client_reference_id=${userId}&prefilled_email=${encodeURIComponent(userEmail)}&customer=${stripeCustomerId}`;
-
-    return NextResponse.json({ 
-      url: checkoutWithCustomer,
-      sessionId: session.id
-    });
-
   } catch (error: any) {
-    console.error('Erro ao criar sessão de checkout:', error);
+    console.error("❌ Erro ao criar sessão de checkout:", error);
     return NextResponse.json(
-      { error: error.message || 'Erro interno do servidor' },
-      { status: 500 }
+      { error: error.message || "Erro interno do servidor" },
+      { status: 500 },
     );
   }
 }

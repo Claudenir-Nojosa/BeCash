@@ -8,19 +8,19 @@
   "steps": {
     "createAccount": {
       "title": "Crie sua conta",
-      "description": "Cadastre-se em segundos com seu email ou redes sociais."
+      "description": "Cadastre-se em segundos com seu email ou google."
     },
     "connectAccounts": {
-      "title": "Conecte suas contas",
-      "description": "Vincule suas contas bancárias e cartões de forma segura."
+      "title": "Crie categorias",
+      "description": "Informe se é receita ou despesa, customize a cor e ícone."
     },
     "receiveInsights": {
-      "title": "Receba insights",
-      "description": "Nossa IA analisa seus gastos e sugere melhorias personalizadas."
+      "title": "Faça os lançamentos",
+      "description": "Realize os lançamentos das receitas ou despesas, seja por áudio, mensagem, ou manual na plataforma."
     },
     "reachGoals": {
       "title": "Alcance suas metas",
-      "description": "Acompanhe seu progresso e veja seu dinheiro crescer."
+      "description": "Acompanhe sua movimentação e nunca mais perca o seu controle financeiro."
     }
   }
 }

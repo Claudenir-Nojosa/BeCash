@@ -20,22 +20,34 @@ export const Security = () => {
     {
       icon: Lock,
       title: t("features.encryption.title", "Criptografia de ponta"),
-      description: t("features.encryption.description", "Todos os dados são protegidos com criptografia AES-256, o mesmo padrão usado por bancos e instituições governamentais."),
+      description: t(
+        "features.encryption.description",
+        "Todos os dados são protegidos com criptografia AES-256, o mesmo padrão usado por bancos e instituições governamentais.",
+      ),
     },
     {
       icon: Eye,
       title: t("features.control.title", "Você controla tudo"),
-      description: t("features.control.description", "Seus dados são exclusivamente seus. Você decide o que compartilhar e pode deletar tudo a qualquer momento."),
+      description: t(
+        "features.control.description",
+        "Seus dados são exclusivamente seus. Você decide o que compartilhar e pode deletar tudo a qualquer momento.",
+      ),
     },
     {
       icon: FileCheck,
       title: t("features.compliance.title", "Conformidade total"),
-      description: t("features.compliance.description", "Seguimos rigorosamente a LGPD e normas do Banco Central. Auditados constantemente por terceiros independentes."),
+      description: t(
+        "features.compliance.description",
+        "Seguimos rigorosamente a LGPD e normas do Banco Central. Auditados constantemente por terceiros independentes.",
+      ),
     },
     {
       icon: Server,
       title: t("features.infrastructure.title", "Infraestrutura segura"),
-      description: t("features.infrastructure.description", "Servidores em cloud tier 1 com redundância geográfica, backups automáticos e monitoramento 24/7."),
+      description: t(
+        "features.infrastructure.description",
+        "Servidores em cloud tier 1 com redundância geográfica, backups automáticos e monitoramento 24/7.",
+      ),
     },
   ];
 
@@ -47,9 +59,7 @@ export const Security = () => {
   ];
 
   const protectionItems = [
-    t("protection.twoFactor", "Autenticação de dois fatores (2FA)"),
     t("protection.monitoring", "Monitoramento de atividades suspeitas"),
-    t("protection.notifications", "Notificações em tempo real"),
     t("protection.noPasswords", "Nunca armazenamos senhas bancárias"),
   ];
 
@@ -92,7 +102,10 @@ export const Security = () => {
             </h2>
 
             <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
-              {t("description", "Segurança de nível bancário para você gerenciar suas finanças com total tranquilidade. Sua privacidade é nossa prioridade.")}
+              {t(
+                "description",
+                "Segurança de nível bancário para você gerenciar suas finanças com total tranquilidade. Sua privacidade é nossa prioridade.",
+              )}
             </p>
           </motion.div>
         </div>
@@ -182,10 +195,16 @@ export const Security = () => {
                   transition={{ duration: 0.8 }}
                 >
                   <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
-                    {t("layeredProtection.title", "Proteção em todas as camadas")}
+                    {t(
+                      "layeredProtection.title",
+                      "Proteção em todas as camadas",
+                    )}
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-sm md:text-base">
-                    {t("layeredProtection.description", "Implementamos múltiplas camadas de segurança para garantir que suas informações financeiras estejam sempre protegidas. Do momento em que você faz login até cada transação processada, tudo é criptografado e monitorado.")}
+                    {t(
+                      "layeredProtection.description",
+                      "Implementamos múltiplas camadas de segurança para garantir que suas informações financeiras estejam sempre protegidas. Do momento em que você faz login até cada transação processada, tudo é criptografado e monitorado.",
+                    )}
                   </p>
                   <div className="space-y-3">
                     {protectionItems.map((item, index) => (

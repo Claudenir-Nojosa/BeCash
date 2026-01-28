@@ -16,7 +16,7 @@
     },
     "smartAlerts": {
       "title": "Smart Alerts",
-      "description": "Receive notifications about spending, limits, and savings opportunities"
+      "description": "Set spending limits by category and receive alerts to maintain complete control of your finances"
     },
     "visualReports": {
       "title": "Visual Reports",
@@ -27,8 +27,8 @@
       "description": "Cutting-edge encryption and advanced authentication protect your data"
     },
     "automation": {
-      "title": "Automation",
-      "description": "Automate transfers, payments, and recurring investments"
+      "title": "Complete Automation",
+      "description": "Entries via WhatsApp, automatic installments, recurring expenses, and much more"
     }
   }
 }

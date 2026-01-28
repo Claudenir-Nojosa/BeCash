@@ -1,598 +1,474 @@
-"use client";
+// app/[lang]/terms-of-service/page.tsx
+import { getFallback } from "@/lib/i18nFallback";
 
-import React from "react";
-import Link from "next/link";
-import {
-  ArrowRight,
-  FileText,
-  Shield,
-  AlertTriangle,
-  CheckCircle,
-  Menu,
-  X,
-} from "lucide-react";
-import Image from "next/image";
+export default async function TermsOfServicePage({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}) {
+  const { lang } = await params;
+  const currentLang = lang || "pt";
+  
+  // Função auxiliar para obter tradução com fallback
+  const getTranslation = (key: string) => {
+    switch (key) {
+      // Títulos e headers
+      case "titulo":
+        return getFallback(currentLang, "Termos de Serviço", "Terms of Service");
+      case "ultimaAtualizacao":
+        return getFallback(currentLang, "Última atualização: 15 de Dezembro, 2023", "Last updated: December 15, 2023");
+      case "aceitacaoTermos":
+        return getFallback(currentLang, "Aceitação dos Termos", "Acceptance of Terms");
+      case "descricaoServico":
+        return getFallback(currentLang, "Descrição do Serviço", "Service Description");
+      case "cadastroConta":
+        return getFallback(currentLang, "Cadastro e Conta", "Registration and Account");
+      case "responsabilidadeUsuario":
+        return getFallback(currentLang, "Responsabilidades do Usuário", "User Responsibilities");
+      case "propriedadeIntelectual":
+        return getFallback(currentLang, "Propriedade Intelectual", "Intellectual Property");
+      case "privacidade":
+        return getFallback(currentLang, "Privacidade", "Privacy");
+      case "limitacaoResponsabilidade":
+        return getFallback(currentLang, "Limitação de Responsabilidade", "Limitation of Liability");
+      case "encerramento":
+        return getFallback(currentLang, "Encerramento", "Termination");
+      case "alteracoesTermos":
+        return getFallback(currentLang, "Alterações nos Termos", "Changes to Terms");
+      case "legislacao":
+        return getFallback(currentLang, "Legislação Aplicável", "Governing Law");
+      case "contato":
+        return getFallback(currentLang, "Contato", "Contact");
+      
+      // Texto do conteúdo
+      case "aceitacaoTexto1":
+        return getFallback(currentLang,
+          "Ao acessar e utilizar o aplicativo BeCash, você concorda em cumprir e ficar vinculado a estes Termos de Serviço. Se você não concordar com qualquer parte destes termos, você não deve usar nosso serviço.",
+          "By accessing and using the BeCash application, you agree to comply with and be bound by these Terms of Service. If you do not agree with any part of these terms, you must not use our service."
+        );
+      
+      case "aceitacaoTexto2":
+        return getFallback(currentLang,
+          "Estes termos constituem um acordo legal entre você e a BeCash. Recomendamos que você leia cuidadosamente todos os termos antes de usar o aplicativo.",
+          "These terms constitute a legal agreement between you and BeCash. We recommend that you carefully read all terms before using the application."
+        );
+      
+      case "descricaoTexto1":
+        return getFallback(currentLang,
+          "BeCash é uma aplicação web de gestão financeira pessoal que permite aos usuários:",
+          "BeCash is a personal financial management web application that allows users to:"
+        );
+      
+      case "descricaoLista1":
+        return getFallback(currentLang,
+          "Registrar receitas e despesas",
+          "Record income and expenses"
+        );
+      
+      case "descricaoLista2":
+        return getFallback(currentLang,
+          "Criar orçamentos e metas financeiras",
+          "Create budgets and financial goals"
+        );
+      
+      case "descricaoLista3":
+        return getFallback(currentLang,
+          "Acompanhar gastos por categoria",
+          "Track spending by category"
+        );
+      
+      case "descricaoLista4":
+        return getFallback(currentLang,
+          "Visualizar relatórios e gráficos financeiros",
+          "View financial reports and charts"
+        );
+      
+      case "descricaoLista5":
+        return getFallback(currentLang,
+          "Gerenciar cartões de crédito e débito",
+          "Manage credit and debit cards"
+        );
+      
+      case "descricaoTexto2":
+        return getFallback(currentLang,
+          "O serviço é fornecido 'como está' e pode sofrer alterações, melhorias ou interrupções sem aviso prévio.",
+          "The service is provided 'as is' and may undergo changes, improvements, or interruptions without prior notice."
+        );
+      
+      case "cadastroTexto1":
+        return getFallback(currentLang,
+          "Para usar o serviço, você deve criar uma conta fornecendo informações precisas e completas. Você é responsável por:",
+          "To use the service, you must create an account by providing accurate and complete information. You are responsible for:"
+        );
+      
+      case "cadastroLista1":
+        return getFallback(currentLang,
+          "Manter a confidencialidade de sua senha",
+          "Maintaining the confidentiality of your password"
+        );
+      
+      case "cadastroLista2":
+        return getFallback(currentLang,
+          "Toda atividade que ocorre em sua conta",
+          "All activity that occurs in your account"
+        );
+      
+      case "cadastroLista3":
+        return getFallback(currentLang,
+          "Notificar-nos imediatamente sobre qualquer uso não autorizado",
+          "Notifying us immediately of any unauthorized use"
+        );
+      
+      case "cadastroTexto2":
+        return getFallback(currentLang,
+          "Você deve ter pelo menos 18 anos ou idade legal em sua jurisdição para usar nosso serviço.",
+          "You must be at least 18 years old or of legal age in your jurisdiction to use our service."
+        );
+      
+      case "responsabilidadeTexto1":
+        return getFallback(currentLang,
+          "Ao usar nosso serviço, você concorda em:",
+          "When using our service, you agree to:"
+        );
+      
+      case "responsabilidadeLista1":
+        return getFallback(currentLang,
+          "Fornecer informações financeiras precisas",
+          "Provide accurate financial information"
+        );
+      
+      case "responsabilidadeLista2":
+        return getFallback(currentLang,
+          "Não usar o serviço para atividades ilegais",
+          "Not use the service for illegal activities"
+        );
+      
+      case "responsabilidadeLista3":
+        return getFallback(currentLang,
+          "Não tentar acessar contas de outros usuários",
+          "Not attempt to access other users' accounts"
+        );
+      
+      case "responsabilidadeLista4":
+        return getFallback(currentLang,
+          "Não interferir no funcionamento do serviço",
+          "Not interfere with the service operation"
+        );
+      
+      case "responsabilidadeLista5":
+        return getFallback(currentLang,
+          "Não utilizar robôs, crawlers ou métodos automatizados",
+          "Not use robots, crawlers, or automated methods"
+        );
+      
+      case "propriedadeTexto1":
+        return getFallback(currentLang,
+          "Todo o conteúdo, design, logotipos, gráficos e software do BeCash são propriedade exclusiva da nossa empresa e estão protegidos por leis de direitos autorais e propriedade intelectual.",
+          "All content, design, logos, graphics, and software of BeCash are the exclusive property of our company and are protected by copyright and intellectual property laws."
+        );
+      
+      case "propriedadeTexto2":
+        return getFallback(currentLang,
+          "Você não pode copiar, modificar, distribuir ou criar trabalhos derivados baseados em nosso serviço sem autorização expressa por escrito.",
+          "You may not copy, modify, distribute, or create derivative works based on our service without express written authorization."
+        );
+      
+      case "propriedadeTexto3":
+        return getFallback(currentLang,
+          "Você mantém os direitos sobre seus dados financeiros inseridos no aplicativo. No entanto, nos concede uma licença limitada para processar e armazenar esses dados para fornecer o serviço.",
+          "You retain rights to your financial data entered into the application. However, you grant us a limited license to process and store this data to provide the service."
+        );
+      
+      case "privacidadeTexto1":
+        return getFallback(currentLang,
+          "Sua privacidade é importante para nós. Coletamos e usamos suas informações conforme descrito em nossa Política de Privacidade. Ao usar nosso serviço, você concorda com nossas práticas de coleta e uso de dados.",
+          "Your privacy is important to us. We collect and use your information as described in our Privacy Policy. By using our service, you agree to our data collection and use practices."
+        );
+      
+      case "limitacaoTexto1":
+        return getFallback(currentLang,
+          "O BeCash é fornecido para fins informativos e de gestão pessoal. Não somos uma instituição financeira, consultoria de investimentos ou serviço de assessoria financeira profissional.",
+          "BeCash is provided for informational and personal management purposes. We are not a financial institution, investment advisory, or professional financial advisory service."
+        );
+      
+      case "limitacaoTexto2":
+        return getFallback(currentLang,
+          "Não garantimos a precisão, integridade ou atualidade das informações financeiras fornecidas. Você deve verificar informações importantes com fontes autorizadas.",
+          "We do not guarantee the accuracy, completeness, or timeliness of financial information provided. You should verify important information with authorized sources."
+        );
+      
+      case "limitacaoTexto3":
+        return getFallback(currentLang,
+          "Em nenhum caso seremos responsáveis por quaisquer danos diretos, indiretos, incidentais ou consequenciais resultantes do uso ou incapacidade de usar nosso serviço.",
+          "In no event shall we be liable for any direct, indirect, incidental, or consequential damages resulting from the use or inability to use our service."
+        );
+      
+      case "encerramentoTexto1":
+        return getFallback(currentLang,
+          "Podemos encerrar ou suspender sua conta a qualquer momento, sem aviso prévio, por violação destes termos ou por qualquer outra razão a nosso critério.",
+          "We may terminate or suspend your account at any time, without notice, for violation of these terms or for any other reason at our discretion."
+        );
+      
+      case "encerramentoTexto2":
+        return getFallback(currentLang,
+          "Você pode encerrar sua conta a qualquer momento entrando em contato conosco. Após o encerramento, seus dados poderão ser retidos por um período razoável conforme exigido por lei.",
+          "You may terminate your account at any time by contacting us. After termination, your data may be retained for a reasonable period as required by law."
+        );
+      
+      case "alteracoesTexto1":
+        return getFallback(currentLang,
+          "Reservamo-nos o direito de modificar ou atualizar estes Termos de Serviço a qualquer momento. As alterações entrarão em vigor imediatamente após a publicação no aplicativo.",
+          "We reserve the right to modify or update these Terms of Service at any time. Changes will take effect immediately after posting in the application."
+        );
+      
+      case "alteracoesTexto2":
+        return getFallback(currentLang,
+          "O uso continuado do serviço após as alterações constitui aceitação dos novos termos. Recomendamos que você revise periodicamente esta página para se manter informado.",
+          "Continued use of the service after changes constitutes acceptance of the new terms. We recommend that you periodically review this page to stay informed."
+        );
+      
+      case "legislacaoTexto1":
+        return getFallback(currentLang,
+          "Estes Termos de Serviço serão regidos e interpretados de acordo com as leis do Brasil, sem considerar seus princípios de conflito de leis.",
+          "These Terms of Service shall be governed and construed in accordance with the laws of Brazil, without regard to its conflict of law principles."
+        );
+      
+      case "legislacaoTexto2":
+        return getFallback(currentLang,
+          "Qualquer disputa relacionada a estes termos será resolvida nos tribunais competentes da cidade de São Paulo, Brasil.",
+          "Any dispute relating to these terms shall be resolved in the competent courts of the city of São Paulo, Brazil."
+        );
+      
+      case "contatoTexto1":
+        return getFallback(currentLang,
+          "Se você tiver alguma dúvida sobre estes Termos de Serviço, entre em contato conosco:",
+          "If you have any questions about these Terms of Service, please contact us:"
+        );
+      
+      case "emailContato":
+        return getFallback(currentLang,
+          "Email: support@becashapp.com",
+          "Email: support@becashapp.com"
+        );
+      
+      case "enderecoContato":
+        return getFallback(currentLang,
+          "Endereço: Rua das Finanças, 123 - Centro, São Paulo - SP, 01001-001",
+          "Address: Finance Street, 123 - Centro, São Paulo - SP, 01001-001"
+        );
 
-const TermsOfService = () => {
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+      default:
+        return key;
+    }
+  };
+
+  // Criar objeto de traduções
+  const translations = {
+    titulo: getTranslation("titulo"),
+    ultimaAtualizacao: getTranslation("ultimaAtualizacao"),
+    aceitacaoTermos: getTranslation("aceitacaoTermos"),
+    descricaoServico: getTranslation("descricaoServico"),
+    cadastroConta: getTranslation("cadastroConta"),
+    responsabilidadeUsuario: getTranslation("responsabilidadeUsuario"),
+    propriedadeIntelectual: getTranslation("propriedadeIntelectual"),
+    privacidade: getTranslation("privacidade"),
+    limitacaoResponsabilidade: getTranslation("limitacaoResponsabilidade"),
+    encerramento: getTranslation("encerramento"),
+    alteracoesTermos: getTranslation("alteracoesTermos"),
+    legislacao: getTranslation("legislacao"),
+    contato: getTranslation("contato"),
+    aceitacaoTexto1: getTranslation("aceitacaoTexto1"),
+    aceitacaoTexto2: getTranslation("aceitacaoTexto2"),
+    descricaoTexto1: getTranslation("descricaoTexto1"),
+    descricaoLista1: getTranslation("descricaoLista1"),
+    descricaoLista2: getTranslation("descricaoLista2"),
+    descricaoLista3: getTranslation("descricaoLista3"),
+    descricaoLista4: getTranslation("descricaoLista4"),
+    descricaoLista5: getTranslation("descricaoLista5"),
+    descricaoTexto2: getTranslation("descricaoTexto2"),
+    cadastroTexto1: getTranslation("cadastroTexto1"),
+    cadastroLista1: getTranslation("cadastroLista1"),
+    cadastroLista2: getTranslation("cadastroLista2"),
+    cadastroLista3: getTranslation("cadastroLista3"),
+    cadastroTexto2: getTranslation("cadastroTexto2"),
+    responsabilidadeTexto1: getTranslation("responsabilidadeTexto1"),
+    responsabilidadeLista1: getTranslation("responsabilidadeLista1"),
+    responsabilidadeLista2: getTranslation("responsabilidadeLista2"),
+    responsabilidadeLista3: getTranslation("responsabilidadeLista3"),
+    responsabilidadeLista4: getTranslation("responsabilidadeLista4"),
+    responsabilidadeLista5: getTranslation("responsabilidadeLista5"),
+    propriedadeTexto1: getTranslation("propriedadeTexto1"),
+    propriedadeTexto2: getTranslation("propriedadeTexto2"),
+    propriedadeTexto3: getTranslation("propriedadeTexto3"),
+    privacidadeTexto1: getTranslation("privacidadeTexto1"),
+    limitacaoTexto1: getTranslation("limitacaoTexto1"),
+    limitacaoTexto2: getTranslation("limitacaoTexto2"),
+    limitacaoTexto3: getTranslation("limitacaoTexto3"),
+    encerramentoTexto1: getTranslation("encerramentoTexto1"),
+    encerramentoTexto2: getTranslation("encerramentoTexto2"),
+    alteracoesTexto1: getTranslation("alteracoesTexto1"),
+    alteracoesTexto2: getTranslation("alteracoesTexto2"),
+    legislacaoTexto1: getTranslation("legislacaoTexto1"),
+    legislacaoTexto2: getTranslation("legislacaoTexto2"),
+    contatoTexto1: getTranslation("contatoTexto1"),
+    emailContato: getTranslation("emailContato"),
+    enderecoContato: getTranslation("enderecoContato"),
+  };
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col">
-      {/* Header */}
-      <header className="border-b border-indigo-900/30 sticky top-0 bg-gray-950/90 backdrop-blur-sm z-50">
-        <div className="max-w-6xl mx-auto px-4 py-5 flex justify-between items-center">
-          <Link
-            href="/"
-            className="text-xl font-medium tracking-tight flex items-center gap-2 text-white"
-          >
-            <Image
-              src="https://github.com/Claudenir-Nojosa/servidor_estaticos/blob/main/BeCash-Logo.png?raw=true"
-              alt="BeCash Logo"
-              width={40}
-              height={40}
-            />
-            BeCash
-          </Link>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-8">
-            <Link
-              href="/"
-              className="text-indigo-300/80 hover:text-indigo-200 transition-all duration-200 text-sm font-medium"
-            >
-              Início
-            </Link>
-            <Link
-              href="/login"
-              className="text-indigo-300/80 hover:text-indigo-200 transition-all duration-200 text-sm font-medium flex items-center gap-1"
-            >
-              ENTRAR <ArrowRight size={14} />
-            </Link>
-          </nav>
-
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden text-indigo-300"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+            {translations.titulo}
+          </h1>
         </div>
 
-        {/* Mobile Navigation */}
-        {mobileMenuOpen && (
-          <div className="md:hidden px-4 pb-4">
-            <div className="flex flex-col gap-4">
-              <Link
-                href="/"
-                className="text-indigo-300/80 hover:text-indigo-200 transition-all duration-200 text-sm font-medium py-2"
-              >
-                Início
-              </Link>
-              <Link
-                href="/login"
-                className="text-indigo-300/80 hover:text-indigo-200 transition-all duration-200 text-sm font-medium flex items-center gap-1 py-2"
-              >
-                ENTRAR <ArrowRight size={14} />
-              </Link>
-            </div>
-          </div>
-        )}
-      </header>
-
-      {/* Main Content */}
-      <main className="flex-grow py-12">
-        <div className="max-w-4xl mx-auto px-4">
-          {/* Header Section */}
-          <div className="text-center mb-12">
-            <div className="flex justify-center mb-6">
-              <div className="p-4 rounded-full bg-indigo-900/20 border border-indigo-800/30">
-                <FileText className="text-indigo-400" size={40} />
-              </div>
-            </div>
-            <h1 className="text-4xl md:text-5xl font-light tracking-tight">
-              Termos de{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-500">
-                Serviço
-              </span>
-            </h1>
-            <p className="mt-4 text-indigo-200/70 max-w-2xl mx-auto">
-              Última atualização: 25 de janeiro de 2025
+        {/* Conteúdo */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 space-y-10">
+          {/* Seção 1: Aceitação dos Termos */}
+          <section>
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
+              {translations.aceitacaoTermos}
+            </h2>
+            <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
+              {translations.aceitacaoTexto1}
             </p>
-          </div>
-
-          <div className="bg-gradient-to-b from-indigo-900/10 to-indigo-900/5 border border-indigo-800/30 rounded-2xl p-8">
-            {/* Introduction */}
-            <section className="mb-10">
-              <h2 className="text-2xl font-medium text-indigo-200 mb-4">
-                1. Aceitação dos Termos
-              </h2>
-              <p className="text-indigo-300/80 leading-relaxed">
-                Ao acessar ou usar a plataforma BeCash, você concorda em ficar
-                vinculado a estes Termos de Serviço. Se você não concordar com
-                qualquer parte destes termos, não poderá utilizar nossos
-                serviços.
-              </p>
-            </section>
-
-            {/* Definitions */}
-            <section className="mb-10">
-              <h2 className="text-2xl font-medium text-indigo-200 mb-4">
-                2. Definições
-              </h2>
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <CheckCircle
-                    className="text-indigo-500 mt-1 flex-shrink-0"
-                    size={16}
-                  />
-                  <div>
-                    <span className="text-indigo-200 font-medium">
-                      Plataforma BeCash:
-                    </span>
-                    <span className="text-indigo-300/80">
-                      {" "}
-                      Serviços de gestão financeira oferecidos através do site e
-                      aplicativos.
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <CheckCircle
-                    className="text-indigo-500 mt-1 flex-shrink-0"
-                    size={16}
-                  />
-                  <div>
-                    <span className="text-indigo-200 font-medium">
-                      Usuário:
-                    </span>
-                    <span className="text-indigo-300/80">
-                      {" "}
-                      Pessoa física ou jurídica que utiliza nossos serviços.
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <CheckCircle
-                    className="text-indigo-500 mt-1 flex-shrink-0"
-                    size={16}
-                  />
-                  <div>
-                    <span className="text-indigo-200 font-medium">
-                      Conteúdo:
-                    </span>
-                    <span className="text-indigo-300/80">
-                      {" "}
-                      Dados, informações, textos e outros materiais
-                      disponibilizados na plataforma.
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Account Registration */}
-            <section className="mb-10">
-              <h2 className="text-2xl font-medium text-indigo-200 mb-4">
-                3. Registro de Conta
-              </h2>
-              <div className="space-y-4">
-                <p className="text-indigo-300/80 leading-relaxed">
-                  Para utilizar nossos serviços, você deve criar uma conta
-                  fornecendo informações precisas e completas.
-                </p>
-                <div className="bg-indigo-900/20 border border-indigo-800/30 rounded-lg p-4">
-                  <h4 className="font-medium text-indigo-200 mb-2 flex items-center gap-2">
-                    <Shield size={18} />
-                    Responsabilidades da Conta
-                  </h4>
-                  <ul className="text-indigo-300/80 space-y-2 text-sm">
-                    <li className="flex items-start gap-2">
-                      <span className="text-indigo-400">•</span>
-                      Você é responsável por manter a confidencialidade de suas
-                      credenciais de acesso
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-indigo-400">•</span>
-                      Notifique-nos imediatamente sobre qualquer uso não
-                      autorizado de sua conta
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-indigo-400">•</span>
-                      Mantenha suas informações de contato atualizadas
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </section>
-
-            {/* Services Description */}
-            <section className="mb-10">
-              <h2 className="text-2xl font-medium text-indigo-200 mb-4">
-                4. Descrição dos Serviços
-              </h2>
-              <p className="text-indigo-300/80 leading-relaxed mb-4">
-                A BeCash oferece uma plataforma de gestão financeira que inclui:
-              </p>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="p-4 rounded-lg bg-indigo-900/20 border border-indigo-800/30">
-                  <h4 className="font-medium text-indigo-200 mb-2">
-                    Análise Financeira
-                  </h4>
-                  <p className="text-sm text-indigo-300/70">
-                    Visualização de gastos por categoria e relatórios detalhados
-                  </p>
-                </div>
-                <div className="p-4 rounded-lg bg-indigo-900/20 border border-indigo-800/30">
-                  <h4 className="font-medium text-indigo-200 mb-2">
-                    Integração Bancária
-                  </h4>
-                  <p className="text-sm text-indigo-300/70">
-                    Conexão segura com instituições financeiras
-                  </p>
-                </div>
-                <div className="p-4 rounded-lg bg-indigo-900/20 border border-indigo-800/30">
-                  <h4 className="font-medium text-indigo-200 mb-2">
-                    Metas Personalizadas
-                  </h4>
-                  <p className="text-sm text-indigo-300/70">
-                    Estabelecimento e acompanhamento de objetivos financeiros
-                  </p>
-                </div>
-                <div className="p-4 rounded-lg bg-indigo-900/20 border border-indigo-800/30">
-                  <h4 className="font-medium text-indigo-200 mb-2">
-                    Relatórios Avançados
-                  </h4>
-                  <p className="text-sm text-indigo-300/70">
-                    Exportação de dados e análises personalizadas
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            {/* Acceptable Use */}
-            <section className="mb-10">
-              <h2 className="text-2xl font-medium text-indigo-200 mb-4">
-                5. Uso Aceitável
-              </h2>
-
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-medium text-indigo-200 mb-3 flex items-center gap-2">
-                    <CheckCircle size={18} className="text-green-400" />
-                    Condutas Permitidas
-                  </h3>
-                  <ul className="text-indigo-300/80 space-y-2 list-disc pl-5">
-                    <li>
-                      Utilizar a plataforma para gestão de finanças pessoais ou
-                      empresariais
-                    </li>
-                    <li>
-                      Compartilhar relatórios com seu contador ou consultor
-                      financeiro
-                    </li>
-                    <li>
-                      Usar os dados para tomada de decisões financeiras
-                      informadas
-                    </li>
-                  </ul>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-medium text-indigo-200 mb-3 flex items-center gap-2">
-                    <AlertTriangle size={18} className="text-yellow-400" />
-                    Condutas Proibidas
-                  </h3>
-                  <ul className="text-indigo-300/80 space-y-2 list-disc pl-5">
-                    <li>
-                      Utilizar a plataforma para atividades ilegais ou
-                      fraudulentas
-                    </li>
-                    <li>Tentar acessar contas de outros usuários</li>
-                    <li>
-                      Reverse engineer, decompilar ou desmontar qualquer parte
-                      da plataforma
-                    </li>
-                    <li>
-                      Utilizar bots, scrapers ou outros métodos automatizados
-                    </li>
-                    <li>
-                      Distribuir malware ou comprometer a segurança da
-                      plataforma
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </section>
-
-            {/* Payments and Subscriptions */}
-            <section className="mb-10">
-              <h2 className="text-2xl font-medium text-indigo-200 mb-4">
-                6. Pagamentos e Assinaturas
-              </h2>
-
-              <div className="space-y-4">
-                <div className="bg-gradient-to-r from-indigo-900/20 to-blue-900/20 p-4 rounded-lg border border-indigo-800/30">
-                  <h4 className="font-medium text-indigo-200 mb-2">
-                    Planos de Assinatura
-                  </h4>
-                  <p className="text-indigo-300/80 text-sm">
-                    Oferecemos diferentes planos de assinatura com
-                    funcionalidades específicas. Os valores e condições estão
-                    disponíveis em nossa página de planos.
-                  </p>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-lg bg-indigo-900/20 border border-indigo-800/30">
-                    <h4 className="font-medium text-indigo-200 mb-2">
-                      Renovação Automática
-                    </h4>
-                    <p className="text-sm text-indigo-300/70">
-                      As assinaturas são renovadas automaticamente no final de
-                      cada período
-                    </p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-indigo-900/20 border border-indigo-800/30">
-                    <h4 className="font-medium text-indigo-200 mb-2">
-                      Cancelamento
-                    </h4>
-                    <p className="text-sm text-indigo-300/70">
-                      Você pode cancelar a qualquer momento através das
-                      configurações da conta
-                    </p>
-                  </div>
-                </div>
-
-                <div className="bg-yellow-900/20 border border-yellow-800/30 rounded-lg p-4">
-                  <h4 className="font-medium text-yellow-200 mb-2 flex items-center gap-2">
-                    <AlertTriangle size={18} />
-                    Reembolsos
-                  </h4>
-                  <p className="text-yellow-300/80 text-sm">
-                    Não oferecemos reembolsos por períodos parciais de
-                    assinatura. O cancelamento efetiva-se no final do período
-                    atual.
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            {/* Intellectual Property */}
-            <section className="mb-10">
-              <h2 className="text-2xl font-medium text-indigo-200 mb-4">
-                7. Propriedade Intelectual
-              </h2>
-              <p className="text-indigo-300/80 leading-relaxed mb-4">
-                Todos os direitos de propriedade intelectual relacionados à
-                plataforma BeCash são de nossa propriedade ou de nossos
-                licenciadores.
-              </p>
-
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <CheckCircle
-                    className="text-indigo-500 mt-1 flex-shrink-0"
-                    size={16}
-                  />
-                  <span className="text-indigo-300/80">
-                    Você mantém a propriedade dos seus dados financeiros
-                  </span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <CheckCircle
-                    className="text-indigo-500 mt-1 flex-shrink-0"
-                    size={16}
-                  />
-                  <span className="text-indigo-300/80">
-                    Concedemos uma licença limitada para uso da plataforma
-                  </span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <CheckCircle
-                    className="text-indigo-500 mt-1 flex-shrink-0"
-                    size={16}
-                  />
-                  <span className="text-indigo-300/80">
-                    Não é permitido o uso comercial de nossa marca ou conteúdo
-                  </span>
-                </div>
-              </div>
-            </section>
-
-            {/* User Content */}
-            <section className="mb-10">
-              <h2 className="text-2xl font-medium text-indigo-200 mb-4">
-                8. Conteúdo do Usuário
-              </h2>
-              <p className="text-indigo-300/80 leading-relaxed">
-                Você é responsável pelo conteúdo que insere na plataforma. Ao
-                enviar dados, você nos concede a licença necessária para
-                processar e exibir essas informações em conformidade com nossa
-                Política de Privacidade.
-              </p>
-            </section>
-
-            {/* Termination */}
-            <section className="mb-10">
-              <h2 className="text-2xl font-medium text-indigo-200 mb-4">
-                9. Rescisão
-              </h2>
-              <p className="text-indigo-300/80 leading-relaxed mb-4">
-                Podemos suspender ou encerrar sua conta em caso de violação
-                destes termos:
-              </p>
-              <ul className="text-indigo-300/80 space-y-2 list-disc pl-5">
-                <li>Uso não autorizado da plataforma</li>
-                <li>Atividades fraudulentas ou ilegais</li>
-                <li>Violacao de direitos de propriedade intelectual</li>
-                <li>
-                  Qualquer conduta que prejudique outros usuários ou a
-                  plataforma
-                </li>
-              </ul>
-            </section>
-
-            {/* Disclaimer */}
-            <section className="mb-10">
-              <h2 className="text-2xl font-medium text-indigo-200 mb-4">
-                10. Isenção de Responsabilidade
-              </h2>
-
-              <div className="bg-red-900/20 border border-red-800/30 rounded-lg p-4 mb-4">
-                <h4 className="font-medium text-red-200 mb-2 flex items-center gap-2">
-                  <AlertTriangle size={18} />
-                  Aviso Importante
-                </h4>
-                <p className="text-red-300/80 text-sm">
-                  A BeCash é uma ferramenta de gestão financeira e não oferece
-                  aconselhamento financeiro profissional. As decisões de
-                  investimento e gestão financeira são de sua exclusiva
-                  responsabilidade.
-                </p>
-              </div>
-
-              <p className="text-indigo-300/80 leading-relaxed">
-                A plataforma é fornecida "no estado em que se encontra". Não
-                garantimos que o serviço será ininterrupto ou livre de erros.
-                Não nos responsabilizamos por perdas financeiras resultantes do
-                uso da plataforma.
-              </p>
-            </section>
-
-            {/* Limitation of Liability */}
-            <section className="mb-10">
-              <h2 className="text-2xl font-medium text-indigo-200 mb-4">
-                11. Limitação de Responsabilidade
-              </h2>
-              <p className="text-indigo-300/80 leading-relaxed">
-                Em nenhum caso a BeCash será responsável por danos indiretos,
-                incidentais, especiais ou consequenciais resultantes do uso ou
-                incapacidade de usar nossos serviços. Nossa responsabilidade
-                total em qualquer caso não excederá o valor pago por você nos
-                últimos 12 meses.
-              </p>
-            </section>
-
-            {/* Modifications */}
-            <section className="mb-10">
-              <h2 className="text-2xl font-medium text-indigo-200 mb-4">
-                12. Modificações dos Termos
-              </h2>
-              <p className="text-indigo-300/80 leading-relaxed">
-                Reservamo-nos o direito de modificar estes Termos a qualquer
-                momento. Notificaremos sobre mudanças significativas através do
-                site ou por e-mail. O uso continuado após as modificações
-                constitui aceitação dos novos termos.
-              </p>
-            </section>
-
-            {/* Governing Law */}
-            <section className="mb-10">
-              <h2 className="text-2xl font-medium text-indigo-200 mb-4">
-                13. Lei Aplicável
-              </h2>
-              <p className="text-indigo-300/80 leading-relaxed">
-                Estes Termos são regidos pelas leis do Brasil. Qualquer disputa
-                será resolvida nos tribunais da comarca de São Paulo/SP.
-              </p>
-            </section>
-
-            {/* Contact */}
-            <section>
-              <h2 className="text-2xl font-medium text-indigo-200 mb-4">
-                14. Contato
-              </h2>
-              <p className="text-indigo-300/80 leading-relaxed">
-                Para questões sobre estes Termos de Serviço, entre em contato
-                conosco:
-              </p>
-              <div className="mt-4 space-y-2">
-                <div className="flex items-center gap-2 text-indigo-300/80">
-                  <span className="text-indigo-200 font-medium">E-mail:</span>
-                  <a
-                    href="mailto:legal@becash.com"
-                    className="text-indigo-400 hover:text-indigo-300"
-                  >
-                    legal@becash.com
-                  </a>
-                </div>
-                <div className="flex items-center gap-2 text-indigo-300/80">
-                  <span className="text-indigo-200 font-medium">Endereço:</span>
-                  <span>Av. Paulista, 1000 - São Paulo/SP, Brasil</span>
-                </div>
-              </div>
-            </section>
-          </div>
-
-          {/* Call to Action */}
-          <div className="mt-12 text-center space-y-4">
-            <p className="text-indigo-300/70">
-              Ao utilizar nossa plataforma, você confirma que leu e concorda com
-              estes Termos de Serviço.
+            <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+              {translations.aceitacaoTexto2}
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-lg text-white font-medium hover:from-indigo-500 hover:to-blue-500 transition-all duration-200"
-              >
-                Aceitar e Continuar <ArrowRight size={16} />
-              </Link>
-              <Link
-                href="/privacy-policy"
-                className="inline-flex items-center gap-2 px-6 py-3 border border-indigo-700/50 rounded-lg text-indigo-300 font-medium hover:border-indigo-500 transition-all duration-200"
-              >
-                Ver Política de Privacidade
-              </Link>
+          </section>
+
+          {/* Seção 2: Descrição do Serviço */}
+          <section>
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6">
+              {translations.descricaoServico}
+            </h2>
+            <p className="text-gray-700 dark:text-gray-300 mb-6">
+              {translations.descricaoTexto1}
+            </p>
+            
+            <ul className="space-y-3 text-gray-700 dark:text-gray-300 ml-4 list-disc mb-6">
+              <li>{translations.descricaoLista1}</li>
+              <li>{translations.descricaoLista2}</li>
+              <li>{translations.descricaoLista3}</li>
+              <li>{translations.descricaoLista4}</li>
+              <li>{translations.descricaoLista5}</li>
+            </ul>
+            
+            <p className="text-gray-700 dark:text-gray-300">
+              {translations.descricaoTexto2}
+            </p>
+          </section>
+
+          {/* Seção 3: Cadastro e Conta */}
+          <section>
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6">
+              {translations.cadastroConta}
+            </h2>
+            <p className="text-gray-700 dark:text-gray-300 mb-4">
+              {translations.cadastroTexto1}
+            </p>
+            <ul className="space-y-3 text-gray-700 dark:text-gray-300 ml-4 list-disc mb-6">
+              <li>{translations.cadastroLista1}</li>
+              <li>{translations.cadastroLista2}</li>
+              <li>{translations.cadastroLista3}</li>
+            </ul>
+            <p className="text-gray-700 dark:text-gray-300">
+              {translations.cadastroTexto2}
+            </p>
+          </section>
+
+          {/* Seção 4: Responsabilidades do Usuário */}
+          <section>
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6">
+              {translations.responsabilidadeUsuario}
+            </h2>
+            <p className="text-gray-700 dark:text-gray-300 mb-4">
+              {translations.responsabilidadeTexto1}
+            </p>
+            <ul className="space-y-3 text-gray-700 dark:text-gray-300 ml-4 list-disc">
+              <li>{translations.responsabilidadeLista1}</li>
+              <li>{translations.responsabilidadeLista2}</li>
+              <li>{translations.responsabilidadeLista3}</li>
+              <li>{translations.responsabilidadeLista4}</li>
+              <li>{translations.responsabilidadeLista5}</li>
+            </ul>
+          </section>
+
+          {/* Seção 5: Propriedade Intelectual */}
+          <section>
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6">
+              {translations.propriedadeIntelectual}
+            </h2>
+            <p className="text-gray-700 dark:text-gray-300 mb-4">
+              {translations.propriedadeTexto1}
+            </p>
+            <p className="text-gray-700 dark:text-gray-300 mb-4">
+              {translations.propriedadeTexto2}
+            </p>
+            <p className="text-gray-700 dark:text-gray-300">
+              {translations.propriedadeTexto3}
+            </p>
+          </section>
+
+          {/* Seção 6: Privacidade */}
+          <section>
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6">
+              {translations.privacidade}
+            </h2>
+            <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+              {translations.privacidadeTexto1}
+            </p>
+          </section>
+
+          {/* Seção 7: Limitação de Responsabilidade */}
+          <section>
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6">
+              {translations.limitacaoResponsabilidade}
+            </h2>
+            <p className="text-gray-700 dark:text-gray-300 mb-4">
+              {translations.limitacaoTexto1}
+            </p>
+            <p className="text-gray-700 dark:text-gray-300 mb-4">
+              {translations.limitacaoTexto2}
+            </p>
+            <p className="text-gray-700 dark:text-gray-300">
+              {translations.limitacaoTexto3}
+            </p>
+          </section>
+
+          {/* Seção 9: Alterações nos Termos */}
+          <section>
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6">
+              {translations.alteracoesTermos}
+            </h2>
+            <p className="text-gray-700 dark:text-gray-300 mb-4">
+              {translations.alteracoesTexto1}
+            </p>
+            <p className="text-gray-700 dark:text-gray-300">
+              {translations.alteracoesTexto2}
+            </p>
+          </section>
+
+          {/* Seção 11: Contato */}
+          <section>
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6">
+              {translations.contato}
+            </h2>
+            <p className="text-gray-700 dark:text-gray-300 mb-4">
+              {translations.contatoTexto1}
+            </p>
+            <div className="space-y-2">
+              <p className="text-gray-700 dark:text-gray-300 font-medium">
+                {translations.emailContato}
+              </p>
+
             </div>
-          </div>
+          </section>
         </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-indigo-900/30 py-10">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center gap-2 text-lg font-medium">
-              <Image
-                src="https://github.com/Claudenir-Nojosa/servidor_estaticos/blob/main/BeCash-Logo.png?raw=true"
-                alt="BeCash Logo"
-                width={60}
-                height={60}
-              />
-              BeCash
-            </div>
-
-            <div className="flex gap-6 mt-6 md:mt-0">
-              <Link
-                href="/terms"
-                className="text-indigo-300/70 hover:text-indigo-200 transition-colors duration-200 text-sm"
-              >
-                Termos de Serviço
-              </Link>
-              <Link
-                href="/privacy-policy"
-                className="text-indigo-300/70 hover:text-indigo-200 transition-colors duration-200 text-sm"
-              >
-                Privacidade
-              </Link>
-              <a
-                href="#"
-                className="text-indigo-300/70 hover:text-indigo-200 transition-colors duration-200 text-sm"
-              >
-                Contato
-              </a>
-            </div>
-          </div>
-
-          <div className="mt-8 text-center md:text-left text-xs text-indigo-400/40 tracking-wide">
-            © 2025 BeCash — Todos os direitos reservados. Sua plataforma de
-            gestão financeira segura.
-          </div>
-        </div>
-      </footer>
+      </div>
     </div>
   );
-};
-
-export default TermsOfService;
+}

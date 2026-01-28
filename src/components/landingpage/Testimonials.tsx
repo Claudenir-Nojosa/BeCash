@@ -201,7 +201,7 @@ const TestimonialsSection = () => {
   const thirdColumn = testimonials.slice(6, 9);
 
   return (
-    <section className="w-full relative overflow-hidden bg-background">
+    <section className="w-full relative overflow-hidden bg-background" id="testimonials">
       {/* Background Effects */}
       <motion.div
         className="absolute inset-0"

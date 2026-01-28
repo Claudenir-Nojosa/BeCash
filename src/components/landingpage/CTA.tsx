@@ -13,7 +13,7 @@ export const CTA = () => {
   const currentLang = (params?.lang as string) || "pt"; // Extrair linguagem
 
   return (
-    <section id="pricing" className="py-24 relative overflow-hidden bg-background">
+    <section className="py-24 relative overflow-hidden bg-background">
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background" />
         
@@ -81,18 +81,7 @@ export const CTA = () => {
                   <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
-              <Button
-                size="lg"
-                variant="outline"
-                className="px-8 py-6 text-lg font-semibold glass hover:bg-gray-100/50 dark:hover:bg-gray-800/50 border-gray-200 dark:border-gray-800"
-              >
-                {t("buttons.contactSales", "Falar com Vendas")}
-              </Button>
             </div>
-
-            <p className="text-xs text-gray-500 dark:text-gray-500 mt-8">
-              {t("stats", "✨ Mais de 10.000 usuários confiam no becash")}
-            </p>
           </div>
         </motion.div>
       </div>

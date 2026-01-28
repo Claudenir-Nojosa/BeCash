@@ -12,12 +12,12 @@
       "description": "Defina a porcentagem de divisão e o BeCash calcula automaticamente"
     },
     "multipleParticipants": {
-      "title": "Múltiplos Participantes",
-      "description": "Adicione quantas pessoas quiser em uma despesa compartilhada"
+      "title": "Clareza nos gastos compartilhados",
+      "description": "Tenha facilmente os valores das despesas compartilhadas."
     },
     "balanceOwed": {
       "title": "Saldo de Quem Deve",
-      "description": "Visualize quem está devendo e quanto de forma clara"
+      "description": "Visualize de forma clara o valor "
     }
   },
   "expenses": {
