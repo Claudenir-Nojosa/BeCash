@@ -401,6 +401,7 @@ export default function DashboardPage() {
 
   // ========== REFS (DEPOIS DOS ESTADOS, ANTES DOS USEEFFECTS!) ==========
   const toastIdRef = useRef<string | number | undefined>(undefined);
+  const dashboardLoadInFlightRef = useRef(false);
   const hasLoadedRef = useRef(false);
   const hasLoadedUserRef = useRef(false);
   const prevMesRef = useRef(mesSelecionado);
@@ -500,7 +501,7 @@ export default function DashboardPage() {
   // ✅ useEffect OTIMIZADO para evitar carregamentos duplicados
   useEffect(() => {
     if (!session) return;
-    if (carregando) return;
+    if (carregando || dashboardLoadInFlightRef.current) return;
 
     const mesChanged = prevMesRef.current !== mesSelecionado;
     const anoChanged = prevAnoRef.current !== anoSelecionado;
@@ -518,9 +519,10 @@ export default function DashboardPage() {
   }, [mesSelecionado, anoSelecionado, refreshTrigger, session]); // ✅ REMOVA 'carregando' das dependências
 
   const carregarDashboard = async () => {
-    if (carregando) return;
+    if (carregando || dashboardLoadInFlightRef.current) return;
 
     try {
+      dashboardLoadInFlightRef.current = true;
       setCarregando(true);
 
       const toastId = toast.loading(translations.botoes.carregando);
@@ -593,6 +595,7 @@ export default function DashboardPage() {
     } finally {
       setCarregando(false);
       toastIdRef.current = undefined;
+      dashboardLoadInFlightRef.current = false;
     }
   };
 
