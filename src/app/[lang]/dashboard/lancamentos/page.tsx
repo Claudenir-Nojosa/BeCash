@@ -1177,7 +1177,7 @@ export default function LancamentosPage() {
       };
     }
 
-    // Para cartão de crédito, calcula o mês de PAGAMENTO da fatura
+    // Para cartão de crédito, só avança mês se a compra for após o fechamento
     const dataLancamento = new Date(lancamento.data);
     const diaLancamento = dataLancamento.getDate();
     const diaFechamento = lancamento.cartao.diaFechamento || 1;
@@ -1192,13 +1192,6 @@ export default function LancamentosPage() {
         mes = 1;
         ano += 1;
       }
-    }
-
-    // Adiciona +1 mês porque o pagamento é no mês seguinte ao fechamento
-    mes += 1;
-    if (mes > 12) {
-      mes = 1;
-      ano += 1;
     }
 
     return { ano, mes };

@@ -14,12 +14,17 @@ function calcularMesReferenciaLancamento(lancamento: any): {
   let ano = data.getFullYear();
   let mes = data.getMonth() + 1;
 
-  // ✅ Para CRÉDITO, adiciona +1 mês (mês de PAGAMENTO da fatura)
+  // ✅ Para CRÉDITO, só avança mês se a compra for após o fechamento
   if (lancamento.metodoPagamento === "CREDITO" && lancamento.cartao) {
-    mes += 1;
-    if (mes > 12) {
-      mes = 1;
-      ano += 1;
+    const diaLancamento = data.getDate();
+    const diaFechamento = lancamento.cartao.diaFechamento || 1;
+
+    if (diaLancamento > diaFechamento) {
+      mes += 1;
+      if (mes > 12) {
+        mes = 1;
+        ano += 1;
+      }
     }
   }
 
@@ -47,6 +52,10 @@ export async function GET(request: NextRequest) {
         categoria: true,
         cartao: {
           select: {
+            id: true,
+            nome: true,
+            bandeira: true,
+            cor: true,
             diaFechamento: true,
             diaVencimento: true,
           },
