@@ -1,5 +1,5 @@
 // lib/services/verification-code.service.ts
-import { redisGet, redisSet, redisDel } from '@/lib/redis';
+import { redisGet, redisSet, redisDel } from "@/lib/redis";
 
 export interface VerificationCodeData {
   code: string;
@@ -9,25 +9,62 @@ export interface VerificationCodeData {
   attempts: number;
 }
 
-export class VerificationCodeService {
-  private static readonly PREFIX = 'verification:';
-  private static readonly TTL = 600; // 10 minutos em segundos
-  private static readonly MAX_ATTEMPTS = 3;
+type CodeSource = "redis" | "memory" | "none";
 
-  /**
-   * Gerar código de 6 dígitos
-   */
+interface MemoryCodeEntry {
+  data: VerificationCodeData;
+  expiresAt: number;
+}
+
+export class VerificationCodeService {
+  private static readonly PREFIX = "verification:";
+  private static readonly TTL = 600; // 10 minutes in seconds
+  private static readonly MAX_ATTEMPTS = 3;
+  private static readonly memoryStore = new Map<string, MemoryCodeEntry>();
+
   static generateCode(): string {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
-  /**
-   * Criar e salvar código de verificação
-   */
-  static async createVerificationCode(
-    telefone: string,
-    email: string
-  ): Promise<string> {
+  private static setMemoryEntry(key: string, data: VerificationCodeData): void {
+    this.memoryStore.set(key, {
+      data,
+      expiresAt: Date.now() + this.TTL * 1000,
+    });
+  }
+
+  private static getMemoryEntry(key: string): MemoryCodeEntry | null {
+    const entry = this.memoryStore.get(key);
+
+    if (!entry) {
+      return null;
+    }
+
+    if (Date.now() > entry.expiresAt) {
+      this.memoryStore.delete(key);
+      return null;
+    }
+
+    return entry;
+  }
+
+  private static async readCodeData(
+    key: string,
+  ): Promise<{ data: VerificationCodeData | null; source: CodeSource }> {
+    const redisData = await redisGet(key);
+    if (redisData) {
+      return { data: redisData as VerificationCodeData, source: "redis" };
+    }
+
+    const memoryEntry = this.getMemoryEntry(key);
+    if (memoryEntry) {
+      return { data: memoryEntry.data, source: "memory" };
+    }
+
+    return { data: null, source: "none" };
+  }
+
+  static async createVerificationCode(telefone: string, email: string): Promise<string> {
     const key = `${this.PREFIX}${telefone}`;
     const code = this.generateCode();
 
@@ -39,18 +76,27 @@ export class VerificationCodeService {
       attempts: 0,
     };
 
-    await redisSet(key, data, this.TTL);
-    console.log(`✅ Código criado para ${telefone}: ${code}`);
+    try {
+      await redisSet(key, data, this.TTL);
+      const persisted = await redisGet(key);
 
+      if (persisted) {
+        console.log(`Code created in Redis for ${telefone}: ${code}`);
+        return code;
+      }
+    } catch (error) {
+      console.error(`Redis unavailable while creating code for ${telefone}:`, error);
+    }
+
+    // Fallback to memory when Redis is unavailable
+    this.setMemoryEntry(key, data);
+    console.warn(`Code created in memory fallback for ${telefone}: ${code}`);
     return code;
   }
 
-  /**
-   * Verificar código fornecido pelo usuário
-   */
   static async verifyCode(
     telefone: string,
-    codeToVerify: string
+    codeToVerify: string,
   ): Promise<{
     valid: boolean;
     message: string;
@@ -59,89 +105,88 @@ export class VerificationCodeService {
     const key = `${this.PREFIX}${telefone}`;
 
     try {
-      const data = await redisGet(key);
+      const { data, source } = await this.readCodeData(key);
 
       if (!data) {
         return {
           valid: false,
-          message: 'Código expirado ou não encontrado. Solicite um novo código.',
+          message: "Codigo expirado ou nao encontrado. Solicite um novo codigo.",
         };
       }
 
-      // Verificar expiração (redundante com TTL, mas seguro)
       if (Date.now() - data.createdAt > this.TTL * 1000) {
         await this.deleteCode(telefone);
         return {
           valid: false,
-          message: 'Código expirado. Solicite um novo código.',
+          message: "Codigo expirado. Solicite um novo codigo.",
         };
       }
 
-      // Verificar tentativas
       if (data.attempts >= this.MAX_ATTEMPTS) {
         await this.deleteCode(telefone);
         return {
           valid: false,
-          message: 'Número máximo de tentativas excedido. Solicite um novo código.',
+          message: "Numero maximo de tentativas excedido. Solicite um novo codigo.",
         };
       }
 
-      // Verificar código
       if (data.code === codeToVerify) {
         await this.deleteCode(telefone);
-        console.log(`✅ Código verificado com sucesso para ${telefone}`);
+        console.log(`Code verified successfully for ${telefone}`);
         return {
           valid: true,
-          message: 'Código verificado com sucesso!',
+          message: "Codigo verificado com sucesso!",
         };
       }
 
-      // Incrementar tentativas
       data.attempts++;
-      await redisSet(key, data, this.TTL);
+
+      if (source === "redis") {
+        await redisSet(key, data, this.TTL);
+
+        // If Redis write fails silently, keep fallback copy in memory
+        const persisted = await redisGet(key);
+        if (!persisted) {
+          this.setMemoryEntry(key, data);
+        }
+      } else {
+        this.setMemoryEntry(key, data);
+      }
 
       const attemptsLeft = this.MAX_ATTEMPTS - data.attempts;
 
-      console.log(`❌ Código incorreto para ${telefone}. Tentativas restantes: ${attemptsLeft}`);
+      console.log(`Invalid code for ${telefone}. Attempts left: ${attemptsLeft}`);
 
       return {
         valid: false,
-        message: `Código incorreto. Você tem ${attemptsLeft} tentativa(s) restante(s).`,
+        message: `Codigo incorreto. Voce tem ${attemptsLeft} tentativa(s) restante(s).`,
         attemptsLeft,
       };
     } catch (error) {
-      console.error(`❌ Erro ao verificar código para ${telefone}:`, error);
+      console.error(`Error while verifying code for ${telefone}:`, error);
       return {
         valid: false,
-        message: 'Erro ao verificar código. Tente novamente.',
+        message: "Erro ao verificar codigo. Tente novamente.",
       };
     }
   }
 
-  /**
-   * Deletar código de verificação
-   */
   static async deleteCode(telefone: string): Promise<void> {
     const key = `${this.PREFIX}${telefone}`;
     await redisDel(key);
-    console.log(`🗑️ Código removido para ${telefone}`);
+    this.memoryStore.delete(key);
+    console.log(`Code removed for ${telefone}`);
   }
 
-  /**
-   * Verificar se já existe código pendente
-   */
   static async hasActiveCode(telefone: string): Promise<boolean> {
     const key = `${this.PREFIX}${telefone}`;
-    const data = await redisGet(key);
+    const { data } = await this.readCodeData(key);
     return !!data;
   }
 
-  /**
-   * Obter tempo restante do código
-   */
   static async getTimeLeft(telefone: string): Promise<number | null> {
     const key = `${this.PREFIX}${telefone}`;
-    const data = await redisGet(key);
+    const { data } = await this.readCodeData(key);
 
     if (!data) return null;
 

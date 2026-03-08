@@ -2,34 +2,55 @@
 import { validarCredenciaisWhatsApp } from "../utils/validators";
 
 export class WhatsAppService {
+  private static normalizePhoneForWhatsApp(to: string): string {
+    const digits = to.replace(/\D/g, "");
+
+    if (!digits) {
+      return digits;
+    }
+
+    // Already with Brazil country code
+    if (digits.startsWith("55")) {
+      // 55 + DDD + 9 digits
+      if (digits.length === 13) {
+        return digits;
+      }
+
+      // 55 + DDD + 8 digits (legacy) => insert 9
+      if (digits.length === 12) {
+        const ddi = "55";
+        const ddd = digits.substring(2, 4);
+        const local = digits.substring(4);
+        return ddi + ddd + "9" + local;
+      }
+
+      return digits;
+    }
+
+    // Without country code: assume Brazil
+    if (digits.length === 11 || digits.length === 10) {
+      return `55${digits}`;
+    }
+
+    return digits;
+  }
+
   static async sendMessage(to: string, message: string) {
     const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
     const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
 
-    console.log("🔑 Enviando mensagem REAL pelo WhatsApp...");
-    console.log("👤 Para (recebido):", to);
+    console.log("Sending REAL WhatsApp message...");
+    console.log("To (received):", to);
 
     if (!validarCredenciaisWhatsApp()) {
-      throw new Error("Credenciais do WhatsApp não configuradas");
+      throw new Error("WhatsApp credentials not configured");
     }
 
-    const apenasNumeros = to.replace(/\D/g, "");
-    let numeroWhatsApp = apenasNumeros;
+    const numeroWhatsApp = this.normalizePhoneForWhatsApp(to);
+    console.log(`Phone normalization: ${to} -> ${numeroWhatsApp}`);
 
-    // Normalização do número
-    if (apenasNumeros === "85991486998" || apenasNumeros === "991486998") {
-      numeroWhatsApp = "5585991486998";
-      console.log(`✅ Convertendo local → internacional: ${apenasNumeros} → ${numeroWhatsApp}`);
-    } else if (apenasNumeros.length === 12 && apenasNumeros.startsWith("55")) {
-      const ddi = "55";
-      const ddd = apenasNumeros.substring(2, 4);
-      const resto = apenasNumeros.substring(4);
-      numeroWhatsApp = ddi + ddd + "9" + resto;
-      console.log(`✅ Adicionando 9 faltante: ${apenasNumeros} → ${numeroWhatsApp}`);
-    }
-
-    console.log("👤 Para (enviando):", numeroWhatsApp);
-    console.log(`📤 Mensagem (${message.length} chars):`, message);
+    console.log("To (sending):", numeroWhatsApp);
+    console.log(`Message (${message.length} chars):`, message);
 
     try {
       const response = await fetch(
@@ -45,61 +66,69 @@ export class WhatsAppService {
             to: numeroWhatsApp,
             text: { body: message },
           }),
-        }
+        },
       );
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("❌ Erro ao enviar mensagem WhatsApp:", errorData);
-        throw new Error(`Erro WhatsApp: ${response.status}`);
+        console.error("WhatsApp send error:", errorData);
+        throw new Error(`WhatsApp error: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log("✅ Mensagem enviada com sucesso:", {
-        to: data.contacts?.[0]?.wa_id,
+      const waId = data.contacts?.[0]?.wa_id;
+
+      if (waId && waId !== numeroWhatsApp) {
+        console.warn("wa_id returned different from sent number", {
+          sent: numeroWhatsApp,
+          returned: waId,
+        });
+      }
+
+      console.log("Message sent successfully:", {
+        to: waId,
         messageId: data.messages?.[0]?.id,
       });
       return data;
     } catch (error) {
-      console.error("💥 Erro no envio WhatsApp:", error);
+      console.error("WhatsApp send failure:", error);
       throw error;
     }
   }
 
   static async downloadAudio(audioId: string): Promise<ArrayBuffer> {
-    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
     const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
 
     if (!validarCredenciaisWhatsApp()) {
-      throw new Error("Credenciais do WhatsApp não configuradas");
+      throw new Error("WhatsApp credentials not configured");
     }
 
-    // Buscar URL do áudio
+    // Fetch media URL
     const mediaResponse = await fetch(
       `https://graph.facebook.com/v18.0/${audioId}`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
-      }
+      },
     );
 
     if (!mediaResponse.ok) {
       const errorData = await mediaResponse.text();
-      console.error("❌ Erro ao buscar URL do áudio:", errorData);
-      throw new Error(`Erro ao buscar mídia: ${mediaResponse.status}`);
+      console.error("Error fetching audio URL:", errorData);
+      throw new Error(`Error fetching media: ${mediaResponse.status}`);
     }
 
     const mediaData = await mediaResponse.json();
     const audioUrl = mediaData.url;
 
-    console.log(`🔗 URL do áudio obtida: ${audioUrl}`);
+    console.log(`Audio URL fetched: ${audioUrl}`);
 
     if (!audioUrl) {
-      throw new Error("URL do áudio não encontrada");
+      throw new Error("Audio URL not found");
     }
 
-    // Baixar o arquivo de áudio
+    // Download audio file
     const audioFileResponse = await fetch(audioUrl, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -107,7 +136,7 @@ export class WhatsAppService {
     });
 
     if (!audioFileResponse.ok) {
-      throw new Error(`Erro ao baixar áudio: ${audioFileResponse.status}`);
+      throw new Error(`Error downloading audio: ${audioFileResponse.status}`);
     }
 
     return await audioFileResponse.arrayBuffer();

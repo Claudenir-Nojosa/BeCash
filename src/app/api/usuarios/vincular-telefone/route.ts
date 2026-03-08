@@ -56,6 +56,16 @@ function getMessages(language: string = 'pt-BR') {
   return messages[language as keyof typeof messages] || messages['pt-BR'];
 }
 
+function normalizePhoneForStorage(rawPhone: string): string {
+  const digits = rawPhone.replace(/\D/g, "");
+
+  // Remove DDI 55 apenas quando vier no formato internacional
+  if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) {
+    return digits.substring(2);
+  }
+
+  return digits;
+}
 
 // GET - Verificar se usuário já tem telefone vinculado
 export async function GET(request: NextRequest) {
@@ -122,7 +132,7 @@ export async function POST(request: NextRequest) {
     const { action, telefone, code } = body;
 
     // 🔥 NORMALIZAR TELEFONE: remover tudo que não é número
-    const telefoneNormalizado = telefone?.replace(/\D/g, "") || "";
+    const telefoneNormalizado = normalizePhoneForStorage(telefone || "");
 
     console.log(`📞 Telefone recebido: ${telefone}`);
     console.log(`🔧 Telefone normalizado: ${telefoneNormalizado}`);
@@ -153,7 +163,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Verificar se telefone já está em uso por outro usuário
-      const telefoneParaSalvar = telefoneNormalizado.replace(/^55/, "");
+      const telefoneParaSalvar = telefoneNormalizado;
       
       const telefoneExistente = await db.user.findFirst({
         where: {
@@ -227,7 +237,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const telefoneParaSalvar = telefoneNormalizado.replace(/^55/, "");
+      const telefoneParaSalvar = telefoneNormalizado;
 
       // Verificar código
       const verification = await VerificationCodeService.verifyCode(
@@ -339,3 +349,6 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
+
+
+

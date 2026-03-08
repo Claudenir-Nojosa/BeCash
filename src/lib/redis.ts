@@ -1,41 +1,60 @@
 // app/lib/redis.ts
-import Redis from 'ioredis';
+import Redis from "ioredis";
 
 let redis: Redis | null = null;
 
+function createRedisClient(): Redis {
+  const redisUrl = process.env.REDIS_URL;
+  const host = process.env.REDIS_HOST;
+  const port = parseInt(process.env.REDIS_PORT || "6379", 10);
+  const password = process.env.REDIS_PASSWORD;
+  const username = process.env.REDIS_USERNAME || "default";
+
+  const commonOptions = {
+    retryStrategy: (times: number) => {
+      // Stop retry loops quickly on DNS/network issues
+      if (times > 2) return null;
+      return Math.min(times * 100, 500);
+    },
+    maxRetriesPerRequest: 1,
+    enableReadyCheck: true,
+    connectTimeout: 10_000,
+    enableOfflineQueue: false,
+  };
+
+  if (redisUrl) {
+    console.log("Connecting to Redis using REDIS_URL...");
+    return new Redis(redisUrl, commonOptions);
+  }
+
+  if (!host) {
+    throw new Error("Redis is not configured (missing REDIS_URL or REDIS_HOST)");
+  }
+
+  console.log("Connecting to Redis using host/port...", { host, port });
+  return new Redis({
+    host,
+    port,
+    password,
+    username,
+    ...commonOptions,
+  });
+}
+
 export function getRedisClient(): Redis {
   if (!redis) {
-    const host = process.env.REDIS_HOST;
-    const port = parseInt(process.env.REDIS_PORT || '6379');
-    const password = process.env.REDIS_PASSWORD;
-    const username = process.env.REDIS_USERNAME || 'default';
+    redis = createRedisClient();
 
-    console.log('🔗 Conectando ao Redis Cloud...', { host, port });
-    
-    redis = new Redis({
-      host,
-      port,
-      password,
-      username,
-      retryStrategy: (times) => {
-        const delay = Math.min(times * 50, 2000);
-        return delay;
-      },
-      maxRetriesPerRequest: 3,
-      enableReadyCheck: true,
-      connectTimeout: 10000,
+    redis.on("connect", () => {
+      console.log("Redis connected");
     });
 
-    redis.on('connect', () => {
-      console.log('✅ Conectado ao Redis Cloud');
+    redis.on("error", (error) => {
+      console.error("Redis error:", error);
     });
 
-    redis.on('error', (error) => {
-      console.error('❌ Erro no Redis:', error);
-    });
-
-    redis.on('close', () => {
-      console.log('🔌 Conexão Redis fechada');
+    redis.on("close", () => {
+      console.log("Redis connection closed");
     });
   }
 
@@ -46,18 +65,17 @@ export async function disconnectRedis() {
   if (redis) {
     await redis.quit();
     redis = null;
-    console.log('🔌 Redis desconectado');
+    console.log("Redis disconnected");
   }
 }
 
-// Helper functions
 export async function redisGet(key: string): Promise<any> {
   try {
     const client = getRedisClient();
     const data = await client.get(key);
     return data ? JSON.parse(data) : null;
   } catch (error) {
-    console.error('❌ Erro no redisGet:', error);
+    console.error("redisGet error:", error);
     return null;
   }
 }
@@ -66,11 +84,11 @@ export async function redisSet(key: string, value: any, ttl?: number): Promise<v
   try {
     const client = getRedisClient();
     const serialized = JSON.stringify(value);
-    const expiration = ttl || parseInt(process.env.REDIS_TTL || '1800');
-    
+    const expiration = ttl || parseInt(process.env.REDIS_TTL || "1800", 10);
+
     await client.setex(key, expiration, serialized);
   } catch (error) {
-    console.error('❌ Erro no redisSet:', error);
+    console.error("redisSet error:", error);
   }
 }
 
@@ -79,7 +97,7 @@ export async function redisDel(key: string): Promise<void> {
     const client = getRedisClient();
     await client.del(key);
   } catch (error) {
-    console.error('❌ Erro no redisDel:', error);
+    console.error("redisDel error:", error);
   }
 }
 
@@ -89,7 +107,7 @@ export async function redisExists(key: string): Promise<boolean> {
     const exists = await client.exists(key);
     return exists === 1;
   } catch (error) {
-    console.error('❌ Erro no redisExists:', error);
+    console.error("redisExists error:", error);
     return false;
   }
 }
