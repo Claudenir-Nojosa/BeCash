@@ -155,6 +155,8 @@ export const Hero = () => {
   const [isHoveringOffer, setIsHoveringOffer] = useState(false);
   const [isHoveringCTA, setIsHoveringCTA] = useState(false);
   const [isHoveringSecondary, setIsHoveringSecondary] = useState(false);
+  const coinFallDistance =
+    typeof window !== "undefined" ? window.innerHeight + 100 : 1200;
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -177,7 +179,7 @@ export const Hero = () => {
               height: coin.size,
             }}
             animate={{
-              y: [0, window.innerHeight + 100],
+              y: [0, coinFallDistance],
               rotate: 360,
             }}
             transition={{

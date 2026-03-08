@@ -2,6 +2,7 @@
 import Redis from "ioredis";
 
 let redis: Redis | null = null;
+let redisReadyPromise: Promise<Redis> | null = null;
 
 function createRedisClient(): Redis {
   const redisUrl = process.env.REDIS_URL;
@@ -61,17 +62,58 @@ export function getRedisClient(): Redis {
   return redis;
 }
 
+async function getReadyRedisClient(): Promise<Redis> {
+  const client = getRedisClient();
+
+  if (client.status === "ready") {
+    return client;
+  }
+
+  if (!redisReadyPromise) {
+    redisReadyPromise = new Promise<Redis>((resolve, reject) => {
+      const onReady = () => {
+        cleanup();
+        resolve(client);
+      };
+
+      const onError = (error: Error) => {
+        cleanup();
+        reject(error);
+      };
+
+      const timer = setTimeout(() => {
+        cleanup();
+        reject(new Error("Redis connection timeout"));
+      }, 5000);
+
+      const cleanup = () => {
+        clearTimeout(timer);
+        client.off("ready", onReady);
+        client.off("error", onError);
+      };
+
+      client.once("ready", onReady);
+      client.once("error", onError);
+    }).finally(() => {
+      redisReadyPromise = null;
+    });
+  }
+
+  return redisReadyPromise;
+}
+
 export async function disconnectRedis() {
   if (redis) {
     await redis.quit();
     redis = null;
+    redisReadyPromise = null;
     console.log("Redis disconnected");
   }
 }
 
 export async function redisGet(key: string): Promise<any> {
   try {
-    const client = getRedisClient();
+    const client = await getReadyRedisClient();
     const data = await client.get(key);
     return data ? JSON.parse(data) : null;
   } catch (error) {
@@ -82,7 +124,7 @@ export async function redisGet(key: string): Promise<any> {
 
 export async function redisSet(key: string, value: any, ttl?: number): Promise<void> {
   try {
-    const client = getRedisClient();
+    const client = await getReadyRedisClient();
     const serialized = JSON.stringify(value);
     const expiration = ttl || parseInt(process.env.REDIS_TTL || "1800", 10);
 
@@ -94,7 +136,7 @@ export async function redisSet(key: string, value: any, ttl?: number): Promise<v
 
 export async function redisDel(key: string): Promise<void> {
   try {
-    const client = getRedisClient();
+    const client = await getReadyRedisClient();
     await client.del(key);
   } catch (error) {
     console.error("redisDel error:", error);
@@ -103,7 +145,7 @@ export async function redisDel(key: string): Promise<void> {
 
 export async function redisExists(key: string): Promise<boolean> {
   try {
-    const client = getRedisClient();
+    const client = await getReadyRedisClient();
     const exists = await client.exists(key);
     return exists === 1;
   } catch (error) {
