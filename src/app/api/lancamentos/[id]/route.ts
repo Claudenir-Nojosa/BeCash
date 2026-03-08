@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
 import { auth } from "../../../../../auth";
+import { FaturaService } from "@/lib/faturaService";
 
 // Correção para todas as funções
 export async function PATCH(
@@ -231,12 +232,37 @@ export async function PUT(
       );
     }
 
-    // Atualizar o lançamento
-    const lancamentoAtualizado = await db.lancamento.update({
+    const parcelasTotalNum =
+      typeof parcelasTotal === "number" ? parcelasTotal : Number(parcelasTotal);
+    const valorNum = typeof valor === "number" ? valor : Number(valor);
+    const ehParceladoCredito =
+      metodoPagamento === "CREDITO" &&
+      tipoParcelamento === "PARCELADO" &&
+      Number.isFinite(parcelasTotalNum) &&
+      parcelasTotalNum > 1;
+
+    const convertendoParaParcelado =
+      ehParceladoCredito &&
+      lancamentoExistente.tipoParcelamento !== "PARCELADO" &&
+      !lancamentoExistente.lancamentoPaiId;
+
+    const descricaoBase = String(descricao || lancamentoExistente.descricao).replace(
+      /\s\(\d+\/\d+\)$/,
+      ""
+    );
+    const valorParcela =
+      convertendoParaParcelado && Number.isFinite(valorNum)
+        ? valorNum / parcelasTotalNum
+        : valor;
+
+    // Atualizar o lançamento principal
+    await db.lancamento.update({
       where: { id: lancamentoId },
       data: {
-        descricao,
-        valor,
+        descricao: convertendoParaParcelado
+          ? `${descricaoBase} (1/${parcelasTotalNum})`
+          : descricao,
+        valor: valorParcela,
         tipo,
         metodoPagamento,
         data: new Date(data),
@@ -245,10 +271,57 @@ export async function PUT(
         observacoes,
         tipoParcelamento,
         parcelasTotal,
+        parcelaAtual: convertendoParaParcelado ? 1 : undefined,
         recorrente,
         dataFimRecorrencia: dataFimRecorrencia ? new Date(dataFimRecorrencia) : null,
         pago,
       },
+    });
+
+    // Quando um lançamento deixa de ser avista e vira parcelado, criar as parcelas futuras.
+    if (convertendoParaParcelado) {
+      const parcelasFuturas = [];
+      const dataBase = new Date(data);
+
+      for (let i = 2; i <= parcelasTotalNum; i++) {
+        const dataParcela = new Date(dataBase);
+        dataParcela.setMonth(dataParcela.getMonth() + (i - 1));
+
+        parcelasFuturas.push({
+          descricao: `${descricaoBase} (${i}/${parcelasTotalNum})`,
+          valor: Number(valorParcela),
+          tipo,
+          metodoPagamento,
+          data: dataParcela,
+          categoriaId,
+          cartaoId: metodoPagamento === "CREDITO" ? cartaoId : null,
+          observacoes: observacoes || null,
+          userId: session.user.id,
+          pago: false,
+          tipoParcelamento,
+          parcelasTotal: parcelasTotalNum,
+          parcelaAtual: i,
+          recorrente: false,
+          lancamentoPaiId: lancamentoId,
+        });
+      }
+
+      if (parcelasFuturas.length > 0) {
+        const parcelasCriadas = await db.lancamento.createManyAndReturn({
+          data: parcelasFuturas,
+        });
+
+        // Associar parcelas futuras às respectivas faturas de crédito.
+        if (metodoPagamento === "CREDITO" && cartaoId) {
+          for (const parcela of parcelasCriadas) {
+            await FaturaService.adicionarLancamentoAFatura(parcela.id);
+          }
+        }
+      }
+    }
+
+    const lancamentoAtualizado = await db.lancamento.findUnique({
+      where: { id: lancamentoId },
       include: {
         categoria: true,
         cartao: true,
@@ -257,6 +330,7 @@ export async function PUT(
             categoria: true,
             cartao: true,
           },
+          orderBy: { parcelaAtual: "asc" },
         },
         LancamentoCompartilhado: {
           include: {

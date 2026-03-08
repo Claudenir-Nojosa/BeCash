@@ -268,41 +268,240 @@ export async function POST(request: NextRequest) {
       tipoParcelamento === "PARCELADO" &&
       parcelasTotal > 1
     ) {
-      const valorTotal = parseFloat(valor);
+      const parcelasTotalNum = parseInt(parcelasTotal);
+      const valorTotalNum = parseFloat(valor);
 
       // CORREÇÃO: Só calcular valores de compartilhamento se for realmente compartilhado
-      const valorParaCompartilhar =
+      const valorParaCompartilharNum =
         tipoLancamento === "compartilhado"
           ? valorCompartilhado
             ? parseFloat(valorCompartilhado)
-            : valorTotal / 2
+            : valorTotalNum / 2
           : 0;
 
-      const valorParcela = valorTotal / parseInt(parcelasTotal);
-      const valorUsuarioCriador =
+      const valorUsuarioCriadorNum =
         tipoLancamento === "compartilhado"
-          ? valorTotal - valorParaCompartilhar
-          : valorTotal;
+          ? valorTotalNum - valorParaCompartilharNum
+          : valorTotalNum;
 
       // CORREÇÃO: Dividir o valor correto pelas parcelas
-      const valorParcelaCriador = valorUsuarioCriador / parseInt(parcelasTotal);
+      const valorParcelaCriador = valorUsuarioCriadorNum / parcelasTotalNum;
       const valorParcelaCompartilhada =
         tipoLancamento === "compartilhado"
-          ? valorParaCompartilhar / parseInt(parcelasTotal)
+          ? valorParaCompartilharNum / parcelasTotalNum
           : 0;
 
-      // Primeiro lançamento (parcela atual) - criador paga sua parte
-      const lancamentoPrincipal = await db.lancamento.create({
-        data: {
-          ...lancamentoBaseData,
-          valor: valorParcelaCriador, // CORREÇÃO: Valor correto por parcela
-          descricao: `${descricao} (1/${parcelasTotal})`,
+      const dataLancamentoPrincipal = data ? new Date(data) : new Date();
+      const lancamentoComParcelas = await db.$transaction(
+        async (tx) => {
+        // Primeiro lançamento (parcela atual) - criador paga sua parte
+        const lancamentoPrincipal = await tx.lancamento.create({
+          data: {
+            ...lancamentoBaseData,
+            valor: valorParcelaCriador, // CORREÇÃO: Valor correto por parcela
+            descricao: `${descricao} (1/${parcelasTotalNum})`,
+          },
+          include: {
+            categoria: true,
+            cartao: true,
+          },
+        });
+
+        // Criar parcelas futuras para o criador
+        const parcelasFuturas = [];
+        for (let i = 2; i <= parcelasTotalNum; i++) {
+          const dataParcela = new Date(dataLancamentoPrincipal);
+          dataParcela.setMonth(dataParcela.getMonth() + (i - 1));
+
+          parcelasFuturas.push({
+            descricao: `${descricao} (${i}/${parcelasTotalNum})`,
+            valor: valorParcelaCriador,
+            tipo,
+            metodoPagamento,
+            data: dataParcela,
+            categoriaId,
+            cartaoId,
+            observacoes: observacoes || null,
+            userId: session.user.id,
+            pago: false,
+            tipoParcelamento,
+            parcelasTotal: parcelasTotalNum,
+            parcelaAtual: i,
+            recorrente: false,
+            lancamentoPaiId: lancamentoPrincipal.id,
+          });
+        }
+
+        const parcelasCriadas =
+          parcelasFuturas.length > 0
+            ? await tx.lancamento.createManyAndReturn({ data: parcelasFuturas })
+            : [];
+
+        // Criar compartilhamentos em lote (principal + parcelas futuras)
+        if (tipoLancamento === "compartilhado") {
+          const compartilhamentos = [
+            {
+              lancamentoId: lancamentoPrincipal.id,
+              usuarioCriadorId: session.user.id,
+              usuarioAlvoId,
+              valorCompartilhado: valorParcelaCompartilhada,
+              status: "PENDENTE" as const,
+            },
+            ...parcelasCriadas.map((parcela) => ({
+              lancamentoId: parcela.id,
+              usuarioCriadorId: session.user.id,
+              usuarioAlvoId,
+              valorCompartilhado: valorParcelaCompartilhada,
+              status: "PENDENTE" as const,
+            })),
+          ];
+
+          await tx.lancamentoCompartilhado.createMany({
+            data: compartilhamentos,
+          });
+        }
+
+        // Associar lançamentos às faturas e recalcular somente uma vez por fatura.
+        if (metodoPagamento === "CREDITO" && cartaoId) {
+          const cartao = await tx.cartao.findUnique({
+            where: { id: cartaoId },
+            select: { diaFechamento: true, diaVencimento: true },
+          });
+
+          if (!cartao) {
+            throw new Error("Cartão não encontrado");
+          }
+
+          const lancamentosParaVincular = [
+            { id: lancamentoPrincipal.id, data: dataLancamentoPrincipal },
+            ...parcelasCriadas.map((parcela) => ({
+              id: parcela.id,
+              data: new Date(parcela.data),
+            })),
+          ];
+
+          const faturaIdPorMesReferencia = new Map<string, string>();
+          const lancamentosPorFatura = new Map<string, string[]>();
+
+          for (const lancamento of lancamentosParaVincular) {
+            const mesReferencia = FaturaService.calcularMesReferencia(
+              lancamento.data,
+              cartao.diaFechamento
+            );
+
+            let faturaId = faturaIdPorMesReferencia.get(mesReferencia);
+
+            if (!faturaId) {
+              const dataFechamento = FaturaService.calcularDataFechamento(
+                cartao.diaFechamento,
+                mesReferencia
+              );
+              const dataVencimento = FaturaService.calcularDataVencimento(
+                cartao.diaVencimento,
+                mesReferencia
+              );
+
+              const fatura = await tx.fatura.upsert({
+                where: {
+                  cartaoId_mesReferencia: {
+                    cartaoId,
+                    mesReferencia,
+                  },
+                },
+                create: {
+                  cartaoId,
+                  mesReferencia,
+                  dataFechamento,
+                  dataVencimento,
+                  status: "ABERTA",
+                },
+                update: {},
+              });
+
+              faturaId = fatura.id;
+              faturaIdPorMesReferencia.set(mesReferencia, faturaId);
+            }
+
+            const ids = lancamentosPorFatura.get(faturaId) || [];
+            ids.push(lancamento.id);
+            lancamentosPorFatura.set(faturaId, ids);
+          }
+
+          for (const [faturaId, idsLancamentos] of lancamentosPorFatura.entries()) {
+            await tx.lancamento.updateMany({
+              where: { id: { in: idsLancamentos } },
+              data: { faturaId },
+            });
+          }
+
+          const faturasAfetadas = Array.from(lancamentosPorFatura.keys());
+
+          if (faturasAfetadas.length > 0) {
+            const totais = await tx.lancamento.groupBy({
+              by: ["faturaId", "tipo"],
+              where: {
+                faturaId: { in: faturasAfetadas },
+                pago: false,
+              },
+              _sum: { valor: true },
+            });
+
+            const totaisPorFatura = new Map<string, number>();
+            for (const faturaId of faturasAfetadas) {
+              totaisPorFatura.set(faturaId, 0);
+            }
+
+            for (const total of totais) {
+              if (!total.faturaId) continue;
+              const acumulado = totaisPorFatura.get(total.faturaId) || 0;
+              const valor = total._sum.valor || 0;
+              totaisPorFatura.set(
+                total.faturaId,
+                total.tipo === "RECEITA" ? acumulado - valor : acumulado + valor
+              );
+            }
+
+            for (const [faturaId, valorTotal] of totaisPorFatura.entries()) {
+              await tx.fatura.update({
+                where: { id: faturaId },
+                data: { valorTotal },
+              });
+            }
+          }
+        }
+
+        return tx.lancamento.findUnique({
+          where: { id: lancamentoPrincipal.id },
+          include: {
+            categoria: true,
+            cartao: true,
+            lancamentosFilhos: {
+              include: {
+                categoria: true,
+                cartao: true,
+              },
+              orderBy: { parcelaAtual: "asc" },
+            },
+            LancamentoCompartilhado: {
+              include: {
+                usuarioAlvo: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    image: true,
+                  },
+                },
+              },
+            },
+          },
+        });
         },
-        include: {
-          categoria: true,
-          cartao: true,
-        },
-      });
+        {
+          maxWait: 10_000,
+          timeout: 60_000,
+        }
+      );
 
       // ✅ ATUALIZAR LIMITE para a primeira parcela (se for despesa)
       if (tipo === "DESPESA") {
@@ -310,108 +509,9 @@ export async function POST(request: NextRequest) {
           session.user.id,
           categoriaId,
           valorParcelaCriador,
-          tipo,
+          tipo
         );
       }
-
-      // CORREÇÃO: Criar registro de compartilhamento com o valor correto por parcela
-      if (tipoLancamento === "compartilhado") {
-        await db.lancamentoCompartilhado.create({
-          data: {
-            lancamentoId: lancamentoPrincipal.id,
-            usuarioCriadorId: session.user.id,
-            usuarioAlvoId: usuarioAlvoId,
-            valorCompartilhado: valorParcelaCompartilhada, // CORREÇÃO: Valor compartilhado por parcela
-            status: "PENDENTE",
-          },
-        });
-      }
-
-      // Adicionar à fatura atual
-      if (metodoPagamento === "CREDITO" && cartaoId) {
-        await FaturaService.adicionarLancamentoAFatura(lancamentoPrincipal.id);
-      }
-
-      // Criar parcelas futuras para o criador
-      const parcelasFuturas = [];
-      for (let i = 2; i <= parseInt(parcelasTotal); i++) {
-        const dataParcela = new Date(data || new Date());
-        dataParcela.setMonth(dataParcela.getMonth() + (i - 1));
-
-        const parcelaData = {
-          descricao: `${descricao} (${i}/${parcelasTotal})`,
-          valor: valorParcelaCriador,
-          tipo,
-          metodoPagamento,
-          data: dataParcela,
-          categoriaId,
-          cartaoId,
-          observacoes: observacoes || null,
-          userId: session.user.id,
-          pago: false,
-          tipoParcelamento,
-          parcelasTotal: parseInt(parcelasTotal),
-          parcelaAtual: i,
-          recorrente: false,
-          lancamentoPaiId: lancamentoPrincipal.id,
-        };
-
-        parcelasFuturas.push(parcelaData);
-      }
-
-      if (parcelasFuturas.length > 0) {
-        const parcelasCriadas = await db.lancamento.createManyAndReturn({
-          data: parcelasFuturas,
-        });
-
-        // 🔥 CORREÇÃO: Associar cada parcela futura à sua fatura correspondente
-        for (const parcela of parcelasCriadas) {
-          // Adicionar à fatura correspondente à data da parcela
-          if (metodoPagamento === "CREDITO" && cartaoId) {
-            await FaturaService.adicionarLancamentoAFatura(parcela.id);
-          }
-
-          // CORREÇÃO: Para parcelas futuras também criar compartilhamento
-          if (tipoLancamento === "compartilhado") {
-            await db.lancamentoCompartilhado.create({
-              data: {
-                lancamentoId: parcela.id,
-                usuarioCriadorId: session.user.id,
-                usuarioAlvoId: usuarioAlvoId,
-                valorCompartilhado: valorParcelaCompartilhada,
-                status: "PENDENTE",
-              },
-            });
-          }
-        }
-      }
-
-      const lancamentoComParcelas = await db.lancamento.findUnique({
-        where: { id: lancamentoPrincipal.id },
-        include: {
-          categoria: true,
-          cartao: true,
-          lancamentosFilhos: {
-            include: {
-              categoria: true,
-              cartao: true,
-            },
-            orderBy: { parcelaAtual: "asc" },
-          },
-          LancamentoCompartilhado: {
-            include: {
-              usuarioAlvo: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                  image: true,
-                },
-              },
-            },
-          },
-        },
-      });
 
       return NextResponse.json(lancamentoComParcelas, { status: 201 });
     }

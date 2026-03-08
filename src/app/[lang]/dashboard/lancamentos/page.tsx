@@ -27,6 +27,7 @@ import {
   Tag,
   X,
   AlertTriangle,
+  CalendarIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -83,9 +84,17 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loading } from "@/components/ui/loading-barrinhas";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useTranslation } from "react-i18next";
 import { useRouter, useParams } from "next/navigation";
 import { getFallback } from "@/lib/i18nFallback";
+import { format } from "date-fns";
+import { ptBR, enUS } from "date-fns/locale";
 
 interface Categoria {
   id: string;
@@ -309,6 +318,22 @@ export default function LancamentosPage() {
         );
       case "categorias.formulario.valorCompartilhado":
         return getFallback(currentLang, "Valor compartilhado", "Shared amount");
+      case "categorias.formulario.modoDivisaoCompartilhamento":
+        return getFallback(currentLang, "Modo de divisão", "Split mode");
+      case "categorias.formulario.divisaoValor":
+        return getFallback(currentLang, "Valor", "Amount");
+      case "categorias.formulario.divisaoMetade":
+        return getFallback(currentLang, "Metade", "Half");
+      case "categorias.formulario.divisaoPorcentagem":
+        return getFallback(currentLang, "Porcentagem", "Percentage");
+      case "categorias.formulario.porcentagemCompartilhada":
+        return getFallback(
+          currentLang,
+          "Porcentagem compartilhada",
+          "Shared percentage",
+        );
+      case "categorias.formulario.placeholderPorcentagem":
+        return getFallback(currentLang, "50", "50");
       case "categorias.formulario.dataFimRecorrencia":
         return getFallback(
           currentLang,
@@ -701,6 +726,17 @@ export default function LancamentosPage() {
         valorCompartilhado: getTranslation(
           "categorias.formulario.valorCompartilhado",
         ),
+        modoDivisaoCompartilhamento: getTranslation(
+          "categorias.formulario.modoDivisaoCompartilhamento",
+        ),
+        divisaoValor: getTranslation("categorias.formulario.divisaoValor"),
+        divisaoMetade: getTranslation("categorias.formulario.divisaoMetade"),
+        divisaoPorcentagem: getTranslation(
+          "categorias.formulario.divisaoPorcentagem",
+        ),
+        porcentagemCompartilhada: getTranslation(
+          "categorias.formulario.porcentagemCompartilhada",
+        ),
         dataFimRecorrencia: getTranslation(
           "categorias.formulario.dataFimRecorrencia",
         ),
@@ -724,6 +760,9 @@ export default function LancamentosPage() {
         ),
         placeholderValor: getTranslation(
           "categorias.formulario.placeholderValor",
+        ),
+        placeholderPorcentagem: getTranslation(
+          "categorias.formulario.placeholderPorcentagem",
         ),
         placeholderObservacoes: getTranslation(
           "categorias.formulario.placeholderObservacoes",
@@ -868,6 +907,8 @@ export default function LancamentosPage() {
   const [planoUsuario, setPlanoUsuario] = useState<PlanoUsuario | null>(null);
   const [carregandoPlano, setCarregandoPlano] = useState(true);
   const currencySymbol = currentLang === "en" ? "$" : "R$";
+  const dateInputLang = currentLang === "pt" ? "pt-BR" : "en-US";
+  const calendarLocale = currentLang === "en" ? enUS : ptBR;
   const [carregandoVisualizacao, setCarregandoVisualizacao] = useState<
     string | null
   >(null);
@@ -885,6 +926,11 @@ export default function LancamentosPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isCreateDatePickerOpen, setIsCreateDatePickerOpen] = useState(false);
+  const [isEditDatePickerOpen, setIsEditDatePickerOpen] = useState(false);
+  const [modoDivisaoCompartilhamento, setModoDivisaoCompartilhamento] =
+    useState<"valor" | "metade" | "porcentagem">("valor");
+  const [porcentagemCompartilhada, setPorcentagemCompartilhada] = useState("50");
   const [dialogAberto, setDialogAberto] = useState<string | null>(null);
   const [excluindo, setExcluindo] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -935,6 +981,12 @@ export default function LancamentosPage() {
     } finally {
       setCarregandoUsuarios(false);
     }
+  };
+
+  const atualizarUsuarioRecente = (usuario: Usuario) => {
+    setUsuariosRecentes((prev) =>
+      [usuario, ...prev.filter((u) => u.id !== usuario.id)].slice(0, 10),
+    );
   };
 
   useEffect(() => {
@@ -1046,6 +1098,71 @@ export default function LancamentosPage() {
 
   const handleChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const normalizarInputValor = (value: string) => {
+    if (currentLang !== "pt") return value;
+
+    const valorComVirgula = value.replace(/\./g, ",");
+    const somenteNumerosEVirgula = valorComVirgula.replace(/[^\d,]/g, "");
+    const primeiraVirgula = somenteNumerosEVirgula.indexOf(",");
+
+    if (primeiraVirgula === -1) return somenteNumerosEVirgula;
+
+    return (
+      somenteNumerosEVirgula.slice(0, primeiraVirgula + 1) +
+      somenteNumerosEVirgula.slice(primeiraVirgula + 1).replace(/,/g, "")
+    );
+  };
+
+  const parseValor = (value: string) =>
+    parseFloat(currentLang === "pt" ? value.replace(",", ".") : value);
+
+  const formatarValorExibicao = (value: number) =>
+    currentLang === "pt" ? value.toFixed(2).replace(".", ",") : value.toFixed(2);
+
+  const parseValorLivre = (value: string) => parseFloat(value.replace(",", "."));
+
+  const calcularValorCompartilhadoCriacao = (): number | null => {
+    if (formData.tipoLancamento !== "compartilhado") return null;
+
+    const valorTotal = parseValor(formData.valor);
+    const temValorTotal = Number.isFinite(valorTotal) && valorTotal > 0;
+
+    if (modoDivisaoCompartilhamento === "metade") {
+      if (!temValorTotal) return null;
+      return Number((valorTotal / 2).toFixed(2));
+    }
+
+    if (modoDivisaoCompartilhamento === "porcentagem") {
+      if (!temValorTotal) return null;
+      const percentual = parseValorLivre(porcentagemCompartilhada);
+      if (!Number.isFinite(percentual)) return null;
+      const percentualNormalizado = Math.min(100, Math.max(0, percentual));
+      return Number(((valorTotal * percentualNormalizado) / 100).toFixed(2));
+    }
+
+    const valorDigitado = parseValorLivre(formData.valorCompartilhado);
+    if (!Number.isFinite(valorDigitado)) return null;
+    if (temValorTotal) {
+      return Number(Math.min(valorTotal, Math.max(0, valorDigitado)).toFixed(2));
+    }
+    return Number(Math.max(0, valorDigitado).toFixed(2));
+  };
+
+  const parseIsoDate = (value: string): Date | undefined => {
+    if (!value) return undefined;
+    const [year, month, day] = value.split("-").map(Number);
+    if (!year || !month || !day) return undefined;
+    return new Date(year, month - 1, day);
+  };
+
+  const formatIsoDate = (date: Date) => format(date, "yyyy-MM-dd");
+
+  const formatarDataPicker = (value: string) => {
+    const parsedDate = parseIsoDate(value);
+    if (!parsedDate) return currentLang === "pt" ? "Selecione a data" : "Select date";
+    return format(parsedDate, "P", { locale: calendarLocale });
   };
 
   const calcularMesReferenciaLancamento = (
@@ -1210,7 +1327,7 @@ export default function LancamentosPage() {
 
       const payload = {
         descricao: formData.descricao,
-        valor: parseFloat(formData.valor),
+        valor: parseValor(formData.valor),
         tipo: formData.tipo.toUpperCase(),
         metodoPagamento: mapearMetodoPagamento(formData.tipoTransacao),
         data: new Date(formData.data).toISOString(),
@@ -1238,9 +1355,8 @@ export default function LancamentosPage() {
             ? formData.usuarioAlvoId
             : null,
         valorCompartilhado:
-          formData.tipoLancamento === "compartilhado" &&
-          formData.valorCompartilhado
-            ? parseFloat(formData.valorCompartilhado)
+          formData.tipoLancamento === "compartilhado"
+            ? calcularValorCompartilhadoCriacao()
             : null,
         dataFimRecorrencia: formData.dataFimRecorrencia || null,
       };
@@ -1253,7 +1369,31 @@ export default function LancamentosPage() {
 
       if (res.ok) {
         const lancamentoSalvo = await res.json();
-        setLancamentos((prev) => [...prev, lancamentoSalvo]);
+        const novosLancamentos = [
+          lancamentoSalvo,
+          ...(Array.isArray(lancamentoSalvo?.lancamentosFilhos)
+            ? lancamentoSalvo.lancamentosFilhos
+            : []),
+        ];
+        setLancamentos((prev) => [...novosLancamentos, ...prev]);
+
+        if (
+          formData.tipoLancamento === "compartilhado" &&
+          formData.usuarioAlvoId
+        ) {
+          const usuarioSelecionado =
+            usuariosRecentes.find((u) => u.id === formData.usuarioAlvoId) ||
+            (usuarioBuscado?.id === formData.usuarioAlvoId
+              ? usuarioBuscado
+              : null);
+
+          if (usuarioSelecionado) {
+            atualizarUsuarioRecente(usuarioSelecionado);
+          } else {
+            carregarUsuarios();
+          }
+        }
+
         toast.success(translations.categorias.mensagens.sucessoCriacao);
         setIsSheetOpen(false);
         setFormData({
@@ -1276,6 +1416,12 @@ export default function LancamentosPage() {
           data: new Date().toISOString().split("T")[0],
           dataFimRecorrencia: "",
         });
+        setModoDivisaoCompartilhamento("valor");
+        setPorcentagemCompartilhada("50");
+        setBuscaUsername("");
+        setUsuarioBuscado(null);
+        setErroUsuario("");
+        setModoSelecao("recentes");
       } else {
         const errorData = await res.json();
         toast.error(
@@ -1420,7 +1566,7 @@ export default function LancamentosPage() {
         setLancamentoSelecionado(lancamentoCompleto);
         setFormData({
           descricao: lancamentoCompleto.descricao,
-          valor: lancamentoCompleto.valor.toString(),
+          valor: normalizarInputValor(lancamentoCompleto.valor.toString()),
           tipo: lancamentoCompleto.tipo.toLowerCase(),
           categoria: lancamentoCompleto.categoria.id,
           tipoLancamento: lancamentoCompleto.LancamentoCompartilhado?.length
@@ -1444,8 +1590,10 @@ export default function LancamentosPage() {
             lancamentoCompleto.LancamentoCompartilhado?.[0]?.usuarioAlvo?.id ||
             "",
           valorCompartilhado:
-            lancamentoCompleto.LancamentoCompartilhado?.[0]?.valorCompartilhado?.toString() ||
-            "",
+            normalizarInputValor(
+              lancamentoCompleto.LancamentoCompartilhado?.[0]?.valorCompartilhado?.toString() ||
+                "",
+            ),
           data: new Date(lancamentoCompleto.data).toISOString().split("T")[0],
           dataFimRecorrencia: lancamentoCompleto.dataFimRecorrencia
             ? new Date(lancamentoCompleto.dataFimRecorrencia)
@@ -1495,7 +1643,7 @@ export default function LancamentosPage() {
 
       const payload = {
         descricao: formData.descricao,
-        valor: parseFloat(formData.valor),
+        valor: parseValor(formData.valor),
         tipo: formData.tipo.toUpperCase(),
         metodoPagamento: mapearMetodoPagamento(formData.tipoTransacao),
         data: new Date(formData.data).toISOString(),
@@ -1539,11 +1687,21 @@ export default function LancamentosPage() {
 
       if (res.ok) {
         const lancamentoAtualizado = await res.json();
-        setLancamentos((prev) =>
-          prev.map((lanc) =>
-            lanc.id === lancamentoSelecionado.id ? lancamentoAtualizado : lanc,
-          ),
+        const lancamentosAtualizados = [
+          lancamentoAtualizado,
+          ...(Array.isArray(lancamentoAtualizado?.lancamentosFilhos)
+            ? lancamentoAtualizado.lancamentosFilhos
+            : []),
+        ];
+        const idsAtualizados = new Set(
+          lancamentosAtualizados.map((lanc: Lancamento) => lanc.id),
         );
+        idsAtualizados.add(lancamentoSelecionado.id);
+
+        setLancamentos((prev) => [
+          ...lancamentosAtualizados,
+          ...prev.filter((lanc) => !idsAtualizados.has(lanc.id)),
+        ]);
         toast.success(translations.categorias.mensagens.sucessoEdicao);
         setMostrarDialogEditar(false);
         setLancamentoSelecionado(null);
@@ -1666,6 +1824,8 @@ export default function LancamentosPage() {
 
     return dataString;
   };
+
+  const valorCompartilhadoCalculadoCriacao = calcularValorCompartilhadoCriacao();
 
   if (loading && lancamentos.length === 0) {
     return <Loading />;
@@ -2069,12 +2229,12 @@ export default function LancamentosPage() {
                     {translations.categorias.estatisticas.receitas}
                   </p>
                   <p className="text-lg sm:text-xl md:text-2xl font-bold text-emerald-600 dark:text-green-400">
-                    {currencySymbol} {totalReceitas.toFixed(2)}
+                    {currencySymbol} {formatarValorExibicao(totalReceitas)}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     {translations.categorias.estatisticas.faltaReceber}{" "}
                     {currencySymbol}{" "}
-                    {(totalReceitas - receitasPagas).toFixed(2)}
+                    {formatarValorExibicao(totalReceitas - receitasPagas)}
                   </p>
                 </div>
                 <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-100 dark:bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
@@ -2093,12 +2253,12 @@ export default function LancamentosPage() {
                     {translations.categorias.estatisticas.despesas}
                   </p>
                   <p className="text-lg sm:text-xl md:text-2xl font-bold text-red-600 dark:text-red-400">
-                    {currencySymbol} {totalDespesas.toFixed(2)}
+                    {currencySymbol} {formatarValorExibicao(totalDespesas)}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     {translations.categorias.estatisticas.faltaPagar}{" "}
                     {currencySymbol}{" "}
-                    {(totalDespesas - despesasPagas).toFixed(2)}
+                    {formatarValorExibicao(totalDespesas - despesasPagas)}
                   </p>
                 </div>
                 <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-100 dark:bg-red-600 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
@@ -2119,7 +2279,7 @@ export default function LancamentosPage() {
                   <p
                     className={`text-lg sm:text-xl md:text-2xl font-bold ${saldo >= 0 ? "text-emerald-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
                   >
-                    {currencySymbol} {saldo.toFixed(2)}
+                    {currencySymbol} {formatarValorExibicao(saldo)}
                   </p>
                 </div>
                 <div
@@ -2394,7 +2554,8 @@ export default function LancamentosPage() {
                                     : "text-red-600 dark:text-red-400"
                                 }`}
                               >
-                                {currencySymbol} {lancamento.valor.toFixed(2)}
+                                {currencySymbol}{" "}
+                                {formatarValorExibicao(lancamento.valor)}
                               </motion.span>
                             </td>
 
@@ -2713,7 +2874,7 @@ export default function LancamentosPage() {
                                     : "text-red-600 dark:text-red-400"
                                 }`}
                               >
-                                R$ {lancamento.valor.toFixed(2)}
+                                R$ {formatarValorExibicao(lancamento.valor)}
                               </span>
                               <div className="mt-1">
                                 <Button
@@ -3002,11 +3163,14 @@ export default function LancamentosPage() {
                 </span>
                 <Input
                   id="valor"
-                  type="number"
+                  type={currentLang === "pt" ? "text" : "number"}
+                  inputMode="decimal"
                   step="0.01"
                   min="0"
                   value={formData.valor}
-                  onChange={(e) => handleChange("valor", e.target.value)}
+                  onChange={(e) =>
+                    handleChange("valor", normalizarInputValor(e.target.value))
+                  }
                   placeholder={
                     translations.categorias.formulario.placeholderValor
                   }
@@ -3256,30 +3420,115 @@ export default function LancamentosPage() {
                 </Tabs>
 
                 {formData.usuarioAlvoId && (
-                  <div className="space-y-2">
-                    <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
-                      {translations.categorias.formulario.valorCompartilhado} (
-                      {currencySymbol})
-                    </Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">
-                        {currencySymbol}
-                      </span>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max={formData.valor}
-                        value={formData.valorCompartilhado}
-                        onChange={(e) =>
-                          handleChange("valorCompartilhado", e.target.value)
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
+                        {
+                          translations.categorias.formulario
+                            .modoDivisaoCompartilhamento
                         }
-                        placeholder={
-                          translations.categorias.formulario.placeholderValor
+                      </Label>
+                      <Select
+                        value={modoDivisaoCompartilhamento}
+                        onValueChange={(value) =>
+                          setModoDivisaoCompartilhamento(
+                            value as "valor" | "metade" | "porcentagem",
+                          )
                         }
-                        className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-sm pl-9"
-                      />
+                      >
+                        <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-xs sm:text-sm h-9 sm:h-10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-xs sm:text-sm">
+                          <SelectItem value="valor">
+                            {translations.categorias.formulario.divisaoValor}
+                          </SelectItem>
+                          <SelectItem value="metade">
+                            {translations.categorias.formulario.divisaoMetade}
+                          </SelectItem>
+                          <SelectItem value="porcentagem">
+                            {
+                              translations.categorias.formulario
+                                .divisaoPorcentagem
+                            }
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
+
+                    {modoDivisaoCompartilhamento === "valor" && (
+                      <div className="space-y-1.5">
+                        <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
+                          {translations.categorias.formulario.valorCompartilhado} (
+                          {currencySymbol})
+                        </Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">
+                            {currencySymbol}
+                          </span>
+                          <Input
+                            type={currentLang === "pt" ? "text" : "number"}
+                            inputMode="decimal"
+                            step="0.01"
+                            min="0"
+                            value={formData.valorCompartilhado}
+                            onChange={(e) =>
+                              handleChange(
+                                "valorCompartilhado",
+                                normalizarInputValor(e.target.value),
+                              )
+                            }
+                            placeholder={
+                              translations.categorias.formulario.placeholderValor
+                            }
+                            className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-sm pl-9"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {modoDivisaoCompartilhamento === "porcentagem" && (
+                      <div className="space-y-1.5">
+                        <Label className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
+                          {
+                            translations.categorias.formulario
+                              .porcentagemCompartilhada
+                          }{" "}
+                          (%)
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            type={currentLang === "pt" ? "text" : "number"}
+                            inputMode="decimal"
+                            step="0.01"
+                            min="0"
+                            max="100"
+                            value={porcentagemCompartilhada}
+                            onChange={(e) =>
+                              setPorcentagemCompartilhada(
+                                normalizarInputValor(e.target.value),
+                              )
+                            }
+                            placeholder={
+                              translations.categorias.formulario
+                                .placeholderPorcentagem
+                            }
+                            className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-sm pr-7"
+                          />
+                          <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">
+                            %
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {valorCompartilhadoCalculadoCriacao !== null && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {translations.categorias.formulario.valorCompartilhado}:{" "}
+                        {currencySymbol}{" "}
+                        {formatarValorExibicao(valorCompartilhadoCalculadoCriacao)}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -3331,13 +3580,35 @@ export default function LancamentosPage() {
               >
                 {translations.categorias.formulario.data} *
               </Label>
-              <Input
-                type="date"
-                value={formData.data}
-                onChange={(e) => handleChange("data", e.target.value)}
-                required
-                className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-sm"
-              />
+              <Popover
+                modal={true}
+                open={isCreateDatePickerOpen}
+                onOpenChange={setIsCreateDatePickerOpen}
+              >
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-between bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-sm font-normal"
+                  >
+                    {formatarDataPicker(formData.data)}
+                    <CalendarIcon className="h-4 w-4 opacity-70" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="z-[60] w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={parseIsoDate(formData.data)}
+                    onSelect={(date) => {
+                      if (!date) return;
+                      handleChange("data", formatIsoDate(date));
+                      setIsCreateDatePickerOpen(false);
+                    }}
+                    initialFocus
+                    locale={calendarLocale}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* Recorrência */}
@@ -3466,6 +3737,7 @@ export default function LancamentosPage() {
                       <Input
                         id="dataFimRecorrencia"
                         type="date"
+                        lang={dateInputLang}
                         value={formData.dataFimRecorrencia}
                         onChange={(e) =>
                           handleChange("dataFimRecorrencia", e.target.value)
@@ -3549,7 +3821,7 @@ export default function LancamentosPage() {
                         : "text-red-600 dark:text-red-400"
                     }`}
                   >
-                    R$ {lancamentoSelecionado.valor.toFixed(2)}
+                    R$ {formatarValorExibicao(lancamentoSelecionado.valor)}
                   </p>
                 </div>
                 <div>
@@ -3794,11 +4066,14 @@ export default function LancamentosPage() {
                 </span>
                 <Input
                   id="valor"
-                  type="number"
+                  type={currentLang === "pt" ? "text" : "number"}
+                  inputMode="decimal"
                   step="0.01"
                   min="0"
                   value={formData.valor}
-                  onChange={(e) => handleChange("valor", e.target.value)}
+                  onChange={(e) =>
+                    handleChange("valor", normalizarInputValor(e.target.value))
+                  }
                   placeholder={
                     translations.categorias.formulario.placeholderValor
                   }
@@ -3966,8 +4241,9 @@ export default function LancamentosPage() {
                       </span>
                       <Input
                         type="text"
-                        value={lancamentoSelecionado.LancamentoCompartilhado[0].valorCompartilhado.toFixed(
-                          2,
+                        value={formatarValorExibicao(
+                          lancamentoSelecionado.LancamentoCompartilhado[0]
+                            .valorCompartilhado,
                         )}
                         disabled
                         className="bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-sm pl-9 cursor-not-allowed"
@@ -4047,13 +4323,35 @@ export default function LancamentosPage() {
               >
                 {translations.categorias.formulario.data} *
               </Label>
-              <Input
-                type="date"
-                value={formData.data}
-                onChange={(e) => handleChange("data", e.target.value)}
-                required
-                className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 w-full"
-              />
+              <Popover
+                modal={true}
+                open={isEditDatePickerOpen}
+                onOpenChange={setIsEditDatePickerOpen}
+              >
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-between bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 font-normal"
+                  >
+                    {formatarDataPicker(formData.data)}
+                    <CalendarIcon className="h-4 w-4 opacity-70" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="z-[60] w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={parseIsoDate(formData.data)}
+                    onSelect={(date) => {
+                      if (!date) return;
+                      handleChange("data", formatIsoDate(date));
+                      setIsEditDatePickerOpen(false);
+                    }}
+                    initialFocus
+                    locale={calendarLocale}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* Recorrência */}
@@ -4182,6 +4480,7 @@ export default function LancamentosPage() {
                       <Input
                         id="dataFimRecorrencia"
                         type="date"
+                        lang={dateInputLang}
                         value={formData.dataFimRecorrencia}
                         onChange={(e) =>
                           handleChange("dataFimRecorrencia", e.target.value)
